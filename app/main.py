@@ -445,7 +445,6 @@ async def add_cache_control_header(request: Request, call_next):
     return response
 
 
-#
 @app.middleware("http")
 async def check_suspension(request: Request, call_next):
     # Paths that suspended users can still access
