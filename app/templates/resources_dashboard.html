@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+
+{% block title %}Resource Dashboard | CareStance{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+
+<style>
+    .resource-card {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .resource-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 40px -12px rgba(139, 92, 246, 0.3);
+        border-color: rgba(139, 92, 246, 0.4);
+    }
+
+    .source-badge {
+        background: rgba(139, 92, 246, 0.1);
+        color: #8b5cf6;
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        border: 1px solid rgba(139, 92, 246, 0.2);
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .animate-in {
+        animation: fadeIn 0.6s ease-out forwards;
+    }
+</style>
+
+<div class="min-h-screen bg-[#0f172a] -mt-10 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-12">
+    <div class="max-w-7xl mx-auto space-y-10">
+        <!-- Header -->
+        <div class="relative overflow-hidden rounded-[2rem] bg-slate-900 p-8 sm:p-12 shadow-2xl border border-white/5">
+            <div
+                class="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 rounded-full bg-[#0b3b3c] blur-[120px] opacity-20">
+            </div>
+            <div
+                class="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 rounded-full bg-[#0b3b3c] blur-[120px] opacity-20">
+            </div>
+
+            <div class="relative z-10">
+                <nav class="flex mb-6 text-sm font-medium text-slate-400">
+                    <ol class="flex items-center space-x-2">
+                        <li><a href="/career/roadmaps" class="hover:text-[#1b5e5f] transition-colors">Roadmaps</a></li>
+                        <li><i class="fas fa-chevron-right text-[10px] mx-2"></i></li>
+                        <li><a href="/career/roadmap/{{ path.id }}" class="hover:text-[#1b5e5f] transition-colors">{{
+                                path.career_title }}</a></li>
+                        <li><i class="fas fa-chevron-right text-[10px] mx-2"></i></li>
+                        <li class="text-white">Resources</li>
+                    </ol>
+                </nav>
+
+                <h1 class="text-4xl sm:text-5xl font-black text-white tracking-tight leading-tight mb-4">
+                    Learning <span
+                        class="text-transparent bg-clip-text bg-gradient-to-r from-[#1b5e5f] to-[#1b5e5f]">Aggregator</span>
+                </h1>
+                <p class="text-slate-400 max-w-2xl text-lg mb-8">
+                    Curated high-quality resources for <strong>{{ path.career_title }}</strong>. Explore research
+                    papers, online lectures, and digital libraries.
+                </p>
+
+                <div class="flex flex-wrap gap-2">
+                    {% for kw in keywords %}
+                    <span
+                        class="px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-xs font-semibold text-slate-300">#
+                        {{ kw }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Recommendations -->
+        {% if ai_recommendations %}
+        <div class="space-y-6 animate-in" style="animation-delay: 0.1s">
+            <div class="flex items-center gap-3 px-2">
+                <div
+                    class="h-10 w-10 rounded-xl bg-[#0b3b3c] flex items-center justify-center text-white shadow-lg shadow-[#1b5e5f]/20">
+                    <i class="fas fa-magic"></i>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-black text-white tracking-tight">AI Premium Picks</h2>
+                    <p class="text-slate-400 text-sm font-medium">Selected by Groq Intelligence for elite learning</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {% for res in ai_recommendations %}
+                <div
+                    class="group bg-slate-900/80 border border-white/5 rounded-3xl p-6 hover:border-[#1b5e5f]/40 hover:bg-slate-800 transition-all duration-300 hover:-translate-y-2">
+                    <div class="flex items-center justify-between mb-4">
+                        <span
+                            class="px-3 py-1 bg-[#1b5e5f]/10 text-[#1b5e5f] text-[10px] font-black uppercase tracking-widest rounded-lg border border-[#1b5e5f]/20">{{
+                            res.type }}</span>
+                        <div
+                            class="h-8 w-8 rounded-lg bg-white/5 flex items-center justify-center text-slate-500 group-hover:text-[#1b5e5f] transition-colors">
+                            <i class="fas fa-link text-xs"></i>
+                        </div>
+                    </div>
+                    <h4 class="text-white font-bold mb-2 group-hover:text-[#a8ded9] transition-colors">{{ res.title }}
+                    </h4>
+                    <p class="text-slate-400 text-xs leading-relaxed mb-6">{{ res.description }}</p>
+                    <a href="{{ res.link }}" target="_blank"
+                        class="flex items-center text-[#1b5e5f] text-xs font-black uppercase tracking-widest gap-2 group/btn">
+                        Access Resource <i
+                            class="fas fa-external-link-alt group-hover/btn:translate-x-1 transition-transform"></i>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Resource Grid Header -->
+        <div class="flex items-center gap-3 px-2 mt-12 mb-6">
+            <div
+                class="h-10 w-10 rounded-xl bg-slate-800 flex items-center justify-center text-slate-400 border border-white/5">
+                <i class="fas fa-database"></i>
+            </div>
+            <div>
+                <h2 class="text-2xl font-black text-white tracking-tight">Broad Aggregator</h2>
+                <p class="text-slate-400 text-sm font-medium">Search across massive global databases</p>
+            </div>
+        </div>
+
+        <!-- Resource Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+            <!-- NDLI -->
+            <a href="{{ resources.ndli }}" target="_blank"
+                class="resource-card group bg-slate-900 rounded-[2rem] p-8 animate-in border border-white/5 hover:border-[#1b5e5f]/30"
+                style="animation-delay: 0.1s">
+                <div class="flex items-start justify-between mb-6">
+                    <div
+                        class="h-14 w-14 rounded-2xl bg-orange-500/10 flex items-center justify-center text-orange-500">
+                        <i class="fas fa-book-reader text-2xl"></i>
+                    </div>
+                    <span class="source-badge">NDLI Search</span>
+                </div>
+                <h3 class="text-2xl font-bold text-white mb-3 group-hover:text-orange-400 transition-colors">National
+                    Digital Library of India</h3>
+                <p class="text-slate-400 text-sm leading-relaxed mb-6">
+                    Access a vast collection of academic resources, from textbooks to rare manuscripts, digitized for
+                    global access.
+                </p>
+                <div class="flex items-center text-orange-400 font-bold text-sm">
+                    Explore Library <i
+                        class="fas fa-arrow-right ml-2 group-hover:translate-x-2 transition-transform"></i>
+                </div>
+            </a>
+
+            <!-- arXiv -->
+            <a href="{{ resources.arxiv }}" target="_blank"
+                class="resource-card group bg-slate-900 rounded-[2rem] p-8 animate-in border border-white/5 hover:border-rose-500/30"
+                style="animation-delay: 0.2s">
+                <div class="flex items-start justify-between mb-6">
+                    <div class="h-14 w-14 rounded-2xl bg-rose-500/10 flex items-center justify-center text-rose-500">
+                        <i class="fas fa-file-alt text-2xl"></i>
+                    </div>
+                    <span class="source-badge">Research Papers</span>
+                </div>
+                <h3 class="text-2xl font-bold text-white mb-3 group-hover:text-rose-400 transition-colors">arXiv Open
+                    Access</h3>
+                <p class="text-slate-400 text-sm leading-relaxed mb-6">
+                    Stay updated with the latest pre-print research papers in Physics, Mathematics, Computer Science,
+                    and
+                    Quantitative Biology.
+                </p>
+                <div class="flex items-center text-rose-400 font-bold text-sm">
+                    Read Papers <i class="fas fa-arrow-right ml-2 group-hover:translate-x-2 transition-transform"></i>
+                </div>
+            </a>
+
+            <!-- YouTube -->
+            <a href="{{ resources.youtube }}" target="_blank"
+                class="resource-card group bg-slate-900 rounded-[2rem] p-8 animate-in border border-white/5 hover:border-red-500/30"
+                style="animation-delay: 0.3s">
+                <div class="flex items-start justify-between mb-6">
+                    <div class="h-14 w-14 rounded-2xl bg-red-500/10 flex items-center justify-center text-red-500">
+                        <i class="fab fa-youtube text-2xl"></i>
+                    </div>
+                    <span class="source-badge">Video Lectures</span>
+                </div>
+                <h3 class="text-2xl font-bold text-white mb-3 group-hover:text-red-400 transition-colors">YouTube
+                    Learning</h3>
+                <p class="text-slate-400 text-sm leading-relaxed mb-6">
+                    Find full-length university lectures, tutorials, and crash courses tailored to your specific career
+                    keywords.
+                </p>
+                <div class="flex items-center text-red-400 font-bold text-sm">
+                    Watch Videos <i class="fas fa-arrow-right ml-2 group-hover:translate-x-2 transition-transform"></i>
+                </div>
+            </a>
+
+            <!-- Google Scholar -->
+            <a href="{{ resources.scholar }}" target="_blank"
+                class="resource-card group bg-slate-900 rounded-[2rem] p-8 animate-in border border-white/5 hover:border-blue-500/30"
+                style="animation-delay: 0.4s">
+                <div class="flex items-start justify-between mb-6">
+                    <div class="h-14 w-14 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500">
+                        <i class="fas fa-graduation-cap text-2xl"></i>
+                    </div>
+                    <span class="source-badge">Academic Search</span>
+                </div>
+                <h3 class="text-2xl font-bold text-white mb-3 group-hover:text-blue-400 transition-colors">Google
+                    Scholar
+                </h3>
+                <p class="text-slate-400 text-sm leading-relaxed mb-6">
+                    Search across a wide variety of disciplines and sources: articles, theses, books, abstracts and
+                    court opinions.
+                </p>
+                <div class="flex items-center text-blue-400 font-bold text-sm">
+                    Search Scholar <i
+                        class="fas fa-arrow-right ml-2 group-hover:translate-x-2 transition-transform"></i>
+                </div>
+            </a>
+
+        </div>
+
+        <!-- Empty State / Tips -->
+        <div
+            class="bg-[#0b3b3c]/10 border border-[#1b5e5f]/20 rounded-[2rem] p-8 flex flex-col md:flex-row items-center gap-6">
+            <div
+                class="h-16 w-16 shrink-0 rounded-2xl bg-[#0b3b3c] flex items-center justify-center text-white text-2xl shadow-lg">
+                <i class="fas fa-lightbulb"></i>
+            </div>
+            <div>
+                <h4 class="text-xl font-bold text-white mb-1">Pro Tip: Filter your searches</h4>
+                <p class="text-slate-300/70 text-sm">
+                    Use the keywords provided above in the search bars of these platforms to narrow down results even
+                    further. Aggregated links provide a broad starting point for your research.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

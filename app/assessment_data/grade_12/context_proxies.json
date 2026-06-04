@@ -1,0 +1,176 @@
+{
+  "context_questions": [
+    {
+      "question_id": "Q401",
+      "proxy_target": "Family Financial Proxy / Household Asset Liquidity",
+      "question_text": "When your primary computing device breaks down or requires an immediate hardware upgrade to execute modern production workflows or software pipelines, how is the structural disruption typically managed by your household?",
+      "options": [
+        {
+          "option_id": "O1",
+          "option_text": "The device is not replaced or upgraded immediately; I rely indefinitely on shared family hardware, public library assets, or school computer labs due to immediate capital constraints.",
+          "environmental_multiplier_impact": {
+            "capital_liquidity_tier": 1,
+            "parental_resistance_coefficient": 0.65,
+            "social_mobility_index": 0.25
+          }
+        },
+        {
+          "option_id": "O2",
+          "option_text": "The hardware is eventually serviced or replaced with a mid-tier consumer alternative, but the procurement is delayed to line up with future credit billing cycles or retail promotional windows.",
+          "environmental_multiplier_impact": {
+            "capital_liquidity_tier": 2,
+            "parental_resistance_coefficient": 0.45,
+            "social_mobility_index": 0.55
+          }
+        },
+        {
+          "option_id": "O3",
+          "option_text": "The hardware is professionally repaired or replaced within a 48-hour window with a high-performance modern laptop or desktop without creating an observable constraint on household monthly disposable capital.",
+          "environmental_multiplier_impact": {
+            "capital_liquidity_tier": 3,
+            "parental_resistance_coefficient": 0.25,
+            "social_mobility_index": 0.80
+          }
+        },
+        {
+          "option_id": "O4",
+          "option_text": "The situation is trivial; I concurrently operate within an ecosystem of multiple high-end personal computing devices (e.g., workstation, tablet, laptop) backed by immediate retail replacement or enterprise support coverage.",
+          "environmental_multiplier_impact": {
+            "capital_liquidity_tier": 4,
+            "parental_resistance_coefficient": 0.15,
+            "social_mobility_index": 0.95
+          }
+        }
+      ]
+    },
+    {
+      "question_id": "Q402",
+      "proxy_target": "Parental Expectations and Career Veto Profile",
+      "question_text": "Which statement most accurately formalizes the operational decision-making hierarchy inside your family unit regarding your impending higher education major or long-term vocational selection?",
+      "options": [
+        {
+          "option_id": "O1",
+          "option_text": "Sovereign Command / Absolute Veto: My family explicitly designates specific high-status target career paths (e.g., Medicine, Engineering, Corporate Law) and maintains absolute authority over funding and structural approval.",
+          "environmental_multiplier_impact": {
+            "capital_liquidity_tier": 3,
+            "parental_resistance_coefficient": 0.95,
+            "social_mobility_index": 0.60
+          }
+        },
+        {
+          "option_id": "O2",
+          "option_text": "Conditional Alignment / Financial Counsel: My family permits individual choice, but strictly enforces heavy boundary constraints regarding immediate economic stability, corporate employment capacity, or immediate capital return on investment.",
+          "environmental_multiplier_impact": {
+            "capital_liquidity_tier": 2,
+            "parental_resistance_coefficient": 0.65,
+            "social_mobility_index": 0.50
+          }
+        },
+        {
+          "option_id": "O3",
+          "option_text": "Collaborative Advisory: My family acts as an iterative consulting group, outlining objective external risks and processing strategic options alongside me, but ultimately yields full executive autonomy to my personal assessment data.",
+          "environmental_multiplier_impact": {
+            "capital_liquidity_tier": 2,
+            "parental_resistance_coefficient": 0.35,
+            "social_mobility_index": 0.75
+          }
+        },
+        {
+          "option_id": "O4",
+          "option_text": "Direct Spectator / Structural Disconnection: My family operates completely detached from the operational choices or technical nuances of my educational selection, verifying outcomes without inserting directional metrics or tracking limitations.",
+          "environmental_multiplier_impact": {
+            "capital_liquidity_tier": 1,
+            "parental_resistance_coefficient": 0.10,
+            "social_mobility_index": 0.35
+          }
+        }
+      ]
+    },
+    {
+      "question_id": "Q403",
+      "proxy_target": "Structural Academic Entry Range & Cohort Percentile",
+      "question_text": "Based on your verified historical performance across standardized mock evaluations, board exams, or internal institutional rankings, what is your predictable academic clearing threshold?",
+      "options": [
+        {
+          "option_id": "O1",
+          "option_text": "Hyper-Selective Tier: Positioned consistently within the upper 1% to 5% of my regional or national academic cohort; systematically cleared for tier-1 public university allocations or merit-based fee waivers.",
+          "environmental_multiplier_impact": {
+            "capital_liquidity_tier": 2,
+            "parental_resistance_coefficient": 0.50,
+            "social_mobility_index": 0.90
+          }
+        },
+        {
+          "option_id": "O2",
+          "option_text": "High-Merit Competitive Tier: Positioned within the top 6% to 20% of the cohort; confidently matching standard entry requirements for elite private institutions or competitive majors, subject to subtle context balancing.",
+          "environmental_multiplier_impact": {
+            "capital_liquidity_tier": 2,
+            "parental_resistance_coefficient": 0.40,
+            "social_mobility_index": 0.75
+          }
+        },
+        {
+          "option_id": "O3",
+          "option_text": "Mainstream/Stabilized Competency Tier: Located between the 21st and 50th percentiles of the institutional evaluation curve; pacing accurately for state university systems or generalist undergraduate programs without advanced entry conditions.",
+          "environmental_multiplier_impact": {
+            "capital_liquidity_tier": 2,
+            "parental_resistance_coefficient": 0.30,
+            "social_mobility_index": 0.50
+          }
+        },
+        {
+          "option_id": "O4",
+          "option_text": "Alternative/Open Enrollment Tier: Operating below the 50th percentile mark; looking to utilize open-admission polytechnic networks, localized vocational pipelines, or immediate, non-credentialed workforce integration.",
+          "environmental_multiplier_impact": {
+            "capital_liquidity_tier": 1,
+            "parental_resistance_coefficient": 0.20,
+            "social_mobility_index": 0.20
+          }
+        }
+      ]
+    },
+    {
+      "question_id": "Q404",
+      "proxy_target": "Network Social Capital & Professional Mentorship Index",
+      "question_text": "If your chosen career track required an immediate, unpaid tactical industry shadowing placement or a critical endorsement letter from a domain authority, how direct is your household network’s leverage to extract that placement?",
+      "options": [
+        {
+          "option_id": "O1",
+          "option_text": "Total Network Void: I am an explicit first-generation higher education applicant. No individual in my immediate or extended household possesses a corporate matrix position, legacy industry credential, or post-graduate degree.",
+          "environmental_multiplier_impact": {
+            "capital_liquidity_tier": 1,
+            "parental_resistance_coefficient": 0.55,
+            "social_mobility_index": 0.15
+          }
+        },
+        {
+          "option_id": "O2",
+          "option_text": "Peripheral Academic/White-Collar Footprint: Isolated household members or neighbors hold generalized baseline bachelor degrees or manage non-specialized bureaucratic operations, but lack direct channels into elite economic or technical circles.",
+          "environmental_multiplier_impact": {
+            "capital_liquidity_tier": 2,
+            "parental_resistance_coefficient": 0.45,
+            "social_mobility_index": 0.45
+          }
+        },
+        {
+          "option_id": "O3",
+          "option_text": "Localized Professional Infrastructure: My parents, close family friends, or immediate relatives are established mid-to-senior tier professionals, technical managers, or local business operators capable of engineering regional introductions.",
+          "environmental_multiplier_impact": {
+            "capital_liquidity_tier": 3,
+            "parental_resistance_coefficient": 0.35,
+            "social_mobility_index": 0.70
+          }
+        },
+        {
+          "option_id": "O4",
+          "option_text": "Elite Interlocking Capital: My immediate family tree contains senior management executives, prominent researchers, high-ranking institutional officials, or enterprise founders who can unlock high-level mentorship vectors by direct prompt.",
+          "environmental_multiplier_impact": {
+            "capital_liquidity_tier": 4,
+            "parental_resistance_coefficient": 0.20,
+            "social_mobility_index": 0.98
+          }
+        }
+      ]
+    }
+  ]
+}

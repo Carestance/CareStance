@@ -1,0 +1,229 @@
+{
+  "noise_cancellation_ruleset": [
+    {
+      "noise_factor_name": "Social Desirability Bias (SDB) Over-indexing",
+      "id": "N001",
+      "source_dependencies": [
+        "Phase_1_swipe_positives_ALT",
+        "Phase_2_explicit_altruism_claims",
+        "Phase_1_dwell_ms"
+      ],
+      "mathematical_trigger_condition": "Abs(Phase_2_explicit_altruism_claims - Phase_1_swipe_positives_ALT) > 0.65 && Mean(Phase_1_dwell_ms) < 1200",
+      "dampening_coefficient_targets": [
+        "Non-Profit Management",
+        "Public Health Administration",
+        "Clinical Social Work"
+      ]
+    },
+    {
+      "noise_factor_name": "Parental Dictated Veto Inflation",
+      "id": "N002",
+      "source_dependencies": [
+        "Phase_4_Q402_parental_veto",
+        "Phase_1_top_latent_vectors",
+        "Phase_2_riasec_score_artistic"
+      ],
+      "mathematical_trigger_condition": "Phase_4_Q402 == 'O1' && Cosine_Similarity(Phase_1_top_latent_vectors, [Corporate_Law, Medicine, Engineering]) < 0.35 && Phase_2_riasec_score_artistic > 0.75",
+      "dampening_coefficient_targets": [
+        "Fine Arts Studio",
+        "Creative Writing",
+        "Independent Video Game Design"
+      ]
+    },
+    {
+      "noise_factor_name": "Fatigue-Induced Rapid Swipe Drift",
+      "id": "N003",
+      "source_dependencies": [
+        "Phase_1_reaction_ms_distribution",
+        "Phase_1_card_index_range_45_60"
+      ],
+      "mathematical_trigger_condition": "Mean(Phase_1_reaction_ms[45:60]) < 280ms && Variance(Phase_1_reaction_ms[45:60]) < 45ms",
+      "dampening_coefficient_targets": [
+        "All_Career_Clusters_Calculated_In_Trailing_Window_45_60"
+      ]
+    },
+    {
+      "noise_factor_name": "Prestige Illusion Trapping",
+      "id": "N004",
+      "source_dependencies": [
+        "Phase_1_high_prestige_keywords_swipe",
+        "Phase_3_turn_4_anonymous_preference"
+      ],
+      "mathematical_trigger_condition": "Phase_3_turn_4_anonymous_preference == 'low_status_task_retention' && Phase_1_high_prestige_keywords_swipe > 0.88",
+      "dampening_coefficient_targets": [
+        "Investment Banking M&A",
+        "Elite Strategy Consulting",
+        "Neurosurgery Residency"
+      ]
+    },
+    {
+      "noise_factor_name": "Choice Paralysis Hesitation Drift",
+      "id": "N005",
+      "source_dependencies": [
+        "Phase_1_hesitation_ms",
+        "Phase_3_turn_2_structural_void"
+      ],
+      "mathematical_trigger_condition": "Count(Phase_1_hesitation_ms > 5000ms) > 12 && Phase_3_turn_2_structural_void == 'acute_structural_void_anxiety'",
+      "dampening_coefficient_targets": [
+        "High-Frequency Algorithmic Trading",
+        "Emergency Medicine Trauma Operations",
+        "Live Broadcast Technical Direction"
+      ]
+    },
+    {
+      "noise_factor_name": "Socioeconomic Liquidity Distress Skew",
+      "id": "N006",
+      "source_dependencies": [
+        "Phase_4_Q401_capital_liquidity",
+        "Phase_1_FIN_weight_sum"
+      ],
+      "mathematical_trigger_condition": "Phase_4_Q401 == 'O1' && Phase_1_FIN_weight_sum > 0.80",
+      "dampening_coefficient_targets": [
+        "Pure Theoretical Physics Research",
+        "Classical Philosophy Academia",
+        "Fine Art Archival Conservation"
+      ]
+    },
+    {
+      "noise_factor_name": "Acquiescence Response Bias (Yay-Saying)",
+      "id": "N007",
+      "source_dependencies": [
+        "Phase_1_swipe_right_ratio",
+        "Phase_2_user_sentiment_scores"
+      ],
+      "mathematical_trigger_condition": "Phase_1_swipe_right_ratio > 0.92 || Mean(Phase_2_user_sentiment_scores) > 0.88",
+      "dampening_coefficient_targets": [
+        "Enterprise B2B Software Engineering",
+        "Quantitative Risk Control",
+        "Corporate Financial Auditing"
+      ]
+    },
+    {
+      "noise_factor_name": "Extreme Response Polarization Style",
+      "id": "N008",
+      "source_dependencies": [
+        "Phase_2_riasec_vector_variance",
+        "Phase_1_dwell_ms_extremes"
+      ],
+      "mathematical_trigger_condition": "Variance(Phase_2_riasec_vector) > 0.90 && Count(Phase_1_dwell_ms > 12000ms) > 8",
+      "dampening_coefficient_targets": [
+        "Generalist Product Management",
+        "Operations Logistics Coordination",
+        "Human Resource Operations"
+      ]
+    },
+    {
+      "noise_factor_name": "Superficial Visual/Aesthetic Drift",
+      "id": "N009",
+      "source_dependencies": [
+        "Phase_1_AES_correlation",
+        "Phase_1_card_visual_complexity_index",
+        "Phase_1_LOG_correlation"
+      ],
+      "mathematical_trigger_condition": "Correlation(Phase_1_swipes, Phase_1_card_visual_complexity_index) > 0.75 && Phase_1_LOG_correlation < 0.15",
+      "dampening_coefficient_targets": [
+        "Data Engineering Pipelines",
+        "Actuarial Mathematics",
+        "Embedded Systems Architecture"
+      ]
+    },
+    {
+      "noise_factor_name": "Conversational Mimicry (Echoing Effect)",
+      "id": "N010",
+      "source_dependencies": [
+        "Phase_2_user_text_embeddings",
+        "Phase_2_mentor_prompt_embeddings"
+      ],
+      "mathematical_trigger_condition": "Cosine_Similarity(Phase_2_user_text_embeddings, Phase_2_mentor_prompt_embeddings) > 0.89",
+      "dampening_coefficient_targets": [
+        "Strategic Global Diplomacy",
+        "Crisis PR Management",
+        "Adversarial Corporate Litigation"
+      ]
+    },
+    {
+      "noise_factor_name": "Recency Media Exposure Bias",
+      "id": "N011",
+      "source_dependencies": [
+        "Phase_4_recent_media_exposure",
+        "Phase_1_top_swiped_cluster_tags"
+      ],
+      "mathematical_trigger_condition": "Intersect(Phase_4_recent_media_exposure, Phase_1_top_swiped_cluster_tags) == True",
+      "dampening_coefficient_targets": [
+        "Forensic Pathology Clinic",
+        "Aerospace Propulsion Engineering",
+        "Observational Astrophysics Research"
+      ]
+    },
+    {
+      "noise_factor_name": "Dunning-Kruger Competence Disconnect",
+      "id": "N012",
+      "source_dependencies": [
+        "Phase_4_Q403_academic_tier",
+        "Phase_2_investigative_score"
+      ],
+      "mathematical_trigger_condition": "Phase_4_Q403 == 'O4' && Phase_2_investigative_score > 0.85",
+      "dampening_coefficient_targets": [
+        "Quantitative Research Systems",
+        "Quantum Computing Hardware Engineering",
+        "Deep Machine Learning Infrastructure"
+      ]
+    },
+    {
+      "noise_factor_name": "Network Capital Leverage Illusion",
+      "id": "N013",
+      "source_dependencies": [
+        "Phase_4_Q404_social_capital",
+        "Phase_2_enterprising_score"
+      ],
+      "mathematical_trigger_condition": "Phase_4_Q404 == 'O4' && Phase_2_enterprising_score > 0.90",
+      "dampening_coefficient_targets": [
+        "Venture Capital Deal Sourcing",
+        "High-End Commercial Brokerage",
+        "Federal Lobbying & Regulatory Affairs"
+      ]
+    },
+    {
+      "noise_factor_name": "External Validation Metric Distortion",
+      "id": "N014",
+      "source_dependencies": [
+        "Phase_3_turn_1_interest_validation",
+        "Phase_1_LDR_weight_sum"
+      ],
+      "mathematical_trigger_condition": "Phase_3_turn_1_interest_validation == 'external_tracking_validation' && Phase_1_LDR_weight_sum > 0.78",
+      "dampening_coefficient_targets": [
+        "Linux Kernel Open Source Contributor",
+        "Remote Linux Systems Administrator",
+        "Back-End Database Infrastructure Engineering"
+      ]
+    },
+    {
+      "noise_factor_name": "Identity Boundary Overcorrection Bias",
+      "id": "N015",
+      "source_dependencies": [
+        "Phase_3_turn_5_dismissed_career",
+        "Phase_1_cluster_proximity_index"
+      ],
+      "mathematical_trigger_condition": "Distance(Phase_1_highest_indexed_cluster, Phase_3_turn_5_dismissed_career_archetype) < 0.12",
+      "dampening_coefficient_targets": [
+        "Corporate Strategy Design",
+        "Asset Allocation Management",
+        "Cross-Border Mergers & Acquisitions"
+      ]
+    },
+    {
+      "noise_factor_name": "Ambiguity Intolerance Systemic Freeze",
+      "id": "N016",
+      "source_dependencies": [
+        "Phase_3_turn_2_structural_void",
+        "Phase_1_AMB_weight_sum"
+      ],
+      "mathematical_trigger_condition": "Phase_3_turn_2_structural_void == 'acute_structural_void_anxiety' && Phase_1_AMB_weight_sum < -0.65",
+      "dampening_coefficient_targets": [
+        "Seed-Stage Startup Technical Architecture",
+        "Speculative Biotechnology R&D Lab",
+        "Abstract Pure Mathematics Academia"
+      ]
+    }
+  ]
+}

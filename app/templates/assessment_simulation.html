@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}Career Simulation: {{ career_title }}{% endblock %}
+
+{% block extra_head %}
+<style>
+    .simulation-container {
+        min-height: calc(100vh - 64px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        background: radial-gradient(circle at top right, #fefcf5, #f0e9de);
+    }
+
+    .sim-card {
+        background: #ffffff;
+        border-radius: 2.5rem;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        max-width: 800px;
+        overflow: hidden;
+        border: 1px solid #e9e2d4;
+        position: relative;
+    }
+
+    .sim-header {
+        padding: 2rem 3rem;
+        background: #0b3b3c;
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .sim-body {
+        padding: 3rem;
+    }
+
+    .progress-track {
+        height: 6px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 3px;
+        width: 150px;
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: #d97706;
+        transition: width 0.5s ease;
+    }
+
+    .scenario-text {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-size: 1.5rem;
+        line-height: 1.5;
+        color: #1a202c;
+        margin-bottom: 2rem;
+        font-weight: 600;
+    }
+
+    .answer-box {
+        width: 100%;
+        border: 2px solid #e9e2d4;
+        border-radius: 1.5rem;
+        padding: 1.5rem;
+        font-size: 1.1rem;
+        font-family: 'Inter', sans-serif;
+        min-height: 200px;
+        transition: all 0.3s ease;
+        resize: none;
+        outline: none;
+    }
+
+    .answer-box:focus {
+        border-color: #0b3b3c;
+        box-shadow: 0 0 0 4px rgba(11, 59, 60, 0.1);
+    }
+
+    .sim-footer {
+        padding: 2rem 3rem;
+        border-top: 1px solid #e9e2d4;
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .btn-sim {
+        padding: 1rem 2.5rem;
+        border-radius: 1.25rem;
+        font-weight: 700;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .btn-next {
+        background: #0b3b3c;
+        color: white;
+        border: none;
+        box-shadow: 0 4px 14px rgba(11, 59, 60, 0.2);
+    }
+
+    .btn-next:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(11, 59, 60, 0.3);
+    }
+
+    .step-indicator {
+        font-size: 0.875rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: #a8ded9;
+        margin-bottom: 0.5rem;
+    }
+
+    .badge-career {
+        background: rgba(217, 119, 6, 0.1);
+        color: #d97706;
+        padding: 0.5rem 1rem;
+        border-radius: 1rem;
+        font-weight: 700;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="simulation-container">
+    <div class="sim-card" data-aos="fade-up">
+        <div class="sim-header">
+            <div>
+                <p class="step-indicator">Scenario {{ index + 1 }} of {{ total }}</p>
+                <div class="flex items-center gap-3">
+                    <span class="badge-career">{% if 'PCM' in career_title or 'PCB' in career_title or 'Commerce' in
+                        career_title or 'Arts' in career_title or 'Humanities' in career_title %}Academic Discovery{%
+                        else %}{{ career_title }} Simulation{% endif %}</span>
+                </div>
+            </div>
+            <div class="flex flex-col items-end">
+                <p class="text-xs font-bold mb-2 uppercase opacity-70">Progress</p>
+                <div class="progress-track">
+                    <div class="progress-fill" style="width: {{ progress }}%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <form action="/assessment/simulation/answer" method="post">
+            <input type="hidden" name="index" value="{{ index }}">
+
+            <div class="sim-body">
+                <div class="scenario-text">
+                    "{{ question }}"
+                </div>
+
+                <textarea name="answer" class="answer-box"
+                    placeholder="How would you handle this situation? Be as descriptive as possible..." required
+                    autofocus></textarea>
+            </div>
+
+            <div class="sim-footer">
+                <button type="submit" class="btn-sim btn-next">
+                    <span>{{ "Next Scenario" if index + 1 < total else "Finish Simulation" }}</span>
+                            <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

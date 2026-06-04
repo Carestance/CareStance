@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+
+{% block title %}Simulation Verdict | CareStance{% endblock %}
+
+{% block extra_head %}
+<style>
+    .result-container {
+        padding: 4rem 2rem;
+        background: #fefcf5;
+        min-height: 100vh;
+    }
+
+    .score-card {
+        background: #ffffff;
+        border-radius: 3rem;
+        overflow: hidden;
+        box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.08);
+        border: 1px solid #e9e2d4;
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+    .score-hero {
+        background: #0b3b3c;
+        color: white;
+        padding: 4rem 3rem;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .score-circle {
+        width: 180px;
+        height: 180px;
+        border: 8px solid rgba(255, 255, 255, 0.1);
+        border-top-color: #d97706;
+        border-radius: 50%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 2rem;
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        animation: rotateScore 1.5s ease-out;
+    }
+
+    @keyframes rotateScore {
+        from {
+            transform: scale(0.5) rotate(-180deg);
+            opacity: 0;
+        }
+
+        to {
+            transform: scale(1) rotate(0deg);
+            opacity: 1;
+        }
+    }
+
+    .score-value {
+        font-size: 3.5rem;
+        font-weight: 900;
+        line-height: 1;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    .score-label {
+        font-size: 0.75rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+        opacity: 0.7;
+    }
+
+    .verdict-body {
+        padding: 4rem;
+    }
+
+    .summary-text {
+        font-size: 1.25rem;
+        line-height: 1.7;
+        color: #4a5568;
+        margin-bottom: 3rem;
+        font-weight: 500;
+        font-style: italic;
+    }
+
+    .grid-analysis {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2.5rem;
+    }
+
+    .analysis-section {
+        background: #fcfaf6;
+        padding: 2.5rem;
+        border-radius: 2rem;
+        border: 1px solid #f0e9de;
+    }
+
+    .analysis-title {
+        font-size: 1.1rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .strength-item {
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        font-weight: 600;
+        color: #2d3748;
+    }
+
+    .strength-item i {
+        color: #10b981;
+        margin-top: 0.25rem;
+    }
+
+    .improvement-item {
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        font-weight: 600;
+        color: #2d3748;
+    }
+
+    .improvement-item i {
+        color: #d97706;
+        margin-top: 0.25rem;
+    }
+
+    .btn-action {
+        display: block;
+        width: 100%;
+        text-align: center;
+        padding: 1.25rem;
+        border-radius: 1.5rem;
+        font-weight: 800;
+        margin-top: 3rem;
+        transition: all 0.3s ease;
+    }
+
+    .btn-back {
+        background: #0b3b3c;
+        color: white;
+        text-decoration: none;
+        box-shadow: 0 10px 25px -5px rgba(11, 59, 60, 0.3);
+    }
+
+    .btn-back:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 20px 35px -5px rgba(11, 59, 60, 0.4);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="result-container">
+    <div class="score-card" data-aos="zoom-in">
+        <div class="score-hero">
+            <div class="score-circle">
+                <span class="score-value">{{ evaluation.match_score }}</span>
+                <span class="score-label">Career Match</span>
+            </div>
+            <h1 class="text-3xl font-black mb-2">{{ career }}</h1>
+            <p class="opacity-70 font-bold uppercase tracking-widest text-xs">Final Simulation Result</p>
+
+            {% if is_public_share %}
+            <div class="mt-6 flex justify-center">
+                <div
+                    class="px-4 py-1.5 bg-white/10 rounded-full text-white text-xs font-bold backdrop-blur-md border border-white/20">
+                    Generated for {{ owner.full_name }}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="verdict-body">
+            <div class="summary-text text-center">
+                “{{ evaluation.summary }}”
+            </div>
+
+            <div class="grid-analysis">
+                <div class="analysis-section">
+                    <h3 class="analysis-title" style="color: #10b981;">
+                        <i class="fas fa-bolt"></i> Key Strengths
+                    </h3>
+                    {% for strength in evaluation.strengths %}
+                    <div class="strength-item">
+                        <i class="fas fa-check-circle"></i>
+                        <span>{{ strength }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="analysis-section">
+                    <h3 class="analysis-title" style="color: #d97706;">
+                        <i class="fas fa-compass"></i> Growth Areas
+                    </h3>
+                    {% for area in evaluation.improvement_areas %}
+                    <div class="improvement-item">
+                        <i class="fas fa-arrow-alt-circle-right"></i>
+                        <span>{{ area }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            {% if not is_public_share %}
+            <a href="/assessment/result" class="btn-action btn-back">
+                Return to Career Dashboard
+            </a>
+            {% else %}
+            <a href="/signup" class="btn-action btn-back" style="background: #d97706;">
+                Get Your Own Career Blueprint
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

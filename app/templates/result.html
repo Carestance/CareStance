@@ -1,0 +1,597 @@
+{% extends "base.html" %}
+
+{% block adsense %}
+<!-- AdSense removed from authenticated/functional screens per Google Policy -->
+{% endblock %}
+
+{% block title %}Your Career Blueprint | CareStance{% endblock %}
+
+{% block extra_head %}
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- Open Graph / Facebook -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="{{ request.base_url }}share/report/{{ result.id }}">
+<meta property="og:title" content="Career Blueprint: {{ result.recommended_stream if result.recommended_stream else result.personality }}">
+<meta property="og:description" content="🚀 I just created my Career Blueprint on CareerStance! My personality profile: {{ result.personality }}. Build your own at carestance.me #CareerStance">
+<meta property="og:image" content="{{ request.base_url }}static/images/image.png">
+
+<!-- Twitter -->
+<meta property="twitter:card" content="summary_large_image">
+<meta property="twitter:url" content="{{ request.base_url }}share/report/{{ result.id }}">
+<meta property="twitter:title" content="Career Blueprint: {{ result.recommended_stream if result.recommended_stream else result.personality }}">
+<meta property="twitter:description" content="🚀 I just created my Career Blueprint on CareerStance! My personality profile: {{ result.personality }}">
+<meta property="twitter:image" content="{{ request.base_url }}static/images/image.png">
+
+<style>
+    :root {
+        --dark-bg: #050d0e;
+        --dark-card: rgba(13, 29, 31, 0.75);
+        --neon-cyan: #00f2ff;
+        --neon-purple: #8b5cff;
+        --neon-emerald: #00ff88;
+        --neon-amber: #ffaa00;
+        --neon-rose: #ff2a6d;
+        --glow-cyan: rgba(0, 242, 255, 0.2);
+        --glow-purple: rgba(139, 92, 255, 0.2);
+        --glow-emerald: rgba(0, 255, 136, 0.2);
+        --glow-amber: rgba(255, 170, 0, 0.2);
+        --glow-rose: rgba(255, 42, 109, 0.2);
+        --text-bright: #e4f7f8;
+        --text-dim: #7f999c;
+        --glass-border: rgba(255, 255, 255, 0.06);
+    }
+
+    body {
+        font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+        background: linear-gradient(135deg, #050d0e 0%, #030606 100%) !important;
+        color: var(--text-bright);
+    }
+
+    /* Glowing Accents */
+    .cyber-bg-glow {
+        position: fixed;
+        width: 45vw;
+        height: 45vw;
+        border-radius: 50%;
+        background: radial-gradient(circle, var(--glow-purple) 0%, transparent 70%);
+        filter: blur(130px);
+        opacity: 0.3;
+        z-index: 0;
+        top: -10%;
+        right: -10%;
+        pointer-events: none;
+    }
+
+    .cyber-bg-glow-2 {
+        position: fixed;
+        width: 45vw;
+        height: 45vw;
+        border-radius: 50%;
+        background: radial-gradient(circle, var(--glow-cyan) 0%, transparent 70%);
+        filter: blur(130px);
+        opacity: 0.3;
+        z-index: 0;
+        bottom: -10%;
+        left: -10%;
+        pointer-events: none;
+    }
+
+    .cyber-card {
+        background: var(--dark-card);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        border: 1px solid var(--glass-border);
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 30px rgba(0, 242, 255, 0.01) inset;
+        border-radius: 24px;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .cyber-card:hover {
+        border-color: rgba(0, 242, 255, 0.25);
+        box-shadow: 0 30px 60px rgba(0, 0, 0, 0.7), 0 0 40px rgba(0, 242, 255, 0.03) inset;
+        transform: translateY(-2px);
+    }
+
+    .neon-text-glow-cyan {
+        text-shadow: 0 0 8px rgba(0, 242, 255, 0.5);
+    }
+
+    .neon-text-glow-purple {
+        text-shadow: 0 0 8px rgba(139, 92, 255, 0.5);
+    }
+
+    .neon-text-glow-emerald {
+        text-shadow: 0 0 8px rgba(0, 255, 136, 0.5);
+    }
+
+    .riasec-bar {
+        height: 8px;
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.04);
+        overflow: hidden;
+        position: relative;
+    }
+
+    .riasec-bar-fill {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 1.2s cubic-bezier(0.1, 0.8, 0.3, 1);
+    }
+
+    .riasec-badge {
+        font-family: 'Outfit', sans-serif;
+        text-transform: uppercase;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        font-size: 0.75rem;
+    }
+
+    /* Print styling overrides */
+    @media print {
+        .no-print {
+            display: none !important;
+        }
+        body {
+            background: white !important;
+            color: black !important;
+        }
+        .cyber-card {
+            background: white !important;
+            color: black !important;
+            border: 1px solid #ddd !important;
+            box-shadow: none !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden" style="background: linear-gradient(135deg, #050d0e 0%, #030606 100%) !important;">
+    <!-- Outer Glowing Backgrounds -->
+    <div class="cyber-bg-glow"></div>
+    <div class="cyber-bg-glow-2"></div>
+
+    <div class="max-w-5xl mx-auto space-y-8 relative z-10">
+
+        {# Data Extraction & Normalization #}
+        {% set dominant_trait = result.assessment_report.get('riasec_analysis', {}).get('dominant_trait', result.personality) if result.assessment_report else result.personality %}
+        {% set narrative = result.assessment_report.get('riasec_analysis', {}).get('narrative_summary', result.reasoning) if result.assessment_report else result.reasoning %}
+        {% set riasec_vector = result.assessment_report.get('riasec_analysis', {}).get('riasec_vector', {}) if result.assessment_report else {} %}
+        {% set final_recs = result.assessment_report.get('final_recommendations', []) if result.assessment_report else [] %}
+
+        {% if not riasec_vector %}
+            {# Fallback vector creation #}
+            {% set d_code = 'I' %}
+            {% if dominant_trait == 'Realistic' %}{% set d_code = 'R' %}
+            {% elif dominant_trait == 'Investigative' %}{% set d_code = 'I' %}
+            {% elif dominant_trait == 'Artistic' %}{% set d_code = 'A' %}
+            {% elif dominant_trait == 'Social' %}{% set d_code = 'S' %}
+            {% elif dominant_trait == 'Enterprising' %}{% set d_code = 'E' %}
+            {% elif dominant_trait == 'Conventional' %}{% set d_code = 'C' %}{% endif %}
+            {% set riasec_vector = {'R': 5, 'I': 5, 'A': 5, 'S': 5, 'E': 5, 'C': 5} %}
+            {% if riasec_vector.update({d_code: 9}) %}{% endif %}
+        {% endif %}
+
+        {% if not final_recs and result.stream_pros and result.stream_pros[0] is mapping %}
+            {% set final_recs = result.stream_pros %}
+        {% endif %}
+
+        <!-- 1. HERO SECTION: Assessment Complete Archetype -->
+        {% if mode != 'minimal' %}
+        <div class="cyber-card p-8 md:p-12 border border-cyan-500/20 shadow-[0_0_50px_rgba(0,242,255,0.08)]">
+            <div class="absolute top-0 right-0 -mt-20 -mr-20 w-80 h-80 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute bottom-0 left-0 -mb-20 -ml-20 w-80 h-80 bg-purple-500/5 rounded-full blur-3xl pointer-events-none"></div>
+
+            <div class="relative z-10 text-center">
+                <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-xs font-black uppercase tracking-widest mb-6 text-cyan-400 backdrop-blur-md shadow-[0_0_15px_rgba(0,242,255,0.1)]">
+                    <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span>
+                    Interactive Blueprint Compiled
+                </div>
+
+                <h1 class="text-4xl md:text-6xl font-black mb-4 tracking-tight font-outfit text-white">
+                    {% if result.student_type == '10th' %}
+                        {{ result.recommended_stream }} Stream Alignment
+                    {% else %}
+                        {{ dominant_trait }} Archetype
+                    {% endif %}
+                </h1>
+                
+                <p class="text-lg mb-8 max-w-2xl mx-auto" style="color: var(--text-dim);">
+                    Calculated via standard offline O*NET metrics and local career discovery telemetry vectors.
+                </p>
+
+                <!-- Status Badges Grid -->
+                <div class="flex flex-wrap justify-center gap-4">
+                    <div class="bg-white/5 border border-white/10 rounded-2xl px-6 py-4 flex items-center gap-4 backdrop-blur-md">
+                        <div class="p-3 bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 rounded-xl">
+                            <i class="fas fa-fingerprint text-lg"></i>
+                        </div>
+                        <div class="text-left">
+                            <p class="text-[10px] uppercase font-black tracking-wider" style="color: var(--text-dim);">Dominant Trait</p>
+                            <p class="font-bold text-white text-base">{{ dominant_trait }}</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white/5 border border-white/10 rounded-2xl px-6 py-4 flex items-center gap-4 backdrop-blur-md">
+                        <div class="p-3 bg-purple-500/10 border border-purple-500/20 text-purple-400 rounded-xl">
+                            <i class="fas fa-compass text-lg"></i>
+                        </div>
+                        <div class="text-left">
+                            <p class="text-[10px] uppercase font-black tracking-wider" style="color: var(--text-dim);">Clarity Index</p>
+                            <p class="font-bold text-white text-base">Stable Calibration</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 2. ANALYSIS MATRIX & RIASEC SPECTRUM -->
+        {% if mode != 'minimal' %}
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Core Analytical Summary -->
+            <div class="lg:col-span-2 cyber-card p-8 flex flex-col justify-between">
+                <div>
+                    <h3 class="flex items-center gap-3 text-2xl font-black text-white mb-6 font-outfit">
+                        <i class="fas fa-microscope text-cyan-400"></i> Narrative Psychometric Analysis
+                    </h3>
+                    <div class="prose prose-invert max-w-none text-base leading-relaxed" style="color: var(--text-bright); font-family: 'Fira Code', monospace; font-size: 0.95rem;">
+                        {{ narrative }}
+                    </div>
+                </div>
+
+                <!-- Confidence calibration scale -->
+                <div class="mt-8 pt-6 border-t border-white/5">
+                    <div class="flex justify-between items-end mb-2">
+                        <h4 class="text-xs font-black uppercase tracking-widest" style="color: var(--text-dim);">AI Target Consistency</h4>
+                        <span class="text-xl font-black text-cyan-400 neon-text-glow-cyan">{{ ((display_confidence or result.confidence or 0.88) * 100) | round | int }}%</span>
+                    </div>
+                    <div class="h-3 bg-white/5 rounded-full overflow-hidden relative border border-white/5 shadow-inner">
+                        <div class="h-full rounded-full relative"
+                            style="background: linear-gradient(to right, var(--neon-cyan), var(--neon-purple)); width: {{ ((display_confidence or result.confidence or 0.88) * 100)|round|int }}%">
+                            <div class="absolute inset-0 bg-white/10 animate-[shimmer_2.5s_infinite]"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dynamic RIASEC Hex-Vector Visualization -->
+            <div class="lg:col-span-1 cyber-card p-8 flex flex-col justify-between">
+                <div>
+                    <h3 class="flex items-center gap-3 text-lg font-black text-white mb-6 font-outfit">
+                        <i class="fas fa-chart-bar text-purple-400"></i> RIASEC Vector Coordinates
+                    </h3>
+                    
+                    {% set traits = [
+                        ('R', 'Realistic', 'var(--neon-rose)'),
+                        ('I', 'Investigative', 'var(--neon-cyan)'),
+                        ('A', 'Artistic', 'var(--neon-purple)'),
+                        ('S', 'Social', 'var(--neon-emerald)'),
+                        ('E', 'Enterprising', 'var(--neon-amber)'),
+                        ('C', 'Conventional', '#a0b0b2')
+                    ] %}
+
+                    <div class="space-y-4">
+                        {% for code, name, color in traits %}
+                        {% set score = riasec_vector.get(code, 5.0) %}
+                        {% set percent = (score * 10) | int %}
+                        <div>
+                            <div class="flex justify-between text-xs font-bold mb-1">
+                                <span class="flex items-center gap-1.5 text-white">
+                                    <span class="w-1.5 h-1.5 rounded-full" style="background-color: {{ color }};"></span>
+                                    <span class="riasec-badge">{{ name }}</span>
+                                </span>
+                                <span style="color: {{ color }};">{{ score }}/10</span>
+                            </div>
+                            <div class="riasec-bar">
+                                <div class="riasec-bar-fill" style="width: {{ percent }}%; background-color: {{ color }}; box-shadow: 0 0 8px {{ color }}80;"></div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 3. GRADE 10 STREAM REC & SPECTRUM (G10 Specific) -->
+        {% if result.student_type == '10th' and result.recommended_stream %}
+        <div class="cyber-card p-8 border border-emerald-500/20 shadow-[0_0_40px_rgba(0,255,136,0.05)]">
+            <h2 class="text-2xl font-black text-white mb-6 font-outfit flex items-center gap-3">
+                <i class="fas fa-award text-emerald-400"></i> Stream Selection Detail
+            </h2>
+
+            <div class="grid md:grid-cols-3 gap-8 items-center">
+                <!-- Stream Hero badge -->
+                <div class="text-center p-6 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-md">
+                    <span class="text-xs font-black uppercase tracking-widest" style="color: var(--text-dim);">Recommended Option</span>
+                    <h3 class="text-3xl font-black text-emerald-400 neon-text-glow-emerald mt-2 mb-4 font-outfit">{{ result.recommended_stream }}</h3>
+                    <div class="w-20 h-20 rounded-full border-4 border-emerald-400/30 bg-emerald-400/10 flex items-center justify-center mx-auto text-emerald-400 text-3xl font-black">
+                        10
+                    </div>
+                </div>
+
+                <!-- Thinking Style Spectrum -->
+                <div class="md:col-span-2 space-y-4">
+                    <h4 class="text-sm font-black uppercase tracking-widest text-white mb-2">Academic Thinking Style Spectrum</h4>
+                    {% if result.stream_scores %}
+                        {% for style, score in result.stream_scores.items() %}
+                        {% set bar_color = 'var(--neon-cyan)' %}
+                        {% if style == 'Commerce' %}{% set bar_color = 'var(--neon-emerald)' %}
+                        {% elif style == 'Humanities' or style == 'Arts' %}{% set bar_color = 'var(--neon-purple)' %}{% endif %}
+                        <div>
+                            <div class="flex justify-between items-center text-xs font-bold mb-1">
+                                <span class="text-white">{{ style }} Thinking</span>
+                                <span style="color: {{ bar_color }};">{{ score }}%</span>
+                            </div>
+                            <div class="riasec-bar">
+                                <div class="riasec-bar-fill" style="width: {{ score }}%; background: {{ bar_color }}; box-shadow: 0 0 8px {{ bar_color }}80;"></div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Descriptive assessment report analysis -->
+            {% if result.final_analysis %}
+            <div class="mt-6 p-4 rounded-xl border border-cyan-500/10 bg-cyan-500/5 text-cyan-200 text-sm leading-relaxed">
+                <i class="fas fa-quote-left mr-2 text-cyan-400"></i>
+                {{ result.final_analysis }}
+            </div>
+            {% endif %}
+
+            <!-- Pros and Cons -->
+            <div class="grid md:grid-cols-2 gap-6 mt-8">
+                {% if result.stream_pros %}
+                <div class="p-6 bg-white/3 border border-white/5 rounded-2xl">
+                    <h4 class="font-black text-emerald-400 mb-4 flex items-center gap-2 text-sm uppercase tracking-wider">
+                        <i class="fas fa-thumbs-up"></i> Cognitive Strengths
+                    </h4>
+                    <ul class="space-y-2">
+                        {% for pro in result.stream_pros %}
+                        <li class="flex items-start text-xs leading-relaxed" style="color: var(--text-bright);">
+                            <i class="fas fa-check text-emerald-400 mt-0.5 mr-2 shrink-0"></i> {{ pro }}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                {% if result.stream_cons %}
+                <div class="p-6 bg-white/3 border border-white/5 rounded-2xl">
+                    <h4 class="font-black text-rose-400 mb-4 flex items-center gap-2 text-sm uppercase tracking-wider">
+                        <i class="fas fa-exclamation-triangle"></i> Structural Challenges
+                    </h4>
+                    <ul class="space-y-2">
+                        {% for con in result.stream_cons %}
+                        <li class="flex items-start text-xs leading-relaxed" style="color: var(--text-bright);">
+                            <i class="fas fa-minus text-rose-400 mt-0.5 mr-2 shrink-0"></i> {{ con }}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 4. RECOMMENDED CAREER PATHS (Standard Unified Grid for G10 & G12) -->
+        <div class="space-y-6">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h2 class="text-3xl font-extrabold tracking-tight font-outfit text-white">Recommended Career Paths</h2>
+                    <p class="text-sm" style="color: var(--text-dim);">Top O*NET predictions mapped to your local cognitive vectors.</p>
+                </div>
+                <button onclick="window.print()" class="no-print px-4 py-2 border border-cyan-500/30 hover:border-cyan-400 rounded-xl bg-cyan-500/10 text-cyan-400 text-xs font-black transition duration-200 flex items-center gap-2 shadow-[0_0_15px_rgba(0,242,255,0.05)]">
+                    <i class="fas fa-download"></i> Print Blueprint
+                </button>
+            </div>
+
+            <div class="space-y-6">
+                {% if final_recs %}
+                    {% for rec in final_recs %}
+                    {% set career_title = rec.career or rec.title %}
+                    {% set status = rec.feasibility_status or rec.status or "Optimal" %}
+                    {% set challenge = rec.pivot_notes or rec.reason %}
+                    
+                    <div class="cyber-card p-6 md:p-8 hover:border-cyan-500/30 duration-300">
+                        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                            
+                            <!-- Career Rank and Name -->
+                            <div class="flex items-start gap-4">
+                                <div class="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 font-black text-lg flex items-center justify-center shrink-0">
+                                    {{ loop.index }}
+                                </div>
+                                <div>
+                                    <h3 class="text-xl md:text-2xl font-black text-white font-outfit">{{ career_title }}</h3>
+                                    
+                                    <!-- Feasibility Badge -->
+                                    <div class="mt-2 flex flex-wrap gap-2 items-center">
+                                        {% if status == "Optimal" %}
+                                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black border border-emerald-500/30 text-emerald-400 bg-emerald-500/10 shadow-[0_0_10px_rgba(16,185,129,0.15)] flex items-center gap-1">
+                                                <span class="w-1 h-1 rounded-full bg-emerald-400 animate-pulse"></span>
+                                                Optimal Fit
+                                            </span>
+                                        {% elif status == "Pivot" %}
+                                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black border border-amber-500/30 text-amber-400 bg-amber-500/10 shadow-[0_0_10px_rgba(245,158,11,0.15)] flex items-center gap-1">
+                                                <span class="w-1 h-1 rounded-full bg-amber-400 animate-pulse"></span>
+                                                Pivot Strategy
+                                            </span>
+                                        {% else %}
+                                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black border border-rose-500/30 text-rose-400 bg-rose-500/10 shadow-[0_0_10px_rgba(244,63,94,0.15)] flex items-center gap-1">
+                                                <span class="w-1 h-1 rounded-full bg-rose-400 animate-pulse"></span>
+                                                High-Risk Pathway
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Interactive Actions -->
+                            <div class="no-print flex flex-wrap gap-3 shrink-0">
+                                <!-- Simulation discovery button -->
+                                <a href="/assessment/simulation/start/{{ career_title }}" 
+                                   class="px-4 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 hover:border-amber-400 text-amber-400 text-xs font-black transition duration-200 flex items-center gap-1.5 shadow-[0_0_15px_rgba(245,158,11,0.05)]">
+                                    <i class="fas fa-terminal"></i> Enter Sandbox Simulation
+                                </a>
+
+                                <button onclick="generateCollegeRecs('{{ career_title }}')"
+                                        class="px-4 py-2 rounded-xl bg-purple-500/10 border border-purple-500/30 hover:border-purple-400 text-purple-400 text-xs font-black transition duration-200 flex items-center gap-1.5 shadow-[0_0_15px_rgba(139,92,255,0.05)]">
+                                    <i class="fas fa-university"></i> Top Institutes
+                                </button>
+
+                                <button onclick="generateRoadmap('{{ career_title }}')"
+                                        class="px-4 py-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 hover:border-cyan-400 text-cyan-400 text-xs font-black transition duration-200 flex items-center gap-1.5 shadow-[0_0_15px_rgba(0,242,255,0.05)]">
+                                    <span>Core Roadmap</span>
+                                    <i class="fas fa-arrow-right"></i>
+                                </button>
+                            </div>
+
+                        </div>
+
+                        <!-- Honest Challenge Description Section -->
+                        <div class="mt-6 pt-4 border-t border-white/5">
+                            <h4 class="text-[10px] font-black uppercase tracking-wider mb-1" style="color: var(--text-dim);">Target Challenge Analysis</h4>
+                            <p class="text-xs leading-relaxed" style="color: var(--text-bright);">{{ challenge }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-12 bg-white/3 border border-white/5 rounded-2xl">
+                        <i class="fas fa-sync fa-spin text-2xl mb-2 text-cyan-400 animate-pulse"></i>
+                        <p class="text-xs" style="color: var(--text-dim);">Compiling top matching career tracks...</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 5. SOCIAL SHARE & NETWORKS (Glassmorphic Copy/Clip Section) -->
+        {% if mode != 'minimal' %}
+        <div class="no-print cyber-card p-8 border border-white/10 text-center">
+            <h3 class="text-white font-black text-xl mb-4 font-outfit flex items-center justify-center gap-2">
+                <i class="fas fa-share-alt text-cyan-400"></i> Share Your Blueprint
+            </h3>
+            
+            <div class="flex flex-wrap justify-center gap-4">
+                {% set share_url = request.base_url ~ "share/report/" ~ result.id %}
+                {% set share_text = "🚀 Just compiled my Career Blueprint on CareStance! Archetype: " ~ (result.recommended_stream if result.recommended_stream else dominant_trait) ~ ". Discover your professional profile at https://carestance.me #CareStance" %}
+
+                <!-- Copy Link Button -->
+                <button onclick="copyToClipboard('{{ share_url }}')"
+                        class="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 text-white hover:border-cyan-400 hover:text-cyan-400 transition-all duration-200 flex items-center justify-center text-lg"
+                        title="Copy Link">
+                    <i class="fas fa-link"></i>
+                </button>
+
+                <!-- WhatsApp Share link -->
+                <a href="https://wa.me/?text={{ (share_text ~ ' ' ~ share_url)|urlencode }}" 
+                   target="_blank" rel="noopener"
+                   class="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 text-white hover:border-emerald-400 hover:text-emerald-400 transition-all duration-200 flex items-center justify-center text-lg"
+                   title="Share on WhatsApp">
+                    <i class="fab fa-whatsapp"></i>
+                </a>
+
+                <!-- LinkedIn Share link -->
+                <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ share_url|urlencode }}" 
+                   target="_blank" rel="noopener"
+                   class="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 text-white hover:border-blue-400 hover:text-blue-400 transition-all duration-200 flex items-center justify-center text-lg"
+                   title="Share on LinkedIn">
+                    <i class="fab fa-linkedin-in"></i>
+                </a>
+            </div>
+            <p class="text-xs mt-4" style="color: var(--text-dim);">Share this blueprint to unlock further simulation discoveries.</p>
+        </div>
+        {% endif %}
+
+        <!-- 6. RETAKE CTA SECTION -->
+        <div class="no-print cyber-card p-8 border border-cyan-500/10 flex flex-col sm:flex-row justify-between items-center gap-6">
+            <div class="text-left">
+                <p class="text-white font-black text-lg font-outfit">Recalibrate Profile?</p>
+                <p class="text-xs" style="color: var(--text-dim);">Retaking the assessment resets all phase coordinates in our local cache.</p>
+            </div>
+            <a href="/assessment/reset"
+               onclick="return confirm('Are you sure you want to retake the assessment? This will clear your current results.')"
+               class="px-6 py-3 bg-rose-500/10 border border-rose-500/30 hover:border-rose-400 hover:bg-rose-500/20 text-rose-400 text-xs font-black rounded-xl transition duration-200 flex items-center gap-2">
+                <i class="fas fa-undo"></i> Reset & Retake Assessment
+            </a>
+        </div>
+
+    </div>
+</div>
+
+<!-- Loader Modals overlay -->
+<div id="loadingOverlay" class="hidden fixed inset-0 bg-[#030606]/80 backdrop-blur-md z-[9999] flex items-center justify-center">
+    <div class="cyber-card p-8 text-center max-w-sm mx-4 border border-cyan-500/20 shadow-[0_0_60px_rgba(0,242,255,0.1)]">
+        <div class="w-16 h-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
+        <h3 id="loadingTitle" class="text-xl font-black text-white mb-2 font-outfit">Synthesizing Discovery Path</h3>
+        <p id="loadingDesc" class="text-xs" style="color: var(--text-dim);">Designing a custom, multi-milestone career path roadmap...</p>
+    </div>
+</div>
+
+<script>
+    async function generateRoadmap(careerTitle) {
+        const overlay = document.getElementById('loadingOverlay');
+        overlay.classList.remove('hidden');
+        document.getElementById('loadingTitle').textContent = 'Architecting Roadmap';
+        document.getElementById('loadingDesc').textContent = 'Designing a custom, multi-milestone career path roadmap...';
+
+        try {
+            const response = await fetch('/assessment/generate_path', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ career_title: careerTitle }),
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                window.location.href = `/career/roadmap/${data.path_id}`;
+            } else {
+                alert('Roadmap synthesis failed. Please try again.');
+                overlay.classList.add('hidden');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('An error occurred. Please try again.');
+            overlay.classList.add('hidden');
+        }
+    }
+
+    async function generateCollegeRecs(careerTitle) {
+        const overlay = document.getElementById('loadingOverlay');
+        overlay.classList.remove('hidden');
+        document.getElementById('loadingTitle').textContent = 'Curating Institutes';
+        document.getElementById('loadingDesc').textContent = 'Filtering premier O*NET matched institutes and colleges...';
+
+        try {
+            const response = await fetch('/career/colleges/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ career_title: careerTitle }),
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                window.location.href = `/career/colleges/${data.rec_id}`;
+            } else {
+                alert('Institute curation failed. Please try again.');
+                overlay.classList.add('hidden');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('An error occurred. Please try again.');
+            overlay.classList.add('hidden');
+        }
+    }
+
+    function copyToClipboard(url) {
+        navigator.clipboard.writeText(url).then(() => {
+            alert('Shareable report URL copied to clipboard!');
+        });
+    }
+</script>
+{% endblock %}

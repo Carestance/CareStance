@@ -1,0 +1,1237 @@
+{
+  "career_database": {
+    "Aerospace Engineer": {
+      "degree": "B.Tech Aerospace Engineering",
+      "exams": [
+        "JEE Advanced",
+        "ISAT"
+      ],
+      "colleges": [
+        "IIT Bombay",
+        "IIT Madras",
+        "PEC Chandigarh"
+      ],
+      "salary_entry": 900000,
+      "salary_y5": 2200000,
+      "challenge": "Extremely competitive field with limited govt jobs; private sector needs postgrad.",
+      "cluster": "Engineering",
+      "passion_tags": [
+        "space",
+        "aviation",
+        "physics",
+        "rockets"
+      ]
+    },
+    "Biomedical Engineer": {
+      "degree": "B.Tech Biomedical Engineering",
+      "exams": [
+        "JEE Main",
+        "BITSAT"
+      ],
+      "colleges": [
+        "IIT Hyderabad",
+        "BITS Pilani",
+        "Manipal"
+      ],
+      "salary_entry": 700000,
+      "salary_y5": 1800000,
+      "challenge": "Interdisciplinary field needs both biology and engineering depth simultaneously.",
+      "cluster": "Engineering",
+      "passion_tags": [
+        "biology",
+        "medicine",
+        "devices",
+        "health"
+      ]
+    },
+    "Chemical Engineer": {
+      "degree": "B.Tech Chemical Engineering",
+      "exams": [
+        "JEE Advanced",
+        "GATE"
+      ],
+      "colleges": [
+        "IIT Bombay",
+        "IIT Delhi",
+        "NIT Trichy"
+      ],
+      "salary_entry": 800000,
+      "salary_y5": 2000000,
+      "challenge": "Plant-floor work is physically demanding with exposure risks.",
+      "cluster": "Engineering",
+      "passion_tags": [
+        "chemistry",
+        "manufacturing",
+        "process"
+      ]
+    },
+    "Civil Engineer": {
+      "degree": "B.Tech Civil Engineering",
+      "exams": [
+        "JEE Main",
+        "GATE"
+      ],
+      "colleges": [
+        "IIT Roorkee",
+        "IIT Delhi",
+        "NIT Warangal"
+      ],
+      "salary_entry": 600000,
+      "salary_y5": 1500000,
+      "challenge": "Long project cycles and bureaucratic approval delays are common.",
+      "cluster": "Engineering",
+      "passion_tags": [
+        "construction",
+        "infrastructure",
+        "design"
+      ]
+    },
+    "Software Engineer": {
+      "degree": "B.Tech Computer Science",
+      "exams": [
+        "JEE Advanced",
+        "BITSAT",
+        "IIIT entrances"
+      ],
+      "colleges": [
+        "IIT Delhi",
+        "BITS Pilani",
+        "IIIT Hyderabad"
+      ],
+      "salary_entry": 1200000,
+      "salary_y5": 3500000,
+      "challenge": "Skill obsolescence is fast; continuous learning is non-negotiable.",
+      "cluster": "Technology",
+      "passion_tags": [
+        "coding",
+        "apps",
+        "games",
+        "technology",
+        "computers"
+      ]
+    },
+    "Data Scientist": {
+      "degree": "B.Tech CS / B.Sc Statistics",
+      "exams": [
+        "JEE Main",
+        "CUET"
+      ],
+      "colleges": [
+        "IIT Delhi",
+        "ISI Kolkata",
+        "CMI Chennai"
+      ],
+      "salary_entry": 1000000,
+      "salary_y5": 3000000,
+      "challenge": "Most data is messy; 80% of the job is cleaning, not modeling.",
+      "cluster": "Technology",
+      "passion_tags": [
+        "data",
+        "statistics",
+        "patterns",
+        "AI",
+        "math"
+      ]
+    },
+    "AI/ML Engineer": {
+      "degree": "B.Tech CS with AI specialization",
+      "exams": [
+        "JEE Advanced",
+        "IIIT entrances"
+      ],
+      "colleges": [
+        "IIT Madras",
+        "IIIT Hyderabad",
+        "IIT Bombay"
+      ],
+      "salary_entry": 1400000,
+      "salary_y5": 4000000,
+      "challenge": "Rapidly evolving field; papers published today may be obsolete in 6 months.",
+      "cluster": "Technology",
+      "passion_tags": [
+        "AI",
+        "robotics",
+        "deep learning",
+        "neural networks"
+      ]
+    },
+    "Cybersecurity Analyst": {
+      "degree": "B.Tech CS / B.Sc Cybersecurity",
+      "exams": [
+        "JEE Main",
+        "IIIT entrances"
+      ],
+      "colleges": [
+        "IIT Kanpur",
+        "IIIT Allahabad",
+        "NIT Trichy"
+      ],
+      "salary_entry": 900000,
+      "salary_y5": 2500000,
+      "challenge": "Adversarial and high-stakes; one missed vulnerability can cost millions.",
+      "cluster": "Technology",
+      "passion_tags": [
+        "hacking",
+        "security",
+        "puzzles",
+        "systems"
+      ]
+    },
+    "Robotics Engineer": {
+      "degree": "B.Tech Robotics / Mechatronics",
+      "exams": [
+        "JEE Advanced",
+        "BITSAT"
+      ],
+      "colleges": [
+        "IIT Bombay",
+        "BITS Pilani",
+        "Amrita"
+      ],
+      "salary_entry": 800000,
+      "salary_y5": 2200000,
+      "challenge": "Expensive hardware failures and long iteration cycles.",
+      "cluster": "Engineering",
+      "passion_tags": [
+        "robots",
+        "automation",
+        "electronics",
+        "design"
+      ]
+    },
+    "Nuclear Engineer": {
+      "degree": "B.Tech Nuclear Engineering",
+      "exams": [
+        "JEE Advanced"
+      ],
+      "colleges": [
+        "IIT Kanpur",
+        "HBNI Mumbai"
+      ],
+      "salary_entry": 700000,
+      "salary_y5": 1800000,
+      "challenge": "Very few private sector jobs; mostly BARC/NPCIL government roles.",
+      "cluster": "Engineering",
+      "passion_tags": [
+        "nuclear",
+        "energy",
+        "physics",
+        "research"
+      ]
+    },
+    "Environmental Engineer": {
+      "degree": "B.Tech Environmental Engineering",
+      "exams": [
+        "JEE Main",
+        "GATE"
+      ],
+      "colleges": [
+        "IIT Delhi",
+        "IIT Bombay",
+        "NIT Nagpur"
+      ],
+      "salary_entry": 600000,
+      "salary_y5": 1400000,
+      "challenge": "Salaries are lower vs. other engineering branches; impact is long-term.",
+      "cluster": "Engineering",
+      "passion_tags": [
+        "environment",
+        "sustainability",
+        "ecology",
+        "climate"
+      ]
+    },
+    "Petroleum Engineer": {
+      "degree": "B.Tech Petroleum Engineering",
+      "exams": [
+        "JEE Main",
+        "BITSAT"
+      ],
+      "colleges": [
+        "IIT(ISM) Dhanbad",
+        "UPES Dehradun"
+      ],
+      "salary_entry": 1000000,
+      "salary_y5": 2800000,
+      "challenge": "Industry is cyclical; oil price crashes cause mass layoffs.",
+      "cluster": "Engineering",
+      "passion_tags": [
+        "oil",
+        "energy",
+        "geology",
+        "field work"
+      ]
+    },
+    "Geneticist": {
+      "degree": "B.Sc Genetics / Biotechnology",
+      "exams": [
+        "CUET",
+        "JNU entrance"
+      ],
+      "colleges": [
+        "DU (Ramjas)",
+        "JNU Delhi",
+        "Hyderabad Central Univ"
+      ],
+      "salary_entry": 500000,
+      "salary_y5": 1200000,
+      "challenge": "Research-heavy field requiring PhD for meaningful impact; long academic path.",
+      "cluster": "Biology",
+      "passion_tags": [
+        "DNA",
+        "genetics",
+        "medicine",
+        "biology",
+        "research"
+      ]
+    },
+    "Neuroscientist": {
+      "degree": "B.Sc Neuroscience / Psychology",
+      "exams": [
+        "CUET",
+        "NIMHANS entrance"
+      ],
+      "colleges": [
+        "NIMHANS Bangalore",
+        "AIIMS",
+        "IISc Bangalore"
+      ],
+      "salary_entry": 600000,
+      "salary_y5": 1500000,
+      "challenge": "Primarily academic/research track; industry roles are limited in India.",
+      "cluster": "Biology",
+      "passion_tags": [
+        "brain",
+        "psychology",
+        "medicine",
+        "research"
+      ]
+    },
+    "Pharmacist": {
+      "degree": "B.Pharm / Pharm.D",
+      "exams": [
+        "GPAT",
+        "State Pharmacy CET"
+      ],
+      "colleges": [
+        "JSS Mysore",
+        "Manipal",
+        "KLE Dharwad"
+      ],
+      "salary_entry": 400000,
+      "salary_y5": 900000,
+      "challenge": "Retail pharmacy is low-paying; R&D roles require postgrad.",
+      "cluster": "Medical",
+      "passion_tags": [
+        "medicine",
+        "drugs",
+        "chemistry",
+        "healthcare"
+      ]
+    },
+    "MBBS Doctor": {
+      "degree": "MBBS",
+      "exams": [
+        "NEET UG"
+      ],
+      "colleges": [
+        "AIIMS Delhi",
+        "CMC Vellore",
+        "JIPMER"
+      ],
+      "salary_entry": 800000,
+      "salary_y5": 2500000,
+      "challenge": "11+ years of training (MBBS+PG); residency is exhausting and low-paid.",
+      "cluster": "Medical",
+      "passion_tags": [
+        "medicine",
+        "patients",
+        "surgery",
+        "health",
+        "biology"
+      ]
+    },
+    "Dentist": {
+      "degree": "BDS",
+      "exams": [
+        "NEET UG"
+      ],
+      "colleges": [
+        "Maulana Azad Dental",
+        "MAHE Manipal",
+        "KLE VK Dental"
+      ],
+      "salary_entry": 500000,
+      "salary_y5": 1500000,
+      "challenge": "High setup costs for private practice; early years are financially tight.",
+      "cluster": "Medical",
+      "passion_tags": [
+        "teeth",
+        "medicine",
+        "health",
+        "precision"
+      ]
+    },
+    "Veterinarian": {
+      "degree": "B.V.Sc & A.H",
+      "exams": [
+        "NEET UG",
+        "State Vet CET"
+      ],
+      "colleges": [
+        "IVRI Bareilly",
+        "TANUVAS Chennai",
+        "GADVASU Ludhiana"
+      ],
+      "salary_entry": 400000,
+      "salary_y5": 1000000,
+      "challenge": "Physically demanding; emotional toll of animal suffering is real.",
+      "cluster": "Medical",
+      "passion_tags": [
+        "animals",
+        "nature",
+        "biology",
+        "medicine"
+      ]
+    },
+    "Physiotherapist": {
+      "degree": "BPT (Bachelor of Physiotherapy)",
+      "exams": [
+        "NEET UG",
+        "State BPT CET"
+      ],
+      "colleges": [
+        "Christian Medical College",
+        "MAHE Manipal",
+        "AIIMS"
+      ],
+      "salary_entry": 350000,
+      "salary_y5": 900000,
+      "challenge": "Requires patience; income grows slowly without a private clinic.",
+      "cluster": "Medical",
+      "passion_tags": [
+        "sports",
+        "health",
+        "anatomy",
+        "rehabilitation"
+      ]
+    },
+    "Astronomer": {
+      "degree": "B.Sc Physics / Astronomy",
+      "exams": [
+        "CUET",
+        "IISc entrance",
+        "IIST"
+      ],
+      "colleges": [
+        "IISc Bangalore",
+        "IUCAA Pune (postgrad)",
+        "IIT Kharagpur"
+      ],
+      "salary_entry": 600000,
+      "salary_y5": 1400000,
+      "challenge": "Very few job openings in India; mostly ISRO/academic positions.",
+      "cluster": "Science Research",
+      "passion_tags": [
+        "space",
+        "stars",
+        "physics",
+        "telescope",
+        "universe"
+      ]
+    },
+    "Geologist": {
+      "degree": "B.Sc Geology",
+      "exams": [
+        "CUET",
+        "GSI exam"
+      ],
+      "colleges": [
+        "Presidency Kolkata",
+        "BHU Varanasi",
+        "Osmania Hyderabad"
+      ],
+      "salary_entry": 500000,
+      "salary_y5": 1200000,
+      "challenge": "Fieldwork in remote areas; GSI/ONGC jobs are competitive.",
+      "cluster": "Science Research",
+      "passion_tags": [
+        "rocks",
+        "earth",
+        "nature",
+        "field work",
+        "maps"
+      ]
+    },
+    "Marine Biologist": {
+      "degree": "B.Sc Marine Biology",
+      "exams": [
+        "CUET",
+        "ICAR"
+      ],
+      "colleges": [
+        "CUSAT Kochi",
+        "Annamalai Univ",
+        "Goa Univ"
+      ],
+      "salary_entry": 400000,
+      "salary_y5": 1000000,
+      "challenge": "Very niche; mostly research/govt jobs; fieldwork in difficult conditions.",
+      "cluster": "Biology",
+      "passion_tags": [
+        "ocean",
+        "fish",
+        "diving",
+        "environment",
+        "nature"
+      ]
+    },
+    "Agricultural Scientist": {
+      "degree": "B.Sc Agriculture",
+      "exams": [
+        "ICAR AIEEA",
+        "State Agri CET"
+      ],
+      "colleges": [
+        "IARI Delhi",
+        "PAU Ludhiana",
+        "GBPUAT Pantnagar"
+      ],
+      "salary_entry": 450000,
+      "salary_y5": 1100000,
+      "challenge": "Field-intensive; private sector pays less than urban tech careers.",
+      "cluster": "Agriculture",
+      "passion_tags": [
+        "farming",
+        "food",
+        "plants",
+        "soil",
+        "environment"
+      ]
+    },
+    "Investment Banker": {
+      "degree": "B.Com / B.Tech + MBA Finance",
+      "exams": [
+        "CAT",
+        "GMAT",
+        "CFA"
+      ],
+      "colleges": [
+        "IIM Ahmedabad",
+        "ISB Hyderabad",
+        "SRCC Delhi"
+      ],
+      "salary_entry": 1800000,
+      "salary_y5": 5000000,
+      "challenge": "100-hour work weeks; extreme performance pressure; burnout rate is high.",
+      "cluster": "Finance",
+      "passion_tags": [
+        "finance",
+        "deals",
+        "money",
+        "markets",
+        "strategy"
+      ]
+    },
+    "Chartered Accountant": {
+      "degree": "CA (ICAI)",
+      "exams": [
+        "CA Foundation",
+        "CA Inter",
+        "CA Final"
+      ],
+      "colleges": [
+        "ICAI (self-study)",
+        "SRCC",
+        "St. Xaviers Mumbai"
+      ],
+      "salary_entry": 700000,
+      "salary_y5": 2000000,
+      "challenge": "CA exams have very low pass rates (~5% Final); 5 years of grinding.",
+      "cluster": "Finance",
+      "passion_tags": [
+        "numbers",
+        "tax",
+        "audit",
+        "compliance",
+        "accounting"
+      ]
+    },
+    "Financial Analyst": {
+      "degree": "BBA Finance / B.Com",
+      "exams": [
+        "CAT",
+        "CFA Level 1",
+        "NISM"
+      ],
+      "colleges": [
+        "IIM Calcutta (PG)",
+        "NMIMS Mumbai",
+        "Christ Bangalore"
+      ],
+      "salary_entry": 600000,
+      "salary_y5": 1800000,
+      "challenge": "Entry-level roles involve heavy Excel work; promotion cycles are long.",
+      "cluster": "Finance",
+      "passion_tags": [
+        "stocks",
+        "analysis",
+        "excel",
+        "finance",
+        "economy"
+      ]
+    },
+    "Actuary": {
+      "degree": "B.Sc Mathematics / Statistics",
+      "exams": [
+        "IAI exams",
+        "CT exams"
+      ],
+      "colleges": [
+        "ISI Kolkata",
+        "CMI Chennai",
+        "Delhi Univ"
+      ],
+      "salary_entry": 900000,
+      "salary_y5": 2500000,
+      "challenge": "15+ actuarial exams over a decade; extremely difficult qualification path.",
+      "cluster": "Finance",
+      "passion_tags": [
+        "statistics",
+        "risk",
+        "insurance",
+        "math",
+        "probability"
+      ]
+    },
+    "Company Secretary": {
+      "degree": "B.Com + CS (ICSI)",
+      "exams": [
+        "CS Foundation",
+        "CS Executive",
+        "CS Professional"
+      ],
+      "colleges": [
+        "ICSI (self-study)",
+        "SRCC",
+        "Loyola Chennai"
+      ],
+      "salary_entry": 500000,
+      "salary_y5": 1400000,
+      "challenge": "Highly compliance-focused; limited creative scope in the role.",
+      "cluster": "Law & Compliance",
+      "passion_tags": [
+        "corporate",
+        "compliance",
+        "law",
+        "governance"
+      ]
+    },
+    "Economist": {
+      "degree": "B.Sc Economics / BA Economics (Hons)",
+      "exams": [
+        "CUET",
+        "JNU entrance",
+        "DSE entrance"
+      ],
+      "colleges": [
+        "Delhi School of Economics",
+        "JNU",
+        "Presidency Kolkata"
+      ],
+      "salary_entry": 700000,
+      "salary_y5": 1800000,
+      "challenge": "Academic path is long; industry roles need strong quantitative skills.",
+      "cluster": "Economics",
+      "passion_tags": [
+        "economy",
+        "policy",
+        "research",
+        "data",
+        "society"
+      ]
+    },
+    "Marketing Manager": {
+      "degree": "BBA / B.Com + MBA Marketing",
+      "exams": [
+        "CAT",
+        "XAT",
+        "IIFT"
+      ],
+      "colleges": [
+        "IIM Bangalore",
+        "XLRI Jamshedpur",
+        "MDI Gurgaon"
+      ],
+      "salary_entry": 800000,
+      "salary_y5": 2200000,
+      "challenge": "Metrics-driven culture; campaigns that fail are very visible.",
+      "cluster": "Business",
+      "passion_tags": [
+        "brands",
+        "creativity",
+        "social media",
+        "advertising",
+        "storytelling"
+      ]
+    },
+    "Supply Chain Manager": {
+      "degree": "B.Tech / BBA + MBA Operations",
+      "exams": [
+        "CAT",
+        "XAT",
+        "CSCMP"
+      ],
+      "colleges": [
+        "IIM Lucknow",
+        "IIT Delhi",
+        "NITIE Mumbai"
+      ],
+      "salary_entry": 700000,
+      "salary_y5": 1900000,
+      "challenge": "Global disruptions (COVID, wars) make this high-stress and unpredictable.",
+      "cluster": "Operations",
+      "passion_tags": [
+        "logistics",
+        "systems",
+        "planning",
+        "efficiency"
+      ]
+    },
+    "Human Resources Manager": {
+      "degree": "BBA / BA + MBA HR",
+      "exams": [
+        "CAT",
+        "XAT",
+        "TISS"
+      ],
+      "colleges": [
+        "TISS Mumbai",
+        "XLRI Jamshedpur",
+        "IIM Calcutta"
+      ],
+      "salary_entry": 600000,
+      "salary_y5": 1500000,
+      "challenge": "Often seen as non-revenue function; difficult to measure impact.",
+      "cluster": "Business",
+      "passion_tags": [
+        "people",
+        "culture",
+        "psychology",
+        "communication"
+      ]
+    },
+    "Business Analyst": {
+      "degree": "BBA / B.Tech + MBA",
+      "exams": [
+        "CAT",
+        "GMAT",
+        "GRE"
+      ],
+      "colleges": [
+        "IIMs",
+        "ISB",
+        "MDI Gurgaon"
+      ],
+      "salary_entry": 900000,
+      "salary_y5": 2500000,
+      "challenge": "Requires both technical and business communication skills simultaneously.",
+      "cluster": "Business",
+      "passion_tags": [
+        "problem solving",
+        "data",
+        "business",
+        "strategy",
+        "consulting"
+      ]
+    },
+    "E-Commerce Entrepreneur": {
+      "degree": "BBA / B.Tech (optional)",
+      "exams": [
+        "CAT (optional)",
+        "Startup programs"
+      ],
+      "colleges": [
+        "IIT/IIM (optional)",
+        "ISB",
+        "NSRCEL IIMB"
+      ],
+      "salary_entry": 0,
+      "salary_y5": 3000000,
+      "challenge": "90% of startups fail in year 1; income is highly irregular.",
+      "cluster": "Entrepreneurship",
+      "passion_tags": [
+        "startups",
+        "products",
+        "selling",
+        "online",
+        "brands"
+      ]
+    },
+    "Risk Manager": {
+      "degree": "B.Com / B.Tech + FRM / CFA",
+      "exams": [
+        "FRM",
+        "CFA",
+        "NISM"
+      ],
+      "colleges": [
+        "IIM Ahmedabad",
+        "ISB",
+        "NMIMS Mumbai"
+      ],
+      "salary_entry": 1000000,
+      "salary_y5": 2800000,
+      "challenge": "High-stakes decisions; regulatory pressure is intense.",
+      "cluster": "Finance",
+      "passion_tags": [
+        "risk",
+        "analysis",
+        "finance",
+        "insurance",
+        "safety"
+      ]
+    },
+    "Retail Manager": {
+      "degree": "BBA / B.Com + MBA Retail",
+      "exams": [
+        "CAT",
+        "IRMA",
+        "State MAT"
+      ],
+      "colleges": [
+        "IRMA Anand",
+        "IIM Calcutta",
+        "Pearl Academy"
+      ],
+      "salary_entry": 500000,
+      "salary_y5": 1300000,
+      "challenge": "Long hours, weekend work, and managing large diverse teams.",
+      "cluster": "Business",
+      "passion_tags": [
+        "retail",
+        "customer service",
+        "fashion",
+        "products",
+        "people"
+      ]
+    },
+    "Real Estate Developer": {
+      "degree": "BBA / B.Arch + MBA",
+      "exams": [
+        "CAT",
+        "NATA (if architecture)"
+      ],
+      "colleges": [
+        "IIM Ahmedabad",
+        "RICS School (Delhi)",
+        "Amity Univ"
+      ],
+      "salary_entry": 700000,
+      "salary_y5": 2500000,
+      "challenge": "Capital-intensive; heavily dependent on regulatory approvals.",
+      "cluster": "Real Estate",
+      "passion_tags": [
+        "property",
+        "construction",
+        "investment",
+        "business",
+        "cities"
+      ]
+    },
+    "Quantitative Analyst": {
+      "degree": "B.Sc Mathematics / B.Tech CS",
+      "exams": [
+        "GRE",
+        "GATE",
+        "NSE certification"
+      ],
+      "colleges": [
+        "IIT Bombay",
+        "ISI Kolkata",
+        "CMI Chennai"
+      ],
+      "salary_entry": 1500000,
+      "salary_y5": 4500000,
+      "challenge": "Requires deep mathematics + programming; very small talent pool succeeds.",
+      "cluster": "Finance",
+      "passion_tags": [
+        "math",
+        "algorithms",
+        "trading",
+        "programming",
+        "statistics"
+      ]
+    },
+    "Lawyer": {
+      "degree": "BA LLB (Hons)",
+      "exams": [
+        "CLAT",
+        "AILET",
+        "LSAT-India"
+      ],
+      "colleges": [
+        "NLSIU Bangalore",
+        "NALSAR Hyderabad",
+        "NLU Delhi"
+      ],
+      "salary_entry": 600000,
+      "salary_y5": 2000000,
+      "challenge": "First 3-5 years as a junior associate are poorly paid and brutal.",
+      "cluster": "Law",
+      "passion_tags": [
+        "debate",
+        "justice",
+        "writing",
+        "argument",
+        "society"
+      ]
+    },
+    "IAS Officer": {
+      "degree": "Any Bachelor degree + UPSC prep",
+      "exams": [
+        "UPSC CSE"
+      ],
+      "colleges": [
+        "DU",
+        "JNU",
+        "SRCC + coaching"
+      ],
+      "salary_entry": 700000,
+      "salary_y5": 1400000,
+      "challenge": "UPSC success rate is 0.1%; years of preparation with no guarantee.",
+      "cluster": "Civil Services",
+      "passion_tags": [
+        "governance",
+        "policy",
+        "leadership",
+        "society",
+        "public service"
+      ]
+    },
+    "Journalist": {
+      "degree": "BA Journalism / BA Mass Communication",
+      "exams": [
+        "IIMC entrance",
+        "CUET"
+      ],
+      "colleges": [
+        "IIMC Delhi",
+        "ACJ Chennai",
+        "Symbiosis Pune"
+      ],
+      "salary_entry": 350000,
+      "salary_y5": 900000,
+      "challenge": "Industry is shrinking; digital disruption has collapsed traditional media salaries.",
+      "cluster": "Media",
+      "passion_tags": [
+        "writing",
+        "stories",
+        "truth",
+        "society",
+        "investigation"
+      ]
+    },
+    "Content Creator / YouTuber": {
+      "degree": "Any degree (optional)",
+      "exams": [
+        "None formal"
+      ],
+      "colleges": [
+        "None required"
+      ],
+      "salary_entry": 0,
+      "salary_y5": 2000000,
+      "challenge": "Hyper-competitive; 99% of creators earn under Rs.10,000/month.",
+      "cluster": "Digital Media",
+      "passion_tags": [
+        "video",
+        "social media",
+        "entertainment",
+        "creativity",
+        "audience"
+      ]
+    },
+    "Psychologist": {
+      "degree": "BA / BSc Psychology -> MA + RCI",
+      "exams": [
+        "CUET",
+        "TISSNET",
+        "RCI registration"
+      ],
+      "colleges": [
+        "TISS Mumbai",
+        "NIMHANS",
+        "Christ Bangalore"
+      ],
+      "salary_entry": 400000,
+      "salary_y5": 1200000,
+      "challenge": "Long training path; emotional depletion is a real occupational hazard.",
+      "cluster": "Psychology",
+      "passion_tags": [
+        "people",
+        "emotions",
+        "therapy",
+        "mental health",
+        "behaviour"
+      ]
+    },
+    "Social Worker": {
+      "degree": "BSW / BA Social Work -> MSW",
+      "exams": [
+        "CUET",
+        "TISSNET"
+      ],
+      "colleges": [
+        "TISS Mumbai",
+        "DU (ARSD)",
+        "Rajagiri Kochi"
+      ],
+      "salary_entry": 300000,
+      "salary_y5": 700000,
+      "challenge": "Emotionally exhausting work with very low financial compensation.",
+      "cluster": "Social Work",
+      "passion_tags": [
+        "community",
+        "justice",
+        "poverty",
+        "NGO",
+        "volunteering"
+      ]
+    },
+    "Graphic Designer": {
+      "degree": "B.Des / BFA Graphic Design",
+      "exams": [
+        "NID entrance",
+        "UCEED",
+        "NIFT"
+      ],
+      "colleges": [
+        "NID Ahmedabad",
+        "IIT Bombay IDC",
+        "Pearl Academy"
+      ],
+      "salary_entry": 500000,
+      "salary_y5": 1500000,
+      "challenge": "Client revisions are endless; freelancing income is highly irregular.",
+      "cluster": "Design",
+      "passion_tags": [
+        "design",
+        "colour",
+        "typography",
+        "branding",
+        "illustration"
+      ]
+    },
+    "Fashion Designer": {
+      "degree": "B.Des Fashion / BFTech",
+      "exams": [
+        "NIFT entrance",
+        "NID entrance",
+        "CEED"
+      ],
+      "colleges": [
+        "NIFT Delhi",
+        "NID Ahmedabad",
+        "Pearl Academy"
+      ],
+      "salary_entry": 400000,
+      "salary_y5": 1200000,
+      "challenge": "Low salaries in early years; own label requires significant capital.",
+      "cluster": "Design",
+      "passion_tags": [
+        "fashion",
+        "clothes",
+        "styling",
+        "trends",
+        "creativity"
+      ]
+    },
+    "Interior Designer": {
+      "degree": "B.Des Interior Design / B.Arch",
+      "exams": [
+        "NID entrance",
+        "NATA",
+        "UCEED"
+      ],
+      "colleges": [
+        "NID Bangalore",
+        "NIFT",
+        "SPA Delhi"
+      ],
+      "salary_entry": 450000,
+      "salary_y5": 1300000,
+      "challenge": "Client taste conflicts and project delays are constant friction points.",
+      "cluster": "Design",
+      "passion_tags": [
+        "spaces",
+        "decor",
+        "architecture",
+        "colour",
+        "home"
+      ]
+    },
+    "Philosopher / Academician": {
+      "degree": "BA Philosophy -> MA -> PhD",
+      "exams": [
+        "CUET",
+        "UGC NET"
+      ],
+      "colleges": [
+        "JNU Delhi",
+        "DU",
+        "Hyderabad Central Univ"
+      ],
+      "salary_entry": 400000,
+      "salary_y5": 900000,
+      "challenge": "Very few tenured positions; PhD takes 5-7 years with low stipends.",
+      "cluster": "Academia",
+      "passion_tags": [
+        "ideas",
+        "writing",
+        "ethics",
+        "history",
+        "society"
+      ]
+    },
+    "Theatre Artist": {
+      "degree": "BA Drama / Certificate NSD",
+      "exams": [
+        "NSD entrance",
+        "Film schools"
+      ],
+      "colleges": [
+        "NSD Delhi",
+        "FTII Pune",
+        "SPA Mumbai"
+      ],
+      "salary_entry": 200000,
+      "salary_y5": 700000,
+      "challenge": "Extremely irregular income; survival jobs are necessary in early years.",
+      "cluster": "Performing Arts",
+      "passion_tags": [
+        "acting",
+        "stage",
+        "storytelling",
+        "performance",
+        "creativity"
+      ]
+    },
+    "Archaeologist": {
+      "degree": "BA Archaeology / BA History",
+      "exams": [
+        "CUET",
+        "ASI recruitment"
+      ],
+      "colleges": [
+        "Deccan College Pune",
+        "BHU Varanasi",
+        "DU"
+      ],
+      "salary_entry": 400000,
+      "salary_y5": 900000,
+      "challenge": "Government-dependent field; fieldwork is physically demanding.",
+      "cluster": "History",
+      "passion_tags": [
+        "history",
+        "digging",
+        "ancient",
+        "culture",
+        "research"
+      ]
+    },
+    "Diplomat / Foreign Service": {
+      "degree": "Any BA + UPSC IFS",
+      "exams": [
+        "UPSC CSE (IFS)"
+      ],
+      "colleges": [
+        "JNU",
+        "DU",
+        "St. Stephens"
+      ],
+      "salary_entry": 800000,
+      "salary_y5": 1600000,
+      "challenge": "UPSC IFS requires years of preparation; postings abroad disrupt family life.",
+      "cluster": "Civil Services",
+      "passion_tags": [
+        "international",
+        "politics",
+        "travel",
+        "culture",
+        "languages"
+      ]
+    },
+    "Political Scientist": {
+      "degree": "BA Political Science -> MA -> PhD",
+      "exams": [
+        "CUET",
+        "JNU entrance",
+        "UGC NET"
+      ],
+      "colleges": [
+        "JNU",
+        "DU",
+        "Hyderabad Central Univ"
+      ],
+      "salary_entry": 450000,
+      "salary_y5": 1000000,
+      "challenge": "Academia path is long; think-tank jobs are extremely competitive.",
+      "cluster": "Social Sciences",
+      "passion_tags": [
+        "politics",
+        "policy",
+        "debate",
+        "democracy",
+        "society"
+      ]
+    },
+    "Special Educator": {
+      "degree": "B.Ed Special Education",
+      "exams": [
+        "RCI registration",
+        "State B.Ed CET"
+      ],
+      "colleges": [
+        "RIE Mysore",
+        "SNDT Mumbai",
+        "Jamia Millia"
+      ],
+      "salary_entry": 300000,
+      "salary_y5": 700000,
+      "challenge": "Emotionally intense work; salaries in India are very low.",
+      "cluster": "Education",
+      "passion_tags": [
+        "children",
+        "disability",
+        "patience",
+        "teaching",
+        "inclusion"
+      ]
+    },
+    "Film Director": {
+      "degree": "B.Sc Film Direction / Certificate",
+      "exams": [
+        "FTII entrance",
+        "Whistling Woods",
+        "SRFTI"
+      ],
+      "colleges": [
+        "FTII Pune",
+        "SRFTI Kolkata",
+        "Whistling Woods Mumbai"
+      ],
+      "salary_entry": 300000,
+      "salary_y5": 2000000,
+      "challenge": "Extremely competitive; most directors struggle for a decade before first break.",
+      "cluster": "Creative Arts",
+      "passion_tags": [
+        "films",
+        "storytelling",
+        "cinema",
+        "writing",
+        "visuals"
+      ]
+    }
+  }
+}

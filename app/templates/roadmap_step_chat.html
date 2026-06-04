@@ -1,0 +1,352 @@
+{% extends "base.html" %}
+
+{% block title %}Milestone Report with CareerBuddy{% endblock %}
+
+{% block content %}
+<!-- Session Activation Overlay -->
+<div id="session-overlay"
+    class="fixed inset-0 z-[100] bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-fade-in-up">
+        <div
+            class="w-20 h-20 bg-emerald-800 rounded-full flex items-center justify-center text-4xl mx-auto mb-6 shadow-xl shadow-emerald-200">
+            🤖</div>
+        <h2 class="text-2xl font-black text-slate-900 mb-2">Milestone Report</h2>
+        <p class="text-slate-500 text-sm mb-8 leading-relaxed">Let's discuss your progress on:<br><strong class="text-emerald-800">"{{ step.action }}"</strong></p>
+        <button id="start-session-btn" style="background-color: #065f46 !important;"
+            class="w-full py-4 text-white font-bold rounded-2xl shadow-lg hover:bg-emerald-900 active:scale-95 transition-all text-sm uppercase tracking-widest block mx-auto">
+            Let's Report
+        </button>
+    </div>
+</div>
+
+<div
+    class="max-w-7xl mx-auto h-[calc(100vh-5rem)] md:h-[calc(100vh-8rem)] min-h-[500px] flex flex-col md:flex-row gap-4 p-4">
+
+    <!-- LEFT SIDEBAR -->
+    <div class="hidden md:flex w-80 flex-col gap-4 shrink-0">
+        <div
+            class="bg-white/80 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-lg flex flex-col items-center text-center">
+            <div class="relative w-20 h-20 mb-3">
+                <div class="pulse-ring absolute inset-0 rounded-full bg-emerald-500 opacity-0"></div>
+                <div id="talking-buddy-orb"
+                    class="relative w-full h-full bg-gradient-to-br from-emerald-800 to-green-900 rounded-full border-4 border-white shadow-xl flex items-center justify-center overflow-hidden transition-all duration-300">
+                    <span class="text-3xl relative z-10" id="buddy-emoji">🎓</span>
+                </div>
+            </div>
+            <h2 class="text-sm font-bold text-slate-900">CareerBuddy Mentor</h2>
+            <p id="mentor-status-text-sidebar" class="text-[10px] text-slate-500 font-medium uppercase tracking-widest">
+                Waiting...</p>
+        </div>
+
+        <div class="bg-white/80 backdrop-blur-xl border border-white/50 rounded-3xl p-5 shadow-lg flex-1 flex flex-col justify-between">
+            <div class="text-center">
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Milestone Step</p>
+                <div class="text-sm font-black text-[#0b3b3c] leading-tight mb-4">{{ step.action }}</div>
+                {% if step.detailed_task %}
+                <p class="text-xs text-slate-500 leading-relaxed italic">"{{ step.detailed_task }}"</p>
+                {% endif %}
+            </div>
+            <div class="text-center pt-4 border-t border-slate-100">
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">General Chat</p>
+                <span class="text-xs text-[#1b5e5f] font-bold">5 Questions to Milestone Completion</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN CONVERSATION INTERFACE -->
+    <div
+        class="flex-1 bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 flex flex-col overflow-hidden relative min-h-0">
+        <div
+            class="p-3 sm:p-4 bg-white/80 border-b border-slate-100 flex items-center justify-between backdrop-blur-md z-10">
+            <div class="flex items-center gap-3">
+                <div
+                    class="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-800 to-green-900 flex items-center justify-center text-white text-lg shadow-lg">
+                    🤖</div>
+                <div>
+                    <span class="font-bold text-slate-800 block leading-tight text-sm sm:text-base">CareerBuddy</span>
+                    <span class="text-[10px] text-emerald-500 font-bold uppercase tracking-widest">Report on milestone step</span>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <a href="/career/roadmap/{{ path.id }}"
+                    class="text-[10px] font-bold text-rose-500 uppercase hover:underline">Cancel & Go Back</a>
+            </div>
+        </div>
+
+        <div id="chat-box" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-slate-50/50 scroll-smooth min-h-0">
+            <!-- Messages pop here -->
+        </div>
+
+        <div class="bg-white p-4 sm:p-6 border-t border-slate-100">
+            <div class="flex flex-col items-center gap-3">
+                <div id="transcript-display" class="text-sm text-slate-400 italic text-center min-h-[20px] max-w-md">Tap
+                    the mic and start speaking...</div>
+                <button type="button" id="micBtn"
+                    class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-emerald-800 to-green-900 flex items-center justify-center text-white text-2xl sm:text-3xl shadow-xl shadow-green-200 hover:scale-110 active:scale-95 transition-all duration-200 relative">
+                    <span id="micIcon">🎙️</span>
+                    <div id="mic-pulse"
+                        class="absolute inset-0 rounded-full border-4 border-emerald-500 opacity-0 transition-all">
+                    </div>
+                </button>
+                <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Tap to Talk</p>
+                <button id="finishBtn" onclick="finishReporting()"
+                    class="mt-2 px-6 py-2.5 bg-white border-2 border-emerald-500 text-emerald-600 font-bold rounded-2xl shadow-sm hover:bg-emerald-50 hover:scale-105 active:scale-95 transition-all text-xs uppercase tracking-wider hidden">✨
+                    Finish & Complete Milestone</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const chatBox = document.getElementById('chat-box');
+        const micBtn = document.getElementById('micBtn');
+        const micIcon = document.getElementById('micIcon');
+        const micPulse = document.getElementById('mic-pulse');
+        const transcriptDisplay = document.getElementById('transcript-display');
+        const finishBtn = document.getElementById('finishBtn');
+        const mentorStatusSidebar = document.getElementById('mentor-status-text-sidebar');
+        const sessionOverlay = document.getElementById('session-overlay');
+        const startSessionBtn = document.getElementById('start-session-btn');
+
+        let chatHistory = [];
+        let isProcessing = false;
+        let voiceUnlocked = false;
+        let currentAudio = null;
+
+        // Ensure voices are loaded
+        window.speechSynthesis.getVoices();
+        window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+
+        function setMentorStatus(text) {
+            if (mentorStatusSidebar) mentorStatusSidebar.textContent = text;
+        }
+
+        async function speakText(text) {
+            if (!voiceUnlocked) return;
+
+            console.log("Attempting TTS for:", text.substring(0, 30));
+            const orb = document.getElementById('talking-buddy-orb');
+            const rings = document.querySelectorAll('.pulse-ring');
+            const emoji = document.getElementById('buddy-emoji');
+
+            const startAnim = () => {
+                if (orb) orb.classList.add('scale-110', 'shadow-[0_0_40px_rgba(139,92,246,0.6)]');
+                rings.forEach(r => r.classList.add('animate-pulse-slow'));
+                if (emoji) emoji.classList.add('scale-125');
+                setMentorStatus('Speaking...');
+            };
+
+            const stopAnim = () => {
+                if (orb) orb.classList.remove('scale-110', 'shadow-[0_0_40px_rgba(139,92,246,0.6)]');
+                rings.forEach(r => r.classList.remove('animate-pulse-slow'));
+                if (emoji) emoji.classList.remove('scale-125');
+                setMentorStatus('Listening...');
+            };
+
+            try {
+                const response = await fetch(`/api/tts?text=${encodeURIComponent(text.replace(/[*_#]/g, ''))}`);
+                if (response.ok && response.headers.get('Content-Type')?.includes('audio')) {
+                    const blob = await response.blob();
+                    if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+                    currentAudio = new Audio(URL.createObjectURL(blob));
+                    currentAudio.onplay = startAnim;
+                    currentAudio.onended = () => { stopAnim(); currentAudio = null; };
+                    await currentAudio.play();
+                    return;
+                }
+            } catch (e) {
+                console.warn("API TTS failed, falling back to browser...");
+            }
+
+            // Browser Fallback
+            try {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text.replace(/[*_#]/g, ''));
+                const voices = window.speechSynthesis.getVoices();
+                const bestVoice = voices.find(v => v.lang.startsWith('en') && v.name.includes('Google')) ||
+                    voices.find(v => v.lang.startsWith('en')) ||
+                    voices[0];
+                if (bestVoice) utterance.voice = bestVoice;
+                utterance.onstart = startAnim;
+                utterance.onend = stopAnim;
+                window.speechSynthesis.speak(utterance);
+            } catch (e) {
+                stopAnim();
+            }
+        }
+
+        function appendMentorMessage(text) {
+            const div = document.createElement('div');
+            div.className = 'flex items-start gap-3 animate-fade-in-up';
+            div.innerHTML = `
+                <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-br from-emerald-800 to-green-900 flex items-center justify-center flex-shrink-0 shadow-lg shadow-green-200">
+                    <span class="text-sm sm:text-lg text-white">🤖</span>
+                </div>
+                <div class="bg-white text-slate-700 p-4 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 max-w-[85%]">
+                    <div class="prose prose-emerald prose-sm max-w-none leading-relaxed">${marked.parse(text)}</div>
+                </div>
+            `;
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+            chatHistory.push({ role: "assistant", content: text });
+            speakText(text);
+        }
+
+        function appendUserTranscript(text) {
+            const div = document.createElement('div');
+            div.className = 'flex items-start gap-3 flex-row-reverse animate-fade-in-up';
+            div.innerHTML = `
+                <div class="w-8 h-8 rounded-full bg-slate-200 border-2 border-white flex items-center justify-center flex-shrink-0 shadow-sm">
+                    <span class="text-sm">🗣️</span>
+                </div>
+                <div class="bg-emerald-50 text-emerald-900 px-4 py-3 rounded-2xl rounded-tr-none shadow-sm border border-emerald-100 max-w-[75%]">
+                    <p class="text-sm italic">${text}</p>
+                </div>
+            `;
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+            chatHistory.push({ role: "user", content: text });
+        }
+
+        async function getAIResponse(userMsg = "") {
+            if (isProcessing) return;
+            isProcessing = true;
+            micBtn.disabled = true;
+            micBtn.classList.add('opacity-50');
+            setMentorStatus('Thinking...');
+
+            try {
+                const resp = await fetch(`/career/roadmap/{{ path.id }}/step/{{ step_index }}/chat/message`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: userMsg, answers: chatHistory })
+                });
+                const data = await resp.json();
+                appendMentorMessage(data.response);
+                if (data.recommendation_ready && finishBtn) {
+                    finishBtn.classList.remove('hidden');
+                }
+            } catch (e) {
+                appendMentorMessage("Connection issue. Please check your internet.");
+            } finally {
+                isProcessing = false;
+                micBtn.disabled = false;
+                micBtn.classList.remove('opacity-50');
+            }
+        }
+
+        startSessionBtn.onclick = () => {
+            voiceUnlocked = true;
+            sessionOverlay.classList.add('hidden');
+            const v = new SpeechSynthesisUtterance("");
+            window.speechSynthesis.speak(v);
+
+            getAIResponse(""); // Start first greeting
+        };
+
+        // Speech Recognition Setup
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            const recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            recognition.onstart = () => {
+                micIcon.innerText = '🛑';
+                micPulse.classList.add('animate-ping', 'opacity-30');
+            };
+
+            recognition.onresult = (event) => {
+                let finalT = '';
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    if (event.results[i].isFinal) finalT += event.results[i][0].transcript;
+                }
+                if (finalT.trim()) {
+                    appendUserTranscript(finalT.trim());
+                    setTimeout(() => getAIResponse(finalT.trim()), 300);
+                }
+            };
+
+            recognition.onend = () => {
+                micIcon.innerText = '🎙️';
+                micPulse.classList.remove('animate-ping', 'opacity-30');
+            };
+
+            micBtn.onclick = () => {
+                if (isProcessing) return;
+                try { recognition.start(); } catch (e) { recognition.stop(); }
+            };
+        }
+
+        window.finishReporting = async function () {
+            if (finishBtn) { finishBtn.disabled = true; finishBtn.textContent = '⏳ Finalizing...'; }
+            
+            try {
+                window.speechSynthesis.cancel();
+                if (currentAudio) {
+                    currentAudio.pause();
+                    currentAudio = null;
+                }
+                stopAnim();
+                isProcessing = false;
+            } catch (e) {}
+
+            try {
+                const resp = await fetch(`/career/roadmap/{{ path.id }}/step/{{ step_index }}/chat/finalize`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await resp.json();
+                if (data.redirect) window.location.href = data.redirect;
+            } catch (e) {
+                finishBtn.disabled = false;
+                finishBtn.textContent = '✨ Finish & Complete Milestone';
+            }
+        };
+    });
+</script>
+
+<style>
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .animate-fade-in-up {
+        animation: fadeInUp 0.4s ease-out forwards;
+    }
+
+    @keyframes pulse-slow {
+        0%, 100% {
+            transform: scale(1);
+            opacity: 0.2;
+        }
+        50% {
+            transform: scale(1.4);
+            opacity: 0.4;
+        }
+    }
+
+    .animate-pulse-slow {
+        animation: pulse-slow 2s infinite ease-in-out;
+    }
+
+    #chat-box::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    #chat-box::-webkit-scrollbar-thumb {
+        background: #e2e8f0;
+        border-radius: 10px;
+    }
+</style>
+{% endblock %}
