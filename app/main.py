@@ -23,7 +23,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload, joinedload
 from sqlalchemy import select, and_, or_, func
-from .database import AsyncSessionLocal, engine, get_db, Base
+from .database import AsyncSessionLocal, engine, get_db, Base, SQLALCHEMY_DATABASE_URL
 import re
 from . import models
 from .email_utils import (
@@ -322,13 +322,12 @@ app = FastAPI(title="CareStance")
 
 @app.on_event("startup")
 async def startup_event():
-    """Run migrations on startup only when explicitly enabled."""
+    """Run migrations on startup for local development and when explicitly enabled."""
     try:
-        if RUN_MIGRATIONS_ON_STARTUP:
-            # Create all tables asynchronously
+        if RUN_MIGRATIONS_ON_STARTUP or SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
+            # Create all tables asynchronously and run any schema migrations
             async with engine.begin() as conn:
                 await conn.run_sync(models.Base.metadata.create_all)
-            # Run additional migrations in thread to avoid blocking
             await asyncio.to_thread(run_migrations)
         else:
             print("Startup: Skipping DB migration and schema creation. Set RUN_MIGRATIONS_ON_STARTUP=true to enable.")
