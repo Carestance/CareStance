@@ -1033,11 +1033,28 @@ async def assessment_start(
     
     try:
         # Check/Create Result
-        result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
-        
-        # Grade 12 starts at current_phase=0 (Intake Chat), Grade 10 starts at current_phase=1 (Swipe)
+        result = (
+            await db.execute(
+                select(models.AssessmentResult)
+                .where(models.AssessmentResult.user_id == user.id)
+            )
+        ).scalars().first()
+
         start_phase = 0 if student_type == "12th" else 1
-        
+        if result:
+            current_phase = result.current_phase or start_phase
+            if (
+                result.assessment_report is None
+                and result.current_phase is not None
+                and result.current_phase > start_phase
+            ):
+                return RedirectResponse(
+                    url="/assessment",
+                    status_code=status.HTTP_302_FOUND
+                )
+
+
+            
         if result:
             # Clear all previous progress fields
             result.selected_class = class_level

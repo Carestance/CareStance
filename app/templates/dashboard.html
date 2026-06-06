@@ -199,7 +199,61 @@
     </div>
 
     <!-- MAIN CONTENT AREA -->
-    {% if not assessment or not assessment.assessment_report %}
+     {% set has_progress =
+        assessment and
+        not assessment.assessment_report and (
+            assessment.telemetry_logs or
+            assessment.chat_messages or
+            assessment.proxy_answers or
+            assessment.scenario_answers
+        )
+    %}
+
+    {% if has_progress %}
+    <div class="mb-8 bg-white border border-emerald-200 rounded-3xl p-8 shadow-lg">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+            <div>
+                <div class="inline-flex items-center px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-sm font-semibold mb-3">
+                    Assessment In Progress
+                </div>
+
+                <h2 class="text-2xl font-bold text-slate-900 mb-2">
+                    Continue Your Career Assessment
+                </h2>
+
+                <p class="text-slate-600">
+                    You already have assessment progress saved.
+                    Resume where you left off or start fresh.
+                </p>
+
+                <div class="mt-3 text-sm text-slate-500">
+                    Current Phase:
+                    <span class="font-semibold">{{ assessment.current_phase }}</span>
+                </div>
+            </div>
+
+            <div class="flex gap-3">
+                <a href="/assessment"
+                   style="
+                      background:#059669;
+                      color:white;
+                      padding:12px 24px;
+                      border-radius:12px;
+                      font-weight:600;
+                      display:inline-block;
+                   ">
+                   Resume Assessment
+                </a>
+
+                <a href="/assessment/reset"
+                    class="px-6 py-3 rounded-xl border border-slate-300 text-slate-700 font-semibold hover:bg-slate-100 transition">
+                    Start Fresh
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% if not has_progress and (not assessment or not assessment.assessment_report) %}
     <!-- STATE 1: NEW USER / START ASSESSMENT -->
     <div class="db-card-muted border rounded-3xl p-8 sm:p-12 text-center"
         style="background: linear-gradient(135deg, var(--primary-soft) 0%, #fef3c7 100%); border-color: var(--border-light);">
@@ -272,8 +326,8 @@
         </div>
     </div>
 
-    {% else %}
-    <!-- STATE 2: RETURNING USER / DASHBOARD WIDGETS -->
+    {% elif assessment and assessment.assessment_report %}
+    <!-- STATE 2: ASSESSMENT COMPLETED -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
         <!-- Left Column: Main Results & Next Steps -->
