@@ -177,24 +177,25 @@ from data.questions_12th import questions_12th
 from data.questions_above_12th import questions_above_12th
 
 # Auto-migrate: add missing columns to existing tables
-def run_migrations():
+async def run_migrations():
     """Add new columns to existing tables if they don't exist."""
     from sqlalchemy import text, inspect
     
     try:
-        inspector = inspect(engine)
-        
-        # Get existing columns for each table
-        def get_columns(table_name):
-            try:
-                return [col['name'] for col in inspector.get_columns(table_name)]
-            except Exception:
-                return []
-        
-        migrations = []
-        
-        # 1. Users table
-        u_cols = get_columns('users')
+        async with engine.begin() as conn:
+            inspector = await conn.run_sync(inspect)
+
+            # Get existing columns for each table
+            def get_columns(table_name):
+                try:
+                    return [col['name'] for col in inspector.get_columns(table_name)]
+                except Exception:
+                    return []
+
+            migrations = []
+
+            # 1. Users table
+            u_cols = get_columns('users')
         if u_cols:
             if 'profile_photo' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN profile_photo VARCHAR")
             if 'bio' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN bio TEXT")
@@ -320,6 +321,11 @@ def run_migrations():
 
 app = FastAPI(title="CareStance")
 
+# Lightweight health endpoint for uptime checks
+@app.get("/_health")
+async def _health():
+    return {"status": "ok", "now": datetime.datetime.utcnow().isoformat()}
+
 @app.on_event("startup")
 async def startup_event():
     """Run migrations on startup for local development and when explicitly enabled."""
@@ -328,7 +334,7 @@ async def startup_event():
             # Create all tables asynchronously and run any schema migrations
             async with engine.begin() as conn:
                 await conn.run_sync(models.Base.metadata.create_all)
-            await asyncio.to_thread(run_migrations)
+            await run_migrations()
         else:
             print("Startup: Skipping DB migration and schema creation. Set RUN_MIGRATIONS_ON_STARTUP=true to enable.")
     except Exception as e:
