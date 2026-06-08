@@ -4,6 +4,15 @@ Welcome! This repository contains CareStance, an AI-powered career assessment an
 
 ---
 
+## Deployment architecture
+
+- `frontend/` → Vercel deployment target for the frontend app or static site.
+- Repository root → backend FastAPI service that can be deployed on Railway.
+
+> The current backend is Python/FastAPI and is the main app in the repo root. The `frontend/` folder is a separate static deployment stub for Vercel.
+
+---
+
 ## Quick Start (Windows)
 
 1. Clone the repo and create a virtual environment:

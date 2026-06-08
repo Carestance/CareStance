@@ -1,0 +1,28 @@
+body {
+  margin: 0;
+  font-family: Inter, system-ui, sans-serif;
+  background: #f3f4f6;
+  color: #111827;
+}
+.page-center {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+}
+.container {
+  max-width: 40rem;
+  width: 100%;
+  background: white;
+  border-radius: 1rem;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.12);
+  padding: 2rem;
+}
+h1 {
+  margin-top: 0;
+  font-size: clamp(2rem, 4vw, 3rem);
+}
+p {
+  line-height: 1.75;
+  margin: 1rem 0;
+}
