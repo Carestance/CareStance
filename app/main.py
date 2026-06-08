@@ -497,11 +497,13 @@ async def check_suspension(request: Request, call_next):
     response = await call_next(request)
     return response
 
-# Mount Static & Templates
-# Mount Static & Templates
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
-templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
+# Mount static assets and templates from the frontend folder
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+FRONTEND_DIR = os.path.join(ROOT_DIR, "frontend")
+STATIC_DIR = os.path.join(FRONTEND_DIR, "static")
+TEMPLATES_DIR = os.path.join(FRONTEND_DIR, "templates")
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+templates = Jinja2Templates(directory=TEMPLATES_DIR)
 # Re-enabled cache as standard practice
 # pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto"]) # Removed
 
@@ -542,8 +544,7 @@ async def get_current_user(request: Request, db: AsyncSession = Depends(get_db))
 @app.get("/ads.txt")
 async def ads_txt():
     # Looks for ads.txt in the project root (one level above 'app' folder)
-    root_dir = os.path.dirname(BASE_DIR)
-    ads_path = os.path.join(root_dir, "ads.txt")
+    ads_path = os.path.join(ROOT_DIR, "ads.txt")
     if os.path.exists(ads_path):
         from fastapi.responses import FileResponse
         return FileResponse(ads_path)
@@ -2116,7 +2117,7 @@ async def upload_profile_photo(
     filename = f"user_{user.id}_{uuid.uuid4().hex}{file_extension}"
     
     # Ensure directory exists
-    upload_dir = os.path.join(BASE_DIR, "static", "uploads", "profile_photos")
+    upload_dir = os.path.join(STATIC_DIR, "uploads", "profile_photos")
     try:
         os.makedirs(upload_dir, exist_ok=True)
         file_path = os.path.join(upload_dir, filename)
@@ -2155,7 +2156,7 @@ async def upload_certificates(
         new_certs = list(existing_certs)
         
         # Ensure directory exists
-        upload_dir = os.path.join(BASE_DIR, "static", "uploads", "certificates")
+        upload_dir = os.path.join(STATIC_DIR, "uploads", "certificates")
         os.makedirs(upload_dir, exist_ok=True)
 
         if files:
@@ -5729,7 +5730,7 @@ async def send_student_message(
 
     if file:
         try:
-            upload_dir = os.path.join(BASE_DIR, "static", "uploads", "chat")
+            upload_dir = os.path.join(STATIC_DIR, "uploads", "chat")
             os.makedirs(upload_dir, exist_ok=True)
             
             file_ext = os.path.splitext(file.filename)[1]
