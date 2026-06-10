@@ -4,6 +4,25 @@ Welcome! This repository contains CareStance, an AI-powered career assessment an
 
 ---
 
+## Deployment Architecture
+
+This project uses a **split deployment model**:
+
+- **Backend (FastAPI)** → Deploy on [Railway](https://railway.app)
+  - Serves API endpoints and Jinja2 HTML templates
+  - Handles database, authentication, and AI logic
+  - URL: `https://your-app.up.railway.app`
+
+- **Frontend (Static Assets)** → Deploy on [Vercel](https://vercel.com)
+  - Serves HTML, CSS, JS from `frontend/` folder
+  - Can be replaced with React/Next.js/Vite later
+  - URL: `https://your-app.vercel.app`
+
+📖 **See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed deployment steps**
+⚡ **See [QUICKSTART_DEPLOY.md](./QUICKSTART_DEPLOY.md) for quick reference**
+
+---
+
 ## Quick Start (Windows)
 
 1. Clone the repo and create a virtual environment:
@@ -54,8 +73,8 @@ Place these in `.env` at the project root. For interns, it's OK to run without A
 - Core routes: `app/routes/` — look at `payments.py` and other route modules.
 - Services: `app/services/` — integration code (e.g., `razorpay_service.py`).
 - Database and models: `app/database.py` and `app/models.py` — SQLAlchemy setup and ORM models.
-- Templates: `app/templates/` — Jinja2 HTML templates.
-- Static assets: `app/static/` — CSS, JS, images, uploads.
+- Templates: `frontend/templates/` — Jinja2 HTML templates.
+- Static assets: `frontend/static/` — CSS, JS, images, uploads.
 - Utility scripts: `scripts/` — useful maintenance and migration helpers.
 
 Recommended first tasks for interns:

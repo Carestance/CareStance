@@ -16,5 +16,5 @@ razorpay
 redis
 appwrite==18.0.0
 aiosqlite
-uvicorn
-gunicorn
+hypercorn
+

@@ -1,0 +1,25 @@
+{
+  "name": "carestance",
+  "version": "1.0.0",
+  "description": "A comprehensive AI-powered assessment and learning platform built with FastAPI. Designed to evaluate and track student progress through multiple assessment phases with AI-generated feedback using Google's Generative AI.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Yuvneet22/CareStance.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "supabase": "^2.91.0",
+    "tailwindcss": "^3.4.19"
+  },
+  "bugs": {
+    "url": "https://github.com/Yuvneet22/CareStance/issues"
+  },
+  "homepage": "https://github.com/Yuvneet22/CareStance#readme"
+}

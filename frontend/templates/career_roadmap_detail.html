@@ -1,0 +1,434 @@
+{% extends "base.html" %}
+
+{% block title %}Career Roadmap: {{ path.career_title }} | CareStance{% endblock %}
+
+{% block content %}
+<!-- Confetti Library for Gamification -->
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+<div class="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 overflow-hidden">
+    <div class="max-w-4xl mx-auto">
+
+        <!-- Header -->
+        <div class="mb-12 text-center animate-fade-in-up">
+            <nav class="flex justify-center mb-6" aria-label="Breadcrumb">
+                <ol class="flex items-center space-x-2 text-sm text-slate-500 font-medium">
+                    <li><a href="/dashboard" class="hover:text-[var(--navy)] transition-colors">Dashboard</a></li>
+                    <li><i class="fas fa-chevron-right text-[10px] opacity-50"></i></li>
+                    <li><a href="/assessment/result" class="hover:text-[var(--navy)] transition-colors">Results</a></li>
+                    <li><i class="fas fa-chevron-right text-[10px] opacity-50"></i></li>
+                    <li class="font-bold text-[var(--navy)] bg-[var(--teal-soft)] px-3 py-1 rounded-full">Roadmap</li>
+                </ol>
+            </nav>
+            <h1 class="text-4xl md:text-5xl font-black text-slate-900 mb-4 tracking-tight">
+                {{ path.career_title }} <span class="text-transparent bg-clip-text bg-gradient-to-r from-[var(--navy)] to-[var(--teal)]">Roadmap</span>
+            </h1>
+            <p class="text-slate-500 max-w-2xl mx-auto text-lg">
+                A personalized strategy designed by AI to take you from your current stage to your dream career.
+            </p>
+        </div>
+
+        <!-- Progress Bar -->
+        {% if path.path_data is mapping and 'steps' in path.path_data %}
+        <div class="mb-12 bg-white rounded-3xl p-8 shadow-xl shadow-slate-200/50 border border-slate-100 animate-fade-in-up" style="animation-delay: 100ms;">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2">
+                    <i class="fas fa-trophy text-yellow-500"></i> Your Journey
+                </h2>
+                <span id="progress-text" class="text-[var(--navy)] font-black bg-[var(--teal-soft)] px-4 py-1.5 rounded-full shadow-inner">
+                    {{ path.path_data.progress_percentage|default(0) }}% Completed
+                </span>
+            </div>
+            <div class="w-full bg-slate-100 rounded-full h-4 overflow-hidden shadow-inner">
+                <div id="progress-bar" class="bg-gradient-to-r from-[var(--navy)] to-[var(--teal)] h-full transition-all duration-1000 ease-out relative"
+                    style="width:{{ path.path_data.progress_percentage|default(0) }}%">
+                    <!-- Shimmer Effect -->
+                    <div class="absolute top-0 left-0 right-0 bottom-0 bg-white/20 progress-shimmer"></div>
+                </div>
+            </div>
+            <p id="progress-motivation" class="text-center text-sm text-slate-400 mt-4 font-medium transition-all duration-300">
+                {% if path.path_data.progress_percentage|default(0) == 100 %}
+                    <span class="text-emerald-500">Incredible! You've completed your roadmap! 🎉</span>
+                {% elif path.path_data.progress_percentage|default(0) > 50 %}
+                    You're past the halfway mark! Keep up the momentum! 🚀
+                {% else %}
+                    Every pro was once a beginner. Start your first step today! 💡
+                {% endif %}
+            </p>
+        </div>
+        {% endif %}
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+            <!-- Left: Roadmap Steps (2/3) -->
+            <div class="lg:col-span-2 space-y-8">
+                <div class="bg-white rounded-3xl p-8 shadow-xl shadow-slate-200/50 border border-slate-100 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-64 h-64 bg-[var(--teal-soft)] rounded-full -mr-32 -mt-32 blur-3xl opacity-60"></div>
+
+                    <h2 class="text-2xl font-bold text-slate-900 mb-8 flex items-center gap-3 relative z-10">
+                        <span class="w-10 h-10 rounded-xl bg-[var(--teal-soft)] text-[var(--navy)] flex items-center justify-center shadow-sm">
+                            <i class="fas fa-map-marked-alt"></i>
+                        </span> 
+                        The Pathway
+                    </h2>
+
+                    <div class="relative z-10">
+                        <!-- Vertical Line -->
+                        <div class="absolute left-6 top-0 bottom-0 w-1 bg-slate-100 rounded-full"></div>
+                        <div id="progress-line" class="absolute left-6 top-0 w-1 bg-emerald-400 rounded-full transition-all duration-1000 ease-out z-0" style="height: {{ path.path_data.progress_percentage|default(0) }}%;"></div>
+
+                        <div class="space-y-12">
+                            {% set steps = path.path_data.steps if path.path_data is mapping and 'steps' in path.path_data else path.path_data %}
+                            {% for step in steps %}
+                            <div class="relative flex gap-8 group animate-fade-in-up" style="animation-delay: {{ loop.index0 * 150 + 200 }}ms;" id="step-container-{{ loop.index0 }}">
+                                
+                                <!-- Step Circle / Checkbox -->
+                                <div id="circle-{{ loop.index0 }}" class="relative z-10 w-12 h-12 rounded-2xl bg-white border-4 {% if step.completed %}border-emerald-400 text-emerald-500 shadow-emerald-100 shadow-lg scale-110{% else %}border-slate-100 text-slate-400 group-hover:border-[var(--teal-light)] group-hover:text-[var(--teal)]{% endif %} flex items-center justify-center transition-all duration-300 transform cursor-pointer hover:scale-110">
+                                    <input type="checkbox" class="absolute opacity-0 w-full h-full cursor-pointer z-20"
+                                        onchange="toggleStep({{ path.id }}, {{ loop.index0 }})"
+                                        title="Mark step as complete"
+                                        aria-label="Mark step {{ loop.index }} as complete" {% if step.completed %}checked{% endif %}>
+                                    {% if step.completed %}
+                                    <i class="fas fa-check text-xl animate-pop"></i>
+                                    {% else %}
+                                    <span class="font-black">{{ loop.index }}</span>
+                                    {% endif %}
+                                </div>
+
+                                <div class="flex-1 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm group-hover:shadow-md group-hover:border-[var(--teal-light)] transition-all duration-300 transform group-hover:-translate-y-1">
+                                    <div class="flex flex-wrap items-center gap-2 mb-3">
+                                        {% if loop.index <= 2 %} 
+                                            <span class="text-[10px] font-black bg-blue-100/80 text-blue-600 px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1"><i class="fas fa-seedling"></i> Basics</span>
+                                        {% elif loop.index <= 4 %} 
+                                            <span class="text-[10px] font-black bg-[var(--teal-soft)]/80 text-[var(--navy)] px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1"><i class="fas fa-fire"></i> Intermediate</span>
+                                        {% else %}
+                                            <span class="text-[10px] font-black bg-amber-100/80 text-amber-600 px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1"><i class="fas fa-crown"></i> Pro</span>
+                                        {% endif %}
+
+                                        <h3 class="text-xl font-bold {% if step.completed %}text-slate-400 line-through decoration-emerald-400 decoration-2{% else %}text-slate-900{% endif %} transition-all duration-500 flex-1" id="step-title-{{ loop.index0 }}">
+                                            {{ step.action }}
+                                        </h3>
+
+                                        {% if step.timeline %}
+                                        <span class="text-xs font-bold bg-slate-100 text-slate-600 px-3 py-1 rounded-full whitespace-nowrap group-hover:bg-[var(--teal-soft)] group-hover:text-[var(--navy)] transition-colors">
+                                            <i class="far fa-clock mr-1"></i> {{ step.timeline }}
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                    <p class="text-slate-600 leading-relaxed text-sm mb-4">
+                                        {{ step.description }}
+                                    </p>
+
+                                    {% if step.skills or step.courses or step.project %}
+                                    <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 mt-4 p-4 bg-slate-50 rounded-xl border border-slate-100 group-hover:bg-[var(--teal-soft)]/30 transition-colors">
+                                        {% if step.skills %}
+                                        <div>
+                                            <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                                <i class="fas fa-brain text-[var(--teal)]"></i> Skills
+                                            </p>
+                                            <div class="flex flex-wrap gap-2">
+                                                {% for skill in step.skills %}
+                                                <span class="text-xs font-medium bg-white border border-slate-200 text-slate-700 px-3 py-1.5 rounded-lg hover:bg-[var(--navy)] hover:text-white hover:border-[var(--navy)] transition-all cursor-default shadow-sm hover:shadow-md transform hover:-translate-y-0.5">
+                                                    {{ skill }}
+                                                </span>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                        
+                                        {% if step.courses %}
+                                        <div>
+                                            <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                                <i class="fas fa-book-open text-[var(--teal)]"></i> Resources
+                                            </p>
+                                            <ul class="text-sm text-slate-600 space-y-2">
+                                                {% for course in step.courses %}
+                                                <li class="flex items-start gap-2 group/link">
+                                                    {% if course is mapping %}
+                                                    <div class="mt-0.5 w-6 h-6 rounded-full bg-white shadow-sm flex items-center justify-center text-[10px] text-[var(--teal)] group-hover/link:bg-[var(--navy)] group-hover/link:text-white transition-colors">
+                                                        <i class="fas fa-link"></i>
+                                                    </div>
+                                                    <a href="{{ course.url }}" target="_blank" class="flex-1 hover:text-[var(--navy)] font-medium transition-colors pt-0.5 group-hover/link:underline decoration-[var(--teal-light)] underline-offset-4">
+                                                        {{ course.name }}
+                                                    </a>
+                                                    {% endif %}
+                                                </li>
+                                                {% endfor %}
+                                            </ul>
+                                        </div>
+                                        {% endif %}
+                                        
+                                        {% if step.project %}
+                                        <div class="xl:col-span-2 pt-4 mt-2 border-t border-slate-200/60">
+                                            <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-2">
+                                                <i class="fas fa-lightbulb text-amber-400"></i> Project Idea
+                                            </p>
+                                            <div class="bg-white p-3 rounded-lg border border-slate-100 shadow-sm border-l-4 border-l-amber-400">
+                                                <p class="text-sm text-slate-700 font-medium italic">{{ step.project }}</p>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                {% if path.path_data is mapping and path.path_data.internships %}
+                <!-- Internships Section -->
+                <div class="bg-white rounded-3xl p-8 shadow-xl shadow-slate-200/50 border border-slate-100 animate-fade-in-up" style="animation-delay: 800ms;">
+                    <h2 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+                        <span class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shadow-sm">
+                            <i class="fas fa-briefcase"></i>
+                        </span>
+                        Targeted Internships
+                    </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {% for internship in path.path_data.internships %}
+                        <div class="p-5 rounded-2xl bg-slate-50 border border-slate-100 flex items-center gap-4 hover:bg-white hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group cursor-default">
+                            <div class="w-14 h-14 bg-white rounded-xl shadow-sm flex items-center justify-center text-slate-400 text-2xl group-hover:text-emerald-500 group-hover:scale-110 transition-all duration-300">
+                                <i class="fas fa-building"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">{{ internship }}</h4>
+                                <p class="text-xs text-slate-500 mt-1 flex items-center gap-1"><i class="fas fa-crosshairs"></i> Recommended</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Right: Outlook & Reminders (1/3) -->
+            <div class="lg:col-span-1 space-y-8 animate-fade-in-up" style="animation-delay: 400ms;">
+
+                {% if path.path_data is mapping and path.path_data.career_outlook %}
+                <!-- Career Outlook Card -->
+                <div class="bg-slate-900 rounded-3xl p-8 shadow-2xl shadow-slate-900/20 text-white relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 w-48 h-48 bg-emerald-500/20 rounded-full -mr-24 -mt-24 blur-3xl group-hover:bg-emerald-500/30 transition-colors duration-700"></div>
+
+                    <h2 class="text-xl font-bold mb-8 flex items-center gap-3 relative z-10">
+                        <i class="fas fa-chart-line text-emerald-400 p-2 bg-emerald-400/10 rounded-lg"></i> Market Outlook
+                    </h2>
+
+                    <div class="space-y-8 relative z-10">
+                        <div class="transform group-hover:translate-x-1 transition-transform duration-300">
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Salary Potential</p>
+                            <p class="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400">{{ path.path_data.career_outlook.salary_range }}</p>
+                            <p class="text-xs text-slate-500 mt-2 font-medium bg-slate-800 inline-block px-2 py-1 rounded">(Junior to Senior Estimates)</p>
+                        </div>
+
+                        <div class="transform group-hover:translate-x-1 transition-transform duration-300" style="transition-delay: 50ms;">
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Top Hiring Companies</p>
+                            <div class="flex flex-wrap gap-2">
+                                {% for company in path.path_data.career_outlook.top_companies %}
+                                <span class="text-xs font-medium bg-white/5 border border-white/10 px-3 py-1.5 rounded-full hover:bg-white/20 transition-colors cursor-default backdrop-blur-sm">{{ company }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="transform group-hover:translate-x-1 transition-transform duration-300" style="transition-delay: 100ms;">
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Future Scope</p>
+                            <p class="text-sm text-slate-300 leading-relaxed bg-white/5 p-4 rounded-xl border border-white/10 backdrop-blur-sm">{{ path.path_data.career_outlook.future_scope }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Reminders Card -->
+                <div class="bg-gradient-to-br from-[var(--navy)] to-[var(--navy)] rounded-3xl p-8 shadow-2xl shadow-[var(--navy)]/20 text-white relative overflow-hidden group">
+                    <div class="absolute bottom-0 right-0 w-48 h-48 bg-white/10 rounded-full -mb-24 -mr-24 blur-3xl group-hover:scale-150 transition-transform duration-1000"></div>
+
+                    <h2 class="text-xl font-bold mb-6 flex items-center gap-3 relative z-10">
+                        <span class="relative flex h-8 w-8 items-center justify-center">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-20"></span>
+                          <i class="fas fa-bell text-yellow-400 relative"></i>
+                        </span>
+                        Key Milestones
+                    </h2>
+
+                    <div class="space-y-4 relative z-10">
+                        {% set reminders = path.path_data.reminders if path.path_data is mapping and 'reminders' in path.path_data else path.reminders %}
+                        {% for reminder in reminders %}
+                        <div class="p-5 rounded-2xl bg-white/10 border border-white/20 backdrop-blur-md hover:bg-white/20 transition-colors duration-300 cursor-default">
+                            <p class="text-xs font-black text-slate-300 uppercase tracking-widest mb-2 flex items-center gap-2">
+                                <i class="fas fa-flag text-[10px]"></i> {{ reminder.milestone }}
+                            </p>
+                            <p class="text-sm font-medium leading-relaxed text-slate-200">
+                                {{ reminder.reminder }}
+                            </p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Footer Actions -->
+        <div class="mt-12 flex flex-col sm:flex-row justify-between items-center bg-white p-6 rounded-3xl border border-slate-100 shadow-lg shadow-slate-200/50 gap-4 animate-fade-in-up" style="animation-delay: 1000ms;">
+            <div class="flex items-center gap-3 text-slate-500 text-sm font-medium">
+                <div class="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100">
+                    <i class="fas fa-save"></i>
+                </div>
+                <p>This roadmap is automatically saved to your profile.</p>
+            </div>
+            <div class="flex flex-wrap gap-3 w-full sm:w-auto">
+                <button onclick="window.print()" class="flex-1 sm:flex-none px-6 py-3 rounded-xl border-2 border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center justify-center gap-2">
+                    <i class="fas fa-print"></i> Print
+                </button>
+                <a href="/dashboard" class="flex-1 sm:flex-none px-6 py-3 rounded-xl bg-[var(--navy)] text-white font-bold text-sm hover:bg-[var(--navy)] hover:shadow-lg hover:-translate-y-0.5 transition-all shadow-md shadow-[var(--teal-soft)] flex items-center justify-center gap-2">
+                    Back to Dashboard <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    async function toggleStep(pathId, stepIndex) {
+        try {
+            const response = await fetch(`/career/roadmap/${pathId}/step/${stepIndex}/toggle`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                // Update UI visually
+                const title = document.getElementById(`step-title-${stepIndex}`);
+                const circle = document.getElementById(`circle-${stepIndex}`);
+
+                if (result.completed) {
+                    // Strike through title
+                    title.classList.add('text-slate-400', 'line-through', 'decoration-emerald-400', 'decoration-2');
+                    title.classList.remove('text-slate-900');
+                    
+                    // Update Circle
+                    circle.classList.remove('border-slate-100', 'text-slate-400', 'group-hover:border-[var(--teal-light)]', 'group-hover:text-[var(--teal)]');
+                    circle.classList.add('border-emerald-400', 'text-emerald-500', 'shadow-emerald-100', 'shadow-lg', 'scale-110');
+                    circle.innerHTML = `<input type="checkbox" class="absolute opacity-0 w-full h-full cursor-pointer z-20" onchange="toggleStep(${pathId}, ${stepIndex})" checked title="Mark step as complete" aria-label="Mark step ${stepIndex + 1} as complete"><i class="fas fa-check text-xl animate-pop"></i>`;
+                    
+                    // Fire Confetti!
+                    confetti({
+                        particleCount: 80,
+                        spread: 60,
+                        origin: { y: 0.6 },
+                        colors: ['#34d399', '#818cf8', '#fbbf24']
+                    });
+
+                } else {
+                    // Revert title
+                    title.classList.remove('text-slate-400', 'line-through', 'decoration-emerald-400', 'decoration-2');
+                    title.classList.add('text-slate-900');
+                    
+                    // Revert Circle
+                    circle.classList.add('border-slate-100', 'text-slate-400', 'group-hover:border-[var(--teal-light)]', 'group-hover:text-[var(--teal)]');
+                    circle.classList.remove('border-emerald-400', 'text-emerald-500', 'shadow-emerald-100', 'shadow-lg', 'scale-110');
+                    circle.innerHTML = `<input type="checkbox" class="absolute opacity-0 w-full h-full cursor-pointer z-20" onchange="toggleStep(${pathId}, ${stepIndex})" title="Mark step as complete" aria-label="Mark step ${stepIndex + 1} as complete"><span class="font-black">${stepIndex + 1}</span>`;
+                }
+
+                // Update Progress Bar
+                const progressNum = result.progress || 0;
+                document.getElementById('progress-bar').style.width = `${progressNum}%`;
+                
+                // Also update vertical line progress if it exists
+                const progressLine = document.getElementById('progress-line');
+                if(progressLine) {
+                    progressLine.style.height = `${progressNum}%`;
+                }
+
+                document.getElementById('progress-text').innerText = `${progressNum}% Completed`;
+
+                // Update Motivation Text
+                const motivationText = document.getElementById('progress-motivation');
+                if (progressNum === 100) {
+                    motivationText.innerHTML = `<span class="text-emerald-500 font-bold">Incredible! You've completed your roadmap! 🎉</span>`;
+                    // Mega Confetti!
+                    const duration = 3000;
+                    const end = Date.now() + duration;
+                    (function frame() {
+                        confetti({
+                            particleCount: 5,
+                            angle: 60,
+                            spread: 55,
+                            origin: { x: 0 },
+                            colors: ['#34d399', '#818cf8', '#fbbf24']
+                        });
+                        confetti({
+                            particleCount: 5,
+                            angle: 120,
+                            spread: 55,
+                            origin: { x: 1 },
+                            colors: ['#34d399', '#818cf8', '#fbbf24']
+                        });
+                        if (Date.now() < end) {
+                            requestAnimationFrame(frame);
+                        }
+                    }());
+                } else if (progressNum > 50) {
+                    motivationText.innerText = "You're past the halfway mark! Keep up the momentum! 🚀";
+                } else {
+                    motivationText.innerText = "Every pro was once a beginner. Start your first step today! 💡";
+                }
+            }
+        } catch (err) {
+            console.error('Failed to toggle step:', err);
+        }
+    }
+</script>
+
+<!-- Custom Styles for Animations & Printing -->
+<style>
+    /* Custom Keyframes */
+    @keyframes fadeInUp {
+        0% { opacity: 0; transform: translateY(20px); }
+        100% { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes popIn {
+        0% { transform: scale(0.5); opacity: 0; }
+        70% { transform: scale(1.2); opacity: 1; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+
+    .animate-fade-in-up {
+        animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        opacity: 0; /* Ensures it stays hidden until animation triggers */
+    }
+
+    .animate-pop {
+        animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    /* Shimmer effect for progress bar */
+    .progress-shimmer {
+        background-image: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+        background-size: 200% 100%;
+        animation: shimmer 2s infinite linear;
+    }
+
+    @keyframes shimmer {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+    }
+
+    /* Print Styles */
+    @media print {
+        body * { visibility: hidden; }
+        .min-h-screen, .min-h-screen * { visibility: visible; }
+        .min-h-screen { position: absolute; left: 0; top: 0; width: 100%; padding: 0 !important; }
+        .bg-slate-50 { background: white !important; }
+        nav, .bg-slate-900, .bg-gradient-to-br, button, a[href="/dashboard"] { display: none !important; }
+        .shadow-xl, .shadow-2xl, .shadow-sm, .shadow-md { box-shadow: none !important; }
+        .border { border-color: #e2e8f0 !important; }
+    }
+</style>
+{% endblock %}

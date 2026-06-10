@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+
+{% block title %}Choose Your Role{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center relative overflow-hidden bg-[#fefcf5] -mt-8">
+
+
+    <div class="relative max-w-lg w-full px-6" x-data="{ role: '', showTnC: false, agreedToTnC: false }">
+        <div class="bg-white/70 backdrop-blur-xl p-10 rounded-3xl shadow-2xl border border-white/40">
+
+            <!-- Header -->
+            <div class="text-center space-y-3">
+                <div
+                    class="mx-auto w-16 h-16 bg-gradient-to-br from-[var(--teal)] to-[var(--teal)] rounded-2xl flex items-center justify-center shadow-lg shadow-[var(--teal-soft)] mb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                </div>
+                <h2 class="text-3xl font-extrabold text-slate-900 tracking-tight">
+                    Welcome, <span class="text-[var(--navy)]">{{ user.full_name }}!</span>
+                </h2>
+                <p class="text-sm text-slate-500">
+                    One last step — tell us who you are so we can personalize your experience.
+                </p>
+            </div>
+
+            <!-- Role Selection Form -->
+            <form action="/select-role" method="POST" class="mt-8 space-y-6" @submit.prevent="
+                if (role === 'counsellor' && !agreedToTnC) {
+                    showTnC = true;
+                } else {
+                    $el.submit();
+                }
+            ">
+                <input type="hidden" name="role" :value="role">
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Scholar Card -->
+                    <div class="cursor-pointer group" @click="role = 'student'; agreedToTnC = false">
+                        <div class="relative p-6 text-center border-2 rounded-2xl transition-all duration-300" :class="role === 'student' 
+                                ? 'border-[var(--navy)] bg-gradient-to-br from-[var(--teal-soft)] to-[var(--teal-soft)] shadow-lg shadow-[var(--teal-soft)]' 
+                                : 'border-slate-200 hover:border-[var(--teal-light)] hover:shadow-md'">
+
+                            <div class="text-5xl mb-3 transition-transform duration-300"
+                                :class="role === 'student' ? 'scale-110' : 'group-hover:scale-110'">🎓</div>
+                            <h3 class="text-lg font-extrabold"
+                                :class="role === 'student' ? 'text-[var(--navy)]' : 'text-slate-800'">Scholar</h3>
+                            <p class="text-xs text-slate-400 mt-1">Get career guidance, take assessments & book sessions
+                            </p>
+
+                            <!-- Checkmark -->
+                            <div class="absolute top-3 right-3 w-6 h-6 rounded-full bg-[var(--navy)] text-white items-center justify-center shadow-md"
+                                :class="role === 'student' ? 'flex' : 'hidden'">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
+                                        d="M5 13l4 4L19 7" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Life Coach Card -->
+                    <div class="cursor-pointer group" @click="role = 'counsellor'; agreedToTnC = false">
+                        <div class="relative p-6 text-center border-2 rounded-2xl transition-all duration-300" :class="role === 'counsellor' 
+                                ? 'border-[var(--navy)] bg-gradient-to-br from-[var(--teal-soft)] to-[var(--teal-soft)] shadow-lg shadow-[var(--teal-soft)]' 
+                                : 'border-slate-200 hover:border-[var(--teal-light)] hover:shadow-md'">
+
+                            <div class="text-5xl mb-3 transition-transform duration-300"
+                                :class="role === 'counsellor' ? 'scale-110' : 'group-hover:scale-110'">🧠</div>
+                            <h3 class="text-lg font-extrabold"
+                                :class="role === 'counsellor' ? 'text-[var(--navy)]' : 'text-slate-800'">Life Coach</h3>
+                            <p class="text-xs text-slate-400 mt-1">Offer guidance, manage appointments & help scholars
+                            </p>
+
+                            <!-- Checkmark -->
+                            <div class="absolute top-3 right-3 w-6 h-6 rounded-full bg-[var(--navy)] text-white items-center justify-center shadow-md"
+                                :class="role === 'counsellor' ? 'flex' : 'hidden'">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
+                                        d="M5 13l4 4L19 7" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit -->
+                <button type="submit"
+                    class="w-full py-3.5 rounded-xl text-white font-bold bg-gradient-to-r from-[var(--navy)] to-[var(--teal)] hover:scale-[1.03] hover:shadow-xl transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
+                    :disabled="!role">
+                    Continue →
+                </button>
+
+                <p class="text-center text-xs text-slate-400">
+                    You can't change this later. Choose wisely! ✨
+                </p>
+            </form>
+        </div>
+
+        <!-- Terms & Conditions Modal (Life Coach) -->
+        <div x-show="showTnC" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+            class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+            style="display: none;">
+
+            <div x-show="showTnC" x-transition:enter="transition ease-out duration-300"
+                x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+                x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 scale-100"
+                x-transition:leave-end="opacity-0 scale-95" @click.outside="showTnC = false"
+                class="bg-white rounded-3xl shadow-2xl border border-[var(--teal-light)] max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden">
+
+                <!-- Modal Header -->
+                <div class="px-8 py-5 border-b border-slate-100 flex items-center justify-between flex-shrink-0">
+                    <div class="flex items-center gap-3">
+                        <div
+                            class="w-10 h-10 bg-gradient-to-br from-[var(--teal)] to-[var(--teal)] rounded-xl flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-extrabold text-slate-900">Terms & Conditions</h3>
+                            <p class="text-xs text-slate-400">For Life Coaches on CareStance</p>
+                        </div>
+                    </div>
+                    <button @click="showTnC = false" class="text-slate-400 hover:text-slate-600 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Modal Body (Scrollable) -->
+                <div class="px-8 py-6 overflow-y-auto flex-1 text-sm text-slate-600 leading-relaxed space-y-5">
+
+                    <div>
+                        <h4 class="font-bold text-slate-800 mb-1">1. Introduction</h4>
+                        <p>These Terms and Conditions govern the relationship between CareStance and the counselors
+                            (life coaches) who provide services through the CareStance platform. By registering, you
+                            agree to comply with all the terms below.</p>
+                    </div>
+
+                    <div>
+                        <h4 class="font-bold text-slate-800 mb-1">2. Revenue Sharing Policy</h4>
+                        <p>For every paid video counseling session:</p>
+                        <ul class="list-disc list-inside mt-1 space-y-1 text-slate-500">
+                            <li>You will receive <span class="font-bold text-emerald-600">70%</span> of the session fee.
+                            </li>
+                            <li>CareStance retains <span class="font-bold text-slate-700">30%</span> as platform service
+                                charge.</li>
+                        </ul>
+                        <p class="mt-1">Payments will be processed per CareStance's payment cycle. Ensure your payment
+                            details are accurate.</p>
+                    </div>
+
+                    <div>
+                        <h4 class="font-bold text-slate-800 mb-1">3. Professional Conduct</h4>
+                        <p>You must maintain a high level of professionalism. The following are <span
+                                class="text-rose-500 font-semibold">strictly prohibited</span>:</p>
+                        <ul class="list-disc list-inside mt-1 space-y-1 text-slate-500">
+                            <li>Abusive, offensive, discriminatory, or inappropriate language</li>
+                            <li>Harassment, intimidation, or exploitation of users</li>
+                            <li>Sharing misleading or false information intentionally</li>
+                        </ul>
+                        <p class="mt-1 text-rose-500 font-medium text-xs">Violations may result in suspension,
+                            termination, or legal action.</p>
+                    </div>
+
+                    <div>
+                        <h4 class="font-bold text-slate-800 mb-1">4. Session Guidelines</h4>
+                        <ul class="list-disc list-inside space-y-1 text-slate-500">
+                            <li>All sessions must be conducted <strong>only through CareStance</strong></li>
+                            <li>Do not move users to external platforms for private consultations</li>
+                            <li>Attend sessions on time and maintain a respectful environment</li>
+                        </ul>
+                    </div>
+
+                    <div>
+                        <h4 class="font-bold text-slate-800 mb-1">5. Confidentiality & Privacy</h4>
+                        <ul class="list-disc list-inside space-y-1 text-slate-500">
+                            <li>Personal information shared during sessions must remain confidential</li>
+                            <li>Recording or distributing session content without consent is prohibited</li>
+                        </ul>
+                    </div>
+
+                    <div>
+                        <h4 class="font-bold text-slate-800 mb-1">6. Payment & Refund Policy</h4>
+                        <ul class="list-disc list-inside space-y-1 text-slate-500">
+                            <li>Payments are released after successful session completion</li>
+                            <li>Cancellations without valid reason may result in refund deductions</li>
+                        </ul>
+                    </div>
+
+                    <div>
+                        <h4 class="font-bold text-slate-800 mb-1">7. Platform Integrity</h4>
+                        <ul class="list-disc list-inside space-y-1 text-slate-500">
+                            <li>Do not manipulate ratings or reviews</li>
+                            <li>Do not create fake accounts or bookings</li>
+                            <li>Do not promote competing services during sessions</li>
+                        </ul>
+                    </div>
+
+                    <div>
+                        <h4 class="font-bold text-slate-800 mb-1">8. Compliance with Laws</h4>
+                        <p>You must comply with all applicable laws related to online counseling and professional
+                            services. Illegal activity leads to immediate termination.</p>
+                    </div>
+
+                    <div>
+                        <h4 class="font-bold text-slate-800 mb-1">9. Account Suspension or Termination</h4>
+                        <p>CareStance may suspend or terminate your account if you violate terms, receive multiple
+                            complaints, or engage in fraudulent/unethical behavior.</p>
+                    </div>
+
+                    <div>
+                        <h4 class="font-bold text-slate-800 mb-1">10. Liability Disclaimer</h4>
+                        <p>CareStance acts as a connection platform. We are not responsible for personal advice provided
+                            during sessions.</p>
+                    </div>
+
+                    <div>
+                        <h4 class="font-bold text-slate-800 mb-1">11. Modification of Terms</h4>
+                        <p>CareStance reserves the right to modify these terms. Significant changes will be
+                            communicated, and continued use indicates acceptance.</p>
+                    </div>
+
+                    <div>
+                        <h4 class="font-bold text-slate-800 mb-1">12. Legal Action Clause</h4>
+                        <p class="text-rose-500 font-medium">Any offensive, fraudulent, abusive, or illegal activity may
+                            result in immediate suspension and legal proceedings under applicable law.</p>
+                    </div>
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="px-8 py-5 border-t border-slate-100 flex-shrink-0 space-y-4">
+                    <label class="flex items-start gap-3 cursor-pointer select-none group">
+                        <input type="checkbox" x-model="agreedToTnC"
+                            class="mt-0.5 w-5 h-5 rounded border-slate-300 text-[var(--navy)] focus:ring-[var(--teal)] transition">
+                        <span class="text-sm text-slate-600 group-hover:text-slate-800 transition-colors">
+                            I have read, understood, and agree to abide by these
+                            <span class="font-bold text-[var(--navy)]">Terms & Conditions</span>.
+                        </span>
+                    </label>
+
+                    <div class="flex gap-3">
+                        <button @click="showTnC = false" type="button"
+                            class="flex-1 py-3 rounded-xl font-bold border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all">
+                            Cancel
+                        </button>
+                        <button @click="if(agreedToTnC) { showTnC = false; document.querySelector('form').submit(); }"
+                            type="button"
+                            class="flex-1 py-3 rounded-xl font-bold text-white bg-gradient-to-r from-[var(--navy)] to-[var(--teal)] hover:scale-[1.02] hover:shadow-xl transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
+                            :disabled="!agreedToTnC">
+                            I Agree & Continue →
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

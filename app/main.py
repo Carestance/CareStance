@@ -177,24 +177,25 @@ from data.questions_12th import questions_12th
 from data.questions_above_12th import questions_above_12th
 
 # Auto-migrate: add missing columns to existing tables
-def run_migrations():
+async def run_migrations():
     """Add new columns to existing tables if they don't exist."""
     from sqlalchemy import text, inspect
     
     try:
-        inspector = inspect(engine)
-        
-        # Get existing columns for each table
-        def get_columns(table_name):
-            try:
-                return [col['name'] for col in inspector.get_columns(table_name)]
-            except Exception:
-                return []
-        
-        migrations = []
-        
-        # 1. Users table
-        u_cols = get_columns('users')
+        async with engine.begin() as conn:
+            inspector = await conn.run_sync(inspect)
+
+            # Get existing columns for each table
+            def get_columns(table_name):
+                try:
+                    return [col['name'] for col in inspector.get_columns(table_name)]
+                except Exception:
+                    return []
+
+            migrations = []
+
+            # 1. Users table
+            u_cols = get_columns('users')
         if u_cols:
             if 'profile_photo' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN profile_photo VARCHAR")
             if 'bio' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN bio TEXT")
@@ -320,6 +321,11 @@ def run_migrations():
 
 app = FastAPI(title="CareStance")
 
+# Lightweight health endpoint for uptime checks
+@app.get("/_health")
+async def _health():
+    return {"status": "ok", "now": datetime.datetime.utcnow().isoformat()}
+
 @app.on_event("startup")
 async def startup_event():
     """Run migrations on startup for local development and when explicitly enabled."""
@@ -328,7 +334,7 @@ async def startup_event():
             # Create all tables asynchronously and run any schema migrations
             async with engine.begin() as conn:
                 await conn.run_sync(models.Base.metadata.create_all)
-            await asyncio.to_thread(run_migrations)
+            await run_migrations()
         else:
             print("Startup: Skipping DB migration and schema creation. Set RUN_MIGRATIONS_ON_STARTUP=true to enable.")
     except Exception as e:
@@ -491,11 +497,13 @@ async def check_suspension(request: Request, call_next):
     response = await call_next(request)
     return response
 
-# Mount Static & Templates
-# Mount Static & Templates
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
-templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
+# Mount static assets and templates from the frontend folder
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+FRONTEND_DIR = os.path.join(ROOT_DIR, "frontend")
+STATIC_DIR = os.path.join(FRONTEND_DIR, "static")
+TEMPLATES_DIR = os.path.join(FRONTEND_DIR, "templates")
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+templates = Jinja2Templates(directory=TEMPLATES_DIR)
 # Re-enabled cache as standard practice
 # pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto"]) # Removed
 
@@ -536,8 +544,7 @@ async def get_current_user(request: Request, db: AsyncSession = Depends(get_db))
 @app.get("/ads.txt")
 async def ads_txt():
     # Looks for ads.txt in the project root (one level above 'app' folder)
-    root_dir = os.path.dirname(BASE_DIR)
-    ads_path = os.path.join(root_dir, "ads.txt")
+    ads_path = os.path.join(ROOT_DIR, "ads.txt")
     if os.path.exists(ads_path):
         from fastapi.responses import FileResponse
         return FileResponse(ads_path)
@@ -1033,28 +1040,11 @@ async def assessment_start(
     
     try:
         # Check/Create Result
-        result = (
-            await db.execute(
-                select(models.AssessmentResult)
-                .where(models.AssessmentResult.user_id == user.id)
-            )
-        ).scalars().first()
-
+        result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+        
+        # Grade 12 starts at current_phase=0 (Intake Chat), Grade 10 starts at current_phase=1 (Swipe)
         start_phase = 0 if student_type == "12th" else 1
-        if result:
-            current_phase = result.current_phase or start_phase
-            if (
-                result.assessment_report is None
-                and result.current_phase is not None
-                and result.current_phase > start_phase
-            ):
-                return RedirectResponse(
-                    url="/assessment",
-                    status_code=status.HTTP_302_FOUND
-                )
-
-
-            
+        
         if result:
             # Clear all previous progress fields
             result.selected_class = class_level
@@ -2127,7 +2117,7 @@ async def upload_profile_photo(
     filename = f"user_{user.id}_{uuid.uuid4().hex}{file_extension}"
     
     # Ensure directory exists
-    upload_dir = os.path.join(BASE_DIR, "static", "uploads", "profile_photos")
+    upload_dir = os.path.join(STATIC_DIR, "uploads", "profile_photos")
     try:
         os.makedirs(upload_dir, exist_ok=True)
         file_path = os.path.join(upload_dir, filename)
@@ -2166,7 +2156,7 @@ async def upload_certificates(
         new_certs = list(existing_certs)
         
         # Ensure directory exists
-        upload_dir = os.path.join(BASE_DIR, "static", "uploads", "certificates")
+        upload_dir = os.path.join(STATIC_DIR, "uploads", "certificates")
         os.makedirs(upload_dir, exist_ok=True)
 
         if files:
@@ -5740,7 +5730,7 @@ async def send_student_message(
 
     if file:
         try:
-            upload_dir = os.path.join(BASE_DIR, "static", "uploads", "chat")
+            upload_dir = os.path.join(STATIC_DIR, "uploads", "chat")
             os.makedirs(upload_dir, exist_ok=True)
             
             file_ext = os.path.splitext(file.filename)[1]

@@ -16,7 +16,7 @@ git checkout -b feature/<short-description>
 - Format: `type: short description`
 - Examples: `feat: add unit tests for appointment model`, `fix: correct template path in dashboard`.
 
-4. Push your branch and open a Pull Request (PR) to the original repository `main` branch.
+4. Push your branch and open a Pull Request (PR) the original repository `main` branch.
 
 ## Branch naming
 

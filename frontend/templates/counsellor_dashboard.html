@@ -1,0 +1,786 @@
+{% extends "base.html" %}
+
+{% block title %}Counsellor Dashboard{% endblock %}
+
+{% block content %}
+
+{% for notif in notifications %}
+{% if notif.type == 'founding_badge_awarded' %}
+<!-- Founding Badge Celebration Popup -->
+<div x-data="{ open: true }" x-show="open"
+    class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+    x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95"
+    x-transition:enter-end="opacity-100 scale-100">
+    <div
+        class="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl relative overflow-hidden text-center border border-amber-100">
+        <!-- Confetti/Celebration BG -->
+        <div class="absolute inset-0 bg-gradient-to-b from-amber-50/50 to-white -z-10"></div>
+
+        <div
+            class="w-20 h-20 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-amber-200 transform rotate-12">
+            <i class="fas fa-trophy text-white text-3xl"></i>
+        </div>
+
+        <h3 class="text-2xl font-extrabold text-slate-900 mb-2">Founding Counsellor!</h3>
+        <p class="text-slate-600 font-medium mb-6">
+            You have been recognized as one of our first 100 experts! 🏆
+        </p>
+
+        <div class="bg-amber-50 rounded-2xl p-4 border border-amber-100 mb-8">
+            <p class="text-amber-800 text-sm font-bold">
+                Benefit Activated: <span class="text-lg">0%</span> Commission
+            </p>
+            <p class="text-amber-600 text-[11px] mt-1 font-medium">
+                Enjoy 100% payouts for the next 2 months.
+            </p>
+        </div>
+
+        <form action="/notifications/{{ notif.id }}/dismiss" method="POST">
+            <button type="submit" @click="open = false"
+                class="w-full py-4 bg-slate-900 hover:bg-[var(--navy)] text-white font-bold rounded-2xl transition-all shadow-lg hover:shadow-[var(--teal-soft)] hover:scale-[1.02] uppercase tracking-widest text-xs">
+                Claim My Benefit →
+            </button>
+        </form>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+
+{% if profile and profile.is_blocked %}
+<!-- Blocked Account Warning -->
+<div
+    class="mb-6 bg-gradient-to-r from-red-600 to-rose-600 rounded-2xl p-6 shadow-xl shadow-red-200 border border-red-300">
+    <div class="flex items-start gap-4">
+        <div class="flex-shrink-0 w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+        </div>
+        <div class="flex-1">
+            <h3 class="text-lg font-extrabold text-white">⚠️ Account Suspended</h3>
+            <p class="text-white/90 text-sm mt-1">
+                Your account has been blocked by the admin for the following reason:
+            </p>
+            <div class="mt-2 bg-white/15 backdrop-blur-sm rounded-xl px-4 py-2.5 border border-white/20">
+                <p class="text-white font-bold text-sm">{{ profile.block_reason }}</p>
+            </div>
+            <p class="text-white/80 text-xs mt-3">
+                Your profile has been hidden from students and you cannot accept new appointments.
+                If you believe this is a mistake, please raise a support ticket.
+            </p>
+            <a href="/ticket"
+                class="inline-flex items-center gap-2 mt-4 px-5 py-2.5 bg-white text-red-600 font-bold rounded-xl text-sm hover:bg-red-50 transition-all shadow-md hover:scale-[1.02]">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+                Contact Admin — Raise a Ticket
+            </a>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if profile and not profile.tnc_accepted and not profile.is_blocked %}
+<!-- Terms & Conditions Acceptance Required -->
+<div class="mb-6 bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-[var(--teal-light)] overflow-hidden"
+    x-data="{ agreed: false }">
+    <div class="px-8 py-5 bg-gradient-to-r from-[var(--navy)] to-[var(--teal)] flex items-center gap-3">
+        <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+        </div>
+        <div>
+            <h3 class="text-lg font-extrabold text-white">Terms & Conditions Required</h3>
+            <p class="text-white/80 text-xs">You must accept the Terms & Conditions to use your counsellor account.</p>
+        </div>
+    </div>
+
+    <div class="px-8 py-6 max-h-[50vh] overflow-y-auto text-sm text-slate-600 leading-relaxed space-y-4">
+        <div>
+            <h4 class="font-bold text-slate-800 mb-1">1. Introduction</h4>
+            <p>These Terms and Conditions govern the relationship between CareStance and the counselors (life coaches)
+                who provide services through the CareStance platform. By registering, you agree to comply with all the
+                terms below.</p>
+        </div>
+        <div>
+            <h4 class="font-bold text-slate-800 mb-1">2. Revenue Sharing Policy</h4>
+            <p>For every paid video counseling session:</p>
+            <ul class="list-disc list-inside mt-1 space-y-1 text-slate-500">
+                <li>You will receive <span class="font-bold text-emerald-600">70%</span> of the session fee.</li>
+                <li>CareStance retains <span class="font-bold text-slate-700">30%</span> as platform service charge.
+                </li>
+            </ul>
+        </div>
+        <div>
+            <h4 class="font-bold text-slate-800 mb-1">3. Professional Conduct</h4>
+            <p>You must maintain a high level of professionalism. The following are <span
+                    class="text-rose-500 font-semibold">strictly prohibited</span>:</p>
+            <ul class="list-disc list-inside mt-1 space-y-1 text-slate-500">
+                <li>Abusive, offensive, discriminatory, or inappropriate language</li>
+                <li>Harassment, intimidation, or exploitation of users</li>
+                <li>Sharing misleading or false information intentionally</li>
+            </ul>
+            <p class="mt-1 text-rose-500 font-medium text-xs">Violations may result in suspension, termination, or legal
+                action.</p>
+        </div>
+        <div>
+            <h4 class="font-bold text-slate-800 mb-1">4. Session Guidelines</h4>
+            <ul class="list-disc list-inside space-y-1 text-slate-500">
+                <li>All sessions must be conducted <strong>only through CareStance</strong></li>
+                <li>Do not move users to external platforms for private consultations</li>
+                <li>Attend sessions on time and maintain a respectful environment</li>
+            </ul>
+        </div>
+        <div>
+            <h4 class="font-bold text-slate-800 mb-1">5. Confidentiality & Privacy</h4>
+            <ul class="list-disc list-inside space-y-1 text-slate-500">
+                <li>Personal information shared during sessions must remain confidential</li>
+                <li>Recording or distributing session content without consent is prohibited</li>
+            </ul>
+        </div>
+        <div>
+            <h4 class="font-bold text-slate-800 mb-1">6. Payment & Refund Policy</h4>
+            <ul class="list-disc list-inside space-y-1 text-slate-500">
+                <li>Payments are released after successful session completion</li>
+                <li>Cancellations without valid reason may result in refund deductions</li>
+            </ul>
+        </div>
+        <div>
+            <h4 class="font-bold text-slate-800 mb-1">7. Platform Integrity</h4>
+            <ul class="list-disc list-inside space-y-1 text-slate-500">
+                <li>Do not manipulate ratings or reviews</li>
+                <li>Do not create fake accounts or bookings</li>
+                <li>Do not promote competing services during sessions</li>
+            </ul>
+        </div>
+        <div>
+            <h4 class="font-bold text-slate-800 mb-1">8. Compliance with Laws</h4>
+            <p>You must comply with all applicable laws related to online counseling. Illegal activity leads to
+                immediate termination.</p>
+        </div>
+        <div>
+            <h4 class="font-bold text-slate-800 mb-1">9. Account Suspension or Termination</h4>
+            <p>CareStance may suspend or terminate your account if you violate terms, receive multiple complaints, or
+                engage in fraudulent behavior.</p>
+        </div>
+        <div>
+            <h4 class="font-bold text-slate-800 mb-1">10. Liability Disclaimer</h4>
+            <p>CareStance acts as a connection platform. We are not responsible for personal advice provided during
+                sessions.</p>
+        </div>
+        <div>
+            <h4 class="font-bold text-slate-800 mb-1">11. Modification of Terms</h4>
+            <p>CareStance reserves the right to modify these terms. Significant changes will be communicated.</p>
+        </div>
+        <div>
+            <h4 class="font-bold text-slate-800 mb-1">12. Legal Action Clause</h4>
+            <p class="text-rose-500 font-medium">Any offensive, fraudulent, abusive, or illegal activity may result in
+                immediate suspension and legal proceedings under applicable law.</p>
+        </div>
+    </div>
+
+    <div class="px-8 py-5 border-t border-slate-100 space-y-4">
+        <label class="flex items-start gap-3 cursor-pointer select-none group">
+            <input type="checkbox" x-model="agreed"
+                class="mt-0.5 w-5 h-5 rounded border-slate-300 text-[var(--navy)] focus:ring-[var(--teal)] transition">
+            <span class="text-sm text-slate-600 group-hover:text-slate-800 transition-colors">
+                I have read, understood, and agree to abide by these
+                <span class="font-bold text-[var(--navy)]">Terms & Conditions</span>.
+            </span>
+        </label>
+        <form action="/counsellor/accept-tnc" method="POST">
+            <button type="submit"
+                class="w-full sm:w-auto px-8 py-3 rounded-xl font-bold text-white bg-gradient-to-r from-[var(--navy)] to-[var(--teal)] hover:scale-[1.02] hover:shadow-xl transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
+                :disabled="!agreed">
+                I Agree & Continue →
+            </button>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+{% if notifications %}
+<!-- Notification Banners -->
+{% for notif in notifications %}
+<div
+    class="mb-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-5 shadow-md shadow-amber-100/30 relative overflow-hidden">
+    <div class="absolute top-0 right-0 p-4 opacity-5">
+        <i class="fas fa-bell text-[60px] text-amber-600"></i>
+    </div>
+    <div class="flex items-start gap-4 relative z-10">
+        <div class="flex-shrink-0 w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
+            {% if notif.type == 'fee_change' %}
+            <i class="fas fa-rupee-sign text-amber-600"></i>
+            {% else %}
+            <i class="fas fa-bell text-amber-600"></i>
+            {% endif %}
+        </div>
+        <div class="flex-1">
+            <h4 class="text-sm font-extrabold text-amber-900 mb-1">
+                {% if notif.type == 'fee_change' %}
+                💰 Session Fee Updated by Admin
+                {% else %}
+                📢 Notification
+                {% endif %}
+            </h4>
+            <p class="text-sm text-amber-800 leading-relaxed">{{ notif.message }}</p>
+            <p class="text-[10px] text-amber-500 mt-1 font-medium">
+                {{ notif.created_at.strftime('%b %d, %Y at %I:%M %p') if notif.created_at else '' }}
+            </p>
+        </div>
+        <form action="/notifications/{{ notif.id }}/dismiss" method="POST">
+            <button type="submit"
+                class="px-3 py-1.5 bg-white text-amber-700 border border-amber-200 text-[10px] font-bold rounded-lg hover:bg-amber-50 transition-colors uppercase tracking-wider flex items-center gap-1">
+                <i class="fas fa-check text-[8px]"></i> Dismiss
+            </button>
+        </form>
+    </div>
+</div>
+{% endfor %}
+{% endif %}
+
+<div x-data="{ tab: 'overview' }"
+    class="bg-white/70 backdrop-blur-xl rounded-3xl overflow-hidden shadow-2xl border border-white/50">
+    <!-- Dashboard Header & Tabs -->
+    <div class="px-6 py-6 sm:px-8 bg-[var(--teal-soft)]/50 border-b border-[var(--teal-light)]">
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
+            <div class="flex items-center gap-6">
+                <!-- Profile Image -->
+                <div class="relative group">
+                    <img src="{{ user.profile_photo if user.profile_photo else 'https://ui-avatars.com/api/?name=' + user.full_name + '&background=random' }}"
+                        alt="Profile" class="w-20 h-20 rounded-2xl object-cover border-4 border-white/20 shadow-xl">
+                    <button onclick="document.getElementById('photo-upload').click()"
+                        class="absolute -bottom-2 -right-2 bg-[var(--navy)] text-white p-2 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                        <i class="fas fa-camera text-xs"></i>
+                    </button>
+                    <form id="photo-form" action="/profile/upload-photo" method="POST" enctype="multipart/form-data"
+                        class="hidden">
+                        <input type="file" id="photo-upload" name="file"
+                            onchange="handleImageUpload(event, 'photo-form')" accept="image/*">
+                    </form>
+                </div>
+                <div>
+                    <h3 class="text-xl leading-6 font-bold text-slate-900">{{ user.full_name }}</h3>
+                    <p class="mt-1 text-sm text-slate-500">Expert Guide & Life Coach</p>
+                    <div class="flex flex-wrap gap-2 mt-2">
+                        {% if profile.verification_status == 'approved' %}
+                        <span
+                            class="inline-flex items-center gap-1 px-3 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                            <i class="fas fa-check-circle"></i> Verified
+                        </span>
+                        {% if profile.is_founding_counsellor %}
+                        <span
+                            class="inline-flex items-center gap-1 px-3 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 shadow-sm">
+                            <i class="fas fa-trophy"></i> Founding Coach
+                        </span>
+                        {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-4 bg-white/50 p-1.5 rounded-2xl border border-white/80 shadow-sm">
+                <button @click="tab = 'overview'"
+                    :class="tab === 'overview' ? 'bg-[var(--navy)] text-white shadow-lg' : 'text-slate-600 hover:bg-white'"
+                    class="px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
+                    <i class="fas fa-th-large"></i> Home
+                </button>
+                <button @click="tab = 'appointments'"
+                    :class="tab === 'appointments' ? 'bg-[var(--navy)] text-white shadow-lg' : 'text-slate-600 hover:bg-white'"
+                    class="px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
+                    <i class="fas fa-calendar-alt"></i> Sessions
+                </button>
+                <button @click="tab = 'settings'"
+                    :class="tab === 'settings' ? 'bg-[var(--navy)] text-white shadow-lg' : 'text-slate-600 hover:bg-white'"
+                    class="px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
+                    <i class="fas fa-cog"></i> Profile
+                </button>
+                <button @click="tab = 'verification'"
+                    :class="tab === 'verification' ? 'bg-[var(--navy)] text-white shadow-lg' : 'text-slate-600 hover:bg-white'"
+                    class="px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
+                    <i class="fas fa-user-check"></i> Verification
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Content -->
+    <div class="p-6 sm:p-8">
+
+        <!-- Tab 1: Overview (Home) -->
+        <div x-show="tab === 'overview'" x-transition class="space-y-8">
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                <div
+                    class="bg-gradient-to-br from-[var(--teal-soft)] to-white p-6 rounded-3xl border border-[var(--teal-light)] shadow-sm">
+                    <p class="text-[10px] font-black uppercase text-[var(--teal)] tracking-widest mb-1">Total Clients</p>
+                    <h4 class="text-3xl font-black text-slate-900">{{ stats.total_clients }}</h4>
+                    <div class="flex items-center gap-1.5 mt-2 text-[var(--navy)]">
+                        <i class="fas fa-users text-xs"></i>
+                        <span class="text-[10px] font-bold">Lifetime Scholars</span>
+                    </div>
+                </div>
+
+                <div
+                    class="bg-gradient-to-br from-emerald-50 to-white p-6 rounded-3xl border border-emerald-100 shadow-sm">
+                    <p class="text-[10px] font-black uppercase text-emerald-500 tracking-widest mb-1">Today's Sessions
+                    </p>
+                    <h4 class="text-3xl font-black text-slate-900">{{ stats.today_sessions }}</h4>
+                    <div class="flex items-center gap-1.5 mt-2 text-emerald-600">
+                        <i class="fas fa-calendar-check text-xs"></i>
+                        <span class="text-[10px] font-bold">Waiting for you</span>
+                    </div>
+                </div>
+
+                <div class="bg-gradient-to-br from-amber-50 to-white p-6 rounded-3xl border border-amber-100 shadow-sm">
+                    <p class="text-[10px] font-black uppercase text-amber-500 tracking-widest mb-1">Daily Earnings</p>
+                    <h4 class="text-3xl font-black text-slate-900">₹{{ "%.0f"|format(stats.earnings_daily) }}</h4>
+                    <div class="flex items-center gap-1.5 mt-2 text-amber-600">
+                        <i class="fas fa-rupee-sign text-xs"></i>
+                        <span class="text-[10px] font-bold">Earned Today</span>
+                    </div>
+                </div>
+
+                <div
+                    class="bg-gradient-to-br from-[var(--teal-soft)] to-white p-6 rounded-3xl border border-[var(--teal-light)] shadow-sm">
+                    <p class="text-[10px] font-black uppercase text-[var(--teal)] tracking-widest mb-1">Platform Rating</p>
+                    <h4 class="text-3xl font-black text-slate-900">{{ stats.avg_rating }}</h4>
+                    <div class="flex items-center gap-1 mt-2 text-[var(--navy)]">
+                        {% for i in range(5) %}
+                        <i
+                            class="fas fa-star text-[8px] {{ 'text-amber-400' if i < stats.avg_rating|int else 'text-slate-200' }}"></i>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Business & Impact Row -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Earning Summary Card -->
+                <div class="bg-slate-900 rounded-3xl p-8 text-white relative overflow-hidden shadow-xl">
+                    <div class="absolute right-0 bottom-0 opacity-10 transform translate-x-1/4 translate-y-1/4">
+                        <i class="fas fa-wallet text-[200px]"></i>
+                    </div>
+                    <div class="relative z-10">
+                        <h5 class="text-[var(--teal-light)] font-bold uppercase tracking-widest text-xs mb-6">Business Dashboard
+                        </h5>
+                        <div class="space-y-6">
+                            <div>
+                                <p class="text-4xl font-black">₹{{ "{:,.0f}".format(stats.earnings_monthly) }}</p>
+                                <p class="text-slate-400 text-sm mt-1">Earnings this month</p>
+                            </div>
+                            <div class="flex gap-10">
+                                <div>
+                                    <p class="text-xl font-bold text-emerald-400">{{ stats.active_clients }}</p>
+                                    <p class="text-slate-400 text-[10px] uppercase font-bold tracking-tighter">Active
+                                        Clients</p>
+                                </div>
+                                <div>
+                                    <p class="text-xl font-bold text-slate-300">{{ stats.inactive_clients }}</p>
+                                    <p class="text-slate-400 text-[10px] uppercase font-bold tracking-tighter">Inactive
+                                        Clients</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notifications & Quick Actions -->
+                <div class="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm">
+                    <h5 class="font-bold text-slate-900 mb-6 flex items-center gap-2">
+                        <i class="fas fa-bell text-[var(--teal)]"></i> Pending Tasks
+                    </h5>
+                    <div class="space-y-4">
+                        {% if notifications %}
+                        {% for notif in notifications %}
+                        <div class="flex items-start gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100 italic">
+                            <div class="w-2 h-2 rounded-full bg-[var(--teal)] mt-1.5"></div>
+                            <p class="text-xs text-slate-600">{{ notif.message }}</p>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        <div class="text-center py-6">
+                            <i class="fas fa-check-circle text-3xl text-emerald-100 mb-3 block"></i>
+                            <p class="text-xs text-slate-400">All caught up! No pending notifications.</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Reviews Section -->
+            <div class="mt-8">
+                <h4 class="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
+                    <i class="fas fa-star text-amber-400"></i> Recent Scholar Reviews
+                </h4>
+                {% if reviews %}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {% for review in reviews %}
+                    <div
+                        class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center gap-1 text-amber-400">
+                                {% for i in range(5) %}
+                                <i
+                                    class="fas fa-star text-[10px] {{ 'text-amber-400' if i < review.rating else 'text-slate-200' }}"></i>
+                                {% endfor %}
+                            </div>
+                            <span class="text-[10px] text-slate-400 font-bold uppercase">{{
+                                review.timestamp.strftime('%b %d, %Y') }}</span>
+                        </div>
+                        <p class="text-sm text-slate-600 italic mb-4">"{{ review.review or 'No written review provided.'
+                            }}"</p>
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-8 h-8 rounded-full bg-[var(--teal-soft)] flex items-center justify-center text-[var(--navy)] text-[10px] font-black uppercase">
+                                {{ review.student.full_name[0] if (review.student and review.student.full_name) else 'A'
+                                }}
+                            </div>
+                            <span class="text-xs font-bold text-slate-900">{{ review.student.full_name if
+                                (review.student and review.student.full_name) else 'Anonymous Student' }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="bg-slate-50 border border-slate-100 rounded-3xl p-12 text-center">
+                    <i class="fas fa-comment-slash text-4xl text-slate-200 mb-4 block"></i>
+                    <p class="text-slate-500 font-medium">No reviews yet. Complete sessions to start receiving feedback!
+                    </p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Tab 2: Appointments -->
+        <div x-show="tab === 'appointments'" x-transition style="display: none;">
+            <h4 class="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
+                <i class="fas fa-calendar-alt text-[var(--teal)]"></i> Scheduled Sessions
+            </h4>
+            {% if appointments %}
+            <div class="space-y-4">
+                {% for apt in appointments %}
+                <div
+                    class="flex flex-col md:flex-row items-start md:items-center justify-between p-5 bg-slate-50 border border-slate-200 rounded-2xl hover:bg-white hover:shadow-lg transition-all gap-4"
+                    x-data="{
+                        aptTime: new Date('{{ apt.appointment_time.strftime('%Y-%m-%dT%H:%M:%S') }}'),
+                        now: new Date(),
+                        get windowStart() { return this.aptTime; },
+                        get windowEnd() { return new Date(this.aptTime.getTime() + 60 * 60 * 1000); },
+                        get isActive() { return this.now >= this.windowStart && this.now <= this.windowEnd; },
+                        get isExpired() { return this.now > this.windowEnd; },
+                        get isBefore() { return this.now < this.windowStart; },
+                        get timeLabel() {
+                            if (this.isActive) return 'Join Call';
+                            if (this.isExpired) return 'Session Expired';
+                            const h = this.aptTime.getHours();
+                            const m = this.aptTime.getMinutes();
+                            const ampm = h >= 12 ? 'PM' : 'AM';
+                            const hh = h % 12 || 12;
+                            const mm = m < 10 ? '0' + m : m;
+                            return 'Opens at ' + hh + ':' + mm + ' ' + ampm;
+                        },
+                        init() { setInterval(() => { this.now = new Date(); }, 30000); }
+                    }">
+                    <div class="flex items-center gap-4">
+                        <div
+                            class="w-12 h-12 bg-[var(--teal-soft)] rounded-2xl flex items-center justify-center text-[var(--navy)] text-xl shadow-inner">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div>
+                            <p class="font-bold text-slate-900 text-lg">{{ apt.student.full_name }}</p>
+                            <p class="text-xs text-slate-500 font-medium">
+                                Status:
+                                {% if apt.status == 'requested' %}
+                                <span
+                                    class="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full font-bold uppercase animate-pulse">Pending</span>
+                                {% elif apt.status == 'scheduled' %}
+                                <span
+                                    class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full font-bold uppercase">Scheduled</span>
+                                {% else %}
+                                <span
+                                    class="px-2 py-0.5 bg-slate-200 text-slate-600 rounded-full font-bold uppercase">{{
+                                    apt.status }}</span>
+                                {% endif %}
+                                | Payment: <span class="text-[var(--navy)] font-bold uppercase">{{ apt.payment_status
+                                    }}</span>
+                            </p>
+
+                            {% if apt.student.assessment %}
+                            <div class="mt-2 flex flex-wrap gap-2">
+                                <span
+                                    class="px-2 py-0.5 bg-[var(--teal-soft)] text-[var(--navy)] rounded-lg text-[10px] font-black uppercase tracking-wider border border-[var(--teal-light)]">
+                                    {{ apt.student.assessment.phase_2_category }}
+                                </span>
+                            </div>
+                            {% endif %}
+                            <p class="text-sm font-bold text-slate-700 mt-2">
+                                <i class="far fa-calendar-alt text-[var(--teal)]"></i>
+                                {{ apt.appointment_time.strftime('%b %d, %Y') }} at {{
+                                apt.appointment_time.strftime('%I:%M %p') }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                        {% if apt.student.assessment %}
+                        <a href="/share/report/{{ apt.student.assessment.id }}?mode=minimal" target="_blank"
+                            class="px-5 py-2.5 bg-white hover:bg-[var(--teal-soft)] text-[var(--navy)] border border-[var(--teal-light)] font-bold rounded-xl transition-all shadow-sm flex items-center gap-2">
+                            <i class="fas fa-file-alt"></i> View Report
+                        </a>
+                        {% endif %}
+                        {% if apt.status == 'requested' %}
+                        <form action="/appointment/accept/{{ apt.id }}" method="POST" class="inline">
+                            <button type="submit"
+                                class="px-5 py-2.5 bg-[var(--navy)] hover:bg-[var(--teal)] text-white font-bold rounded-xl transition-all shadow-lg flex items-center gap-2">
+                                <i class="fas fa-check"></i> Accept
+                            </button>
+                        </form>
+                        <form action="/appointment/reject/{{ apt.id }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to reject this appointment?')">
+                            <button type="submit"
+                                class="px-5 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-bold rounded-xl transition-all flex items-center gap-2">
+                                <i class="fas fa-times"></i> Reject
+                            </button>
+                        </form>
+                        {% endif %}
+                        {% if apt.status == 'scheduled' %}
+                        <!-- Join Call: Only active during session window (scheduled time → +1 hour) -->
+                        <template x-if="isActive">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <a href="/join_meeting/{{ apt.id }}" target="_blank"
+                                    class="px-5 py-2.5 bg-[var(--navy)] hover:bg-[var(--teal)] text-white font-bold rounded-xl transition-all shadow-lg shadow-[var(--teal-soft)] flex items-center gap-2 animate-pulse">
+                                    <i class="fas fa-video"></i> <span x-text="timeLabel"></span>
+                                </a>
+                                <form action="/appointment/complete/{{ apt.id }}" method="POST" class="inline">
+                                    <button type="submit" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all shadow-md flex items-center gap-2">
+                                        <i class="fas fa-check-double"></i> Mark Completed
+                                    </button>
+                                </form>
+                            </div>
+                        </template>
+                        <template x-if="isBefore">
+                            <span class="px-5 py-2.5 bg-slate-300 text-slate-500 font-bold rounded-xl cursor-not-allowed flex items-center gap-2 select-none">
+                                <i class="fas fa-clock"></i> <span x-text="timeLabel"></span>
+                            </span>
+                        </template>
+                        <template x-if="isExpired">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="px-5 py-2.5 bg-red-100 text-red-400 font-bold rounded-xl cursor-not-allowed flex items-center gap-2 select-none">
+                                    <i class="fas fa-times-circle"></i> <span x-text="timeLabel"></span>
+                                </span>
+                                <form action="/appointment/complete/{{ apt.id }}" method="POST" class="inline">
+                                    <button type="submit" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all shadow-md flex items-center gap-2">
+                                        <i class="fas fa-check-double"></i> Mark Completed
+                                    </button>
+                                </form>
+                            </div>
+                        </template>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="py-12 text-center bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                <i class="fas fa-calendar-day text-4xl text-slate-200 mb-4"></i>
+                <p class="text-slate-500 italic">No appointments scheduled today.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Tab 3: Profile & Payout Settings -->
+        <div x-show="tab === 'settings'" x-transition style="display: none;">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Fee & Bio -->
+                <div class="space-y-6">
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200">
+                        <h4 class="text-md font-bold text-slate-900 mb-4">Session & Fee</h4>
+                        <form action="/counsellor/update" method="POST" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase">Your Fee per Session
+                                    (₹)</label>
+                                {% if profile.fee_locked %}
+                                <div
+                                    class="mt-1 flex items-center justify-between px-4 py-2 bg-slate-100 rounded-xl border border-slate-200">
+                                    <span class="text-lg font-black text-slate-400">₹{{ "%.0f"|format(profile.fee)
+                                        }}</span>
+                                    <span
+                                        class="text-[10px] font-bold text-amber-600 border border-amber-200 px-2 py-0.5 rounded-lg bg-amber-50">LOCKED</span>
+                                </div>
+                                <input type="hidden" name="fee" value="{{ profile.fee }}">
+                                <p class="text-[10px] text-slate-400 mt-2 italic">Fee is managed by Admin.</p>
+                                {% else %}
+                                <input type="number" name="fee" value="{{ profile.fee }}" required
+                                    class="mt-1 block w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-[var(--teal)]">
+                                {% endif %}
+                            </div>
+                            <script>
+                                document.addEventListener('alpine:init', () => {
+                                    Alpine.data('availabilityPicker', () => ({
+                                        days: ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'],
+                                        slots: {% if profile.availability and profile.availability.get('slots') %}{{ profile.availability.slots | tojson }}{% else %}{}{% endif %},
+                                        toggleDay(day) {
+                                            if (this.slots[day]) { delete this.slots[day]; }
+                                            else { this.slots[day] = {start: '09:00', end: '17:00'}; }
+                                        },
+                                        get slotsJson() { return JSON.stringify(this.slots); },
+                                        get textSummary() {
+                                            const active = this.days.filter(d => this.slots[d]);
+                                            if (!active.length) return 'Not set';
+                                            return active.map(d => {
+                                                const s = this.slots[d];
+                                                return d.substring(0,3) + ' ' + this.fmt(s.start) + '-' + this.fmt(s.end);
+                                            }).join(', ');
+                                        },
+                                        fmt(t) {
+                                            const parts = t.split(':').map(Number);
+                                            const h = parts[0]; const m = parts[1];
+                                            const ampm = h >= 12 ? 'PM' : 'AM';
+                                            return (h % 12 || 12) + ':' + (m < 10 ? '0' + m : m) + ' ' + ampm;
+                                        }
+                                    }));
+                                });
+                            </script>
+                            <div x-data="availabilityPicker">
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Availability</label>
+                                <p class="text-[10px] text-slate-400 mb-3 italic">Select the days and time slots you are available for sessions.</p>
+                                
+                                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+                                    <template x-for="day in days" :key="day">
+                                        <button type="button" @click="toggleDay(day)"
+                                            :class="slots[day] ? 'bg-[var(--navy)] text-white border-[var(--navy)] shadow-md' : 'bg-white text-slate-500 border-slate-200 hover:border-[var(--teal-light)]'"
+                                            class="px-3 py-2 rounded-xl border text-xs font-bold transition-all">
+                                            <span x-text="day.substring(0,3)"></span>
+                                        </button>
+                                    </template>
+                                </div>
+
+                                <!-- Time slots for selected days -->
+                                <template x-for="day in days.filter(d => slots[d])" :key="day + '_slot'">
+                                    <div class="flex items-center gap-2 mb-2 p-2 bg-slate-50 rounded-xl border border-slate-100">
+                                        <span x-text="day.substring(0,3)" class="text-xs font-bold text-[var(--navy)] w-8"></span>
+                                        <input type="time" :value="slots[day].start" @change="slots[day].start = $event.target.value"
+                                            class="flex-1 px-2 py-1.5 text-xs border border-slate-200 rounded-lg bg-white focus:ring-1 focus:ring-[var(--teal)]">
+                                        <span class="text-slate-400 text-xs">to</span>
+                                        <input type="time" :value="slots[day].end" @change="slots[day].end = $event.target.value"
+                                            class="flex-1 px-2 py-1.5 text-xs border border-slate-200 rounded-lg bg-white focus:ring-1 focus:ring-[var(--teal)]">
+                                    </div>
+                                </template>
+
+                                <p class="text-[10px] text-slate-500 mt-2 font-medium"><i class="fas fa-info-circle mr-1 text-[var(--teal)]"></i> Summary: <span x-text="textSummary"></span></p>
+
+                                <!-- Hidden inputs to send data -->
+                                <input type="hidden" name="availability_text" :value="textSummary">
+                                <input type="hidden" name="availability_slots" :value="slotsJson">
+                            </div>
+                            <button type="submit"
+                                class="w-full py-3 bg-[var(--navy)] text-white font-bold rounded-xl shadow-lg hover:bg-[var(--navy)] transition-all">
+                                Save Profile Changes
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Bank Details -->
+                <div class="bg-white rounded-2xl p-6 border border-slate-200">
+                    <h4 class="text-md font-bold text-slate-900 mb-4">Payout Account</h4>
+                    <form action="/counsellor/update" method="POST" class="space-y-4">
+                        <div class="grid grid-cols-1 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase">Bank Name</label>
+                                <input type="text" name="bank_name"
+                                    value="{% if profile.account_details %}{{ profile.account_details.get('bank_name', '') }}{% endif %}"
+                                    class="mt-1 block w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-xl">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase">Account Number</label>
+                                <input type="text" name="account_num"
+                                    value="{% if profile.account_details %}{{ profile.account_details.get('account_num', '') }}{% endif %}"
+                                    class="mt-1 block w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-xl">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase">IFSC Code</label>
+                                <input type="text" name="ifsc_code"
+                                    value="{% if profile.account_details %}{{ profile.account_details.get('ifsc', '') }}{% endif %}"
+                                    class="mt-1 block w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-xl">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase">UPI ID</label>
+                                <input type="text" name="upi_id"
+                                    value="{% if profile.account_details %}{{ profile.account_details.get('upi', '') }}{% endif %}"
+                                    class="mt-1 block w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-xl">
+                            </div>
+                        </div>
+                        <button type="submit"
+                            class="w-full py-3 bg-[var(--navy)] text-white font-bold rounded-xl shadow-lg hover:bg-[var(--teal)] transition-all">
+                            Update Bank Info
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 4: Verification -->
+        <div x-show="tab === 'verification'" x-transition style="display: none;">
+            <div class="max-w-2xl mx-auto bg-white rounded-3xl p-8 border border-slate-200 shadow-sm">
+                <h4 class="text-xl font-bold text-slate-900 mb-2">Professional Verification</h4>
+                <p class="text-sm text-slate-500 mb-8">Admins use this information to verify your credentials as a
+                    professional coach.</p>
+
+                <form action="/counsellor/upload-certificates" method="POST" enctype="multipart/form-data"
+                    class="space-y-6">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Years of Experience &
+                            Expertise</label>
+                        <textarea name="experience" rows="4" required
+                            class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-2xl focus:ring-2 focus:ring-[var(--teal)] focus:outline-none transition-all">{{ profile.experience or '' }}</textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Certificates
+                            (PDF/Images)</label>
+                        <input type="file" name="files" multiple accept=".pdf,image/*"
+                            class="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-[var(--navy)] file:text-white hover:file:bg-[var(--navy)]">
+                    </div>
+
+                    {% if profile.certificates %}
+                    <div class="grid grid-cols-3 gap-3">
+                        {% for cert in profile.certificates %}
+                        <div class="relative h-20 bg-slate-100 rounded-xl overflow-hidden border border-slate-200">
+                            {% if cert.endswith('.pdf') %}
+                            <a href="{{ cert }}" target="_blank"
+                                class="w-full h-full flex flex-col items-center justify-center bg-red-50 text-red-600">
+                                <i class="fas fa-file-pdf"></i>
+                                <span class="text-[8px] font-bold">PDF</span>
+                            </a>
+                            {% else %}
+                            <img src="{{ cert }}" class="w-full h-full object-cover">
+                            <a href="{{ cert }}" target="_blank"
+                                class="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 flex items-center justify-center text-white transition-opacity">
+                                <i class="fas fa-eye text-sm"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <button type="submit"
+                        class="w-full py-4 bg-[var(--navy)] text-white font-black rounded-2xl shadow-xl hover:bg-[var(--navy)] hover:scale-[1.02] transition-all uppercase tracking-widest text-xs">
+                        Submit Verification Documents
+                    </button>
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}

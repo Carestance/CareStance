@@ -1,0 +1,333 @@
+{% extends "base.html" %}
+
+{% block title %}Chat with {{ other_user.full_name }} | CareStance{% endblock %}
+
+{% block content %}
+<!-- Main Layout Container -->
+<div class="max-w-5xl mx-auto h-[calc(100vh-8rem)] md:h-[calc(100vh-10rem)] min-h-[500px] flex flex-col gap-2 md:gap-4">
+
+    <!-- Header Section -->
+    <div
+        class="bg-white/80 backdrop-blur-xl border border-white/50 rounded-3xl p-4 shadow-lg flex items-center justify-between">
+        <div class="flex items-center gap-4">
+            <a href="/my-connections" class="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                <i class="fas fa-arrow-left text-slate-500"></i>
+            </a>
+            <div class="relative">
+                <img src="{{ other_user.profile_photo if other_user.profile_photo else 'https://ui-avatars.com/api/?name=' + other_user.full_name + '&background=random&size=96' }}"
+                    alt="{{ other_user.full_name }}"
+                    class="w-12 h-12 rounded-2xl object-cover border-2 border-white shadow-sm">
+                <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full">
+                </div>
+            </div>
+            <div>
+                <h2 class="text-base font-bold text-slate-900 leading-tight">{{ other_user.full_name }}</h2>
+                <div class="flex items-center gap-2">
+                    <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Student</span>
+                    {% if other_user.assessment %}
+                    <span class="text-[10px] bg-[var(--teal-soft)] text-[var(--navy)] px-1.5 py-0.5 rounded-full font-bold">{{
+                        other_user.assessment.phase_2_category }}</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="/student/{{ other_user.id }}"
+                class="text-xs font-bold text-[var(--navy)] hover:text-[var(--navy)] transition-colors">
+                View Profile
+            </a>
+        </div>
+    </div>
+
+    <!-- Chat Area -->
+    <div
+        class="flex-1 bg-white/90 backdrop-blur-xl rounded-3xl shadow-xl border border-white/50 flex flex-col overflow-hidden">
+
+        <!-- Security Notice -->
+        <div class="px-6 py-2 md:py-3 bg-amber-50/50 border-b border-amber-100 flex items-start gap-2 md:gap-3">
+            <i class="fas fa-shield-alt text-amber-500 mt-0.5 text-sm md:text-base"></i>
+            <div class="flex-1">
+                <p class="text-[10px] md:text-[11px] font-bold text-amber-800 uppercase tracking-wider mb-0.5">Security
+                    & Usage Notice</p>
+                <p class="text-[9px] md:text-[10px] text-amber-700 leading-tight md:leading-normal">
+                    This chat is not end-to-end encrypted and monitored by admins for safety.
+                    <span class="hidden sm:inline">Users must avoid sharing inappropriate content.</span>
+                </p>
+            </div>
+        </div>
+
+        <div id="chat-messages"
+            class="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/30 scroll-smooth custom-scrollbar">
+            {% if not messages %}
+            <!-- Empty State -->
+            <div class="h-full flex flex-col items-center justify-center text-center p-8 opacity-60">
+                <div class="w-16 h-16 bg-[var(--teal-soft)] rounded-full flex items-center justify-center mb-4">
+                    <i class="fas fa-comments text-2xl text-[var(--teal)]"></i>
+                </div>
+                <h3 class="text-slate-900 font-bold">Start a Conversation</h3>
+                <p class="text-sm text-slate-500 mt-1 max-w-xs">Say hello to your connection and start building your
+                    network!</p>
+            </div>
+            {% endif %}
+
+            {% for msg in messages %}
+            <div
+                class="flex items-start gap-3 {% if msg.sender_id == user.id %}flex-row-reverse{% endif %} animate-fade-in-up">
+                <div class="flex flex-col {% if msg.sender_id == user.id %}items-end{% endif %} max-w-[80%]">
+                    <div
+                        class="p-3 rounded-2xl text-sm shadow-sm border {% if msg.sender_id == user.id %}bg-gradient-to-r from-[var(--navy)] to-[var(--teal)] text-white border-[var(--teal)] rounded-tr-none{% else %}bg-white text-slate-700 border-slate-100 rounded-tl-none{% endif %}">
+                        {% if msg.attachment_path %}
+                        {% if msg.attachment_type == 'image' %}
+                        <div class="mb-2">
+                            <img src="{{ msg.attachment_path }}" alt="Image"
+                                class="max-w-full rounded-lg border border-white/20 shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
+                                onclick="window.open(this.src, '_blank')">
+                        </div>
+                        {% else %}
+                        <div class="mb-2">
+                            <a href="{{ msg.attachment_path }}" target="_blank"
+                                class="flex items-center gap-2 p-2 bg-black/10 rounded-xl border border-white/10 hover:bg-black/20 transition-colors">
+                                <i class="fas fa-file"></i>
+                                <span class="truncate">{{ msg.content }}</span>
+                            </a>
+                        </div>
+                        {% endif %}
+                        {% endif %}
+                        {{ msg.content if not msg.attachment_path else (msg.content if msg.attachment_type == 'image'
+                        else '') }}
+                    </div>
+                    <span class="text-[10px] text-slate-400 mt-1 px-1">
+                        {{ msg.timestamp.strftime('%H:%M') }}
+                    </span>
+                </div>
+            </div>
+            {% endfor %}
+            <div id="anchor"></div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="p-4 bg-white border-t border-slate-100">
+            <div id="file-preview"
+                class="hidden mb-3 p-2 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
+                <div class="flex items-center gap-3 overflow-hidden">
+                    <div id="preview-icon"
+                        class="w-10 h-10 bg-[var(--teal-soft)] rounded-xl flex items-center justify-center text-[var(--navy)]">
+                        <i class="fas fa-file"></i>
+                    </div>
+                    <div class="overflow-hidden">
+                        <p id="preview-filename" class="text-xs font-bold text-slate-700 truncate"></p>
+                        <p id="preview-filesize" class="text-[10px] text-slate-400"></p>
+                    </div>
+                </div>
+                <button type="button" id="remove-file" class="p-2 text-slate-400 hover:text-red-500 transition-colors">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <form id="chat-form" class="flex items-center gap-3">
+                <input type="file" id="file-input" class="hidden" accept="image/*,.pdf,.doc,.docx,.txt">
+                <button type="button" id="attach-button"
+                    class="p-3.5 text-slate-400 hover:text-[var(--navy)] hover:bg-[var(--teal-soft)] rounded-2xl transition-colors">
+                    <i class="fas fa-paperclip"></i>
+                </button>
+                <input type="text" id="message-input" autocomplete="off"
+                    class="flex-1 px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[var(--teal)]/20 focus:border-[var(--teal)] transition-all text-sm"
+                    placeholder="Write a message...">
+                <button type="submit" id="send-button"
+                    class="bg-gradient-to-r from-[var(--navy)] to-[var(--teal)] text-white p-3.5 rounded-2xl shadow-lg hover:shadow-[var(--teal-soft)] transition-all transform active:scale-95 disabled:opacity-50">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 10px;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .animate-fade-in-up {
+        animation: fadeInUp 0.3s ease-out forwards;
+    }
+</style>
+
+<script>
+    const chatContainer = document.getElementById('chat-messages');
+    const chatForm = document.getElementById('chat-form');
+    const messageInput = document.getElementById('message-input');
+    const sendButton = document.getElementById('send-button');
+    const connId = {{ conn_id }};
+    const currentUserId = {{ user.id }};
+    let lastMessageId = {% if messages %}{ { messages[-1].id } } {% else %} 0{% endif %};
+
+    // Scroll to bottom
+    const scrollToBottom = () => {
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    };
+    scrollToBottom();
+
+    const fileInput = document.getElementById('file-input');
+    const attachButton = document.getElementById('attach-button');
+    const filePreview = document.getElementById('file-preview');
+    const previewFilename = document.getElementById('preview-filename');
+    const previewFilesize = document.getElementById('preview-filesize');
+    const removeFileBtn = document.getElementById('remove-file');
+    const previewIcon = document.getElementById('preview-icon');
+
+    // Handle File Selection
+    attachButton.addEventListener('click', () => fileInput.click());
+
+    fileInput.addEventListener('change', () => {
+        const file = fileInput.files[0];
+        if (file) {
+            previewFilename.textContent = file.name;
+            previewFilesize.textContent = (file.size / 1024).toFixed(1) + ' KB';
+            filePreview.classList.remove('hidden');
+
+            if (file.type.startsWith('image/')) {
+                previewIcon.innerHTML = '<i class="fas fa-image"></i>';
+            } else {
+                previewIcon.innerHTML = '<i class="fas fa-file"></i>';
+            }
+        }
+    });
+
+    removeFileBtn.addEventListener('click', () => {
+        fileInput.value = '';
+        filePreview.classList.add('hidden');
+    });
+
+    // Send Message
+    chatForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const content = messageInput.value.trim();
+        const file = fileInput.files[0];
+        if (!content && !file) return;
+
+        const formData = new FormData();
+        if (content) formData.append('content', content);
+        if (file) formData.append('file', file);
+
+        messageInput.value = '';
+        fileInput.value = '';
+        filePreview.classList.add('hidden');
+        messageInput.disabled = true;
+        sendButton.disabled = true;
+        attachButton.disabled = true;
+
+        try {
+            const response = await fetch(`/connection/${connId}/chat/send`, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                pollMessages();
+            }
+        } catch (error) {
+            console.error('Error sending message:', error);
+        } finally {
+            messageInput.disabled = false;
+            sendButton.disabled = false;
+            attachButton.disabled = false;
+            messageInput.focus();
+        }
+    });
+
+    // Poll Messages
+    const pollMessages = async () => {
+        try {
+            const response = await fetch(`/connection/${connId}/chat/messages?after_id=${lastMessageId}`);
+            const data = await response.json();
+
+            if (data.messages && data.messages.length > 0) {
+                data.messages.forEach(msg => {
+                    if (msg.id > lastMessageId) {
+                        appendMessage(msg);
+                        lastMessageId = msg.id;
+                    }
+                });
+                scrollToBottom();
+            }
+        } catch (error) {
+            console.error('Error polling messages:', error);
+        }
+    };
+
+    function appendMessage(msg) {
+        const isMe = msg.sender_id === currentUserId;
+        const div = document.createElement('div');
+        div.className = `flex items-start gap-3 ${isMe ? 'flex-row-reverse' : ''} animate-fade-in-up`;
+
+        const timestamp = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+
+        let attachmentHtml = '';
+        if (msg.attachment_path) {
+            if (msg.attachment_type === 'image') {
+                attachmentHtml = `
+                    <div class="mb-2">
+                        <img src="${msg.attachment_path}" alt="Image" class="max-w-full rounded-lg border border-white/20 shadow-sm cursor-pointer hover:opacity-90 transition-opacity" onclick="window.open(this.src, '_blank')">
+                    </div>
+                `;
+            } else {
+                attachmentHtml = `
+                    <div class="mb-2">
+                        <a href="${msg.attachment_path}" target="_blank" class="flex items-center gap-2 p-2 bg-black/10 rounded-xl border border-white/10 hover:bg-black/20 transition-colors">
+                            <i class="fas fa-file"></i>
+                            <span class="truncate">${msg.content}</span>
+                        </a>
+                    </div>
+                `;
+            }
+        }
+
+        const displayContent = msg.attachment_path
+            ? (msg.attachment_type === 'image' ? msg.content : '')
+            : msg.content;
+
+        div.innerHTML = `
+            <div class="flex flex-col ${isMe ? 'items-end' : ''} max-w-[80%]">
+                <div class="p-3 rounded-2xl text-sm shadow-sm border ${isMe ? 'bg-gradient-to-r from-[var(--navy)] to-[var(--teal)] text-white border-[var(--teal)] rounded-tr-none' : 'bg-white text-slate-700 border-slate-100 rounded-tl-none'}">
+                    ${attachmentHtml}
+                    ${displayContent}
+                </div>
+                <span class="text-[10px] text-slate-400 mt-1 px-1">
+                    ${timestamp}
+                </span>
+            </div>
+        `;
+
+        // Remove empty state if present
+        const emptyState = chatContainer.querySelector('.flex.flex-col.items-center.justify-center');
+        if (emptyState) emptyState.remove();
+
+        chatContainer.appendChild(div);
+    }
+
+    // Auto-poll every 3 seconds
+    setInterval(pollMessages, 3000);
+</script>
+
+{% endblock %}

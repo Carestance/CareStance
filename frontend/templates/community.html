@@ -1,0 +1,352 @@
+{% extends "base.html" %}
+
+{% block adsense %}
+<!-- AdSense removed from authenticated/functional screens per Google Policy -->
+{% endblock %}
+
+{% block title %}Community | CareStance{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+
+<style>
+    .archetype-badge {
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(99, 102, 241, 0.15));
+        border: 1px solid rgba(139, 92, 246, 0.3);
+    }
+
+    .student-card {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .student-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 20px 40px -12px rgba(139, 92, 246, 0.25);
+    }
+
+    .connect-btn {
+        transition: all 0.3s ease;
+    }
+
+    .connect-btn:hover {
+        transform: scale(1.05);
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .animate-card {
+        animation: fadeInUp 0.5s ease-out forwards;
+        opacity: 0;
+    }
+
+    .search-glow:focus {
+        box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.15);
+    }
+</style>
+
+<div class="space-y-8">
+
+    <!-- Hero Header -->
+    <div
+        class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-[var(--navy)] to-[var(--navy)] text-white shadow-2xl">
+        <div class="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 rounded-full bg-[var(--teal)] blur-3xl opacity-15">
+        </div>
+        <div class="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 rounded-full bg-[var(--teal)] blur-3xl opacity-15">
+        </div>
+        <div
+            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-pink-500 blur-3xl opacity-5">
+        </div>
+
+        <div class="relative z-10 px-8 py-12 sm:px-12">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                <div>
+                    <div class="flex items-center gap-3 mb-4">
+                        <div
+                            class="h-12 w-12 rounded-2xl bg-gradient-to-br from-[var(--teal)] to-[var(--teal)] flex items-center justify-center shadow-lg">
+                            <i class="fas fa-users text-xl"></i>
+                        </div>
+                        <h1 class="text-3xl font-extrabold tracking-tight">Find Your Tribe</h1>
+                    </div>
+                    <p class="text-[var(--teal-light)] max-w-xl text-lg">
+                        Connect with students who share your archetype and build your career network.
+                    </p>
+                </div>
+
+                <div class="flex items-center gap-4">
+                    {% if my_archetype %}
+                    <div
+                        class="flex items-center gap-3 bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/10">
+                        <div
+                            class="h-10 w-10 rounded-full bg-gradient-to-br from-[var(--teal)] to-[var(--teal)] flex items-center justify-center text-white font-bold shadow-lg">
+                            {{ my_archetype[0] | upper }}
+                        </div>
+                        <div>
+                            <p class="text-xs text-[var(--teal-light)] font-bold uppercase tracking-wider">Your Archetype</p>
+                            <p class="font-bold text-white">{{ my_archetype }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <a href="/my-connections"
+                        class="relative flex items-center gap-2 bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/10 hover:bg-white/20 transition-all font-bold">
+                        <i class="fas fa-user-friends"></i>
+                        My Connections
+                        {% if pending_count > 0 %}
+                        <span
+                            class="absolute -top-2 -right-2 h-6 w-6 bg-rose-500 text-white text-xs rounded-full flex items-center justify-center font-bold animate-pulse shadow-lg">
+                            {{ pending_count }}
+                        </span>
+                        {% endif %}
+                    </a>
+                </div>
+            </div>
+
+            <!-- Search -->
+            <div class="mt-8 max-w-xl">
+                <div class="relative">
+                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-[var(--teal-light)]"></i>
+                    <input type="text" id="student-search" placeholder="Search students by name..."
+                        class="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 text-white placeholder-[var(--teal-light)] focus:outline-none search-glow transition-all text-sm font-medium">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Similar Archetype Section -->
+    {% if similar_students %}
+    <div>
+        <div class="flex items-center gap-3 mb-6">
+            <div
+                class="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-400 to-green-600 flex items-center justify-center text-white shadow-lg">
+                <i class="fas fa-star"></i>
+            </div>
+            <div>
+                <h2 class="text-xl font-extrabold text-slate-900">Similar to You</h2>
+                <p class="text-sm text-slate-500">Students who share the <span class="font-bold text-[var(--navy)]">{{
+                        my_archetype }}</span> archetype</p>
+            </div>
+            <span class="ml-auto px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full">{{
+                similar_students|length }} found</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5" id="similar-grid">
+            {% for sd in similar_students %}
+            <div class="student-card animate-card bg-white/80 backdrop-blur-xl rounded-2xl border border-white/50 shadow-lg overflow-hidden"
+                style="animation-delay: {{ loop.index0 * 0.08 }}s" data-name="{{ sd.user.full_name|lower }}">
+
+                <!-- Card Header with Gradient -->
+                <div class="h-20 bg-gradient-to-br from-emerald-400 via-green-500 to-teal-600 relative">
+                    <div class="absolute -bottom-8 left-1/2 -translate-x-1/2">
+                        <img src="{{ sd.user.profile_photo if sd.user.profile_photo else 'https://ui-avatars.com/api/?name=' + sd.user.full_name + '&background=random&size=128' }}"
+                            alt="{{ sd.user.full_name }}"
+                            class="w-16 h-16 rounded-2xl object-cover border-4 border-white shadow-lg">
+                    </div>
+                </div>
+
+                <div class="pt-10 pb-5 px-5 text-center">
+                    <a href="/student/{{ sd.user.id }}" class="hover:text-[var(--navy)] transition-colors">
+                        <h3 class="font-bold text-slate-900 text-base">{{ sd.user.full_name }}</h3>
+                    </a>
+
+                    <div class="flex items-center justify-center gap-2 mt-2">
+                        <span class="archetype-badge px-2.5 py-1 rounded-full text-[11px] font-bold text-[var(--navy)]">
+                            {{ sd.assessment.phase_2_category }}
+                        </span>
+                        {% if sd.assessment.personality %}
+                        <span class="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full text-[11px] font-bold">
+                            {{ sd.assessment.personality }}
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    {% if sd.user.bio %}
+                    <p class="text-xs text-slate-500 mt-3 line-clamp-2 leading-relaxed">{{ sd.user.bio[:100] }}{% if
+                        sd.user.bio|length > 100 %}...{% endif %}</p>
+                    {% endif %}
+
+                    <div class="mt-4">
+                        {% if sd.connection %}
+                        {% if sd.connection.status == 'accepted' %}
+                        <div class="flex gap-2">
+                            <a href="/connection/{{ sd.connection.conn_id }}/chat"
+                                class="connect-btn flex-1 px-4 py-2 bg-[var(--navy)] text-white rounded-xl text-xs font-bold hover:bg-[var(--teal)] shadow-md flex items-center justify-center gap-2">
+                                <i class="fas fa-comment"></i> Message
+                            </a>
+                            <a href="/student/{{ sd.user.id }}"
+                                class="connect-btn px-4 py-2 bg-[var(--teal-soft)] text-[var(--navy)] rounded-xl text-xs font-bold hover:bg-[var(--teal-soft)] transition-all border border-[var(--teal-light)]">
+                                <i class="fas fa-user"></i>
+                            </a>
+                        </div>
+                        {% elif sd.connection.status == 'pending' and sd.connection.is_requester %}
+                        <form action="/connection/{{ sd.connection.conn_id }}/withdraw" method="POST" class="w-full">
+                            <button type="submit"
+                                class="inline-flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-600 rounded-xl text-[10px] font-bold w-full justify-center hover:bg-amber-100 transition-all border border-amber-100">
+                                <i class="fas fa-clock"></i> Withdraw
+                            </button>
+                        </form>
+                        {% elif sd.connection.status == 'pending' and not sd.connection.is_requester %}
+                        <div class="flex gap-2">
+                            <form action="/connection/{{ sd.connection.conn_id }}/accept" method="POST" class="flex-1">
+                                <button type="submit"
+                                    class="connect-btn w-full px-3 py-2 bg-[var(--navy)] text-white rounded-xl text-xs font-bold hover:bg-[var(--teal)]">
+                                    <i class="fas fa-check"></i> Accept
+                                </button>
+                            </form>
+                            <form action="/connection/{{ sd.connection.conn_id }}/reject" method="POST" class="flex-1">
+                                <button type="submit"
+                                    class="connect-btn w-full px-3 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-200">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </form>
+                        </div>
+                        {% endif %}
+                        {% else %}
+                        <form action="/connect/{{ sd.user.id }}" method="POST">
+                            <button type="submit"
+                                class="connect-btn inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[var(--navy)] to-[var(--teal)] text-white rounded-xl text-xs font-bold w-full justify-center hover:from-[var(--navy)] hover:to-[var(--navy)] shadow-lg shadow-[var(--teal-soft)]">
+                                <i class="fas fa-user-plus"></i> Connect
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Other Archetypes -->
+    {% for archetype, students in other_archetypes.items() %}
+    <div>
+        <div class="flex items-center gap-3 mb-6 mt-4">
+            <div
+                class="h-10 w-10 rounded-xl bg-gradient-to-br from-[var(--teal)] to-[var(--teal)] flex items-center justify-center text-white shadow-lg font-bold">
+                {{ archetype[0] | upper }}
+            </div>
+            <div>
+                <h2 class="text-xl font-extrabold text-slate-900">{{ archetype }}</h2>
+                <p class="text-sm text-slate-500">{{ students|length }} student{{ 's' if students|length > 1 else '' }}
+                </p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {% for sd in students %}
+            <div class="student-card animate-card bg-white/80 backdrop-blur-xl rounded-2xl border border-white/50 shadow-lg overflow-hidden"
+                style="animation-delay: {{ loop.index0 * 0.08 }}s" data-name="{{ sd.user.full_name|lower }}">
+
+                <div class="h-20 bg-gradient-to-br from-[var(--teal)] via-[var(--teal)] to-[var(--teal)] relative">
+                    <div class="absolute -bottom-8 left-1/2 -translate-x-1/2">
+                        <img src="{{ sd.user.profile_photo if sd.user.profile_photo else 'https://ui-avatars.com/api/?name=' + sd.user.full_name + '&background=random&size=128' }}"
+                            alt="{{ sd.user.full_name }}"
+                            class="w-16 h-16 rounded-2xl object-cover border-4 border-white shadow-lg">
+                    </div>
+                </div>
+
+                <div class="pt-10 pb-5 px-5 text-center">
+                    <a href="/student/{{ sd.user.id }}" class="hover:text-[var(--navy)] transition-colors">
+                        <h3 class="font-bold text-slate-900 text-base">{{ sd.user.full_name }}</h3>
+                    </a>
+
+                    <div class="flex items-center justify-center gap-2 mt-2">
+                        <span class="archetype-badge px-2.5 py-1 rounded-full text-[11px] font-bold text-[var(--navy)]">
+                            {{ sd.assessment.phase_2_category }}
+                        </span>
+                        {% if sd.assessment.personality %}
+                        <span class="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full text-[11px] font-bold">
+                            {{ sd.assessment.personality }}
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    {% if sd.user.bio %}
+                    <p class="text-xs text-slate-500 mt-3 line-clamp-2 leading-relaxed">{{ sd.user.bio[:100] }}{% if
+                        sd.user.bio|length > 100 %}...{% endif %}</p>
+                    {% endif %}
+
+                    <div class="mt-4">
+                        {% if sd.connection %}
+                        {% if sd.connection.status == 'accepted' %}
+                        <a href="/student/{{ sd.user.id }}"
+                            class="connect-btn inline-flex items-center gap-2 px-4 py-2 bg-emerald-100 text-emerald-700 rounded-xl text-xs font-bold w-full justify-center">
+                            <i class="fas fa-check-circle"></i> Connected
+                        </a>
+                        {% elif sd.connection.status == 'pending' and sd.connection.is_requester %}
+                        <form action="/connection/{{ sd.connection.conn_id }}/withdraw" method="POST" class="w-full">
+                            <button type="submit"
+                                class="inline-flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-600 rounded-xl text-[10px] font-bold w-full justify-center hover:bg-amber-100 transition-all border border-amber-100">
+                                <i class="fas fa-clock"></i> Withdraw
+                            </button>
+                        </form>
+                        {% elif sd.connection.status == 'pending' and not sd.connection.is_requester %}
+                        <div class="flex gap-2">
+                            <form action="/connection/{{ sd.connection.conn_id }}/accept" method="POST" class="flex-1">
+                                <button type="submit"
+                                    class="connect-btn w-full px-3 py-2 bg-[var(--navy)] text-white rounded-xl text-xs font-bold hover:bg-[var(--teal)]">
+                                    <i class="fas fa-check"></i> Accept
+                                </button>
+                            </form>
+                            <form action="/connection/{{ sd.connection.conn_id }}/reject" method="POST" class="flex-1">
+                                <button type="submit"
+                                    class="connect-btn w-full px-3 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-200">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </form>
+                        </div>
+                        {% endif %}
+                        {% else %}
+                        <form action="/connect/{{ sd.user.id }}" method="POST">
+                            <button type="submit"
+                                class="connect-btn inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[var(--navy)] to-[var(--teal)] text-white rounded-xl text-xs font-bold w-full justify-center hover:from-[var(--navy)] hover:to-[var(--navy)] shadow-lg shadow-[var(--teal-soft)]">
+                                <i class="fas fa-user-plus"></i> Connect
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+
+    {% if not similar_students and not other_archetypes %}
+    <!-- Empty State -->
+    <div class="bg-white/70 backdrop-blur-xl rounded-3xl p-16 shadow-xl border border-white/50 text-center">
+        <div class="w-20 h-20 mx-auto bg-[var(--teal-soft)] rounded-full flex items-center justify-center mb-6">
+            <i class="fas fa-users text-3xl text-[var(--teal)]"></i>
+        </div>
+        <h3 class="text-xl font-bold text-slate-900 mb-2">No Students Yet</h3>
+        <p class="text-slate-500 max-w-md mx-auto">Be one of the first students to complete your assessment and start
+            building your career network!</p>
+        <a href="/dashboard"
+            class="inline-block mt-6 px-6 py-3 bg-gradient-to-r from-[var(--navy)] to-[var(--teal)] text-white rounded-xl font-bold hover:from-[var(--navy)] hover:to-[var(--navy)] shadow-lg shadow-[var(--teal-soft)] transition-all">
+            Go to Dashboard
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Search Script -->
+<script>
+    document.getElementById('student-search').addEventListener('input', function (e) {
+        const query = e.target.value.toLowerCase();
+        document.querySelectorAll('.student-card').forEach(card => {
+            const name = card.dataset.name || '';
+            card.style.display = name.includes(query) ? '' : 'none';
+        });
+    });
+</script>
+
+{% endblock %}
