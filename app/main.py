@@ -428,8 +428,16 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 
 app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+# ─── Trusted Host Middleware ──────────────────────────────────────────────────
+# Ensures the app accepts requests from your domains
+app.add_middleware(
+    TrustedHostMiddleware, 
+    allowed_hosts=["carestance.in", "www.carestance.in", "*.railway.app", "localhost", "127.0.0.1"]
+)
 
 # ─── CORS Middleware ──────────────────────────────────────────────────────────
 # Allows Vercel to communicate with Railway
@@ -484,7 +492,7 @@ async def check_suspension(request: Request, call_next):
     
     if not is_exempt:
         user_id = request.cookies.get("user_id")
-        if user_id:
+        if user_id and user_id.strip(): # Added safety check for empty/invalid strings
             try:
                 uid = int(user_id)
                 # Quick check for suspension
