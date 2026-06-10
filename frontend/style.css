@@ -1,8 +1,8 @@
 body {
   margin: 0;
   font-family: Inter, system-ui, sans-serif;
-  background: #f3f4f6;
-  color: #111827;
+  background: #f0fdf4;
+  color: #0f172a;
 }
 .page-center {
   min-height: 100vh;
@@ -15,7 +15,7 @@ body {
   width: 100%;
   background: white;
   border-radius: 1rem;
-  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.12);
+  box-shadow: 0 20px 50px rgba(13, 148, 136, 0.12);
   padding: 2rem;
 }
 h1 {

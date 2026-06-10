@@ -3,12 +3,12 @@
    ═══════════════════════════════════════════ */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg-deep:#060614;--bg-surface:#0a0a1e;--bg-card:rgba(15,15,40,0.6);
-  --primary:#00d4ff;--primary-dim:#0088cc;--accent:#7b61ff;--accent2:#ff6b9d;
-  --text-main:#e8eaed;--text-muted:#8b95a5;--text-dim:#555e6e;
-  --border-glass:rgba(255,255,255,0.07);--border-glow:rgba(0,212,255,0.2);
-  --glow-cyan:0 0 40px rgba(0,212,255,0.15);--glow-purple:0 0 40px rgba(123,97,255,0.15);
-  --glass-bg:rgba(12,12,35,0.65);--glass-blur:blur(20px);
+  --bg-deep:#f0fdf4;--bg-surface:#f7fefc;--bg-card:rgba(240, 253, 244, 0.9);
+  --primary:#0d9488;--primary-dim:#0f766e;--accent:#ff8c00;--accent2:#fbbf24;
+  --text-main:#0f172a;--text-muted:#475569;--text-dim:#64748b;
+  --border-glass:rgba(13, 148, 136, 0.1);--border-glow:rgba(13, 148, 136, 0.2);
+  --glow-cyan:0 0 40px rgba(13, 148, 136, 0.15);--glow-purple:0 0 40px rgba(255, 140, 0, 0.15);
+  --glass-bg:rgba(240, 253, 244, 0.85);--glass-blur:blur(20px);
   --radius:1.25rem;--radius-lg:1.75rem;
 }
 html{scroll-behavior:smooth}

@@ -50,25 +50,26 @@
     <style>
         /* ── Design Tokens ── */
         :root {
-            --bg-deep: #fefcf5;
-            --bg-soft: #fffaf2;
+            --bg-deep: #f0fdf4;
+            --bg-soft: #f7fefc;
             --bg-card: #ffffff;
-            --surface-muted: #f7f3eb;
-            --primary: #0b3b3c;
-            --primary-light: #1b5e5f;
-            --primary-soft: #d9f0ef;
-            --secondary: #d97706;
-            --accent-amber: #f59e0b;
-            --text-main: #1f2c2e;
-            --text-muted: #5c6e6b;
-            --text-light: #8fa3a0;
-            --border-light: #e9e2d4;
-            --border-soft: #f0e9de;
+            --surface-muted: #eef9f7;
+            --primary: #0d9488;
+            --primary-light: #14b8a6;
+            --primary-soft: #ccfbf1;
+            --secondary: #001f3f;
+            --accent-yellow: #fbbf24;
+            --accent-orange: #ff8c00;
+            --text-main: #0f172a;
+            --text-muted: #475569;
+            --text-light: #64748b;
+            --border-light: #e0e7ff;
+            --border-soft: #f1f5f9;
             --shadow-sm: 0 4px 16px rgba(0, 0, 0, 0.04);
             --shadow-md: 0 8px 28px rgba(0, 0, 0, 0.07);
             --shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.1);
-            --gradient-primary: linear-gradient(135deg, #0b3b3c 0%, #1b5e5f 100%);
-            --gradient-warm: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
+            --gradient-primary: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%);
+            --gradient-warm: linear-gradient(135deg, #ff8c00 0%, #fbbf24 100%);
             --radius-card: 1.5rem;
         }
 
@@ -115,7 +116,7 @@
         }
 
         .text-gradient {
-            background: linear-gradient(120deg, #0b3b3c 0%, #2b7a6e 100%);
+            background: linear-gradient(120deg, #0d9488 0%, #14b8a6 100%);
             -webkit-background-clip: text;
             background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -238,8 +239,8 @@
         }
 
         .badge-amber {
-            background: #fef3c7;
-            color: #92400e;
+            background: #fed7aa;
+            color: #9a3412;
         }
 
         /* ── Section ── */
@@ -337,13 +338,13 @@
         }
 
         .nav-logout {
-            color: #b45309 !important;
+            color: #ff8c00 !important;
             font-size: 0.875rem !important;
         }
 
         .nav-logout:hover {
-            background: #fef3c7 !important;
-            color: #92400e !important;
+            background: #fed7aa !important;
+            color: #9a3412 !important;
         }
 
         .mobile-toggle {
@@ -395,7 +396,7 @@
             position: fixed;
             inset: 0;
             z-index: 200;
-            background: rgba(11, 59, 60, 0.7);
+            background: rgba(13, 148, 136, 0.7);
             -webkit-backdrop-filter: blur(6px);
             backdrop-filter: blur(6px);
             display: flex;

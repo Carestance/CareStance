@@ -12,15 +12,15 @@ module.exports = {
             },
             colors: {
                 brand: {
-                    50: '#eff6ff',
-                    100: '#dbeafe',
-                    500: '#3b82f6',
-                    600: '#2563eb',
-                    900: '#1e3a8a',
+                    50: '#f0fdf4',
+                    100: '#dcfce7',
+                    500: '#0d9488',
+                    600: '#0f766e',
+                    900: '#001f3f',
                 },
                 accent: {
-                    400: '#059669', // Emerald 600
-                    500: '#065f46', // Emerald 800 (Dark Green)
+                    400: '#fbbf24',
+                    500: '#ff8c00',
                 }
             },
             animation: {

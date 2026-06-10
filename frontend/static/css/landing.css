@@ -1,13 +1,14 @@
 /* Premium Landing Page Styles - CareStance */
 :root {
-  --primary: #10b981;
-  --primary-dark: #059669;
-  --secondary: #f59e0b;
+  --primary: #0d9488;
+  --primary-dark: #0f766e;
+  --secondary: #001f3f;
   --accent: #fbbf24;
-  --background: #0f172a;
-  --surface: rgba(15, 23, 42, 0.8);
-  --text: #f8fafc;
-  --text-muted: #94a3b8;
+  --accent-orange: #ff8c00;
+  --background: #f0fdf4;
+  --surface: rgba(240, 253, 244, 0.9);
+  --text: #0f172a;
+  --text-muted: #475569;
 }
 
 body {
@@ -25,10 +26,10 @@ body {
 
 .hero-gradient {
   background:
-    radial-gradient(circle at top right, rgba(99, 102, 241, 0.15), transparent),
+    radial-gradient(circle at top right, rgba(13, 148, 136, 0.15), transparent),
     radial-gradient(
       circle at bottom left,
-      rgba(139, 92, 246, 0.15),
+      rgba(255, 140, 0, 0.15),
       transparent
     );
 }
