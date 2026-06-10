@@ -427,7 +427,19 @@ async def global_exception_handler(request: Request, exc: Exception):
         )
 
 from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.middleware.cors import CORSMiddleware
+
 app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+# ─── CORS Middleware ──────────────────────────────────────────────────────────
+# Allows Vercel to communicate with Railway
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://carestance.in", "https://www.carestance.in", "*.vercel.app"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Add Session Middleware (needed for OAuth)
 # On Vercel (HTTPS), cookies must have Secure flag to survive cross-site OAuth redirects
@@ -436,7 +448,7 @@ app.add_middleware(
     SessionMiddleware,
     secret_key=os.getenv("SECRET_KEY", "a_very_secret_key_for_sessions"),
     same_site="lax",
-    https_only=_is_production,
+    https_only=False, # Relaxed for the proxy bridge
     max_age=14 * 24 * 60 * 60,  # 14 days
 )
 
