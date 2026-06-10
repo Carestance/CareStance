@@ -1,19 +1,1678 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CareStance Frontend</title>
-    <link rel="stylesheet" href="/style.css" />
-  </head>
-  <body>
-    <main class="page-center">
-      <div class="container">
-        <h1>CareStance Frontend</h1>
-        <p>This folder is the Vercel frontend deployment target.</p>
-        <p>Replace this page with your actual frontend app code in `frontend/`.</p>
-        <p>API backend should be deployed separately on Railway</p>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>CareStance AI | Discover the Career You Were Meant For</title>
+  <link rel="icon" type="image/webp" href="/static/images/image.webp">
+  <meta name="description"
+    content="AI-powered personality analysis, immersive career simulations, and personalized guidance designed for students.">
+  <meta name="google-adsense-account" content="ca-pub-6546135271987768">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,400&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    /* ── THEME VARIABLES ── */
+    :root {
+      /* ── Brand Colors ── */
+      --navy: #0f172a;
+      --navy-light: #1e293b;
+      --navy-soft: #f1f5f9;
+      
+      --teal: #0d9488;
+      --teal-light: #14b8a6;
+      --teal-soft: #f0fdfa;
+      
+      --yellow: #f59e0b;
+      --yellow-light: #fbbf24;
+      --yellow-soft: #fefce8;
+
+      --bg-light: #f8fafc;
+      --bg-white: #ffffff;
+      --text-dim: #64748b;
+      --border: #e2e8f0;
+      
+      --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+      
+      --font-sans: 'Plus Jakarta Sans', sans-serif;
+      --font-serif: 'Playfair Display', serif;
+      --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* ── BASE RESET ── */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      font-family: var(--font-sans);
+      background-color: var(--bg-light);
+      color: var(--navy);
+      overflow-x: hidden;
+    }
+
+    body {
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+      transition: var(--transition);
+    }
+
+    /* ── TYPOGRAPHY ── */
+    h1,
+    h2,
+    h3,
+    h4 {
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--navy);
+    }
+
+    p {
+      color: var(--navy-muted);
+    }
+
+    .text-serif {
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-weight: 500;
+    }
+
+    .text-center {
+      text-align: center;
+    }
+
+    /* ── CARDS & SECTIONS ── */
+    .card {
+      background: var(--bg-white);
+      border: 1px solid var(--border);
+      border-radius: 1.25rem;
+      box-shadow: var(--shadow-sm);
+      transition: var(--transition);
+      overflow: hidden;
+    }
+
+    .card:hover {
+      transform: translateY(-6px);
+      box-shadow: var(--shadow-lg);
+      border-color: rgba(13, 148, 136, 0.3);
+    }
+
+    /* ── LABELS & TAGS ── */
+    .section-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--teal-light);
+      color: var(--teal);
+      padding: 0.4rem 1.1rem;
+      border-radius: 2rem;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      margin-bottom: 1.25rem;
+    }
+
+    .section-title {
+      font-size: 2.5rem;
+      line-height: 1.2;
+      margin-bottom: 1rem;
+    }
+
+    .section-desc {
+      max-width: 620px;
+      margin: 0 auto 3.5rem auto;
+      font-size: 1.1rem;
+      color: var(--navy-muted);
+    }
+
+    /* ── BUTTONS ── */
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      background-color: var(--teal);
+      color: var(--bg-white);
+      font-weight: 700;
+      padding: 0.9rem 2.25rem;
+      border-radius: 0.75rem;
+      box-shadow: 0 4px 14px rgba(13, 148, 136, 0.2);
+      transition: var(--transition);
+    }
+
+    .btn-primary:hover {
+      background-color: #ea580c;
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(249, 115, 22, 0.35);
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      background-color: var(--bg-white);
+      border: 1px solid var(--border);
+      color: var(--navy);
+      font-weight: 600;
+      padding: 0.9rem 2.25rem;
+      border-radius: 0.75rem;
+      box-shadow: var(--shadow-sm);
+      transition: var(--transition);
+    }
+
+    .btn-secondary:hover {
+      background-color: #fafafa;
+      border-color: var(--teal);
+      transform: translateY(-3px);
+    }
+
+    /* ── NAV BAR ── */
+    #f-main-nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      background: rgba(250, 250, 249, 0.9);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      transition: var(--transition);
+    }
+
+    .nav-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1.1rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .nav-logo-text {
+      font-weight: 800;
+      font-size: 1.35rem;
+      color: var(--navy);
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 2.25rem;
+    }
+
+    .nav-links a {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--navy-muted);
+    }
+
+    .nav-links a:hover {
+      color: var(--teal);
+    }
+
+    .nav-logout {
+      color: var(--orange) !important;
+    }
+
+    .btn-nav-cta {
+      background-color: var(--teal);
+      color: var(--bg-white) !important;
+      padding: 0.6rem 1.5rem;
+      border-radius: 0.5rem;
+    }
+
+    .btn-nav-cta:hover {
+      background-color: #0b7a70;
+      transform: translateY(-1px);
+    }
+
+    .mobile-toggle {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--navy);
+      font-size: 1.35rem;
+      cursor: pointer;
+    }
+
+    .mobile-menu {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      padding: 1.5rem;
+      flex-direction: column;
+      gap: 1.25rem;
+      background: var(--bg-white);
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ── HERO ── */
+    .hero {
+      padding: 10.5rem 0 6.5rem 0;
+      background: radial-gradient(circle at 85% 15%, var(--teal-soft) 0%, rgba(250, 250, 249, 0) 60%),
+        radial-gradient(circle at 15% 85%, var(--yellow-soft) 0%, rgba(250, 250, 249, 0) 60%);
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 4rem;
+      align-items: center;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--yellow-soft);
+      border: 1px solid rgba(245, 158, 11, 0.15);
+      color: var(--yellow);
+      padding: 0.45rem 1.15rem;
+      border-radius: 2rem;
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+    }
+
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      background-color: var(--yellow);
+      border-radius: 50%;
+      animation: pulse-simple 2s infinite;
+    }
+
+    @keyframes pulse-simple {
+      0% {
+        transform: scale(0.9);
+        opacity: 1;
+      }
+
+      50% {
+        transform: scale(1.15);
+        opacity: 0.6;
+      }
+
+      100% {
+        transform: scale(0.9);
+        opacity: 1;
+      }
+    }
+
+    .hero-title {
+      font-size: 3.5rem;
+      line-height: 1.15;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-desc {
+      font-size: 1.15rem;
+      margin-bottom: 2.5rem;
+      max-width: 550px;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 1.25rem;
+      margin-bottom: 3.5rem;
+    }
+
+    .hero-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+    }
+
+    .stat-chip {
+      padding: 1.1rem;
+      text-align: center;
+    }
+
+    .stat-num {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--teal);
+    }
+
+    .stat-label {
+      font-size: 0.8rem;
+      color: var(--navy-muted);
+      font-weight: 600;
+      margin-top: 0.25rem;
+    }
+
+    /* ── HERO VISUAL (MASCOT WITH SPEECH BUBBLE) ── */
+    .hero-visual {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+
+    .mascot-container {
+      width: 100%;
+      max-width: 320px;
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .mascot-img {
+      width: 100%;
+      height: auto;
+      filter: drop-shadow(0 15px 30px rgba(15, 23, 42, 0.12));
+      transform-origin: bottom center;
+      transition: transform 0.3s ease;
+    }
+
+    .mascot-img:hover {
+        transform: scale(1.05) rotate(2deg);
+    }
+
+    .section-mascot-wrap {
+        max-width: 280px;
+        margin: 0 auto 2rem;
+        position: relative;
+    }
+
+    @keyframes gentle-bob {
+
+      0%,
+      100% {
+        transform: translateY(0) rotate(0deg);
+      }
+
+      50% {
+        transform: translateY(-8px) rotate(1deg);
+      }
+    }
+
+    .speech-bubble {
+      position: absolute;
+      top: -40px;
+      right: -20px;
+      background: var(--bg-white);
+      border: 1px solid var(--border);
+      border-radius: 1.25rem;
+      padding: 1rem 1.25rem;
+      box-shadow: var(--shadow-md);
+      max-width: 220px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      line-height: 1.4;
+      color: var(--navy);
+      z-index: 10;
+      opacity: 0;
+      animation: pop-bubble 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+      animation-delay: 0.8s;
+    }
+
+    @keyframes pop-bubble {
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .speech-bubble::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 30px;
+      border-width: 10px 10px 0;
+      border-style: solid;
+      border-color: var(--bg-white) transparent;
+      display: block;
+      width: 0;
+    }
+
+    .speech-bubble::before {
+      content: '';
+      position: absolute;
+      bottom: -11px;
+      left: 29px;
+      border-width: 11px 11px 0;
+      border-style: solid;
+      border-color: var(--border) transparent;
+      display: block;
+      width: 0;
+      z-index: -1;
+    }
+
+    /* ── PIPELINE CARDS WITH IMAGE WRAPPERS ── */
+    .pipeline-section {
+      padding: 6.5rem 0;
+      background: linear-gradient(180deg, var(--bg-light) 0%, var(--teal-light) 100%);
+    }
+
+    .pipeline-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.5rem;
+    }
+
+    .pipeline-card {
+      padding: 0;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .pipeline-img-wrap {
+      width: 100%;
+      height: 200px;
+      overflow: hidden;
+      position: relative;
+      background: var(--navy-soft);
+    }
+
+    .pipeline-img-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.5s ease;
+    }
+
+    .pipeline-card:hover .pipeline-img-wrap img {
+      transform: scale(1.08);
+    }
+
+    .pipeline-content {
+      padding: 1.75rem 1.5rem;
+      position: relative;
+    }
+
+    .pipe-num {
+      position: absolute;
+      top: 1rem;
+      right: 1.25rem;
+      font-size: 2.20rem;
+      font-weight: 800;
+      color: var(--border);
+      opacity: 0.6;
+    }
+
+    .pipe-icon-badge {
+      width: 2.75rem;
+      height: 2.75rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.15rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .pipe-icon-cyan {
+      background: var(--teal-light);
+      color: var(--teal);
+    }
+
+    .pipe-icon-purple {
+      background: var(--yellow-soft);
+      color: var(--yellow);
+    }
+
+    .pipe-icon-pink {
+      background: var(--yellow-light);
+      color: var(--yellow);
+    }
+
+    .pipe-icon-green {
+      background: var(--teal-light);
+      color: var(--teal);
+    }
+
+    .pipeline-card h3 {
+      font-size: 1.15rem;
+      margin-bottom: 0.65rem;
+    }
+
+    .pipeline-card p {
+      font-size: 0.88rem;
+      color: var(--navy-muted);
+    }
+
+    /* ── ARCHETYPES ── */
+    .archetype-section {
+      padding: 6.5rem 0;
+      background: linear-gradient(180deg, var(--teal-light) 0%, var(--bg-light) 50%, var(--yellow-light) 100%);
+    }
+
+    .arch-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.75rem;
+    }
+
+    .arch-card {
+      padding: 2.25rem;
+      border: 1px solid var(--border);
+      background: var(--bg-white);
+    }
+
+    .arch-icon {
+      width: 3rem;
+      height: 3rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .arch-card h3 {
+      font-size: 1.3rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .arch-card p {
+      font-size: 0.92rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .arch-tag {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.35rem 0.85rem;
+      border-radius: 1rem;
+    }
+
+    /* ── SIMULATIONS ── */
+    .sim-section {
+      padding: 6.5rem 0;
+      background: linear-gradient(180deg, var(--yellow-light) 0%, var(--bg-light) 50%, var(--orange-light) 100%);
+    }
+
+    .sim-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+    }
+
+    .sim-card {
+      border-radius: 1.25rem;
+      padding: 2rem;
+      background: var(--bg-white);
+      border: 1px solid var(--border);
+    }
+
+    .sim-tag {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      margin-bottom: 1rem;
+      display: inline-block;
+    }
+
+    .sim-title {
+      font-size: 1.25rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .sim-scenario {
+      font-size: 0.9rem;
+      margin-bottom: 1.5rem;
+      line-height: 1.5;
+      background: var(--bg-light);
+      padding: 1rem;
+      border-radius: 0.75rem;
+      border-left: 3px solid var(--teal);
+    }
+
+    .sim-choice {
+      display: block;
+      font-size: 0.85rem;
+      padding: 0.75rem 1rem;
+      background: var(--bg-white);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      margin-bottom: 0.5rem;
+      cursor: pointer;
+      transition: var(--transition);
+      font-weight: 600;
+    }
+
+    .sim-choice:hover {
+      background: var(--teal-light);
+      border-color: var(--teal);
+      color: var(--teal);
+    }
+
+    /* ── AI CHATBOT ── */
+    .chat-section {
+      padding: 6.5rem 0;
+      background: linear-gradient(180deg, var(--orange-light) 0%, var(--bg-light) 100%);
+    }
+
+    .chat-layout {
+      display: grid;
+      grid-template-columns: 0.95fr 1.05fr;
+      gap: 4.5rem;
+      align-items: center;
+    }
+
+    .chat-window {
+      border-radius: 1.25rem;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+    }
+
+    .chat-titlebar {
+      padding: 1.25rem 1.5rem;
+      background: var(--bg-light);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .chat-avatar-mascot {
+      width: 2.75rem;
+      height: 2.75rem;
+      border-radius: 50%;
+      background: var(--teal-light);
+      overflow: hidden;
+      border: 2px solid var(--teal);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .chat-avatar-mascot img {
+      width: 100%;
+      height: auto;
+      transform: translateY(2px);
+    }
+
+    .chat-msgs {
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      height: 300px;
+      overflow-y: auto;
+      background: var(--bg-white);
+    }
+
+    .chat-msg {
+      padding: 0.85rem 1.15rem;
+      border-radius: 1rem;
+      font-size: 0.9rem;
+      max-width: 85%;
+      line-height: 1.5;
+    }
+
+    .msg-ai {
+      background: #f1f5f9;
+      align-self: flex-start;
+      border-bottom-left-radius: 0;
+    }
+
+    .msg-user {
+      background: var(--teal);
+      color: var(--bg-white);
+      align-self: flex-end;
+      border-bottom-right-radius: 0;
+    }
+
+    .chat-input-bar {
+      padding: 1.25rem 1.5rem;
+      background: var(--bg-light);
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 1rem;
+    }
+
+    .chat-input-bar input {
+      flex: 1;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      padding: 0.65rem 1.25rem;
+      font-size: 0.9rem;
+    }
+
+    .chat-input-bar button {
+      background: var(--teal);
+      border: none;
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--bg-white);
+    }
+
+    /* ── COUNSELLOR BOOKING WITH REAL IMAGES ── */
+    .counsel-section {
+      padding: 6.5rem 0;
+      background: linear-gradient(180deg, var(--bg-light) 0%, var(--teal-light) 100%);
+    }
+
+    .counsel-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.75rem;
+    }
+
+    .counsel-card {
+      padding: 2.5rem 2rem;
+      text-align: center;
+    }
+
+    .counsel-img-frame {
+      width: 6.5rem;
+      height: 6.5rem;
+      border-radius: 50%;
+      margin: 0 auto 1.5rem auto;
+      overflow: hidden;
+      border: 3px solid var(--teal);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .counsel-img-frame img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .counsel-card h4 {
+      font-size: 1.2rem;
+      margin-bottom: 0.35rem;
+    }
+
+    .counsel-spec {
+      font-size: 0.88rem;
+      color: var(--navy-muted);
+      margin-bottom: 0.75rem;
+    }
+
+    .counsel-rating {
+      font-size: 0.85rem;
+      color: var(--yellow);
+      font-weight: 700;
+    }
+
+    /* ── ROADMAPS ── */
+    .roadmap-section {
+      padding: 6.5rem 0;
+      background: linear-gradient(180deg, var(--teal-light) 0%, var(--bg-light) 50%, var(--yellow-light) 100%);
+    }
+
+    .roadmap-timeline {
+      position: relative;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .roadmap-timeline::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 2px;
+      background-color: var(--border);
+    }
+
+    .roadmap-step {
+      position: relative;
+      width: 50%;
+      padding: 1.5rem;
+    }
+
+    .roadmap-step:nth-child(odd) {
+      left: 0;
+      padding-right: 3.5rem;
+      text-align: right;
+    }
+
+    .roadmap-step:nth-child(even) {
+      left: 50%;
+      padding-left: 3.5rem;
+    }
+
+    .step-card {
+      padding: 1.75rem;
+    }
+
+    .step-card h4 {
+      margin-bottom: 0.5rem;
+      color: var(--teal);
+    }
+
+    .roadmap-step:nth-child(even) .step-card h4 {
+      color: var(--orange);
+    }
+
+    .step-card p {
+      font-size: 0.9rem;
+    }
+
+    /* ── TRUST & SECURITY ── */
+    .trust-section {
+      padding: 6.5rem 0;
+      background: linear-gradient(180deg, var(--yellow-light) 0%, var(--bg-light) 100%);
+    }
+
+    .trust-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.75rem;
+    }
+
+    .trust-card {
+      padding: 2.5rem;
+      text-align: center;
+    }
+
+    .trust-icon {
+      width: 3.5rem;
+      height: 3.5rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      margin: 0 auto 1.5rem auto;
+    }
+
+    .trust-icon-teal {
+      background: var(--teal-light);
+      color: var(--teal);
+    }
+
+    .trust-icon-orange {
+      background: var(--orange-light);
+      color: var(--orange);
+    }
+
+    .trust-icon-yellow {
+      background: var(--yellow-light);
+      color: var(--yellow);
+    }
+
+    .trust-card h3 {
+      font-size: 1.3rem;
+      margin-bottom: 0.75rem;
+    }
+
+    /* ── FINAL CTA ── */
+    .final-cta {
+      padding: 8.5rem 0;
+      text-align: center;
+      background: linear-gradient(180deg, var(--bg-light) 0%, var(--teal-light) 100%);
+    }
+
+    .final-cta h2 {
+      font-size: 3rem;
+      line-height: 1.15;
+      margin-bottom: 1.5rem;
+    }
+
+    .final-cta p {
+      font-size: 1.25rem;
+      margin-bottom: 2.5rem;
+    }
+
+    /* ── FOOTER ── */
+    .f-footer {
+      background-color: var(--navy);
+      color: var(--bg-white);
+      padding: 5rem 0 3rem 0;
+    }
+
+    .f-footer h3,
+    .f-footer h4,
+    .f-footer div {
+      color: var(--bg-white);
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 1.2fr repeat(3, 0.6fr);
+      gap: 3rem;
+      margin-bottom: 3.5rem;
+    }
+
+    .footer-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .footer-logo-text {
+      font-weight: 800;
+      font-size: 1.25rem;
+    }
+
+    .social-btn-f {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.25rem;
+      height: 2.25rem;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.08);
+      margin-right: 0.5rem;
+      color: var(--bg-white);
+    }
+
+    .social-btn-f:hover {
+      background: var(--teal);
+      color: var(--bg-white);
+    }
+
+    .footer-col-title {
+      font-weight: 700;
+      font-size: 0.95rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 1.25rem;
+    }
+
+    .f-footer ul {
+      list-style: none;
+    }
+
+    .f-footer ul li {
+      margin-bottom: 0.75rem;
+    }
+
+    .f-footer ul a {
+      font-size: 0.9rem;
+      color: #94a3b8;
+    }
+
+    .f-footer ul a:hover {
+      color: var(--teal-light);
+    }
+
+    .footer-divider {
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding-top: 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .footer-copy {
+      font-size: 0.88rem;
+      color: #94a3b8;
+    }
+
+    /* ── RESPONSIVE DESIGN ── */
+    @media (max-width: 1024px) {
+
+      .hero-grid,
+      .chat-layout {
+        grid-template-columns: 1fr;
+        gap: 3rem;
+      }
+
+      .hero-visual {
+        order: -1;
+      }
+
+      .pipeline-grid,
+      .arch-grid,
+      .sim-grid,
+      .counsel-grid,
+      .trust-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .nav-links {
+        display: none;
+      }
+
+      .mobile-toggle {
+        display: block;
+      }
+
+      .section-title,
+      .hero-title {
+        font-size: 2.25rem;
+      }
+
+      .pipeline-grid,
+      .arch-grid,
+      .sim-grid,
+      .counsel-grid,
+      .trust-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-stats {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .roadmap-timeline::before {
+        left: 1.5rem;
+      }
+
+      .roadmap-step {
+        width: 100%;
+        padding-left: 3rem !important;
+        padding-right: 1.5rem !important;
+        text-align: left !important;
+      }
+
+      .roadmap-step:nth-child(even) {
+        left: 0;
+      }
+
+      .footer-grid {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ── NAV ── -->
+  <nav id="f-main-nav" class="f-nav">
+    <div class="nav-inner">
+      <a href="#" class="nav-logo">
+        <img src="/static/images/image.webp" alt="CareStance" width="36" height="36">
+        <span class="nav-logo-text">CareStance</span>
+      </a>
+      <div class="nav-links">
+        <a href="#career-discovery">Discovery</a>
+        <a href="#archetypes">Archetypes</a>
+        <a href="#simulations">Simulations</a>
+        <a href="https://forms.gle/yEpw1tBG97sSnNaF7" target="_blank" rel="noopener">Internships</a>
+        
+        <a href="/login">Log In</a>
+        <a href="/signup" class="btn-nav-cta">Get Started</a>
+        
       </div>
-    </main>
-  </body>
+      <button class="mobile-toggle" id="f-menu-toggle" aria-label="Menu">
+        <i class="fa-solid fa-bars" id="f-menu-icon"></i>
+      </button>
+    </div>
+    <div class="mobile-menu" id="f-mobile-menu">
+      <a href="#career-discovery" onclick="closeMobileF()">Discovery</a>
+      <a href="#archetypes" onclick="closeMobileF()">Archetypes</a>
+      <a href="#simulations" onclick="closeMobileF()">Simulations</a>
+      <a href="https://forms.gle/yEpw1tBG97sSnNaF7" target="_blank" rel="noopener">Internships</a>
+      
+      <a href="/login">Log In</a>
+      <a href="/signup"
+        style="background-color:var(--orange);color:#fff;text-align:center;border-radius:0.5rem;padding:.75rem;margin-top:.5rem;font-weight:700;">Get
+        Started →</a>
+      
+    </div>
+  </nav>
+
+  <!-- ── HERO ── -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-grid">
+        <div>
+          <div class="hero-badge"><span class="pulse-dot"></span> Friendly Career Guidance</div>
+          <h1 class="hero-title">Discover the Career<br><span class="text-serif">You Were Meant For</span></h1>
+          <p class="hero-desc">Identify your personality profile, test-drive actual paths through interactive choices,
+            and review findings with trusted guidance counselors.</p>
+          <div class="hero-actions">
+            <a href="/signup" class="btn-primary"><i class="fa-solid fa-rocket"></i> Start Assessment</a>
+            <a href="#career-discovery" class="btn-secondary"><i class="fa-regular fa-compass"></i> Explore Paths</a>
+          </div>
+          <div class="hero-stats">
+            <div class="stat-chip card">
+              <div class="stat-num">50K+</div>
+              <div class="stat-label">Students</div>
+            </div>
+            <div class="stat-chip card">
+              <div class="stat-num">6</div>
+              <div class="stat-label">Archetypes</div>
+            </div>
+            <div class="stat-chip card">
+              <div class="stat-num">1-on-1</div>
+              <div class="stat-label">Mentorship</div>
+            </div>
+            <div class="stat-chip card">
+              <div class="stat-num">Interactive</div>
+              <div class="stat-label">Simulations</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-visual">
+          <div class="mascot-container">
+            <div class="speech-bubble">Hey there! I'm your CareStance guide. Let's find your dream path together!</div>
+            <img src="mascot.png" alt="CareStance Mascot" class="mascot-img"
+              onerror="this.src='https://i.ibb.co/XzB9h5Z/Carestance-Mascot-Waving.png';">
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── AI CAREER DISCOVERY (WITH SCENARIO IMAGES) ── -->
+  <section id="career-discovery" class="pipeline-section">
+    <div class="container">
+      <div class="text-center reveal">
+        <div class="section-tag"><i class="fa-solid fa-wand-magic-sparkles"></i> AI Career Discovery</div>
+        <h2 class="section-title">Multi-Phase Intelligence <span class="text-serif">Pipeline</span></h2>
+        <div class="section-mascot-wrap">
+            <img src="/static/images/mascot_telling.png" alt="CareStance Mascot Telling" class="mascot-img" onerror="this.src='https://i.ibb.co/XzB9h5Z/Carestance-Mascot-Waving.png';">
+        </div>
+        <p class="section-desc">We guide you through 4 clear steps to uncover your natural strengths and navigate the career landscape with confidence.</p>
+      </div>
+      <div class="pipeline-grid stagger-parent">
+        <!-- Pipeline Card 1 -->
+        <div class="pipeline-card card stagger-child">
+          <div class="pipeline-img-wrap">
+            <img src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=400"
+              alt="Card Swipe Assessment">
+          </div>
+          <div class="pipeline-content">
+            <div class="pipe-num">01</div>
+            <div class="pipe-icon-badge pipe-icon-cyan"><i class="fa-solid fa-layer-group"></i></div>
+            <h3>Card Swipe Assessment</h3>
+            <p>Interact with fifty clean, intuitive scenario cards. Fast, friendly, and psychologically validated.</p>
+          </div>
+        </div>
+        <!-- Pipeline Card 2 -->
+        <div class="pipeline-card card stagger-child">
+          <div class="pipeline-img-wrap">
+            <img src="https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=400"
+              alt="Guided Evaluation">
+          </div>
+          <div class="pipeline-content">
+            <div class="pipe-num">02</div>
+            <div class="pipe-icon-badge pipe-icon-purple"><i class="fa-solid fa-brain"></i></div>
+            <h3>Guided Evaluation</h3>
+            <p>Have an organic conversational check-in with our platform mentor covering your key interests.</p>
+          </div>
+        </div>
+        <!-- Pipeline Card 3 -->
+        <div class="pipeline-card card stagger-child">
+          <div class="pipeline-img-wrap">
+            <img src="https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&q=80&w=400"
+              alt="Test-Drive Scenarios">
+          </div>
+          <div class="pipeline-content">
+            <div class="pipe-num">03</div>
+            <div class="pipe-icon-badge pipe-icon-pink"><i class="fa-solid fa-flask-vial"></i></div>
+            <h3>Test-Drive Scenarios</h3>
+            <p>Experience real-world decision points to evaluate where your problem-solving style shines.</p>
+          </div>
+        </div>
+        <!-- Pipeline Card 4 -->
+        <div class="pipeline-card card stagger-child">
+          <div class="pipeline-img-wrap">
+            <img src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=80&w=400"
+              alt="Actionable Mapping">
+          </div>
+          <div class="pipeline-content">
+            <div class="pipe-num">04</div>
+            <div class="pipe-icon-badge pipe-icon-green"><i class="fa-solid fa-chart-line"></i></div>
+            <h3>Actionable Mapping</h3>
+            <p>Obtain clear career pathways with associated skills, recommended colleges, and concrete roadmaps.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── PERSONALITY ARCHETYPES ── -->
+  <section id="archetypes" class="archetype-section">
+    <div class="container">
+      <div class="text-center reveal">
+        <div class="section-tag"><i class="fa-solid fa-dna"></i> Personality Archetypes</div>
+        <h2 class="section-title">Discover Your Dominant <span class="text-serif">Archetype</span></h2>
+        <div class="section-mascot-wrap" style="max-width: 220px;">
+            <img src="/static/images/mascot_amazed.png" alt="CareStance Mascot Amazed" class="mascot-img" onerror="this.src='https://i.ibb.co/XzB9h5Z/Carestance-Mascot-Waving.png';">
+        </div>
+        <p class="section-desc">Identify which of our six structural personality profiles matches your natural working style.</p>
+      </div>
+      <div class="arch-grid stagger-parent">
+        <div class="arch-card card stagger-child">
+          <div class="arch-icon" style="background:var(--teal-light);color:var(--teal)"><i
+              class="fa-solid fa-crosshairs"></i></div>
+          <h3>Focused Specialist</h3>
+          <p>Thrives on deep, domain-specific expertise. Relies on structured precision and technical execution.</p>
+          <span class="arch-tag" style="background:var(--teal-light);color:var(--teal)">Precision · Mastery</span>
+        </div>
+        <div class="arch-card card stagger-child">
+          <div class="arch-icon" style="background:var(--orange-light);color:var(--orange)"><i
+              class="fa-solid fa-magnifying-glass"></i></div>
+          <h3>Quiet Explorer</h3>
+          <p>Curious, observant, and deeply analytical. Learns through systematic observation and deep-dives.</p>
+          <span class="arch-tag" style="background:var(--orange-light);color:var(--orange)">Curiosity · Depth</span>
+        </div>
+        <div class="arch-card card stagger-child">
+          <div class="arch-icon" style="background:var(--yellow-light);color:var(--yellow)"><i
+              class="fa-solid fa-chess"></i></div>
+          <h3>Strategic Builder</h3>
+          <p>Draws patterns out of complexity. Thinks in structures, long-term frameworks, and structural safety.</p>
+          <span class="arch-tag" style="background:var(--yellow-light);color:var(--yellow)">Strategy · Systems</span>
+        </div>
+        <div class="arch-card card stagger-child">
+          <div class="arch-icon" style="background:var(--orange-light);color:var(--orange)"><i
+              class="fa-solid fa-shuffle"></i></div>
+          <h3>Adaptive Explorer</h3>
+          <p>Agile, dynamic, and responsive under pressure. Learns quickly by testing new ideas in real-time.</p>
+          <span class="arch-tag" style="background:var(--orange-light);color:var(--orange)">Agility · Range</span>
+        </div>
+        <div class="arch-card card stagger-child">
+          <div class="arch-icon" style="background:var(--yellow-light);color:var(--yellow)"><i
+              class="fa-solid fa-crown"></i></div>
+          <h3>Visionary Leader</h3>
+          <p>Drawn to community impact, team empowerment, and moving abstract concepts to shared execution.</p>
+          <span class="arch-tag" style="background:var(--yellow-light);color:var(--yellow)">Vision · Impact</span>
+        </div>
+        <div class="arch-card card stagger-child">
+          <div class="arch-icon" style="background:var(--teal-light);color:var(--teal)"><i
+              class="fa-solid fa-arrows-spin"></i></div>
+          <h3>Dynamic Generalist</h3>
+          <p>Excellent at connecting multiple fields together. Thrives on high adaptability and structural integration.
+          </p>
+          <span class="arch-tag" style="background:var(--teal-light);color:var(--teal)">Breadth · Synthesis</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── CAREER SIMULATION ── -->
+  <section id="simulations" class="sim-section">
+    <div class="container">
+      <div class="text-center reveal">
+        <div class="section-tag"><i class="fa-solid fa-gamepad"></i> Interactive Scenarios</div>
+        <h2 class="section-title">Test-Drive Real Career <span class="text-serif">Decisions</span></h2>
+        <div class="section-mascot-wrap" style="max-width: 250px;">
+            <img src="/static/images/mascot_explaining.png" alt="CareStance Mascot Explaining" class="mascot-img" onerror="this.src='https://i.ibb.co/XzB9h5Z/Carestance-Mascot-Waving.png';">
+        </div>
+        <p class="section-desc">Experience mock daily scenarios across actual industries to evaluate where your judgment excels.</p>
+      </div>
+      <div class="sim-grid stagger-parent">
+        <div class="sim-card card stagger-child">
+          <span class="sim-tag" style="color:var(--teal)">Software Product Design</span>
+          <h3 class="sim-title">User Flow Dilemma</h3>
+          <div class="sim-scenario">
+            "A critical feature update makes the platform more secure but adds three additional setup steps for the
+            end-user."
+          </div>
+          <div class="sim-choices">
+            <div class="sim-choice">Keep security complex for absolute protection</div>
+            <div class="sim-choice">Simplify registration to maintain higher engagement</div>
+          </div>
+        </div>
+        <div class="sim-card card stagger-child">
+          <span class="sim-tag" style="color:var(--orange)">Public Relations & Policy</span>
+          <h3 class="sim-title">Emergency Communications</h3>
+          <div class="sim-scenario">
+            "An unexpected product shortage has delayed community outreach timelines by six full weeks."
+          </div>
+          <div class="sim-choices">
+            <div class="sim-choice">Release immediate public updates regarding the shift</div>
+            <div class="sim-choice">Delay announcements until alternative shipping resolves</div>
+          </div>
+        </div>
+        <div class="sim-card card stagger-child">
+          <span class="sim-tag" style="color:var(--yellow)">Civil Infrastructure</span>
+          <h3 class="sim-title">Resource Allocation</h3>
+          <div class="sim-scenario">
+            "Budget constraints demand choosing between structural longevity materials and shorter setup times."
+          </div>
+          <div class="sim-choices">
+            <div class="sim-choice">Invest in long-term safety despite initial delays</div>
+            <div class="sim-choice">Optimize workflow speeds to stay on-schedule</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── AI CHATBOT ── -->
+  <section class="chat-section">
+    <div class="container">
+      <div class="chat-layout">
+        <div class="reveal">
+          <div class="section-tag"><i class="fa-solid fa-robot"></i> Conversational Guide</div>
+          <h2 class="section-title">Clear Up Your Career <span class="text-serif">Questions</span></h2>
+          <div style="max-width: 200px; margin-bottom: 1.5rem;">
+              <img src="/static/images/mascot_asking.png" alt="CareStance Mascot Asking" class="mascot-img" onerror="this.src='https://i.ibb.co/XzB9h5Z/Carestance-Mascot-Waving.png';">
+          </div>
+          <p class="section-desc">Our assistant is available to clarify details about university admissions, structural skills requirements, and alternative career mappings.</p>
+          <div style="margin-top:2rem">
+            <a href="/signup" class="btn-primary"><i class="fa-solid fa-message"></i> Try Conversation</a>
+          </div>
+        </div>
+        <div class="chat-window card reveal">
+          <div class="chat-titlebar">
+            <!-- Integrated Mascot as Avatar -->
+            <div class="chat-avatar-mascot">
+              <img src="mascot.png" alt="Mascot Avatar"
+                onerror="this.src='https://i.ibb.co/XzB9h5Z/Carestance-Mascot-Waving.png';">
+            </div>
+            <div>
+              <div style="font-weight:700;font-size:.95rem">CareStance Mentor</div>
+              <div style="font-size:.75rem;color:var(--teal); font-weight: 600;">Online Companion</div>
+            </div>
+          </div>
+          <div class="chat-msgs">
+            <div class="chat-msg msg-ai">Hi! I can help you research structural subjects, match options to your dominant
+              archetypes, or find college requirements. What is on your mind?</div>
+            <div class="chat-msg msg-user">What skills should a Strategic Builder focus on first?</div>
+            <div class="chat-msg msg-ai">Great starting point! Focus on structural systems design, project planning, and
+              logical analysis. We can review typical roadmaps if you'd like.</div>
+          </div>
+          <div class="chat-input-bar">
+            <input type="text" placeholder="Type a sample question here..." disabled>
+            <button disabled><i class="fa-solid fa-paper-plane" style="font-size:.8rem"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── COUNSELLOR BOOKING WITH REAL IMAGES ── -->
+  <section class="counsel-section">
+    <div class="container">
+      <div class="text-center reveal">
+        <div class="section-tag"><i class="fa-solid fa-video"></i> Verified Counsellors</div>
+        <h2 class="section-title">Personalized Guidance, <span class="text-serif">One Session Away</span></h2>
+        <p class="section-desc">Connect directly with vetted counselors for tailored 1-on-1 feedback on colleges, paths,
+          and professional objectives.</p>
+      </div>
+      <div class="counsel-grid stagger-parent">
+        <!-- Counsellor 1 -->
+        <div class="counsel-card card stagger-child">
+          <div class="counsel-img-frame">
+            <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=400"
+              alt="Dr. Priya Sharma">
+          </div>
+          <h4>Dr. Priya Sharma</h4>
+          <div class="counsel-spec">Educational Psychology • 12 yrs exp</div>
+          <div class="counsel-rating">★ 4.9 · 240+ completed sessions</div>
+        </div>
+        <!-- Counsellor 2 -->
+        <div class="counsel-card card stagger-child">
+          <div class="counsel-img-frame">
+            <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=400"
+              alt="Alex Rivera">
+          </div>
+          <h4>Alex Rivera</h4>
+          <div class="counsel-spec">STEM Career Pathways • 8 yrs exp</div>
+          <div class="counsel-rating">★ 4.8 · 180+ completed sessions</div>
+        </div>
+        <!-- Counsellor 3 -->
+        <div class="counsel-card card stagger-child">
+          <div class="counsel-img-frame">
+            <img src="https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&q=80&w=400"
+              alt="Sarah Chen">
+          </div>
+          <h4>Sarah Chen</h4>
+          <div class="counsel-spec">International Admissions • 10 yrs exp</div>
+          <div class="counsel-rating">★ 4.9 · 310+ completed sessions</div>
+        </div>
+      </div>
+      <div class="text-center" style="margin-top:2.5rem">
+        <a href="/signup" class="btn-secondary"><i class="fa-solid fa-calendar-check"></i> Browse Vetted Mentors</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── CAREER ROADMAPS ── -->
+  <section class="roadmap-section">
+    <div class="container">
+      <div class="text-center reveal">
+        <div class="section-tag"><i class="fa-solid fa-route"></i> Career Roadmaps</div>
+        <h2 class="section-title">Four Stages to <span class="text-serif">Your Career Launch</span></h2>
+        <div class="section-mascot-wrap" style="max-width: 200px;">
+            <img src="/static/images/mascot_thinking.png" alt="CareStance Mascot Thinking" class="mascot-img" onerror="this.src='https://i.ibb.co/XzB9h5Z/Carestance-Mascot-Waving.png';">
+        </div>
+        <p class="section-desc">Understand how our platform transforms structural assessments into an actionable professional pathway.</p>
+      </div>
+      <div class="roadmap-timeline stagger-parent">
+        <div class="roadmap-step stagger-child">
+          <div class="step-card card">
+            <h4>🎯 1. Structural Strengths</h4>
+            <p>Complete your core assessments to clarify your natural cognitive styles and work priorities.</p>
+          </div>
+        </div>
+        <div class="roadmap-step stagger-child">
+          <div class="step-card card">
+            <h4>📚 2. Core Skill Mapping</h4>
+            <p>Review key subject areas, targeted certificates, and baseline skills critical for success in your match.
+            </p>
+          </div>
+        </div>
+        <div class="roadmap-step stagger-child">
+          <div class="step-card card">
+            <h4>🚀 3. Practical Practice</h4>
+            <p>Take part in test-drive scenarios and initial mock simulations to refine practical decision skills.</p>
+          </div>
+        </div>
+        <div class="roadmap-step stagger-child">
+          <div class="step-card card">
+            <h4>🏆 4. Vetted Strategy</h4>
+            <p>Refine your academic plans, university list, and internship routes through verified advisory counseling.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── TRUST & SECURITY ── -->
+  <section class="trust-section">
+    <div class="container">
+      <div class="text-center reveal">
+        <div class="section-tag"><i class="fa-solid fa-shield-halved"></i> Safety & Verification</div>
+        <h2 class="section-title">A Secure Space for <span class="text-serif">Constructive Discovery</span></h2>
+      </div>
+      <div class="trust-grid stagger-parent">
+        <div class="trust-card card stagger-child">
+          <div class="trust-icon trust-icon-teal"><i class="fa-solid fa-lock"></i></div>
+          <h3>Confidential Operations</h3>
+          <p>Data transmission uses secure encryption standards to respect and preserve your personal privacy.</p>
+        </div>
+        <div class="trust-card card stagger-child">
+          <div class="trust-icon trust-icon-orange"><i class="fa-solid fa-handshake"></i></div>
+          <h3>Verified Methodology</h3>
+          <p>Built upon widely respected, structurally stable educational models to provide highly reliable pathways.
+          </p>
+        </div>
+        <div class="trust-card card stagger-child">
+          <div class="trust-icon trust-icon-yellow"><i class="fa-solid fa-user-shield"></i></div>
+          <h3>Safe Communication</h3>
+          <p>All video interactions with professional counselors are subject to strict quality and conduct guidelines.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── FINAL CTA ── -->
+  <section class="final-cta">
+    <div class="container reveal">
+      <h2 class="font-display">Your Future Is Waiting<br><span class="text-serif">to Be Discovered</span></h2>
+      <div class="section-mascot-wrap" style="max-width: 240px; margin-top: 2rem;">
+          <img src="/static/images/mascot_excited.png" alt="CareStance Mascot Excited" class="mascot-img" onerror="this.src='https://i.ibb.co/XzB9h5Z/Carestance-Mascot-Waving.png';">
+      </div>
+      <p>Start your clean, friendly self-discovery profile today. No credit card required.</p>
+      <a href="/signup" class="btn-primary" style="font-size:1.05rem;padding:1.1rem 2.75rem"><i class="fa-solid fa-rocket"></i> Begin Free Profile</a>
+    </div>
+  </section>
+
+  <!-- ── FOOTER ── -->
+  <footer class="f-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-logo">
+            <img src="/static/images/image.webp" alt="CareStance" height="32">
+            <span class="footer-logo-text">CareStance</span>
+          </div>
+          <p style="font-size:.9rem; color: #94a3b8; margin-bottom: 1.5rem;">Authentic educational and structural
+            counseling designed for students.</p>
+          <div>
+            <a href="https://www.instagram.com/carestance.in/" target="_blank" rel="noopener" class="social-btn-f"><i
+                class="fab fa-instagram"></i></a>
+            <a href="https://www.linkedin.com/company/carestance" target="_blank" rel="noopener" class="social-btn-f"><i
+                class="fab fa-linkedin-in"></i></a>
+          </div>
+        </div>
+        <div>
+          <div class="footer-col-title">Platform</div>
+          <ul>
+            <li><a href="#career-discovery">Discovery</a></li>
+            <li><a href="#archetypes">Archetypes</a></li>
+            <li><a href="#simulations">Simulations</a></li>
+            <li><a href="https://forms.gle/yEpw1tBG97sSnNaF7" target="_blank" rel="noopener">Internships</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="footer-col-title">Company</div>
+          <ul>
+            <li><a href="/founders">Founders</a></li>
+            <li><a href="/articles">Articles</a></li>
+            <li><a href="mailto:contact@carestance.me">Contact</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="footer-col-title">Legal</div>
+          <ul>
+            <li><a href="/privacy">Privacy Policy</a></li>
+            <li><a href="/terms">Terms of Service</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-divider">
+        <p class="footer-copy">© 2026 CareStance AI. All rights reserved.</p>
+        <span style="font-size:.85rem;color:#94a3b8"><i class="fas fa-envelope"
+            style="margin-right:.4rem;color:var(--teal)"></i>contact@carestance.me</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- CDN Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <script src="/static/js/landing-futuristic.js"></script>
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6546135271987768"
+    crossorigin="anonymous"></script>
+
+  <script>
+    // ── MOBILE MENU TOGGLE ──
+    const menuToggle = document.getElementById('f-menu-toggle');
+    const mobileMenu = document.getElementById('f-mobile-menu');
+    const menuIcon = document.getElementById('f-menu-icon');
+
+    if (menuToggle && mobileMenu) {
+      menuToggle.addEventListener('click', () => {
+        if (mobileMenu.style.display === 'flex') {
+          mobileMenu.style.display = 'none';
+          menuIcon.className = 'fa-solid fa-bars';
+        } else {
+          mobileMenu.style.display = 'flex';
+          menuIcon.className = 'fa-solid fa-xmark';
+        }
+      });
+    }
+
+    function closeMobileF() {
+      if (mobileMenu) {
+        mobileMenu.style.display = 'none';
+        menuIcon.className = 'fa-solid fa-bars';
+      }
+    }
+
+    // ── GSAP SCROLL TRIGGER ANIMATIONS ──
+    document.addEventListener("DOMContentLoaded", () => {
+      // Check if GSAP is available
+      if (typeof gsap !== "undefined") {
+        gsap.registerPlugin(ScrollTrigger);
+
+        // Fade-in on Scroll for Headers & Intro blocks
+        gsap.utils.toArray(".reveal").forEach((elem) => {
+          gsap.fromTo(elem,
+            { opacity: 0, y: 30 },
+            {
+              opacity: 1,
+              y: 0,
+              duration: 0.8,
+              ease: "power2.out",
+              scrollTrigger: {
+                trigger: elem,
+                start: "top 85%",
+                toggleActions: "play none none none"
+              }
+            }
+          );
+        });
+
+        // Staggered grid items loading smoothly
+        gsap.utils.toArray(".stagger-parent").forEach((parent) => {
+          const children = parent.querySelectorAll(".stagger-child");
+          gsap.fromTo(children,
+            { opacity: 0, y: 40 },
+            {
+              opacity: 1,
+              y: 0,
+              duration: 0.7,
+              stagger: 0.15,
+              ease: "power2.out",
+              scrollTrigger: {
+                trigger: parent,
+                start: "top 80%",
+                toggleActions: "play none none none"
+              }
+            }
+          );
+        });
+      }
+    });
+  </script>
+</body>
+
 </html>
