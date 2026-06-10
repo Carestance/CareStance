@@ -10,15 +10,15 @@
     <div class="hidden lg:flex flex-col w-80 gap-4 h-full shrink-0">
         <!-- Profile Card -->
         <div
-            class="bg-white/80 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-lg shadow-[#d9f0ef]/50 flex flex-col items-center text-center">
+            class="bg-white/80 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-lg shadow-[var(--teal-soft)]/50 flex flex-col items-center text-center">
             <div class="relative w-24 h-24 mb-4">
                 <!-- Animated Orb Background -->
                 <div
-                    class="absolute inset-0 bg-gradient-to-tr from-[#0b3b3c] to-[#1b5e5f] rounded-full blur-xl opacity-30 animate-pulse">
+                    class="absolute inset-0 bg-[var(--teal)] rounded-full blur-xl opacity-30 animate-pulse">
                 </div>
                 <!-- The Orb -->
                 <div id="talking-buddy"
-                    class="relative w-full h-full bg-gradient-to-br from-[#0b3b3c] to-[#0b3b3c] rounded-full border-4 border-white shadow-xl flex items-center justify-center overflow-hidden transition-transform duration-300">
+                    class="relative w-full h-full bg-[var(--navy)] rounded-full border-4 border-white shadow-xl flex items-center justify-center overflow-hidden transition-transform duration-300">
                     <div
                         class="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.4),transparent)]">
                     </div>
@@ -35,12 +35,12 @@
 
         <!-- Stats / Context Card -->
         <div
-            class="bg-white/80 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-lg shadow-[#d9f0ef]/50 flex-1 overflow-y-auto custom-scrollbar">
+            class="bg-white/80 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-lg shadow-[var(--teal-soft)]/50 flex-1 overflow-y-auto custom-scrollbar">
             <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Current Context</h3>
 
             <div class="space-y-3">
-                <div class="p-3 bg-[#d9f0ef] rounded-xl border border-[#a8ded9]">
-                    <p class="text-xs text-[#1b5e5f] font-bold mb-1 uppercase">Personality</p>
+                <div class="p-3 bg-[var(--teal-soft)] rounded-xl border border-[var(--teal-light)]/20">
+                    <p class="text-xs text-[var(--teal)] font-bold mb-1 uppercase">Personality</p>
                     <p class="text-sm font-bold text-slate-800">
                         {% if user.assessment %}
                         {{ user.assessment.phase_2_category|default("Not Assessed") }}
@@ -49,8 +49,8 @@
                         {% endif %}
                     </p>
                 </div>
-                <div class="p-3 bg-[#d9f0ef] rounded-xl border border-[#a8ded9]">
-                    <p class="text-xs text-[#1b5e5f] font-bold mb-1 uppercase">Goal Status</p>
+                <div class="p-3 bg-[var(--teal-soft)] rounded-xl border border-[var(--teal-light)]/20">
+                    <p class="text-xs text-[var(--teal)] font-bold mb-1 uppercase">Goal Status</p>
                     <p class="text-sm font-bold text-slate-800">
                         {% if user.assessment %}
                         {{ user.assessment.goal_status|default("Pending") }}
@@ -64,17 +64,17 @@
             <div class="mt-6 pt-6 border-t border-slate-100">
                 <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Try Asking:</p>
                 <ul class="text-xs text-slate-500 space-y-2.5">
-                    <li class="flex items-start cursor-pointer hover:text-[#0b3b3c] transition"
+                    <li class="flex items-start cursor-pointer hover:text-[var(--navy)] transition"
                         onclick="fillInput('What careers match my personality?')">
-                        <span class="mr-2 text-[#1b5e5f]">•</span> What matches my personality?
+                        <span class="mr-2 text-[var(--teal)]">•</span> What matches my personality?
                     </li>
-                    <li class="flex items-start cursor-pointer hover:text-[#0b3b3c] transition"
+                    <li class="flex items-start cursor-pointer hover:text-[var(--navy)] transition"
                         onclick="fillInput('Which entrance exams should I take?')">
-                        <span class="mr-2 text-[#1b5e5f]">•</span> Entrance exams for me?
+                        <span class="mr-2 text-[var(--teal)]">•</span> Entrance exams for me?
                     </li>
-                    <li class="flex items-start cursor-pointer hover:text-[#0b3b3c] transition"
+                    <li class="flex items-start cursor-pointer hover:text-[var(--navy)] transition"
                         onclick="fillInput('Explain the salary trends for my stream.')">
-                        <span class="mr-2 text-[#1b5e5f]">•</span> Salary trends?
+                        <span class="mr-2 text-[var(--teal)]">•</span> Salary trends?
                     </li>
                 </ul>
             </div>
@@ -83,14 +83,14 @@
 
     <!-- MAIN CHAT INTERFACE -->
     <div
-        class="flex-1 bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl shadow-[#d9f0ef]/50 border border-white/50 flex flex-col overflow-hidden relative">
+        class="flex-1 bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl shadow-[var(--teal-soft)]/50 border border-white/50 flex flex-col overflow-hidden relative">
 
         <!-- Header (Mobile Only) -->
         <div
             class="lg:hidden p-4 bg-white/80 border-b border-slate-100 flex items-center justify-between backdrop-blur-md z-10">
             <div class="flex items-center gap-3">
                 <div
-                    class="w-8 h-8 rounded-full bg-gradient-to-tr from-[#0b3b3c] to-[#1b5e5f] flex items-center justify-center text-white text-xs shadow-md">
+                    class="w-8 h-8 rounded-full bg-[var(--navy)] flex items-center justify-center text-white text-xs shadow-md">
                     AI</div>
                 <span class="font-bold text-slate-800">Career Guide</span>
             </div>
@@ -119,7 +119,7 @@
             <!-- Welcome Message -->
             <div class="flex items-start gap-4 animate-fade-in-up">
                 <div
-                    class="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#0b3b3c] to-[#1b5e5f] flex items-center justify-center flex-shrink-0 shadow-lg shadow-[#d9f0ef]">
+                    class="w-10 h-10 rounded-2xl bg-[var(--navy)] flex items-center justify-center flex-shrink-0 shadow-lg">
                     <span class="text-lg text-white">🤖</span>
                 </div>
                 <div
@@ -142,7 +142,7 @@
                 </div>
                 <!-- User Bubble -->
                 <div
-                    class="bg-gradient-to-r from-[#0b3b3c] to-[#1b5e5f] text-white rounded-2xl rounded-tr-none shadow-md p-4 sm:p-5 max-w-[90%] sm:max-w-[80%]">
+                    class="bg-[var(--navy)] text-white rounded-2xl rounded-tr-none shadow-md p-4 sm:p-5 max-w-[90%] sm:max-w-[80%]">
                     <div class="prose prose-invert prose-sm max-w-none history-content">
                         {{ msg.content }}
                     </div>
@@ -150,7 +150,7 @@
                 {% else %}
                 <!-- AI Avatar -->
                 <div
-                    class="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#0b3b3c] to-[#1b5e5f] flex items-center justify-center flex-shrink-0 shadow-lg shadow-[#d9f0ef]">
+                    class="w-10 h-10 rounded-2xl bg-[var(--navy)] flex items-center justify-center flex-shrink-0 shadow-lg">
                     <span class="text-lg">🤖</span>
                 </div>
                 <!-- AI Bubble -->
@@ -174,15 +174,15 @@
             <!-- Suggestion Chips (Horizontal Scroll) -->
             <div class="flex gap-2 overflow-x-auto pb-3 mb-1 no-scrollbar">
                 <button onclick="fillInput('Create a study plan for me')"
-                    class="whitespace-nowrap px-4 py-1.5 rounded-full bg-slate-100 hover:bg-[#d9f0ef] text-slate-600 hover:text-[#0b3b3c] border border-slate-200 hover:border-[#a8ded9] text-xs font-bold transition-colors">
+                    class="whitespace-nowrap px-4 py-1.5 rounded-full bg-slate-100 hover:bg-[var(--teal-soft)] text-slate-600 hover:text-[var(--navy)] border border-slate-200 hover:border-[var(--teal-light)]/30 text-xs font-bold transition-colors">
                     📅 Study Plan
                 </button>
                 <button onclick="fillInput('What are the top colleges for my interest?')"
-                    class="whitespace-nowrap px-4 py-1.5 rounded-full bg-slate-100 hover:bg-[#d9f0ef] text-slate-600 hover:text-[#0b3b3c] border border-slate-200 hover:border-[#a8ded9] text-xs font-bold transition-colors">
+                    class="whitespace-nowrap px-4 py-1.5 rounded-full bg-slate-100 hover:bg-[var(--teal-soft)] text-slate-600 hover:text-[var(--navy)] border border-slate-200 hover:border-[var(--teal-light)]/30 text-xs font-bold transition-colors">
                     🏛️ Top Colleges
                 </button>
                 <button onclick="fillInput('Explain my strengths and weaknesses')"
-                    class="whitespace-nowrap px-4 py-1.5 rounded-full bg-slate-100 hover:bg-[#d9f0ef] text-slate-600 hover:text-[#0b3b3c] border border-slate-200 hover:border-[#a8ded9] text-xs font-bold transition-colors">
+                    class="whitespace-nowrap px-4 py-1.5 rounded-full bg-slate-100 hover:bg-[var(--teal-soft)] text-slate-600 hover:text-[var(--navy)] border border-slate-200 hover:border-[var(--teal-light)]/30 text-xs font-bold transition-colors">
                     💪 My Strengths
                 </button>
             </div>
@@ -190,12 +190,12 @@
             <form id="chat-form" class="flex items-end gap-3 relative">
                 <div class="relative flex-grow">
                     <input type="text" id="user-input"
-                        class="w-full pl-5 pr-12 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#1b5e5f]/20 focus:border-[#1b5e5f] transition-all placeholder-slate-400 text-slate-700 shadow-inner"
+                        class="w-full pl-5 pr-12 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[var(--teal)]/20 focus:border-[var(--teal)] transition-all placeholder-slate-400 text-slate-700 shadow-inner"
                         placeholder="Type your question..." required autocomplete="off">
 
                     <!-- Voice Button inside input -->
                     <button type="button" id="voice-btn"
-                        class="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-xl text-slate-400 hover:text-[#0b3b3c] hover:bg-[#d9f0ef] transition-colors"
+                        class="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-xl text-slate-400 hover:text-[var(--navy)] hover:bg-[var(--teal-soft)] transition-colors"
                         title="Voice Input">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor">
@@ -206,7 +206,7 @@
                 </div>
 
                 <button type="submit" id="send-btn"
-                    class="bg-gradient-to-r from-[#0b3b3c] to-[#1b5e5f] hover:from-[#0b3b3c] hover:to-[#0b3b3c] text-white p-4 rounded-2xl shadow-lg shadow-[#d9f0ef] transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                    class="bg-[var(--navy)] text-white p-4 rounded-2xl shadow-lg transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transform rotate-90" fill="none"
                         viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -354,13 +354,13 @@
                 <span class="text-lg">👤</span>
             </div>
         ` : `
-            <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#0b3b3c] to-[#1b5e5f] flex items-center justify-center flex-shrink-0 shadow-lg shadow-[#d9f0ef]">
+            <div class="w-10 h-10 rounded-2xl bg-[var(--navy)] flex items-center justify-center flex-shrink-0 shadow-lg">
                 <span class="text-lg text-white">🤖</span>
             </div>
         `;
 
         const bubbleClass = isUser
-            ? 'bg-gradient-to-r from-[#0b3b3c] to-[#1b5e5f] text-white rounded-2xl rounded-tr-none shadow-md'
+            ? 'bg-[var(--navy)] text-white rounded-2xl rounded-tr-none shadow-md'
             : 'bg-white text-slate-700 rounded-2xl rounded-tl-none shadow-sm border border-slate-100';
 
         div.innerHTML = `
@@ -399,15 +399,15 @@
         const div = document.createElement('div');
         div.className = 'flex items-start gap-4 animate-fade-in-up';
         div.innerHTML = `
-            <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#0b3b3c] to-[#1b5e5f] flex items-center justify-center flex-shrink-0 shadow-lg shadow-[#d9f0ef]">
+            <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-[var(--navy)] to-[var(--teal)] flex items-center justify-center flex-shrink-0 shadow-lg shadow-[var(--teal-soft)]">
                 <span class="text-lg text-white">🤖</span>
             </div>
             <div class="bg-white text-slate-700 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 p-4 sm:p-5 max-w-[90%] sm:max-w-[80%]">
                 <div id="ai-response-content" class="prose prose-emerald prose-sm max-w-none">
                    <div class="flex space-x-1.5 h-5 items-center">
-                        <div class="w-2 h-2 bg-[#1b5e5f] rounded-full animate-bounce"></div>
-                        <div class="w-2 h-2 bg-[#1b5e5f] rounded-full animate-bounce" style="animation-delay: 0.15s"></div>
-                        <div class="w-2 h-2 bg-[#1b5e5f] rounded-full animate-bounce" style="animation-delay: 0.3s"></div>
+                        <div class="w-2 h-2 bg-[var(--teal)] rounded-full animate-bounce"></div>
+                        <div class="w-2 h-2 bg-[var(--teal)] rounded-full animate-bounce" style="animation-delay: 0.15s"></div>
+                        <div class="w-2 h-2 bg-[var(--teal)] rounded-full animate-bounce" style="animation-delay: 0.3s"></div>
                    </div>
                 </div>
             </div>

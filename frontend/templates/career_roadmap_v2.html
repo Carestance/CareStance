@@ -27,29 +27,29 @@
 
 <!-- Note: overflow-x-hidden prevents horizontal scrolling bugs -->
 <div
-    class="min-h-screen bg-[#f8fafc] py-6 md:py-12 px-3 sm:px-6 lg:px-8 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-[#d9f0ef] via-white to-slate-50 overflow-x-hidden">
+    class="min-h-screen bg-[#f8fafc] py-6 md:py-12 px-3 sm:px-6 lg:px-8 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-[var(--teal-soft)] via-white to-slate-50 overflow-x-hidden">
     <div class="max-w-5xl mx-auto">
 
         <!-- Header Section -->
         <div class="relative mb-10 md:mb-16 text-center animate-fade-in-up">
             <div
-                class="absolute -top-10 left-1/2 -translate-x-1/2 w-32 h-32 bg-[#1b5e5f]/10 blur-3xl rounded-full animate-pulse-slow">
+                class="absolute -top-10 left-1/2 -translate-x-1/2 w-32 h-32 bg-[var(--teal)]/10 blur-3xl rounded-full animate-pulse-slow">
             </div>
 
             <nav class="flex justify-center mb-5 md:mb-8" aria-label="Breadcrumb">
                 <ol
                     class="flex items-center gap-2 md:gap-3 px-3 md:px-4 py-1.5 md:py-2 bg-white/50 backdrop-blur-md rounded-2xl border border-white/80 shadow-sm text-[10px] md:text-sm hover:shadow-md transition-shadow">
                     <li><a href="/dashboard"
-                            class="text-slate-500 hover:text-[#0b3b3c] font-medium transition-colors">Explorer</a></li>
+                            class="text-slate-500 hover:text-[var(--navy)] font-medium transition-colors">Explorer</a></li>
                     <li><i class="fas fa-chevron-right text-[8px] md:text-[10px] text-slate-300"></i></li>
-                    <li class="font-bold text-[#0b3b3c] bg-[#d9f0ef]/50 px-2 py-0.5 rounded-lg">The Quest</li>
+                    <li class="font-bold text-[var(--navy)] bg-[var(--teal-soft)]/50 px-2 py-0.5 rounded-lg">The Quest</li>
                 </ol>
             </nav>
 
             <h1
                 class="text-3xl md:text-5xl lg:text-6xl font-black text-slate-900 mb-3 md:mb-6 tracking-tight leading-tight">
                 Architecting <span
-                    class="block sm:inline bg-clip-text text-transparent bg-gradient-to-r from-[#0b3b3c] to-[#1b5e5f] animate-gradient-text">{{
+                    class="block sm:inline bg-clip-text text-transparent bg-gradient-to-r from-[var(--navy)] to-[var(--teal)] animate-gradient-text">{{
                     path.career_title }}</span>
             </h1>
 
@@ -71,7 +71,7 @@
             </div>
             <p
                 class="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6 md:mb-10 flex items-center justify-center md:justify-start gap-2">
-                <i class="fas fa-map text-[#1b5e5f]"></i> Your Platform Journey
+                <i class="fas fa-map text-[var(--teal)]"></i> Your Platform Journey
             </p>
 
             <div class="relative flex justify-between items-center max-w-4xl mx-auto px-1 sm:px-4">
@@ -84,40 +84,40 @@
                 {% if path %}{% set journey_score = 75 %}{% endif %}
                 {% if appointments and appointments|length > 0 %}{% set journey_score = 100 %}{% endif %}
 
-                <div class="absolute top-4 md:top-6 left-0 h-1 bg-gradient-to-r from-[#0b3b3c] to-[#1b5e5f] rounded-full transition-all duration-[2000ms] ease-out shadow-[0_0_15px_rgba(124,58,237,0.5)]"
+                <div class="absolute top-4 md:top-6 left-0 h-1 bg-gradient-to-r from-[var(--navy)] to-[var(--teal)] rounded-full transition-all duration-[2000ms] ease-out shadow-[0_0_15px_rgba(124,58,237,0.5)]"
                     style="width: {{ journey_score }}%"></div>
 
                 <!-- Milestone Points -->
                 <div class="relative z-10 flex flex-col items-center gap-2 md:gap-3 group">
                     <div
                         class="w-8 h-8 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all duration-500 shadow-md md:shadow-lg group-hover:scale-110 
-                        {{ 'bg-[#0b3b3c] text-white shadow-[#d9f0ef]' if journey_score >= 25 else 'bg-white border-4 border-slate-50 text-slate-200' }}">
+                        {{ 'bg-[var(--navy)] text-white shadow-[var(--teal-soft)]' if journey_score >= 25 else 'bg-white border-4 border-slate-50 text-slate-200' }}">
                         <i class="fas fa-check text-[10px] md:text-sm"></i>
                     </div>
                     <span
-                        class="text-[8px] md:text-[10px] font-black text-center {{ 'text-[#0b3b3c]' if journey_score >= 25 else 'text-slate-400' }} uppercase tracking-wider hidden sm:block">Basics</span>
+                        class="text-[8px] md:text-[10px] font-black text-center {{ 'text-[var(--navy)]' if journey_score >= 25 else 'text-slate-400' }} uppercase tracking-wider hidden sm:block">Basics</span>
                 </div>
 
                 <div class="relative z-10 flex flex-col items-center gap-2 md:gap-3 group">
                     <div
                         class="w-8 h-8 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all duration-500 shadow-md md:shadow-lg group-hover:scale-110 
-                        {{ 'bg-[#0b3b3c] text-white shadow-[#d9f0ef]' if journey_score >= 50 else 'bg-white border-4 border-slate-50 text-slate-200' }}">
+                        {{ 'bg-[var(--navy)] text-white shadow-[var(--teal-soft)]' if journey_score >= 50 else 'bg-white border-4 border-slate-50 text-slate-200' }}">
                         <i class="fas fa-brain text-[10px] md:text-sm"></i>
                     </div>
                     <span
-                        class="text-[8px] md:text-[10px] font-black text-center {{ 'text-[#0b3b3c]' if journey_score >= 50 else 'text-slate-400' }} uppercase tracking-wider hidden sm:block">Deep
+                        class="text-[8px] md:text-[10px] font-black text-center {{ 'text-[var(--navy)]' if journey_score >= 50 else 'text-slate-400' }} uppercase tracking-wider hidden sm:block">Deep
                         Dive</span>
                 </div>
 
                 <div class="relative z-10 flex flex-col items-center gap-2 md:gap-3 group">
                     <div
                         class="w-8 h-8 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all duration-500 shadow-md md:shadow-lg group-hover:scale-110 
-                        {{ 'bg-[#0b3b3c] text-white shadow-[#d9f0ef] ring-4 ring-[#d9f0ef]' if journey_score >= 75 else 'bg-white border-4 border-slate-50 text-slate-200' }}">
+                        {{ 'bg-[var(--navy)] text-white shadow-[var(--teal-soft)] ring-4 ring-[var(--teal-soft)]' if journey_score >= 75 else 'bg-white border-4 border-slate-50 text-slate-200' }}">
                         <i
                             class="fas fa-bullseye text-[10px] md:text-sm {{ 'animate-pulse' if journey_score == 75 else '' }}"></i>
                     </div>
                     <span
-                        class="text-[8px] md:text-[10px] font-black text-center {{ 'text-[#0b3b3c]' if journey_score >= 75 else 'text-slate-400' }} uppercase tracking-wider hidden sm:block">Final
+                        class="text-[8px] md:text-[10px] font-black text-center {{ 'text-[var(--navy)]' if journey_score >= 75 else 'text-slate-400' }} uppercase tracking-wider hidden sm:block">Final
                         Plan</span>
                 </div>
 
@@ -135,10 +135,10 @@
 
         {% if path.path_data.progress_percentage|default(0)|int >= 100 %}
         <!-- Congratulatory Celebration Card -->
-        <div class="bg-gradient-to-r from-[#0b3b3c] to-[#1b5e5f] p-6 md:p-10 rounded-3xl border border-[#a8ded9]/30 shadow-2xl text-white mb-8 md:mb-12 relative overflow-hidden group/congrats">
+        <div class="bg-gradient-to-r from-[var(--navy)] to-[var(--teal)] p-6 md:p-10 rounded-3xl border border-[var(--teal-light)]/30 shadow-2xl text-white mb-8 md:mb-12 relative overflow-hidden group/congrats">
             <!-- Decorative Orbs -->
             <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-emerald-500/10 rounded-full blur-2xl group-hover/congrats:bg-emerald-500/20 transition-all duration-700"></div>
-            <div class="absolute -left-10 -top-10 w-40 h-40 bg-[#a8ded9]/10 rounded-full blur-2xl group-hover/congrats:bg-[#a8ded9]/20 transition-all duration-700"></div>
+            <div class="absolute -left-10 -top-10 w-40 h-40 bg-[var(--teal-light)]/10 rounded-full blur-2xl group-hover/congrats:bg-[var(--teal-light)]/20 transition-all duration-700"></div>
             
             <div class="flex flex-col md:flex-row items-center gap-6 relative z-10">
                 <!-- Large Shiny Trophy Badge -->
@@ -156,7 +156,7 @@
                         </span>
                     </div>
                     <h2 class="text-2xl md:text-4xl font-black tracking-tight mb-3">Congratulations on Your Success!</h2>
-                    <p class="text-xs md:text-base text-[#d9f0ef] font-medium leading-relaxed max-w-2xl">
+                    <p class="text-xs md:text-base text-[var(--teal-soft)] font-medium leading-relaxed max-w-2xl">
                         Incredible work! You have successfully completed all 6 roadmap steps and proven your dedication to your career path. CareerBuddy is extremely proud of your consistent effort and determination to succeed!
                     </p>
                 </div>
@@ -193,20 +193,20 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 mb-8 md:mb-12 animate-fade-in-up"
             style="animation-delay: 200ms;">
             <div
-                class="bg-white/80 backdrop-blur-xl p-5 md:p-6 rounded-2xl md:rounded-3xl border border-white shadow-xl shadow-[#d9f0ef]/20 hover:shadow-2xl transition-shadow sm:col-span-2 md:col-span-1">
+                class="bg-white/80 backdrop-blur-xl p-5 md:p-6 rounded-2xl md:rounded-3xl border border-white shadow-xl shadow-[var(--teal-soft)]/20 hover:shadow-2xl transition-shadow sm:col-span-2 md:col-span-1">
                 <p
                     class="text-[10px] md:text-xs font-black text-slate-400 uppercase tracking-widest mb-2 text-center flex items-center justify-center gap-2">
                     <i class="fas fa-bolt text-amber-400"></i> Current Progress
                 </p>
                 <div class="relative h-3 md:h-4 bg-slate-100 rounded-full overflow-hidden shadow-inner mt-4">
                     <div id="progress-bar"
-                        class="absolute top-0 left-0 h-full bg-gradient-to-r from-[#0b3b3c] to-[#1b5e5f] transition-all duration-1000 ease-out"
+                        class="absolute top-0 left-0 h-full bg-gradient-to-r from-[var(--navy)] to-[var(--teal)] transition-all duration-1000 ease-out"
                         style="width:{{ path.path_data.progress_percentage|default(0) if path.path_data is mapping else 0 }}%">
                         <div class="absolute inset-0 bg-white/30 animate-[shimmer_2s_infinite]"></div>
                     </div>
                 </div>
                 <p id="progress-text"
-                    class="text-[#0b3b3c] font-bold text-center mt-3 text-sm md:text-lg transition-all">{{
+                    class="text-[var(--navy)] font-bold text-center mt-3 text-sm md:text-lg transition-all">{{
                     path.path_data.progress_percentage|default(0) if path.path_data is mapping else 0 }}% Mastery</p>
                 {% if path.path_data.progress_percentage|default(0)|int >= 100 %}
                 <div class="mt-2 flex items-center justify-center gap-1.5 bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-[10px] md:text-xs font-black uppercase tracking-widest w-fit mx-auto border border-emerald-100">
@@ -234,7 +234,7 @@
             </div>
 
             <div
-                class="bg-gradient-to-br from-[#0b3b3c] to-[#0b3b3c] p-5 md:p-6 rounded-2xl md:rounded-3xl border border-[#1b5e5f] shadow-xl shadow-[#d9f0ef]/50 relative overflow-hidden group cursor-default">
+                class="bg-gradient-to-br from-[var(--navy)] to-[var(--navy)] p-5 md:p-6 rounded-2xl md:rounded-3xl border border-[var(--teal)] shadow-xl shadow-[var(--teal-soft)]/50 relative overflow-hidden group cursor-default">
                 <div
                     class="absolute bottom-0 right-0 w-24 h-24 md:w-32 md:h-32 bg-white/10 rounded-full -mr-12 -mb-12 md:-mr-16 md:-mb-16 blur-2xl group-hover:scale-150 transition-transform duration-700">
                 </div>
@@ -263,7 +263,7 @@
                         class="absolute left-6 md:left-10 top-0 bottom-0 w-1 bg-slate-200/50 rounded-full transform -translate-x-1/2 z-0">
                     </div>
                     <div id="glow-line"
-                        class="absolute left-6 md:left-10 top-0 w-1 bg-gradient-to-b from-[#0b3b3c] to-[#1b5e5f] rounded-full transition-all duration-1000 ease-out z-0 shadow-[0_0_10px_rgba(99,102,241,0.5)] transform -translate-x-1/2"
+                        class="absolute left-6 md:left-10 top-0 w-1 bg-gradient-to-b from-[var(--navy)] to-[var(--teal)] rounded-full transition-all duration-1000 ease-out z-0 shadow-[0_0_10px_rgba(99,102,241,0.5)] transform -translate-x-1/2"
                         style="height: {{ path.path_data.progress_percentage|default(0) if path.path_data is mapping else 0 }}%">
                     </div>
 
@@ -277,7 +277,7 @@
                             <div class="relative z-10 shrink-0 mt-0 md:mt-2">
                                 <div id="orb-{{ loop.index0 }}"
                                     class="w-12 h-12 md:w-20 md:h-20 rounded-[30%] bg-white border-[3px] md:border-4 flex items-center justify-center transition-all duration-500 shadow-xl shadow-slate-200/50 cursor-pointer hover:scale-105
-                                    {% if step.completed %}border-emerald-500 bg-emerald-50 rotate-12 shadow-emerald-200/50{% else %}border-white group-hover:border-[#1b5e5f] group-hover:-rotate-6 group-hover:shadow-[#d9f0ef]/50{% endif %}">
+                                    {% if step.completed %}border-emerald-500 bg-emerald-50 rotate-12 shadow-emerald-200/50{% else %}border-white group-hover:border-[var(--teal)] group-hover:-rotate-6 group-hover:shadow-[var(--teal-soft)]/50{% endif %}">
 
                                     <input type="checkbox" class="absolute opacity-0 w-full h-full cursor-pointer z-20"
                                         onchange="toggleStepV2({{ path.id }}, {{ loop.index0 }})"
@@ -290,11 +290,11 @@
                                             class="fas fa-award text-xl md:text-3xl text-emerald-500 animate-[bounce_2s_infinite]"></i>
                                         {% else %}
                                         <span
-                                            class="text-xl md:text-3xl font-black text-slate-300 group-hover:text-[#0b3b3c] transition-colors duration-300">{{
+                                            class="text-xl md:text-3xl font-black text-slate-300 group-hover:text-[var(--navy)] transition-colors duration-300">{{
                                             loop.index }}</span>
                                         <!-- Hide 'Goal' on mobile to save space and center the number -->
                                         <p
-                                            class="text-[8px] font-black text-slate-400 uppercase tracking-tighter mt-1 group-hover:text-[#1b5e5f] hidden md:block">
+                                            class="text-[8px] font-black text-slate-400 uppercase tracking-tighter mt-1 group-hover:text-[var(--teal)] hidden md:block">
                                             Goal</p>
                                         {% endif %}
                                     </div>
@@ -303,7 +303,7 @@
 
                             <!-- Mission Card: flex-1 and min-w-0 prevents text from blowing out the bounds -->
                             <div
-                                class="flex-1 min-w-0 bg-white p-4 md:p-8 rounded-2xl md:rounded-[40px] shadow-lg md:shadow-xl shadow-slate-200/40 border-2 border-transparent hover:border-[#a8ded9] hover:shadow-2xl hover:shadow-[#d9f0ef]/50 hover:-translate-y-1 md:hover:-translate-y-2 transition-all duration-500 relative group/card overflow-hidden">
+                                class="flex-1 min-w-0 bg-white p-4 md:p-8 rounded-2xl md:rounded-[40px] shadow-lg md:shadow-xl shadow-slate-200/40 border-2 border-transparent hover:border-[var(--teal-light)] hover:shadow-2xl hover:shadow-[var(--teal-soft)]/50 hover:-translate-y-1 md:hover:-translate-y-2 transition-all duration-500 relative group/card overflow-hidden">
 
                                 <!-- Cleanly stacked header - NO ABSOLUTE POSITIONING -->
                                 <div class="flex flex-col items-start gap-2 md:gap-3 mb-4 md:mb-5">
@@ -313,7 +313,7 @@
                                         class="inline-flex text-[9px] md:text-[10px] font-black bg-blue-50 text-blue-600 px-3 py-1 md:px-4 md:py-1.5 rounded-md md:rounded-full uppercase tracking-widest border border-blue-100 items-center gap-1">
                                         <i class="fas fa-seedling"></i> Starter Zone</span>
                                         {% elif loop.index <= 4 %} <span
-                                            class="inline-flex text-[9px] md:text-[10px] font-black bg-[#d9f0ef] text-[#0b3b3c] px-3 py-1 md:px-4 md:py-1.5 rounded-md md:rounded-full uppercase tracking-widest border border-[#d9f0ef] items-center gap-1">
+                                            class="inline-flex text-[9px] md:text-[10px] font-black bg-[var(--teal-soft)] text-[var(--navy)] px-3 py-1 md:px-4 md:py-1.5 rounded-md md:rounded-full uppercase tracking-widest border border-[var(--teal-soft)] items-center gap-1">
                                             <i class="fas fa-space-shuttle"></i> Deep Space</span>
                                             {% else %}
                                             <span
@@ -329,7 +329,7 @@
 
                                             <!-- Timeline Tag -->
                                             <p
-                                                class="text-[#1b5e5f] text-[10px] md:text-xs font-bold mt-1 bg-[#d9f0ef] inline-block px-2.5 py-1 md:px-3 rounded-md border border-[#a8ded9]">
+                                                class="text-[var(--teal)] text-[10px] md:text-xs font-bold mt-1 bg-[var(--teal-soft)] inline-block px-2.5 py-1 md:px-3 rounded-md border border-[var(--teal-light)]">
                                                 <i class="far fa-clock mr-1"></i> {{ step.timeline or 'Ongoing' }}
                                             </p>
                                             {% if step.effort_percentage %}
@@ -342,13 +342,13 @@
 
                                 {% if step.detailed_task %}
                                 <div
-                                    class="mb-5 md:mb-8 bg-[#d9f0ef]/50 p-4 md:p-6 rounded-xl md:rounded-3xl border border-[#a8ded9]/50 relative overflow-hidden group/task">
+                                    class="mb-5 md:mb-8 bg-[var(--teal-soft)]/50 p-4 md:p-6 rounded-xl md:rounded-3xl border border-[var(--teal-light)]/50 relative overflow-hidden group/task">
                                     <div
                                         class="absolute -right-2 -top-2 opacity-5 scale-150 rotate-12 group-hover/task:rotate-0 transition-transform duration-700">
-                                        <i class="fas fa-clipboard-check text-4xl text-[#0b3b3c]"></i>
+                                        <i class="fas fa-clipboard-check text-4xl text-[var(--navy)]"></i>
                                     </div>
                                     <p
-                                        class="text-[9px] md:text-[10px] font-black text-[#1b5e5f] uppercase tracking-widest mb-2 flex items-center gap-2">
+                                        class="text-[9px] md:text-[10px] font-black text-[var(--teal)] uppercase tracking-widest mb-2 flex items-center gap-2">
                                         <i class="fas fa-tasks"></i> Current Objective
                                     </p>
                                     <p
@@ -362,8 +362,8 @@
                                 <div class="mb-5 flex flex-wrap gap-3">
                                     {% if loop.first or (steps[loop.index0 - 1].completed and steps[loop.index0 - 1].effort_percentage|default(100)|int >= 60) %}
                                     <a href="/career/roadmap/{{ path.id }}/step/{{ loop.index0 }}/chat"
-                                       style="background-color: {% if step.completed and step.effort_percentage|default(100)|int < 60 %}#e11d48{% else %}#0b3b3c{% endif %} !important;"
-                                       class="inline-flex items-center gap-2 px-5 py-3 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all border border-[#a8ded9]/50 shadow-sm hover:shadow-md transform hover:-translate-y-0.5">
+                                       style="background-color: {% if step.completed and step.effort_percentage|default(100)|int < 60 %}#e11d48{% else %}var(--navy){% endif %} !important;"
+                                       class="inline-flex items-center gap-2 px-5 py-3 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all border border-[var(--teal-light)]/50 shadow-sm hover:shadow-md transform hover:-translate-y-0.5">
                                         <i class="fas fa-robot text-emerald-400"></i> {% if step.completed and step.effort_percentage|default(100)|int < 60 %}Re-Report to CareerBuddy (Improve Effort){% else %}Report to CareerBuddy{% endif %}
                                     </a>
                                     {% else %}
@@ -378,17 +378,17 @@
                                 <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
                                     <!-- Power-Ups (Skills) -->
                                     <div
-                                        class="space-y-3 bg-slate-50 p-4 md:p-5 rounded-xl md:rounded-3xl border border-slate-100 group-hover/card:bg-[#d9f0ef]/30 transition-colors duration-300">
+                                        class="space-y-3 bg-slate-50 p-4 md:p-5 rounded-xl md:rounded-3xl border border-slate-100 group-hover/card:bg-[var(--teal-soft)]/30 transition-colors duration-300">
                                         <p
                                             class="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                            <i class="fas fa-bolt text-[#1b5e5f]"></i> Power-ups
+                                            <i class="fas fa-bolt text-[var(--teal)]"></i> Power-ups
                                         </p>
                                         <div class="flex flex-wrap gap-2">
                                             {% set step_skills = step.skills or step.skill or step.power_ups %}
                                             {% if step_skills is iterable and step_skills is not string %}
                                             {% for skill in step_skills %}
                                             <span
-                                                class="text-[11px] md:text-xs bg-white text-slate-700 font-bold px-3 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl border border-slate-200 hover:bg-[#0b3b3c] hover:text-white hover:border-[#0b3b3c] transition-all cursor-default shadow-sm hover:shadow-md transform hover:-translate-y-0.5">
+                                                class="text-[11px] md:text-xs bg-white text-slate-700 font-bold px-3 py-1.5 md:px-4 md:py-2 rounded-lg md:rounded-xl border border-slate-200 hover:bg-[var(--navy)] hover:text-white hover:border-[var(--navy)] transition-all cursor-default shadow-sm hover:shadow-md transform hover:-translate-y-0.5">
                                                 {{ skill }}
                                             </span>
                                             {% endfor %}
@@ -404,31 +404,31 @@
 
                                     <!-- Resources -->
                                     <div
-                                        class="space-y-3 bg-slate-50 p-4 md:p-5 rounded-xl md:rounded-3xl border border-slate-100 group-hover/card:bg-[#d9f0ef]/30 transition-colors duration-300">
+                                        class="space-y-3 bg-slate-50 p-4 md:p-5 rounded-xl md:rounded-3xl border border-slate-100 group-hover/card:bg-[var(--teal-soft)]/30 transition-colors duration-300">
                                         <p
                                             class="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                            <i class="fas fa-box-open text-[#1b5e5f]"></i> Resources
+                                            <i class="fas fa-box-open text-[var(--teal)]"></i> Resources
                                         </p>
                                         <div class="space-y-2">
                                             {% if step.courses and step.courses|length > 0 %}
                                             {% for course in step.courses %}
                                             {% if course is mapping %}
                                             <a href="{{ course.url }}" target="_blank"
-                                                class="flex items-center gap-3 p-2.5 md:p-3 bg-white rounded-xl border border-slate-200 hover:border-[#1b5e5f] hover:shadow-md hover:-translate-y-0.5 transition-all group/link">
+                                                class="flex items-center gap-3 p-2.5 md:p-3 bg-white rounded-xl border border-slate-200 hover:border-[var(--teal)] hover:shadow-md hover:-translate-y-0.5 transition-all group/link">
                                                 <div
-                                                    class="shrink-0 w-7 h-7 md:w-8 md:h-8 rounded-lg bg-[#d9f0ef] flex items-center justify-center group-hover/link:bg-[#0b3b3c] transition-colors">
+                                                    class="shrink-0 w-7 h-7 md:w-8 md:h-8 rounded-lg bg-[var(--teal-soft)] flex items-center justify-center group-hover/link:bg-[var(--navy)] transition-colors">
                                                     <i
-                                                        class="fas fa-external-link-alt text-[#1b5e5f] text-[10px] md:text-xs group-hover/link:text-white"></i>
+                                                        class="fas fa-external-link-alt text-[var(--teal)] text-[10px] md:text-xs group-hover/link:text-white"></i>
                                                 </div>
                                                 <span
-                                                    class="text-[11px] md:text-sm font-bold text-slate-700 truncate group-hover/link:text-[#0b3b3c] transition-colors">{{
+                                                    class="text-[11px] md:text-sm font-bold text-slate-700 truncate group-hover/link:text-[var(--navy)] transition-colors">{{
                                                     course.name }}</span>
                                             </a>
                                             {% endif %}
                                             {% endfor %}
                                             <!-- Link to full aggregator -->
                                             <a href="/career/roadmap/{{ path.id }}/resources"
-                                                class="block text-center py-2 text-[10px] font-black text-[#1b5e5f] hover:text-[#0b3b3c] uppercase tracking-widest transition-colors">
+                                                class="block text-center py-2 text-[10px] font-black text-[var(--teal)] hover:text-[var(--navy)] uppercase tracking-widest transition-colors">
                                                 Explore Full Library &rarr;
                                             </a>
                                             {% else %}
@@ -437,7 +437,7 @@
                                                 <p class="text-[11px] text-slate-400 font-medium mb-3 italic">Use our
                                                     curated aggregator for the best resources.</p>
                                                 <a href="/career/roadmap/{{ path.id }}/resources"
-                                                    class="inline-flex items-center gap-2 px-4 py-2 bg-[#d9f0ef] text-[#0b3b3c] rounded-xl text-xs font-black uppercase tracking-widest hover:bg-[#d9f0ef] transition-all border border-[#a8ded9]/50 shadow-sm">
+                                                    class="inline-flex items-center gap-2 px-4 py-2 bg-[var(--teal-soft)] text-[var(--navy)] rounded-xl text-xs font-black uppercase tracking-widest hover:bg-[var(--teal-soft)] transition-all border border-[var(--teal-light)]/50 shadow-sm">
                                                     <i class="fas fa-layer-group"></i> Quest Log
                                                 </a>
                                             </div>
@@ -449,7 +449,7 @@
                                     <!-- Special Challenge -->
                                     <div class="xl:col-span-2 pt-1 md:pt-4">
                                         <div
-                                            class="bg-gradient-to-br from-[#0b3b3c] to-[#0b3b3c] p-5 md:p-6 rounded-xl md:rounded-3xl text-white shadow-xl shadow-[#d9f0ef]/50 relative overflow-hidden group/project hover:shadow-2xl hover:shadow-[#a8ded9]/50 transition-all duration-300 transform hover:-translate-y-1">
+                                            class="bg-gradient-to-br from-[var(--navy)] to-[var(--navy)] p-5 md:p-6 rounded-xl md:rounded-3xl text-white shadow-xl shadow-[var(--teal-soft)]/50 relative overflow-hidden group/project hover:shadow-2xl hover:shadow-[var(--teal-light)]/50 transition-all duration-300 transform hover:-translate-y-1">
                                             <div
                                                 class="absolute -right-4 -bottom-4 opacity-10 group-hover/project:scale-110 group-hover/project:rotate-12 transition-all duration-700">
                                                 <i class="fas fa-flask text-[80px] md:text-[120px]"></i>
@@ -475,7 +475,7 @@
                                                         <!-- Tools -->
                                                         <div class="space-y-2">
                                                             <p
-                                                                class="text-[9px] font-black text-[#a8ded9] uppercase tracking-widest">
+                                                                class="text-[9px] font-black text-[var(--teal-light)] uppercase tracking-widest">
                                                                 <i class="fas fa-tools mr-1"></i> Recommended Tools
                                                             </p>
                                                             <div class="flex flex-wrap gap-1.5">
@@ -496,7 +496,7 @@
                                                         <!-- Parameters -->
                                                         <div class="space-y-2">
                                                             <p
-                                                                class="text-[9px] font-black text-[#a8ded9] uppercase tracking-widest">
+                                                                class="text-[9px] font-black text-[var(--teal-light)] uppercase tracking-widest">
                                                                 <i class="fas fa-sliders-h mr-1"></i> Key Parameters
                                                             </p>
                                                             <ul class="text-[10px] text-slate-300/80 space-y-1">
@@ -504,7 +504,7 @@
                                                                 step.project.parameters is not string %}
                                                                 {% for param in step.project.parameters %}
                                                                 <li class="flex items-start gap-1"><i
-                                                                        class="fas fa-check-circle text-[#1b5e5f] mt-0.5"></i>
+                                                                        class="fas fa-check-circle text-[var(--teal)] mt-0.5"></i>
                                                                     {{ param }}</li>
                                                                 {% endfor %}
                                                                 {% else %}
@@ -546,20 +546,20 @@
                     <!-- NEW: Resource Aggregator Link -->
                     <div class="mb-6">
                         <a href="/career/roadmap/{{ path.id }}/resources"
-                            class="flex items-center justify-between p-4 bg-[#d9f0ef] border border-[#a8ded9] rounded-2xl group hover:bg-[#d9f0ef] transition-all shadow-sm hover:shadow-md">
+                            class="flex items-center justify-between p-4 bg-[var(--teal-soft)] border border-[var(--teal-light)] rounded-2xl group hover:bg-[var(--teal-soft)] transition-all shadow-sm hover:shadow-md">
                             <div class="flex items-center gap-3">
                                 <div
-                                    class="w-10 h-10 rounded-xl bg-[#0b3b3c] flex items-center justify-center text-white">
+                                    class="w-10 h-10 rounded-xl bg-[var(--navy)] flex items-center justify-center text-white">
                                     <i class="fas fa-layer-group"></i>
                                 </div>
                                 <div>
-                                    <p class="text-sm font-black text-[#0b3b3c] leading-tight">Elite Resources</p>
-                                    <p class="text-[10px] font-bold text-[#1b5e5f] uppercase tracking-tighter">
+                                    <p class="text-sm font-black text-[var(--navy)] leading-tight">Elite Resources</p>
+                                    <p class="text-[10px] font-bold text-[var(--teal)] uppercase tracking-tighter">
                                         Aggregator v1.0</p>
                                 </div>
                             </div>
                             <i
-                                class="fas fa-chevron-right text-[#a8ded9] group-hover:translate-x-1 transition-transform"></i>
+                                class="fas fa-chevron-right text-[var(--teal-light)] group-hover:translate-x-1 transition-transform"></i>
                         </a>
                     </div>
 
@@ -574,10 +574,10 @@
                         </div>
                         <div class="flex items-center gap-3 md:gap-4 group cursor-default">
                             <div
-                                class="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-[#1b5e5f] shadow-[0_0_10px_rgba(168,85,247,0.5)] group-hover:scale-150 transition-transform shrink-0">
+                                class="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-[var(--teal)] shadow-[0_0_10px_rgba(168,85,247,0.5)] group-hover:scale-150 transition-transform shrink-0">
                             </div>
                             <span
-                                class="text-xs md:text-sm font-bold text-slate-600 group-hover:text-[#0b3b3c] transition-colors">Intermediate:
+                                class="text-xs md:text-sm font-bold text-slate-600 group-hover:text-[var(--navy)] transition-colors">Intermediate:
                                 Skill Mastery</span>
                         </div>
                         <div class="flex items-center gap-3 md:gap-4 group cursor-default">
@@ -596,10 +596,10 @@
                 <div
                     class="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl md:rounded-[40px] p-5 md:p-8 shadow-2xl text-white relative overflow-hidden group">
                     <div
-                        class="absolute -top-10 -right-10 w-32 md:w-48 h-32 md:h-48 bg-[#1b5e5f]/20 blur-[40px] md:blur-[60px] group-hover:bg-[#1b5e5f]/30 transition-colors duration-700">
+                        class="absolute -top-10 -right-10 w-32 md:w-48 h-32 md:h-48 bg-[var(--teal)]/20 blur-[40px] md:blur-[60px] group-hover:bg-[var(--teal)]/30 transition-colors duration-700">
                     </div>
                     <h4 class="text-base md:text-lg font-black mb-4 md:mb-6 flex items-center gap-3 relative z-10">
-                        <i class="fas fa-radar text-[#1b5e5f] animate-[spin_4s_linear_infinite]"></i> Market Intel
+                        <i class="fas fa-radar text-[var(--teal)] animate-[spin_4s_linear_infinite]"></i> Market Intel
                     </h4>
 
                     <div class="space-y-5 md:space-y-8 relative z-10">
@@ -635,7 +635,7 @@
                                 class="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
                                 Hiring Trends</p>
                             <p
-                                class="text-xs md:text-sm text-slate-300 leading-relaxed font-medium bg-[#0b3b3c]/40 p-3 md:p-4 rounded-xl md:rounded-2xl border border-[#1b5e5f]/30 backdrop-blur-md">
+                                class="text-xs md:text-sm text-slate-300 leading-relaxed font-medium bg-[var(--navy)]/40 p-3 md:p-4 rounded-xl md:rounded-2xl border border-[var(--teal)]/30 backdrop-blur-md">
                                 {{ path.path_data.career_outlook.hiring_trends }}</p>
                         </div>
                         {% endif %}
@@ -646,20 +646,20 @@
                 <!-- Pro Tips -->
                 {% if path.path_data is mapping and path.path_data.reminders %}
                 <div
-                    class="bg-[#d9f0ef] border border-[#a8ded9] rounded-2xl md:rounded-[40px] p-5 md:p-8 shadow-lg shadow-[#d9f0ef]/30">
-                    <h4 class="text-base md:text-lg font-black text-[#0b3b3c] mb-4 md:mb-6 flex items-center gap-2">
+                    class="bg-[var(--teal-soft)] border border-[var(--teal-light)] rounded-2xl md:rounded-[40px] p-5 md:p-8 shadow-lg shadow-[var(--teal-soft)]/30">
+                    <h4 class="text-base md:text-lg font-black text-[var(--navy)] mb-4 md:mb-6 flex items-center gap-2">
                         <i class="fas fa-lightbulb text-amber-500"></i> Expert Tips
                     </h4>
                     <div class="space-y-4 md:space-y-5">
                         {% for reminder in path.path_data.reminders %}
                         <div class="relative pl-4 md:pl-6 group/tip">
                             <div
-                                class="absolute left-0 top-1.5 w-1.5 h-1.5 md:w-2 md:h-2 bg-[#1b5e5f] rounded-full group-hover/tip:scale-150 group-hover/tip:bg-[#0b3b3c] transition-all shadow-[0_0_8px_rgba(99,102,241,0.6)]">
+                                class="absolute left-0 top-1.5 w-1.5 h-1.5 md:w-2 md:h-2 bg-[var(--teal)] rounded-full group-hover/tip:scale-150 group-hover/tip:bg-[var(--navy)] transition-all shadow-[0_0_8px_rgba(99,102,241,0.6)]">
                             </div>
                             <p
-                                class="text-[10px] md:text-xs text-[#0b3b3c] font-black mb-1 group-hover/tip:text-[#0b3b3c] transition-colors">
+                                class="text-[10px] md:text-xs text-[var(--navy)] font-black mb-1 group-hover/tip:text-[var(--navy)] transition-colors">
                                 {{ reminder.milestone }}</p>
-                            <p class="text-[11px] md:text-sm text-[#0b3b3c] opacity-80 leading-relaxed font-medium">{{
+                            <p class="text-[11px] md:text-sm text-[var(--navy)] opacity-80 leading-relaxed font-medium">{{
                                 reminder.reminder }}</p>
                         </div>
                         {% endfor %}
@@ -670,11 +670,11 @@
         </div>
 
         <!-- Action Bar -->
-        <div class="mt-10 md:mt-16 flex flex-col lg:flex-row justify-between items-center bg-white/70 backdrop-blur-xl p-5 md:p-8 rounded-2xl md:rounded-[40px] border border-white shadow-2xl shadow-[#d9f0ef]/30 gap-5 md:gap-6 animate-fade-in-up"
+        <div class="mt-10 md:mt-16 flex flex-col lg:flex-row justify-between items-center bg-white/70 backdrop-blur-xl p-5 md:p-8 rounded-2xl md:rounded-[40px] border border-white shadow-2xl shadow-[var(--teal-soft)]/30 gap-5 md:gap-6 animate-fade-in-up"
             style="animation-delay: 600ms;">
             <div class="text-center lg:text-left flex flex-col md:flex-row items-center gap-3 md:gap-4">
                 <div
-                    class="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-[#d9f0ef] flex items-center justify-center text-[#0b3b3c]">
+                    class="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-[var(--teal-soft)] flex items-center justify-center text-[var(--navy)]">
                     <i class="fas fa-compass text-lg md:text-xl"></i>
                 </div>
                 <div>
@@ -685,7 +685,7 @@
             </div>
             <div class="flex flex-col sm:flex-row flex-wrap gap-3 md:gap-4 w-full lg:w-auto">
                 <button onclick="findCollegesForCareer()"
-                    class="w-full sm:flex-1 lg:w-auto justify-center px-4 py-3 md:px-6 md:py-4 rounded-xl md:rounded-2xl bg-[#0b3b3c] text-white font-black text-xs md:text-sm hover:bg-[#1b5e5f] hover:shadow-xl hover:shadow-[#d9f0ef] md:hover:-translate-y-1 transition-all shadow-lg shadow-[#d9f0ef] flex items-center gap-2 group">
+                    class="w-full sm:flex-1 lg:w-auto justify-center px-4 py-3 md:px-6 md:py-4 rounded-xl md:rounded-2xl bg-[var(--navy)] text-white font-black text-xs md:text-sm hover:bg-[var(--teal)] hover:shadow-xl hover:shadow-[var(--teal-soft)] md:hover:-translate-y-1 transition-all shadow-lg shadow-[var(--teal-soft)] flex items-center gap-2 group">
                     <i class="fas fa-university group-hover:scale-110 transition-transform"></i> Top Colleges
                 </button>
                 <button onclick="window.print()"
@@ -693,7 +693,7 @@
                     <i class="fas fa-file-pdf"></i> Save PDF
                 </button>
                 <a href="/dashboard"
-                    class="w-full sm:flex-1 lg:w-auto justify-center px-4 py-3 md:px-6 md:py-4 rounded-xl md:rounded-2xl bg-[#0b3b3c] text-white font-black text-xs md:text-sm hover:bg-[#0b3b3c] hover:shadow-xl hover:shadow-[#d9f0ef] md:hover:-translate-y-1 transition-all shadow-lg shadow-[#d9f0ef] flex items-center gap-2 group">
+                    class="w-full sm:flex-1 lg:w-auto justify-center px-4 py-3 md:px-6 md:py-4 rounded-xl md:rounded-2xl bg-[var(--navy)] text-white font-black text-xs md:text-sm hover:bg-[var(--navy)] hover:shadow-xl hover:shadow-[var(--teal-soft)] md:hover:-translate-y-1 transition-all shadow-lg shadow-[var(--teal-soft)] flex items-center gap-2 group">
                     Dashboard <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
                 </a>
             </div>
@@ -714,15 +714,15 @@
     </div>
 
     <!-- Outer Pulse Rings -->
-    <div class="absolute inset-0 rounded-full bg-[#1b5e5f] opacity-30 animate-ping" style="animation-duration: 3s;">
+    <div class="absolute inset-0 rounded-full bg-[var(--teal)] opacity-30 animate-ping" style="animation-duration: 3s;">
     </div>
     <div
-        class="absolute inset-0 rounded-full border-2 border-[#1b5e5f] opacity-20 animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]">
+        class="absolute inset-0 rounded-full border-2 border-[var(--teal)] opacity-20 animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]">
     </div>
 
     <!-- Inner Orb -->
     <div
-        class="relative w-10 h-10 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-[#1b5e5f] to-[#1b5e5f] shadow-[0_0_15px_rgba(139,92,246,0.8)] md:shadow-[0_0_30px_rgba(139,92,246,0.8)] flex items-center justify-center border-2 border-white/50 overflow-hidden animate-[float_3s_ease-in-out_infinite] group-hover:scale-110 transition-transform duration-300">
+        class="relative w-10 h-10 md:w-16 md:h-16 rounded-full bg-gradient-to-br from-[var(--teal)] to-[var(--teal)] shadow-[0_0_15px_rgba(139,92,246,0.8)] md:shadow-[0_0_30px_rgba(139,92,246,0.8)] flex items-center justify-center border-2 border-white/50 overflow-hidden animate-[float_3s_ease-in-out_infinite] group-hover:scale-110 transition-transform duration-300">
         <div class="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.4),transparent)]"></div>
         <span class="text-xl md:text-3xl z-10 filter drop-shadow-md">🎓</span>
     </div>
@@ -741,10 +741,10 @@
         <div class="relative w-16 h-16 md:w-24 md:h-24 mx-auto mb-6 md:mb-8">
             <div class="absolute inset-0 border-[3px] md:border-4 border-slate-100 rounded-full"></div>
             <div
-                class="absolute inset-0 border-[3px] md:border-4 border-[#0b3b3c] border-t-transparent rounded-full animate-spin">
+                class="absolute inset-0 border-[3px] md:border-4 border-[var(--navy)] border-t-transparent rounded-full animate-spin">
             </div>
             <i
-                class="fas fa-university text-xl md:text-3xl text-[#0b3b3c] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></i>
+                class="fas fa-university text-xl md:text-3xl text-[var(--navy)] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></i>
         </div>
         <h3 class="text-lg md:text-2xl font-black text-slate-900 mb-2 md:mb-3">Scanning Institutes</h3>
         <p class="text-xs md:text-base text-slate-500 font-medium">Our AI is curating the perfect collegiate roadmap for
@@ -786,7 +786,7 @@
 
                 // 2. Seamless DOM Update
                 if (result.completed) {
-                    orb.classList.remove('border-white', 'group-hover:border-[#1b5e5f]', 'group-hover:-rotate-6', 'group-hover:shadow-[#d9f0ef]/50');
+                    orb.classList.remove('border-white', 'group-hover:border-[var(--teal)]', 'group-hover:-rotate-6', 'group-hover:shadow-[var(--teal-soft)]/50');
                     orb.classList.add('border-emerald-500', 'bg-emerald-50', 'rotate-12', 'shadow-emerald-200/50');
                     orbContent.innerHTML = `<i class="fas fa-award text-xl md:text-3xl text-emerald-500 animate-[bounce_2s_infinite] scale-110 transition-transform duration-300"></i>`;
 
@@ -808,11 +808,11 @@
                     }
 
                 } else {
-                    orb.classList.add('border-white', 'group-hover:border-[#1b5e5f]', 'group-hover:-rotate-6', 'group-hover:shadow-[#d9f0ef]/50');
+                    orb.classList.add('border-white', 'group-hover:border-[var(--teal)]', 'group-hover:-rotate-6', 'group-hover:shadow-[var(--teal-soft)]/50');
                     orb.classList.remove('border-emerald-500', 'bg-emerald-50', 'rotate-12', 'shadow-emerald-200/50');
                     orbContent.innerHTML = `
-                        <span class="text-xl md:text-3xl font-black text-slate-300 group-hover:text-[#0b3b3c] transition-colors duration-300">${stepIndex + 1}</span>
-                        <p class="text-[8px] font-black text-slate-400 uppercase tracking-tighter mt-1 group-hover:text-[#1b5e5f] hidden md:block">Goal</p>
+                        <span class="text-xl md:text-3xl font-black text-slate-300 group-hover:text-[var(--navy)] transition-colors duration-300">${stepIndex + 1}</span>
+                        <p class="text-[8px] font-black text-slate-400 uppercase tracking-tighter mt-1 group-hover:text-[var(--teal)] hidden md:block">Goal</p>
                     `;
 
                     title.classList.remove('text-slate-400', 'line-through', 'decoration-emerald-400', 'decoration-2', 'md:decoration-4');

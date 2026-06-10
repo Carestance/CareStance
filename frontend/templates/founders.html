@@ -28,12 +28,12 @@
     .founder-card {
         background: rgba(255, 255, 255, 0.85);
         backdrop-filter: blur(20px);
-        border: 1px solid #d9f0ef;
+        border: 1px solid var(--teal-soft);
         transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .founder-card:hover {
-        border-color: #1b5e5f;
+        border-color: var(--teal);
         box-shadow: 0 25px 60px -15px rgba(11, 59, 60, 0.15);
         transform: translateY(-4px);
     }
@@ -48,7 +48,7 @@
 </style>
 
 <div class="min-h-screen py-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden"
-    style="background: linear-gradient(135deg, #fefcf5 0%, #d9f0ef 50%, #fef3c7 100%);">
+    style="background: linear-gradient(135deg, #fefcf5 0%, var(--teal-soft) 50%, #fef3c7 100%);">
 
     <!-- Decorative Elements -->
     <div class="absolute top-20 left-10 w-64 h-64 rounded-full blur-[100px] pointer-events-none"
@@ -60,15 +60,15 @@
     <div class="text-center mb-24 relative z-10" data-aos="fade-down">
         <div class="flex justify-center mb-6">
             <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border"
-                style="background: rgba(11, 59, 60, 0.05); border-color: #a8ded9;">
-                <span class="w-2 h-2 rounded-full animate-pulse" style="background: #1b5e5f;"></span>
-                <span class="text-xs font-bold uppercase tracking-widest" style="color: #0b3b3c;">The People Behind
+                style="background: rgba(11, 59, 60, 0.05); border-color: var(--teal-light);">
+                <span class="w-2 h-2 rounded-full animate-pulse" style="background: var(--teal);"></span>
+                <span class="text-xs font-bold uppercase tracking-widest" style="color: var(--navy);">The People Behind
                     CareStance</span>
             </div>
         </div>
-        <h1 class="text-5xl md:text-7xl font-black mb-6 tracking-tighter" style="color: #0b3b3c;">
+        <h1 class="text-5xl md:text-7xl font-black mb-6 tracking-tighter" style="color: var(--navy);">
             Meet Our <span class="text-transparent bg-clip-text"
-                style="background-image: linear-gradient(135deg, #1b5e5f, #d97706); -webkit-background-clip: text;">Founders</span>
+                style="background-image: linear-gradient(135deg, var(--teal), #d97706); -webkit-background-clip: text;">Founders</span>
         </h1>
     </div>
 
@@ -82,7 +82,7 @@
                 <!-- Avatar with Ripple -->
                 <div class="relative w-48 h-48 mx-auto mb-8">
                     <div class="absolute inset-0 rounded-3xl rotate-6 group-hover:rotate-12 transition duration-500 opacity-20"
-                        style="background: #0b3b3c;"></div>
+                        style="background: var(--navy);"></div>
                     <div class="relative w-full h-full rounded-3xl overflow-hidden shadow-2xl"
                         style="border: 4px solid rgba(11, 59, 60, 0.15);">
                         <img src="https://ui-avatars.com/api/?name=Yuvneet+Sapra&background=0b3b3c&color=d9f0ef&size=512"
@@ -93,11 +93,11 @@
 
                 <!-- Info -->
                 <div class="text-center">
-                    <h2 class="text-3xl font-bold tracking-tight" style="color: #0b3b3c;">Yuvneet Sapra</h2>
+                    <h2 class="text-3xl font-bold tracking-tight" style="color: var(--navy);">Yuvneet Sapra</h2>
                     <div class="inline-block mt-2 px-4 py-1 rounded-full"
-                        style="background: #d9f0ef; border: 1px solid #a8ded9;">
+                        style="background: var(--teal-soft); border: 1px solid var(--teal-light);">
                         <span class="text-xs font-bold uppercase tracking-widest leading-none"
-                            style="color: #0b3b3c;">Chairman & Visionary</span>
+                            style="color: var(--navy);">Chairman & Visionary</span>
                     </div>
 
                     <p class="mt-6 leading-relaxed" style="color: #4b5563;">
@@ -109,16 +109,16 @@
                     <div class="mt-8 flex justify-center gap-4">
                         <a href="https://www.linkedin.com/in/yuvneet-sapra-a184a0328" target="_blank"
                             class="p-4 rounded-2xl transition-all duration-300 group/link"
-                            style="background: #d9f0ef; color: #0b3b3c;"
-                            onmouseover="this.style.background='#0b3b3c'; this.style.color='#ffffff';"
-                            onmouseout="this.style.background='#d9f0ef'; this.style.color='#0b3b3c';">
+                            style="background: var(--teal-soft); color: var(--navy);"
+                            onmouseover="this.style.background='var(--navy)'; this.style.color='#ffffff';"
+                            onmouseout="this.style.background='var(--teal-soft)'; this.style.color='var(--navy)';">
                             <i class="fab fa-linkedin-in text-xl group-hover/link:scale-110"></i>
                         </a>
                         <a href="https://github.com/Yuvneet22" target="_blank"
                             class="p-4 rounded-2xl transition-all duration-300 group/link"
-                            style="background: #d9f0ef; color: #0b3b3c;"
-                            onmouseover="this.style.background='#0b3b3c'; this.style.color='#ffffff';"
-                            onmouseout="this.style.background='#d9f0ef'; this.style.color='#0b3b3c';">
+                            style="background: var(--teal-soft); color: var(--navy);"
+                            onmouseover="this.style.background='var(--navy)'; this.style.color='#ffffff';"
+                            onmouseout="this.style.background='var(--teal-soft)'; this.style.color='var(--navy)';">
                             <i class="fab fa-github text-xl group-hover/link:scale-110"></i>
                         </a>
                     </div>
@@ -144,7 +144,7 @@
 
                 <!-- Info -->
                 <div class="text-center">
-                    <h2 class="text-3xl font-bold tracking-tight" style="color: #0b3b3c;">Rahul Manchanda</h2>
+                    <h2 class="text-3xl font-bold tracking-tight" style="color: var(--navy);">Rahul Manchanda</h2>
                     <div class="inline-block mt-2 px-4 py-1 rounded-full"
                         style="background: #fef3c7; border: 1px solid #fcd34d;">
                         <span class="text-xs font-bold uppercase tracking-widest" style="color: #92400e;">Chief
@@ -185,7 +185,7 @@
             viewBox="0 0 1200 120" preserveAspectRatio="none">
             <path
                 d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V120H0V95.8C58.47,106.7,118.07,106,176,89.66,231.6,74,281.43,65.13,321.39,56.44Z"
-                style="fill: #0b3b3c; opacity: 0.05;"></path>
+                style="fill: var(--navy); opacity: 0.05;"></path>
         </svg>
     </div>
 </div>

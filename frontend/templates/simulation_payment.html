@@ -14,12 +14,12 @@
 
         <!-- Header -->
         <div class="text-center mb-8">
-            <div class="w-16 h-16 bg-[#d9f0ef] text-[#0b3b3c] rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 shadow-inner">
+            <div class="w-16 h-16 bg-[var(--teal-soft)] text-[var(--navy)] rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 shadow-inner">
                 <i class="fas fa-rocket"></i>
             </div>
             <h1 class="text-2xl font-black text-slate-900 leading-tight mb-2">Unlock Career Simulations</h1>
             <p class="text-xs text-slate-500 font-medium leading-relaxed max-w-sm mx-auto">
-                You've already taken your first free simulation! Choose a package below to continue your journey for <strong class="text-[#1b5e5f]">{{ career_title }}</strong>.
+                You've already taken your first free simulation! Choose a package below to continue your journey for <strong class="text-[var(--teal)]">{{ career_title }}</strong>.
             </p>
         </div>
 
@@ -28,12 +28,12 @@
             <!-- Single Tier -->
             <label class="cursor-pointer group relative">
                 <input type="radio" name="package" value="single" class="peer sr-only" checked onchange="updateSelection()">
-                <div class="h-full p-6 bg-white border-2 border-slate-200 rounded-2xl peer-checked:border-[#0b3b3c] peer-checked:bg-[#f4fafa] transition-all relative overflow-hidden group-hover:border-[#a8ded9]">
-                    <div class="absolute top-4 right-4 text-slate-300 peer-checked:text-[#0b3b3c]">
+                <div class="h-full p-6 bg-white border-2 border-slate-200 rounded-2xl peer-checked:border-[var(--navy)] peer-checked:bg-[#f4fafa] transition-all relative overflow-hidden group-hover:border-[var(--teal-light)]">
+                    <div class="absolute top-4 right-4 text-slate-300 peer-checked:text-[var(--navy)]">
                         <i class="fas fa-check-circle text-xl"></i>
                     </div>
                     <div class="mb-4">
-                        <span class="text-xs font-bold text-slate-500 uppercase tracking-widest peer-checked:text-[#1b5e5f]">Single</span>
+                        <span class="text-xs font-bold text-slate-500 uppercase tracking-widest peer-checked:text-[var(--teal)]">Single</span>
                     </div>
                     <div class="mb-2">
                         <span class="text-3xl font-black text-slate-900">₹15</span>
@@ -45,15 +45,15 @@
             <!-- Bundle Tier -->
             <label class="cursor-pointer group relative">
                 <input type="radio" name="package" value="bundle" class="peer sr-only" onchange="updateSelection()">
-                <div class="h-full p-6 bg-white border-2 border-slate-200 rounded-2xl peer-checked:border-[#0b3b3c] peer-checked:bg-[#f4fafa] transition-all relative overflow-hidden group-hover:border-[#a8ded9]">
-                    <div class="absolute top-0 right-0 bg-[#0b3b3c] text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl z-10">
+                <div class="h-full p-6 bg-white border-2 border-slate-200 rounded-2xl peer-checked:border-[var(--navy)] peer-checked:bg-[#f4fafa] transition-all relative overflow-hidden group-hover:border-[var(--teal-light)]">
+                    <div class="absolute top-0 right-0 bg-[var(--navy)] text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl z-10">
                         BEST VALUE
                     </div>
-                    <div class="absolute top-4 right-4 text-slate-300 peer-checked:text-[#0b3b3c]">
+                    <div class="absolute top-4 right-4 text-slate-300 peer-checked:text-[var(--navy)]">
                         <i class="fas fa-check-circle text-xl"></i>
                     </div>
                     <div class="mb-4">
-                        <span class="text-xs font-bold text-slate-500 uppercase tracking-widest peer-checked:text-[#1b5e5f]">Bundle</span>
+                        <span class="text-xs font-bold text-slate-500 uppercase tracking-widest peer-checked:text-[var(--teal)]">Bundle</span>
                     </div>
                     <div class="mb-2 flex items-baseline gap-2">
                         <span class="text-3xl font-black text-slate-900">₹35</span>
@@ -68,7 +68,7 @@
         <!-- Payment Actions -->
         <div class="space-y-4">
             <button id="pay-btn" onclick="startPayment()" 
-                class="w-full py-4 bg-[#0b3b3c] hover:bg-[#1b5e5f] text-white font-bold rounded-2xl transition shadow-lg shadow-[#d9f0ef] hover:shadow-xl flex items-center justify-center gap-2">
+                class="w-full py-4 bg-[var(--navy)] hover:bg-[var(--teal)] text-white font-bold rounded-2xl transition shadow-lg shadow-[var(--teal-soft)] hover:shadow-xl flex items-center justify-center gap-2">
                 <i class="fas fa-credit-card"></i> <span id="pay-btn-text">Pay ₹15 & Start</span>
             </button>
             <a href="/dashboard" 
@@ -146,7 +146,7 @@ async function startPayment() {
                 }
             },
             "theme": {
-                "color": "#0b3b3c"
+                "color": "var(--navy)"
             }
         };
         
@@ -166,3 +166,4 @@ async function startPayment() {
 }
 </script>
 {% endblock %}
+

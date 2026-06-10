@@ -12,7 +12,7 @@
             <!-- Header -->
             <div class="text-center space-y-3">
                 <div
-                    class="mx-auto w-16 h-16 bg-gradient-to-br from-[#1b5e5f] to-[#1b5e5f] rounded-2xl flex items-center justify-center shadow-lg shadow-[#d9f0ef] mb-2">
+                    class="mx-auto w-16 h-16 bg-gradient-to-br from-[var(--teal)] to-[var(--teal)] rounded-2xl flex items-center justify-center shadow-lg shadow-[var(--teal-soft)] mb-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -20,7 +20,7 @@
                     </svg>
                 </div>
                 <h2 class="text-3xl font-extrabold text-slate-900 tracking-tight">
-                    Welcome, <span class="text-[#0b3b3c]">{{ user.full_name }}!</span>
+                    Welcome, <span class="text-[var(--navy)]">{{ user.full_name }}!</span>
                 </h2>
                 <p class="text-sm text-slate-500">
                     One last step — tell us who you are so we can personalize your experience.
@@ -41,18 +41,18 @@
                     <!-- Scholar Card -->
                     <div class="cursor-pointer group" @click="role = 'student'; agreedToTnC = false">
                         <div class="relative p-6 text-center border-2 rounded-2xl transition-all duration-300" :class="role === 'student' 
-                                ? 'border-[#0b3b3c] bg-gradient-to-br from-[#d9f0ef] to-[#d9f0ef] shadow-lg shadow-[#d9f0ef]' 
-                                : 'border-slate-200 hover:border-[#a8ded9] hover:shadow-md'">
+                                ? 'border-[var(--navy)] bg-gradient-to-br from-[var(--teal-soft)] to-[var(--teal-soft)] shadow-lg shadow-[var(--teal-soft)]' 
+                                : 'border-slate-200 hover:border-[var(--teal-light)] hover:shadow-md'">
 
                             <div class="text-5xl mb-3 transition-transform duration-300"
                                 :class="role === 'student' ? 'scale-110' : 'group-hover:scale-110'">🎓</div>
                             <h3 class="text-lg font-extrabold"
-                                :class="role === 'student' ? 'text-[#0b3b3c]' : 'text-slate-800'">Scholar</h3>
+                                :class="role === 'student' ? 'text-[var(--navy)]' : 'text-slate-800'">Scholar</h3>
                             <p class="text-xs text-slate-400 mt-1">Get career guidance, take assessments & book sessions
                             </p>
 
                             <!-- Checkmark -->
-                            <div class="absolute top-3 right-3 w-6 h-6 rounded-full bg-[#0b3b3c] text-white items-center justify-center shadow-md"
+                            <div class="absolute top-3 right-3 w-6 h-6 rounded-full bg-[var(--navy)] text-white items-center justify-center shadow-md"
                                 :class="role === 'student' ? 'flex' : 'hidden'">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                                     stroke="currentColor">
@@ -66,18 +66,18 @@
                     <!-- Life Coach Card -->
                     <div class="cursor-pointer group" @click="role = 'counsellor'; agreedToTnC = false">
                         <div class="relative p-6 text-center border-2 rounded-2xl transition-all duration-300" :class="role === 'counsellor' 
-                                ? 'border-[#0b3b3c] bg-gradient-to-br from-[#d9f0ef] to-[#d9f0ef] shadow-lg shadow-[#d9f0ef]' 
-                                : 'border-slate-200 hover:border-[#a8ded9] hover:shadow-md'">
+                                ? 'border-[var(--navy)] bg-gradient-to-br from-[var(--teal-soft)] to-[var(--teal-soft)] shadow-lg shadow-[var(--teal-soft)]' 
+                                : 'border-slate-200 hover:border-[var(--teal-light)] hover:shadow-md'">
 
                             <div class="text-5xl mb-3 transition-transform duration-300"
                                 :class="role === 'counsellor' ? 'scale-110' : 'group-hover:scale-110'">🧠</div>
                             <h3 class="text-lg font-extrabold"
-                                :class="role === 'counsellor' ? 'text-[#0b3b3c]' : 'text-slate-800'">Life Coach</h3>
+                                :class="role === 'counsellor' ? 'text-[var(--navy)]' : 'text-slate-800'">Life Coach</h3>
                             <p class="text-xs text-slate-400 mt-1">Offer guidance, manage appointments & help scholars
                             </p>
 
                             <!-- Checkmark -->
-                            <div class="absolute top-3 right-3 w-6 h-6 rounded-full bg-[#0b3b3c] text-white items-center justify-center shadow-md"
+                            <div class="absolute top-3 right-3 w-6 h-6 rounded-full bg-[var(--navy)] text-white items-center justify-center shadow-md"
                                 :class="role === 'counsellor' ? 'flex' : 'hidden'">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                                     stroke="currentColor">
@@ -91,7 +91,7 @@
 
                 <!-- Submit -->
                 <button type="submit"
-                    class="w-full py-3.5 rounded-xl text-white font-bold bg-gradient-to-r from-[#0b3b3c] to-[#1b5e5f] hover:scale-[1.03] hover:shadow-xl transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
+                    class="w-full py-3.5 rounded-xl text-white font-bold bg-gradient-to-r from-[var(--navy)] to-[var(--teal)] hover:scale-[1.03] hover:shadow-xl transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
                     :disabled="!role">
                     Continue →
                 </button>
@@ -113,13 +113,13 @@
                 x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
                 x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 scale-100"
                 x-transition:leave-end="opacity-0 scale-95" @click.outside="showTnC = false"
-                class="bg-white rounded-3xl shadow-2xl border border-[#a8ded9] max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden">
+                class="bg-white rounded-3xl shadow-2xl border border-[var(--teal-light)] max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden">
 
                 <!-- Modal Header -->
                 <div class="px-8 py-5 border-b border-slate-100 flex items-center justify-between flex-shrink-0">
                     <div class="flex items-center gap-3">
                         <div
-                            class="w-10 h-10 bg-gradient-to-br from-[#1b5e5f] to-[#1b5e5f] rounded-xl flex items-center justify-center">
+                            class="w-10 h-10 bg-gradient-to-br from-[var(--teal)] to-[var(--teal)] rounded-xl flex items-center justify-center">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none"
                                 viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -245,10 +245,10 @@
                 <div class="px-8 py-5 border-t border-slate-100 flex-shrink-0 space-y-4">
                     <label class="flex items-start gap-3 cursor-pointer select-none group">
                         <input type="checkbox" x-model="agreedToTnC"
-                            class="mt-0.5 w-5 h-5 rounded border-slate-300 text-[#0b3b3c] focus:ring-[#1b5e5f] transition">
+                            class="mt-0.5 w-5 h-5 rounded border-slate-300 text-[var(--navy)] focus:ring-[var(--teal)] transition">
                         <span class="text-sm text-slate-600 group-hover:text-slate-800 transition-colors">
                             I have read, understood, and agree to abide by these
-                            <span class="font-bold text-[#0b3b3c]">Terms & Conditions</span>.
+                            <span class="font-bold text-[var(--navy)]">Terms & Conditions</span>.
                         </span>
                     </label>
 
@@ -259,7 +259,7 @@
                         </button>
                         <button @click="if(agreedToTnC) { showTnC = false; document.querySelector('form').submit(); }"
                             type="button"
-                            class="flex-1 py-3 rounded-xl font-bold text-white bg-gradient-to-r from-[#0b3b3c] to-[#1b5e5f] hover:scale-[1.02] hover:shadow-xl transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
+                            class="flex-1 py-3 rounded-xl font-bold text-white bg-gradient-to-r from-[var(--navy)] to-[var(--teal)] hover:scale-[1.02] hover:shadow-xl transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
                             :disabled="!agreedToTnC">
                             I Agree & Continue →
                         </button>

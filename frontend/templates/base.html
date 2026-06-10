@@ -50,27 +50,52 @@
     <style>
         /* ── Design Tokens ── */
         :root {
-            --bg-deep: #f0fdf4;
-            --bg-soft: #f7fefc;
+            /* ── Core Palette (Teal, Navy, Yellow) ── */
+            --teal: #0d9488;
+            --teal-light: #14b8a6;
+            --teal-soft: #f0fdfa;
+            
+            --navy: #0f172a;
+            --navy-light: #1e293b;
+            --navy-soft: #334155;
+            
+            --yellow: #f59e0b;
+            --yellow-light: #fbbf24;
+            --yellow-soft: #fef3c7;
+
+            /* ── Mapping for Consistency ── */
+            --primary: var(--teal);
+            --primary-light: var(--teal-light);
+            --primary-soft: var(--teal-soft);
+            
+            --secondary: var(--navy);
+            --secondary-light: var(--navy-light);
+            
+            --accent: var(--yellow);
+            --accent-soft: var(--yellow-soft);
+
+            /* ── Interface ── */
+            --bg-deep: #f8fafc;
+            --bg-soft: #ffffff;
             --bg-card: #ffffff;
-            --surface-muted: #eef9f7;
-            --primary: #0d9488;
-            --primary-light: #14b8a6;
-            --primary-soft: #ccfbf1;
-            --secondary: #001f3f;
-            --accent-yellow: #fbbf24;
-            --accent-orange: #ff8c00;
-            --text-main: #0f172a;
+            --surface-muted: #f1f5f9;
+            
+            --text-main: var(--navy);
             --text-muted: #475569;
             --text-light: #64748b;
-            --border-light: #e0e7ff;
+            
+            --border-light: #e2e8f0;
             --border-soft: #f1f5f9;
-            --shadow-sm: 0 4px 16px rgba(0, 0, 0, 0.04);
-            --shadow-md: 0 8px 28px rgba(0, 0, 0, 0.07);
-            --shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.1);
-            --gradient-primary: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%);
-            --gradient-warm: linear-gradient(135deg, #ff8c00 0%, #fbbf24 100%);
-            --radius-card: 1.5rem;
+            
+            --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            
+            --gradient-primary: linear-gradient(135deg, var(--teal) 0%, var(--teal-light) 100%);
+            --gradient-navy: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%);
+            --gradient-yellow: linear-gradient(135deg, var(--yellow) 0%, var(--yellow-light) 100%);
+            
+            --radius-card: 1rem;
         }
 
         *,
@@ -739,7 +764,7 @@
                         perfect career archetype.</p>
                 </div>
                 <div x-show="step === 3" x-cloak>
-                    <div class="onboarding-icon" style="background:#d9f0ef;color:#0b3b3c;"><i
+                    <div class="onboarding-icon" style="background:var(--teal-soft);color:var(--navy);"><i
                             class="fas fa-user-tie"></i></div>
                     <h3 style="font-size:1.5rem;margin-bottom:0.75rem;">Expert Guidance</h3>
                     <p style="color:var(--text-muted);">Get AI-generated career roadmaps, college recommendations, and a

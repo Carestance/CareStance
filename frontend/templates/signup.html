@@ -3,7 +3,7 @@
 {% block title %}Sign Up{% endblock %}
 
 {% block content %}
-<div class="min-h-screen flex items-center justify-center relative overflow-hidden bg-[#fefcf5]">
+<div class="min-h-screen flex items-center justify-center relative overflow-hidden" style="background: var(--bg-deep);">
 
 
     <div class="relative max-w-md w-full px-6">
@@ -12,7 +12,7 @@
             <!-- Header -->
             <div class="text-center space-y-2">
                 <h2 class="text-3xl font-extrabold text-slate-900 tracking-tight">
-                    Welcome to <span class="text-[#0b3b3c]">CareStance</span>
+                    Welcome to <span style="color: var(--navy);">CareStance</span>
                 </h2>
                 <p class="text-sm text-slate-500">
                     Build clarity. Shape your future. 🚀
@@ -27,7 +27,7 @@
 
                     <div class="relative">
                         <input id="full_name" name="full_name" type="text" required
-                            class="peer w-full px-4 pt-5 pb-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#1b5e5f] focus:border-[#1b5e5f] outline-none transition"
+                            class="peer w-full px-4 pt-5 pb-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-[var(--teal)] focus:border-[var(--teal)] outline-none transition"
                             placeholder=" ">
                         <label for="full_name"
                             class="absolute left-4 top-2 text-xs text-slate-500 peer-placeholder-shown:text-sm peer-placeholder-shown:top-4 peer-placeholder-shown:text-slate-400 transition-all">
@@ -37,7 +37,7 @@
 
                     <div class="relative">
                         <input id="email-address" name="email" type="email" required
-                            class="peer w-full px-4 pt-5 pb-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#1b5e5f] focus:border-[#1b5e5f] outline-none transition"
+                            class="peer w-full px-4 pt-5 pb-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-[var(--teal)] focus:border-[var(--teal)] outline-none transition"
                             placeholder=" ">
                         <label for="email-address"
                             class="absolute left-4 top-2 text-xs text-slate-500 peer-placeholder-shown:text-sm peer-placeholder-shown:top-4 peer-placeholder-shown:text-slate-400 transition-all">
@@ -47,7 +47,7 @@
 
                     <div class="relative">
                         <input id="password" name="password" type="password" required
-                            class="peer w-full px-4 pt-5 pb-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#1b5e5f] focus:border-[#1b5e5f] outline-none transition"
+                            class="peer w-full px-4 pt-5 pb-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-[var(--teal)] focus:border-[var(--teal)] outline-none transition"
                             placeholder=" ">
                         <label for="password"
                             class="absolute left-4 top-2 text-xs text-slate-500 peer-placeholder-shown:text-sm peer-placeholder-shown:top-4 peer-placeholder-shown:text-slate-400 transition-all">
@@ -57,7 +57,7 @@
 
                     <div class="relative">
                         <input id="contact_number" name="contact_number" type="tel" required
-                            class="peer w-full px-4 pt-5 pb-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#1b5e5f] focus:border-[#1b5e5f] outline-none transition"
+                            class="peer w-full px-4 pt-5 pb-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-[var(--teal)] focus:border-[var(--teal)] outline-none transition"
                             placeholder=" ">
                         <label for="contact_number"
                             class="absolute left-4 top-2 text-xs text-slate-500 peer-placeholder-shown:text-sm peer-placeholder-shown:top-4 peer-placeholder-shown:text-slate-400 transition-all">
@@ -74,7 +74,7 @@
                         <label class="cursor-pointer">
                             <input type="radio" name="role" value="student" class="hidden peer" checked>
                             <div
-                                class="p-3 text-center border rounded-xl peer-checked:bg-[#0b3b3c] peer-checked:text-white peer-checked:border-[#0b3b3c] transition font-medium">
+                                class="p-3 text-center border rounded-xl peer-checked:text-white transition font-medium" style="background: var(--bg-soft); border-color: var(--border-light);" :style="role === 'student' ? 'background: var(--navy); border-color: var(--navy); color: white;' : ''">
                                 🎓 Student
                             </div>
                         </label>
@@ -82,7 +82,7 @@
                         <label class="cursor-pointer">
                             <input type="radio" name="role" value="counsellor" class="hidden peer">
                             <div
-                                class="p-3 text-center border rounded-xl peer-checked:bg-[#0b3b3c] peer-checked:text-white peer-checked:border-[#0b3b3c] transition font-medium">
+                                class="p-3 text-center border rounded-xl peer-checked:text-white transition font-medium" style="background: var(--bg-soft); border-color: var(--border-light);" :style="role === 'counsellor' ? 'background: var(--navy); border-color: var(--navy); color: white;' : ''">
                                 🧠 Counsellor
                             </div>
                         </label>
@@ -91,7 +91,7 @@
 
                 <!-- Submit -->
                 <button type="submit"
-                    class="w-full py-3 rounded-xl text-white font-bold bg-gradient-to-r from-[#0b3b3c] to-[#1b5e5f] hover:scale-[1.03] hover:shadow-xl transition-all duration-300">
+                    class="w-full py-3 rounded-xl text-white font-bold hover:scale-[1.03] hover:shadow-xl transition-all duration-300" style="background: var(--gradient-primary);">
                     Create Account
                 </button>
 
@@ -130,7 +130,7 @@
 
                 <p class="text-center text-sm text-slate-500 pt-4">
                     Already have an account?
-                    <a href="/login" class="font-semibold text-[#0b3b3c] hover:text-[#0b3b3c]">
+                    <a href="/login" class="font-semibold" style="color: var(--navy);">
                         Sign in
                     </a>
                 </p>

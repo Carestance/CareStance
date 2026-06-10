@@ -12,15 +12,30 @@ module.exports = {
             },
             colors: {
                 brand: {
-                    50: '#f0fdf4',
-                    100: '#dcfce7',
+                    50: '#f0fdfa',
+                    100: '#ccfbf1',
                     500: '#0d9488',
                     600: '#0f766e',
-                    900: '#001f3f',
+                    900: '#0f172a',
                 },
                 accent: {
-                    400: '#fbbf24',
-                    500: '#ff8c00',
+                    400: '#f59e0b',
+                    500: '#f97316',
+                },
+                teal: {
+                    DEFAULT: '#0d9488',
+                    light: '#14b8a6',
+                    soft: '#f0fdfa',
+                },
+                navy: {
+                    DEFAULT: '#0f172a',
+                    light: '#1e293b',
+                    soft: '#334155',
+                },
+                yellow: {
+                    DEFAULT: '#f59e0b',
+                    light: '#fbbf24',
+                    soft: '#fef3c7',
                 }
             },
             animation: {

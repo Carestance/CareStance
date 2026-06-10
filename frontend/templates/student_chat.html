@@ -25,7 +25,7 @@
                 <div class="flex items-center gap-2">
                     <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Student</span>
                     {% if other_user.assessment %}
-                    <span class="text-[10px] bg-[#d9f0ef] text-[#0b3b3c] px-1.5 py-0.5 rounded-full font-bold">{{
+                    <span class="text-[10px] bg-[var(--teal-soft)] text-[var(--navy)] px-1.5 py-0.5 rounded-full font-bold">{{
                         other_user.assessment.phase_2_category }}</span>
                     {% endif %}
                 </div>
@@ -33,7 +33,7 @@
         </div>
         <div class="flex items-center gap-3">
             <a href="/student/{{ other_user.id }}"
-                class="text-xs font-bold text-[#0b3b3c] hover:text-[#0b3b3c] transition-colors">
+                class="text-xs font-bold text-[var(--navy)] hover:text-[var(--navy)] transition-colors">
                 View Profile
             </a>
         </div>
@@ -61,8 +61,8 @@
             {% if not messages %}
             <!-- Empty State -->
             <div class="h-full flex flex-col items-center justify-center text-center p-8 opacity-60">
-                <div class="w-16 h-16 bg-[#d9f0ef] rounded-full flex items-center justify-center mb-4">
-                    <i class="fas fa-comments text-2xl text-[#1b5e5f]"></i>
+                <div class="w-16 h-16 bg-[var(--teal-soft)] rounded-full flex items-center justify-center mb-4">
+                    <i class="fas fa-comments text-2xl text-[var(--teal)]"></i>
                 </div>
                 <h3 class="text-slate-900 font-bold">Start a Conversation</h3>
                 <p class="text-sm text-slate-500 mt-1 max-w-xs">Say hello to your connection and start building your
@@ -75,7 +75,7 @@
                 class="flex items-start gap-3 {% if msg.sender_id == user.id %}flex-row-reverse{% endif %} animate-fade-in-up">
                 <div class="flex flex-col {% if msg.sender_id == user.id %}items-end{% endif %} max-w-[80%]">
                     <div
-                        class="p-3 rounded-2xl text-sm shadow-sm border {% if msg.sender_id == user.id %}bg-gradient-to-r from-[#0b3b3c] to-[#1b5e5f] text-white border-[#1b5e5f] rounded-tr-none{% else %}bg-white text-slate-700 border-slate-100 rounded-tl-none{% endif %}">
+                        class="p-3 rounded-2xl text-sm shadow-sm border {% if msg.sender_id == user.id %}bg-gradient-to-r from-[var(--navy)] to-[var(--teal)] text-white border-[var(--teal)] rounded-tr-none{% else %}bg-white text-slate-700 border-slate-100 rounded-tl-none{% endif %}">
                         {% if msg.attachment_path %}
                         {% if msg.attachment_type == 'image' %}
                         <div class="mb-2">
@@ -111,7 +111,7 @@
                 class="hidden mb-3 p-2 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
                 <div class="flex items-center gap-3 overflow-hidden">
                     <div id="preview-icon"
-                        class="w-10 h-10 bg-[#d9f0ef] rounded-xl flex items-center justify-center text-[#0b3b3c]">
+                        class="w-10 h-10 bg-[var(--teal-soft)] rounded-xl flex items-center justify-center text-[var(--navy)]">
                         <i class="fas fa-file"></i>
                     </div>
                     <div class="overflow-hidden">
@@ -127,14 +127,14 @@
             <form id="chat-form" class="flex items-center gap-3">
                 <input type="file" id="file-input" class="hidden" accept="image/*,.pdf,.doc,.docx,.txt">
                 <button type="button" id="attach-button"
-                    class="p-3.5 text-slate-400 hover:text-[#0b3b3c] hover:bg-[#d9f0ef] rounded-2xl transition-colors">
+                    class="p-3.5 text-slate-400 hover:text-[var(--navy)] hover:bg-[var(--teal-soft)] rounded-2xl transition-colors">
                     <i class="fas fa-paperclip"></i>
                 </button>
                 <input type="text" id="message-input" autocomplete="off"
-                    class="flex-1 px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#1b5e5f]/20 focus:border-[#1b5e5f] transition-all text-sm"
+                    class="flex-1 px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[var(--teal)]/20 focus:border-[var(--teal)] transition-all text-sm"
                     placeholder="Write a message...">
                 <button type="submit" id="send-button"
-                    class="bg-gradient-to-r from-[#0b3b3c] to-[#1b5e5f] text-white p-3.5 rounded-2xl shadow-lg hover:shadow-[#d9f0ef] transition-all transform active:scale-95 disabled:opacity-50">
+                    class="bg-gradient-to-r from-[var(--navy)] to-[var(--teal)] text-white p-3.5 rounded-2xl shadow-lg hover:shadow-[var(--teal-soft)] transition-all transform active:scale-95 disabled:opacity-50">
                     <i class="fas fa-paper-plane"></i>
                 </button>
             </form>
@@ -309,7 +309,7 @@
 
         div.innerHTML = `
             <div class="flex flex-col ${isMe ? 'items-end' : ''} max-w-[80%]">
-                <div class="p-3 rounded-2xl text-sm shadow-sm border ${isMe ? 'bg-gradient-to-r from-[#0b3b3c] to-[#1b5e5f] text-white border-[#1b5e5f] rounded-tr-none' : 'bg-white text-slate-700 border-slate-100 rounded-tl-none'}">
+                <div class="p-3 rounded-2xl text-sm shadow-sm border ${isMe ? 'bg-gradient-to-r from-[var(--navy)] to-[var(--teal)] text-white border-[var(--teal)] rounded-tr-none' : 'bg-white text-slate-700 border-slate-100 rounded-tl-none'}">
                     ${attachmentHtml}
                     ${displayContent}
                 </div>

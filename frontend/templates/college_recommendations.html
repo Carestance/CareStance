@@ -8,22 +8,22 @@
 
         <!-- Header -->
         <div class="relative mb-12 text-center">
-            <div class="absolute -top-10 left-1/2 -translate-x-1/2 w-32 h-32 bg-[#1b5e5f]/10 blur-3xl rounded-full">
+            <div class="absolute -top-10 left-1/2 -translate-x-1/2 w-32 h-32 bg-[var(--teal)]/10 blur-3xl rounded-full">
             </div>
 
             <nav class="flex justify-center mb-8" aria-label="Breadcrumb">
                 <ol
                     class="flex items-center gap-3 px-4 py-2 bg-white/50 backdrop-blur-md rounded-2xl border border-white/80 shadow-sm text-sm">
                     <li><a href="/dashboard"
-                            class="text-slate-500 hover:text-[#0b3b3c] transition-colors">Dashboard</a></li>
+                            class="text-slate-500 hover:text-[var(--navy)] transition-colors">Dashboard</a></li>
                     <li><i class="fas fa-chevron-right text-[10px] text-slate-300"></i></li>
-                    <li class="font-bold text-[#0b3b3c]">College Recommendations</li>
+                    <li class="font-bold text-[var(--navy)]">College Recommendations</li>
                 </ol>
             </nav>
 
             <h1 class="text-4xl md:text-5xl font-black text-slate-900 mb-4 tracking-tight">
                 Your <span
-                    class="bg-clip-text text-transparent bg-gradient-to-r from-[#0b3b3c] to-[#1b5e5f]">College</span>
+                    class="bg-clip-text text-transparent bg-gradient-to-r from-[var(--navy)] to-[var(--teal)]">College</span>
                 Picks
             </h1>
             <p class="text-slate-500 text-lg max-w-2xl mx-auto leading-relaxed">
@@ -35,20 +35,20 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             {% for rec in recs %}
             <a href="/career/colleges/{{ rec.id }}"
-                class="group bg-white rounded-[28px] p-7 shadow-lg shadow-[#d9f0ef]/10 border border-white hover:border-[#a8ded9] hover:shadow-xl hover:shadow-[#d9f0ef]/30 transition-all duration-300 hover:-translate-y-1 relative overflow-hidden">
+                class="group bg-white rounded-[28px] p-7 shadow-lg shadow-[var(--teal-soft)]/10 border border-white hover:border-[var(--teal-light)] hover:shadow-xl hover:shadow-[var(--teal-soft)]/30 transition-all duration-300 hover:-translate-y-1 relative overflow-hidden">
 
                 <div class="absolute top-0 right-0 p-5 opacity-5 group-hover:opacity-10 transition-opacity">
-                    <i class="fas fa-university text-[60px] text-[#0b3b3c]"></i>
+                    <i class="fas fa-university text-[60px] text-[var(--navy)]"></i>
                 </div>
 
                 <div class="relative z-10">
                     <div class="flex items-center gap-3 mb-4">
                         <div
-                            class="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#0b3b3c] to-[#1b5e5f] flex items-center justify-center shadow-lg shadow-[#d9f0ef]">
+                            class="w-12 h-12 rounded-2xl bg-gradient-to-br from-[var(--navy)] to-[var(--teal)] flex items-center justify-center shadow-lg shadow-[var(--teal-soft)]">
                             <i class="fas fa-graduation-cap text-white text-lg"></i>
                         </div>
                         <div>
-                            <h3 class="text-lg font-black text-slate-900 group-hover:text-[#0b3b3c] transition-colors">
+                            <h3 class="text-lg font-black text-slate-900 group-hover:text-[var(--navy)] transition-colors">
                                 {{ rec.career_title }}
                             </h3>
                             <p class="text-xs text-slate-400">
@@ -63,7 +63,7 @@
                     <div class="flex flex-wrap gap-1.5 mb-4">
                         {% for college in colleges[:3] %}
                         <span
-                            class="text-[11px] bg-[#d9f0ef] text-[#0b3b3c] font-bold px-2.5 py-1 rounded-lg border border-[#a8ded9]">
+                            class="text-[11px] bg-[var(--teal-soft)] text-[var(--navy)] font-bold px-2.5 py-1 rounded-lg border border-[var(--teal-light)]">
                             {{ college.name if college is mapping else college }}
                         </span>
                         {% endfor %}
@@ -75,7 +75,7 @@
                     </div>
                     {% endif %}
 
-                    <div class="flex items-center gap-2 text-sm font-bold text-[#0b3b3c] group-hover:text-[#0b3b3c]">
+                    <div class="flex items-center gap-2 text-sm font-bold text-[var(--navy)] group-hover:text-[var(--navy)]">
                         <span>View Details</span>
                         <i class="fas fa-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
                     </div>
@@ -87,15 +87,15 @@
         {% else %}
         <!-- Empty State -->
         <div class="bg-white rounded-[32px] p-12 shadow-lg border border-slate-100 text-center max-w-lg mx-auto">
-            <div class="w-20 h-20 bg-[#d9f0ef] rounded-3xl flex items-center justify-center mx-auto mb-6">
-                <i class="fas fa-university text-3xl text-[#1b5e5f]"></i>
+            <div class="w-20 h-20 bg-[var(--teal-soft)] rounded-3xl flex items-center justify-center mx-auto mb-6">
+                <i class="fas fa-university text-3xl text-[var(--teal)]"></i>
             </div>
             <h3 class="text-xl font-black text-slate-900 mb-3">No Recommendations Yet</h3>
             <p class="text-slate-500 mb-6 leading-relaxed">
                 Complete your career assessment and generate college recommendations from your results page.
             </p>
             <a href="/assessment/result"
-                class="inline-flex items-center gap-2 px-6 py-3 bg-[#0b3b3c] text-white rounded-2xl font-bold text-sm hover:bg-[#0b3b3c] transition-all shadow-lg shadow-[#d9f0ef]">
+                class="inline-flex items-center gap-2 px-6 py-3 bg-[var(--navy)] text-white rounded-2xl font-bold text-sm hover:bg-[var(--navy)] transition-all shadow-lg shadow-[var(--teal-soft)]">
                 <i class="fas fa-compass"></i> Go to Results
             </a>
         </div>

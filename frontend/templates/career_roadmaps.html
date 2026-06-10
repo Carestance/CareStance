@@ -9,7 +9,7 @@
         <!-- Header -->
         <div class="mb-12 flex flex-col md:flex-row justify-between items-center gap-6">
             <div class="text-center md:text-left">
-                <h1 class="text-4xl font-black text-slate-900 mb-2 tracking-tight">Your Career <span class="text-[#0b3b3c]">Roadmap</span></h1>
+                <h1 class="text-4xl font-black text-slate-900 mb-2 tracking-tight">Your Career <span class="text-[var(--navy)]">Roadmap</span></h1>
                 <p class="text-slate-500">A step-by-step strategy for your chosen careers.</p>
             </div>
             <a href="/dashboard" class="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-white hover:text-slate-900 transition">
@@ -20,14 +20,14 @@
         {% if paths %}
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             {% for path in paths %}
-            <div class="bg-white rounded-3xl p-8 shadow-md border border-slate-100 hover:border-[#1b5e5f] hover:shadow-xl transition-all duration-300 group">
+            <div class="bg-white rounded-3xl p-8 shadow-md border border-slate-100 hover:border-[var(--teal)] hover:shadow-xl transition-all duration-300 group">
                 <div class="flex justify-between items-start mb-4">
-                    <div class="w-12 h-12 bg-[#d9f0ef] text-[#0b3b3c] rounded-2xl flex items-center justify-center text-xl font-bold group-hover:bg-[#0b3b3c] group-hover:text-white transition-colors">
+                    <div class="w-12 h-12 bg-[var(--teal-soft)] text-[var(--navy)] rounded-2xl flex items-center justify-center text-xl font-bold group-hover:bg-[var(--navy)] group-hover:text-white transition-colors">
                         <i class="fas fa-route"></i>
                     </div>
                     <span class="text-xs font-bold text-slate-300 uppercase tracking-widest">{{ path.created_at.strftime('%d %b, %Y') }}</span>
                 </div>
-                <h2 class="text-2xl font-bold text-slate-900 mb-2 group-hover:text-[#0b3b3c] transition-colors">
+                <h2 class="text-2xl font-bold text-slate-900 mb-2 group-hover:text-[var(--navy)] transition-colors">
                     {{ path.career_title }}
                 </h2>
                 <p class="text-sm text-slate-500 mb-6 line-clamp-2">
@@ -38,7 +38,7 @@
                     {% endif %}
                 </p>
                 <div class="flex items-center gap-4">
-                    <a href="/career/roadmap/{{ path.id }}" class="flex-1 py-3 bg-[#0b3b3c] text-white text-center rounded-xl font-bold text-sm hover:bg-[#0b3b3c] shadow-md shadow-[#d9f0ef] transition">
+                    <a href="/career/roadmap/{{ path.id }}" class="flex-1 py-3 bg-[var(--navy)] text-white text-center rounded-xl font-bold text-sm hover:bg-[var(--navy)] shadow-md shadow-[var(--teal-soft)] transition">
                         View Detailed Path
                     </a>
                     <form action="/career/roadmap/delete/{{ path.id }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this roadmap? This action cannot be undone.')">
@@ -57,7 +57,7 @@
             </div>
             <h2 class="text-2xl font-bold text-slate-900 mb-2">No Roadmaps Yet</h2>
             <p class="text-slate-500 mb-8 max-w-sm mx-auto">Click on a career from your assessment results to architect your roadmap here.</p>
-            <a href="/assessment/result" class="inline-flex items-center gap-2 px-6 py-3 bg-[#0b3b3c] text-white rounded-xl font-bold hover:bg-[#0b3b3c] transition">
+            <a href="/assessment/result" class="inline-flex items-center gap-2 px-6 py-3 bg-[var(--navy)] text-white rounded-xl font-bold hover:bg-[var(--navy)] transition">
                 <span>Go to Results</span>
                 <i class="fas fa-arrow-right"></i>
             </a>
@@ -67,3 +67,4 @@
     </div>
 </div>
 {% endblock %}
+

@@ -4,10 +4,10 @@
 
 {% block content %}
 <div class="max-w-4xl mx-auto px-4 py-12">
-    <div class="relative bg-white/80 backdrop-blur-2xl rounded-[40px] shadow-2xl border border-white/60 overflow-hidden transform transition-all duration-700 hover:shadow-[#d9f0ef]/50">
+    <div class="relative bg-white/80 backdrop-blur-2xl rounded-[40px] shadow-2xl border border-white/60 overflow-hidden transform transition-all duration-700 hover:shadow-[var(--teal-soft)]/50">
         
         <!-- Top Banner -->
-        <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-emerald-400 via-[#1b5e5f] to-[#1b5e5f]"></div>
+        <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-emerald-400 via-[var(--teal)] to-[var(--teal)]"></div>
 
         <div class="px-8 py-12 sm:p-20 text-center">
             <!-- Animated Success Icon -->
@@ -21,7 +21,7 @@
             </div>
             
             <h2 class="text-4xl sm:text-5xl font-black text-slate-900 mb-4 tracking-tight leading-tight">
-                Success! <span class="bg-clip-text text-transparent bg-gradient-to-r from-[#0b3b3c] to-[#1b5e5f]">You're Booked.</span>
+                Success! <span class="bg-clip-text text-transparent bg-gradient-to-r from-[var(--navy)] to-[var(--teal)]">You're Booked.</span>
             </h2>
             <p class="text-xl text-slate-500 font-medium mb-12 max-w-xl mx-auto">
                 A confirmation email has been dispatched to both you and your counsellor. Get ready for an insightful session!
@@ -29,21 +29,21 @@
             
             <div class="flex justify-center max-w-3xl mx-auto mb-16">
                 <!-- Info Card -->
-                <div class="bg-[#d9f0ef]/50 rounded-[32px] p-8 border border-[#a8ded9]/50 text-left w-full max-w-md">
-                    <h4 class="text-[10px] font-black text-[#1b5e5f] uppercase tracking-[0.2em] mb-6">Reservation Summary</h4>
+                <div class="bg-[var(--teal-soft)]/50 rounded-[32px] p-8 border border-[var(--teal-light)]/50 text-left w-full max-w-md">
+                    <h4 class="text-[10px] font-black text-[var(--teal)] uppercase tracking-[0.2em] mb-6">Reservation Summary</h4>
                     
                     <div class="space-y-6">
                         <div class="group/item">
                             <span class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Expert Guide</span>
                             <span class="text-lg font-extrabold text-slate-800 flex items-center gap-2">
-                                <i class="fas fa-id-badge text-[#1b5e5f] text-sm"></i>
+                                <i class="fas fa-id-badge text-[var(--teal)] text-sm"></i>
                                 {{ appointment.counsellor.full_name }}
                             </span>
                         </div>
                         <div class="group/item">
                             <span class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Scheduled For</span>
                             <span class="text-lg font-extrabold text-slate-800 flex items-center gap-2">
-                                <i class="fas fa-calendar-check text-[#1b5e5f] text-sm"></i>
+                                <i class="fas fa-calendar-check text-[var(--teal)] text-sm"></i>
                                 {{ appointment.appointment_time.strftime('%b %d, %I:%M %p') }}
                             </span>
                         </div>
@@ -59,7 +59,7 @@
             
             <!-- Bottom Actions -->
             <div class="flex flex-col sm:flex-row items-center justify-center gap-6">
-                <a href="/dashboard" class="group flex items-center gap-2 text-slate-400 hover:text-[#0b3b3c] font-bold transition-all text-sm">
+                <a href="/dashboard" class="group flex items-center gap-2 text-slate-400 hover:text-[var(--navy)] font-bold transition-all text-sm">
                     <i class="fas fa-long-arrow-alt-left transition-transform group-hover:-translate-x-1"></i>
                     Return to Student Dashboard
                 </a>
@@ -68,3 +68,4 @@
     </div>
 </div>
 {% endblock %}
+

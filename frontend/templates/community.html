@@ -58,10 +58,10 @@
 
     <!-- Hero Header -->
     <div
-        class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-[#0b3b3c] to-[#0b3b3c] text-white shadow-2xl">
-        <div class="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 rounded-full bg-[#1b5e5f] blur-3xl opacity-15">
+        class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-[var(--navy)] to-[var(--navy)] text-white shadow-2xl">
+        <div class="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 rounded-full bg-[var(--teal)] blur-3xl opacity-15">
         </div>
-        <div class="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 rounded-full bg-[#1b5e5f] blur-3xl opacity-15">
+        <div class="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 rounded-full bg-[var(--teal)] blur-3xl opacity-15">
         </div>
         <div
             class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-pink-500 blur-3xl opacity-5">
@@ -72,12 +72,12 @@
                 <div>
                     <div class="flex items-center gap-3 mb-4">
                         <div
-                            class="h-12 w-12 rounded-2xl bg-gradient-to-br from-[#1b5e5f] to-[#1b5e5f] flex items-center justify-center shadow-lg">
+                            class="h-12 w-12 rounded-2xl bg-gradient-to-br from-[var(--teal)] to-[var(--teal)] flex items-center justify-center shadow-lg">
                             <i class="fas fa-users text-xl"></i>
                         </div>
                         <h1 class="text-3xl font-extrabold tracking-tight">Find Your Tribe</h1>
                     </div>
-                    <p class="text-[#a8ded9] max-w-xl text-lg">
+                    <p class="text-[var(--teal-light)] max-w-xl text-lg">
                         Connect with students who share your archetype and build your career network.
                     </p>
                 </div>
@@ -87,11 +87,11 @@
                     <div
                         class="flex items-center gap-3 bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/10">
                         <div
-                            class="h-10 w-10 rounded-full bg-gradient-to-br from-[#1b5e5f] to-[#1b5e5f] flex items-center justify-center text-white font-bold shadow-lg">
+                            class="h-10 w-10 rounded-full bg-gradient-to-br from-[var(--teal)] to-[var(--teal)] flex items-center justify-center text-white font-bold shadow-lg">
                             {{ my_archetype[0] | upper }}
                         </div>
                         <div>
-                            <p class="text-xs text-[#a8ded9] font-bold uppercase tracking-wider">Your Archetype</p>
+                            <p class="text-xs text-[var(--teal-light)] font-bold uppercase tracking-wider">Your Archetype</p>
                             <p class="font-bold text-white">{{ my_archetype }}</p>
                         </div>
                     </div>
@@ -114,9 +114,9 @@
             <!-- Search -->
             <div class="mt-8 max-w-xl">
                 <div class="relative">
-                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-[#a8ded9]"></i>
+                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-[var(--teal-light)]"></i>
                     <input type="text" id="student-search" placeholder="Search students by name..."
-                        class="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 text-white placeholder-[#a8ded9] focus:outline-none search-glow transition-all text-sm font-medium">
+                        class="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 text-white placeholder-[var(--teal-light)] focus:outline-none search-glow transition-all text-sm font-medium">
                 </div>
             </div>
         </div>
@@ -132,7 +132,7 @@
             </div>
             <div>
                 <h2 class="text-xl font-extrabold text-slate-900">Similar to You</h2>
-                <p class="text-sm text-slate-500">Students who share the <span class="font-bold text-[#0b3b3c]">{{
+                <p class="text-sm text-slate-500">Students who share the <span class="font-bold text-[var(--navy)]">{{
                         my_archetype }}</span> archetype</p>
             </div>
             <span class="ml-auto px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full">{{
@@ -154,12 +154,12 @@
                 </div>
 
                 <div class="pt-10 pb-5 px-5 text-center">
-                    <a href="/student/{{ sd.user.id }}" class="hover:text-[#0b3b3c] transition-colors">
+                    <a href="/student/{{ sd.user.id }}" class="hover:text-[var(--navy)] transition-colors">
                         <h3 class="font-bold text-slate-900 text-base">{{ sd.user.full_name }}</h3>
                     </a>
 
                     <div class="flex items-center justify-center gap-2 mt-2">
-                        <span class="archetype-badge px-2.5 py-1 rounded-full text-[11px] font-bold text-[#0b3b3c]">
+                        <span class="archetype-badge px-2.5 py-1 rounded-full text-[11px] font-bold text-[var(--navy)]">
                             {{ sd.assessment.phase_2_category }}
                         </span>
                         {% if sd.assessment.personality %}
@@ -179,11 +179,11 @@
                         {% if sd.connection.status == 'accepted' %}
                         <div class="flex gap-2">
                             <a href="/connection/{{ sd.connection.conn_id }}/chat"
-                                class="connect-btn flex-1 px-4 py-2 bg-[#0b3b3c] text-white rounded-xl text-xs font-bold hover:bg-[#1b5e5f] shadow-md flex items-center justify-center gap-2">
+                                class="connect-btn flex-1 px-4 py-2 bg-[var(--navy)] text-white rounded-xl text-xs font-bold hover:bg-[var(--teal)] shadow-md flex items-center justify-center gap-2">
                                 <i class="fas fa-comment"></i> Message
                             </a>
                             <a href="/student/{{ sd.user.id }}"
-                                class="connect-btn px-4 py-2 bg-[#d9f0ef] text-[#0b3b3c] rounded-xl text-xs font-bold hover:bg-[#d9f0ef] transition-all border border-[#a8ded9]">
+                                class="connect-btn px-4 py-2 bg-[var(--teal-soft)] text-[var(--navy)] rounded-xl text-xs font-bold hover:bg-[var(--teal-soft)] transition-all border border-[var(--teal-light)]">
                                 <i class="fas fa-user"></i>
                             </a>
                         </div>
@@ -198,7 +198,7 @@
                         <div class="flex gap-2">
                             <form action="/connection/{{ sd.connection.conn_id }}/accept" method="POST" class="flex-1">
                                 <button type="submit"
-                                    class="connect-btn w-full px-3 py-2 bg-[#0b3b3c] text-white rounded-xl text-xs font-bold hover:bg-[#1b5e5f]">
+                                    class="connect-btn w-full px-3 py-2 bg-[var(--navy)] text-white rounded-xl text-xs font-bold hover:bg-[var(--teal)]">
                                     <i class="fas fa-check"></i> Accept
                                 </button>
                             </form>
@@ -213,7 +213,7 @@
                         {% else %}
                         <form action="/connect/{{ sd.user.id }}" method="POST">
                             <button type="submit"
-                                class="connect-btn inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#0b3b3c] to-[#1b5e5f] text-white rounded-xl text-xs font-bold w-full justify-center hover:from-[#0b3b3c] hover:to-[#0b3b3c] shadow-lg shadow-[#d9f0ef]">
+                                class="connect-btn inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[var(--navy)] to-[var(--teal)] text-white rounded-xl text-xs font-bold w-full justify-center hover:from-[var(--navy)] hover:to-[var(--navy)] shadow-lg shadow-[var(--teal-soft)]">
                                 <i class="fas fa-user-plus"></i> Connect
                             </button>
                         </form>
@@ -231,7 +231,7 @@
     <div>
         <div class="flex items-center gap-3 mb-6 mt-4">
             <div
-                class="h-10 w-10 rounded-xl bg-gradient-to-br from-[#1b5e5f] to-[#1b5e5f] flex items-center justify-center text-white shadow-lg font-bold">
+                class="h-10 w-10 rounded-xl bg-gradient-to-br from-[var(--teal)] to-[var(--teal)] flex items-center justify-center text-white shadow-lg font-bold">
                 {{ archetype[0] | upper }}
             </div>
             <div>
@@ -246,7 +246,7 @@
             <div class="student-card animate-card bg-white/80 backdrop-blur-xl rounded-2xl border border-white/50 shadow-lg overflow-hidden"
                 style="animation-delay: {{ loop.index0 * 0.08 }}s" data-name="{{ sd.user.full_name|lower }}">
 
-                <div class="h-20 bg-gradient-to-br from-[#1b5e5f] via-[#1b5e5f] to-[#1b5e5f] relative">
+                <div class="h-20 bg-gradient-to-br from-[var(--teal)] via-[var(--teal)] to-[var(--teal)] relative">
                     <div class="absolute -bottom-8 left-1/2 -translate-x-1/2">
                         <img src="{{ sd.user.profile_photo if sd.user.profile_photo else 'https://ui-avatars.com/api/?name=' + sd.user.full_name + '&background=random&size=128' }}"
                             alt="{{ sd.user.full_name }}"
@@ -255,12 +255,12 @@
                 </div>
 
                 <div class="pt-10 pb-5 px-5 text-center">
-                    <a href="/student/{{ sd.user.id }}" class="hover:text-[#0b3b3c] transition-colors">
+                    <a href="/student/{{ sd.user.id }}" class="hover:text-[var(--navy)] transition-colors">
                         <h3 class="font-bold text-slate-900 text-base">{{ sd.user.full_name }}</h3>
                     </a>
 
                     <div class="flex items-center justify-center gap-2 mt-2">
-                        <span class="archetype-badge px-2.5 py-1 rounded-full text-[11px] font-bold text-[#0b3b3c]">
+                        <span class="archetype-badge px-2.5 py-1 rounded-full text-[11px] font-bold text-[var(--navy)]">
                             {{ sd.assessment.phase_2_category }}
                         </span>
                         {% if sd.assessment.personality %}
@@ -293,7 +293,7 @@
                         <div class="flex gap-2">
                             <form action="/connection/{{ sd.connection.conn_id }}/accept" method="POST" class="flex-1">
                                 <button type="submit"
-                                    class="connect-btn w-full px-3 py-2 bg-[#0b3b3c] text-white rounded-xl text-xs font-bold hover:bg-[#1b5e5f]">
+                                    class="connect-btn w-full px-3 py-2 bg-[var(--navy)] text-white rounded-xl text-xs font-bold hover:bg-[var(--teal)]">
                                     <i class="fas fa-check"></i> Accept
                                 </button>
                             </form>
@@ -308,7 +308,7 @@
                         {% else %}
                         <form action="/connect/{{ sd.user.id }}" method="POST">
                             <button type="submit"
-                                class="connect-btn inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#0b3b3c] to-[#1b5e5f] text-white rounded-xl text-xs font-bold w-full justify-center hover:from-[#0b3b3c] hover:to-[#0b3b3c] shadow-lg shadow-[#d9f0ef]">
+                                class="connect-btn inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[var(--navy)] to-[var(--teal)] text-white rounded-xl text-xs font-bold w-full justify-center hover:from-[var(--navy)] hover:to-[var(--navy)] shadow-lg shadow-[var(--teal-soft)]">
                                 <i class="fas fa-user-plus"></i> Connect
                             </button>
                         </form>
@@ -324,14 +324,14 @@
     {% if not similar_students and not other_archetypes %}
     <!-- Empty State -->
     <div class="bg-white/70 backdrop-blur-xl rounded-3xl p-16 shadow-xl border border-white/50 text-center">
-        <div class="w-20 h-20 mx-auto bg-[#d9f0ef] rounded-full flex items-center justify-center mb-6">
-            <i class="fas fa-users text-3xl text-[#1b5e5f]"></i>
+        <div class="w-20 h-20 mx-auto bg-[var(--teal-soft)] rounded-full flex items-center justify-center mb-6">
+            <i class="fas fa-users text-3xl text-[var(--teal)]"></i>
         </div>
         <h3 class="text-xl font-bold text-slate-900 mb-2">No Students Yet</h3>
         <p class="text-slate-500 max-w-md mx-auto">Be one of the first students to complete your assessment and start
             building your career network!</p>
         <a href="/dashboard"
-            class="inline-block mt-6 px-6 py-3 bg-gradient-to-r from-[#0b3b3c] to-[#1b5e5f] text-white rounded-xl font-bold hover:from-[#0b3b3c] hover:to-[#0b3b3c] shadow-lg shadow-[#d9f0ef] transition-all">
+            class="inline-block mt-6 px-6 py-3 bg-gradient-to-r from-[var(--navy)] to-[var(--teal)] text-white rounded-xl font-bold hover:from-[var(--navy)] hover:to-[var(--navy)] shadow-lg shadow-[var(--teal-soft)] transition-all">
             Go to Dashboard
         </a>
     </div>

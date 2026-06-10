@@ -5,14 +5,14 @@
 {% block content %}
 <div class="bg-white/70 backdrop-blur-xl rounded-3xl overflow-hidden shadow-2xl border border-white/50">
     <div
-        class="px-6 py-6 sm:px-8 bg-[#d9f0ef]/50 border-b border-[#a8ded9] flex flex-col md:flex-row md:items-center justify-between gap-4">
+        class="px-6 py-6 sm:px-8 bg-[var(--teal-soft)]/50 border-b border-[var(--teal-light)] flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
             <h3 class="text-2xl leading-6 font-bold text-slate-900">Expert Counsellors</h3>
             <p class="mt-2 max-w-2xl text-sm text-slate-500">Connect with industry experts via 1-on-1 video calls.</p>
         </div>
         <div>
             <a href="/dashboard"
-                class="inline-flex items-center px-4 py-2 border border-slate-300 shadow-sm text-sm font-medium rounded-xl text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#1b5e5f] transition-colors">
+                class="inline-flex items-center px-4 py-2 border border-slate-300 shadow-sm text-sm font-medium rounded-xl text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--teal)] transition-colors">
                 Back to Dashboard
             </a>
         </div>
@@ -23,10 +23,10 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {% for c in counsellors %}
             <div
-                class="bg-white/90 backdrop-blur-sm rounded-3xl p-8 shadow-sm border border-slate-100 hover:shadow-2xl hover:border-[#a8ded9] transition-all duration-500 group">
+                class="bg-white/90 backdrop-blur-sm rounded-3xl p-8 shadow-sm border border-slate-100 hover:shadow-2xl hover:border-[var(--teal-light)] transition-all duration-500 group">
                 <div class="flex items-center gap-4 mb-6">
                     <img src="{{ c.user.profile_photo if c.user.profile_photo else 'https://ui-avatars.com/api/?name=' + c.user.full_name }}"
-                        class="h-16 w-16 rounded-2xl object-cover border-2 border-[#d9f0ef] shadow-md group-hover:scale-110 transition-transform duration-500"
+                        class="h-16 w-16 rounded-2xl object-cover border-2 border-[var(--teal-soft)] shadow-md group-hover:scale-110 transition-transform duration-500"
                         loading="lazy">
                     <div>
                         <h4 class="text-xl font-extrabold text-slate-800 tracking-tight">{{ c.user.full_name }}</h4>
@@ -50,7 +50,7 @@
                                 class="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded-md uppercase tracking-wide border border-amber-200">🏆
                                 Founding Coach</span>
                             {% endif %}
-                            <span class="text-sm font-bold text-[#0b3b3c]">₹{{ c.fee }}<span
+                            <span class="text-sm font-bold text-[var(--navy)]">₹{{ c.fee }}<span
                                     class="text-xs text-slate-400 font-normal">/session</span></span>
                         </div>
                     </div>
@@ -58,8 +58,8 @@
 
                 <div class="space-y-4 mb-8">
                     <div
-                        class="flex items-start gap-3 p-4 bg-slate-50/50 rounded-2xl border border-slate-100 group-hover:bg-white group-hover:border-[#d9f0ef] transition-colors">
-                        <i class="fas fa-briefcase text-[#1b5e5f] mt-1"></i>
+                        class="flex items-start gap-3 p-4 bg-slate-50/50 rounded-2xl border border-slate-100 group-hover:bg-white group-hover:border-[var(--teal-soft)] transition-colors">
+                        <i class="fas fa-briefcase text-[var(--teal)] mt-1"></i>
                         <div>
                             <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Knowledge &
                                 Exp.</p>
@@ -69,17 +69,17 @@
                     </div>
 
                     <div
-                        class="flex items-start gap-3 p-4 bg-slate-50/50 rounded-2xl border border-slate-100 group-hover:bg-white group-hover:border-[#d9f0ef] transition-colors">
-                        <i class="fas fa-clock text-[#1b5e5f] mt-1"></i>
+                        class="flex items-start gap-3 p-4 bg-slate-50/50 rounded-2xl border border-slate-100 group-hover:bg-white group-hover:border-[var(--teal-soft)] transition-colors">
+                        <i class="fas fa-clock text-[var(--teal)] mt-1"></i>
                         <div>
                             <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Availability
                             </p>
                             {% if c.availability and c.availability.get('slots') %}
                             <div class="flex flex-wrap gap-1.5">
                                 {% for day, slot in c.availability.get('slots', {}).items() %}
-                                <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-[#d9f0ef] text-[#0b3b3c] text-[10px] font-bold rounded-lg border border-[#a8ded9]">
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-[var(--teal-soft)] text-[var(--navy)] text-[10px] font-bold rounded-lg border border-[var(--teal-light)]">
                                     {{ day[:3] }}
-                                    <span class="text-[9px] text-[#1b5e5f] font-medium">
+                                    <span class="text-[9px] text-[var(--teal)] font-medium">
                                         {{ slot.get('start', '09:00') }}-{{ slot.get('end', '17:00') }}
                                     </span>
                                 </span>
@@ -102,7 +102,7 @@
                         <div class="relative">
                             <i class="fas fa-calendar-day absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
                             <input type="datetime-local" id="time_{{ c.user_id }}"
-                                class="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-slate-100 bg-white text-slate-900 outline-none font-medium focus:ring-2 focus:ring-[#1b5e5f]">
+                                class="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-slate-100 bg-white text-slate-900 outline-none font-medium focus:ring-2 focus:ring-[var(--teal)]">
                         </div>
                         <!-- Availability feedback message -->
                         <p id="avail_msg_{{ c.user_id }}" class="text-[10px] mt-1.5 ml-1 font-medium hidden"></p>
@@ -110,7 +110,7 @@
 
                     <button id="btn_{{ c.user_id }}"
                         onclick="payNow('{{ c.user_id }}', '{{ c.fee }}', '{{ c.user.full_name }}')"
-                        class="w-full py-4 px-6 rounded-2xl bg-[#0b3b3c] text-white font-bold hover:bg-[#1b5e5f] transition-all shadow-lg shadow-[#d9f0ef]">
+                        class="w-full py-4 px-6 rounded-2xl bg-[var(--navy)] text-white font-bold hover:bg-[var(--teal)] transition-all shadow-lg shadow-[var(--teal-soft)]">
                         Book Session & Pay
                     </button>
 

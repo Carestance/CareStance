@@ -3,7 +3,7 @@
 {% block title %}Login{% endblock %}
 
 {% block content %}
-<div class="min-h-screen flex items-center justify-center relative overflow-hidden bg-[#fefcf5]">
+<div class="min-h-screen flex items-center justify-center relative overflow-hidden" style="background: var(--bg-deep);">
 
 
     <div class="relative max-w-md w-full px-6">
@@ -16,7 +16,7 @@
                 </h2>
                 <p class="text-sm text-slate-500">
                     Login to continue your journey with
-                    <span class="text-[#0b3b3c] font-semibold">CareStance</span>
+                    <span style="color: var(--navy); font-weight: 600;">CareStance</span>
                 </p>
             </div>
 
@@ -44,7 +44,7 @@
 
                     <div class="relative">
                         <input id="email-address" name="email" type="email" required
-                            class="peer w-full px-4 pt-5 pb-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#1b5e5f] focus:border-[#1b5e5f] outline-none transition"
+                            class="peer w-full px-4 pt-5 pb-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-[var(--teal)] focus:border-[var(--teal)] outline-none transition"
                             placeholder=" ">
                         <label for="email-address"
                             class="absolute left-4 top-2 text-xs text-slate-500 peer-placeholder-shown:text-sm peer-placeholder-shown:top-4 peer-placeholder-shown:text-slate-400 transition-all">
@@ -54,7 +54,7 @@
 
                     <div class="relative">
                         <input id="password" name="password" type="password" required
-                            class="peer w-full px-4 pt-5 pb-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#1b5e5f] focus:border-[#1b5e5f] outline-none transition"
+                            class="peer w-full px-4 pt-5 pb-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-[var(--teal)] focus:border-[var(--teal)] outline-none transition"
                             placeholder=" ">
                         <label for="password"
                             class="absolute left-4 top-2 text-xs text-slate-500 peer-placeholder-shown:text-sm peer-placeholder-shown:top-4 peer-placeholder-shown:text-slate-400 transition-all">
@@ -67,14 +67,14 @@
                 <!-- Forgot Password -->
                 <div class="flex justify-end">
                     <a href="/forgot-password"
-                        class="text-sm font-medium text-[#0b3b3c] hover:text-[#0b3b3c] transition">
+                        class="text-sm font-medium transition" style="color: var(--navy);">
                         Forgot your password?
                     </a>
                 </div>
 
                 <!-- Submit Button -->
                 <button type="submit"
-                    class="w-full py-3 rounded-xl text-white font-bold bg-gradient-to-r from-[#0b3b3c] to-[#1b5e5f] hover:scale-[1.03] hover:shadow-xl transition-all duration-300">
+                    class="w-full py-3 rounded-xl text-white font-bold hover:scale-[1.03] hover:shadow-xl transition-all duration-300" style="background: var(--gradient-primary);">
                     Sign In
                 </button>
 
@@ -112,7 +112,7 @@
 
                 <p class="text-center text-sm text-slate-500 pt-4">
                     Don’t have an account?
-                    <a href="/signup" class="font-semibold text-[#0b3b3c] hover:text-[#0b3b3c]">
+                    <a href="/signup" class="font-semibold" style="color: var(--navy);">
                         Sign up
                     </a>
                 </p>

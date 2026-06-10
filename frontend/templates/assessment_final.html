@@ -11,7 +11,7 @@
             <!-- Progress Bar -->
             <div class="w-full bg-slate-100 h-2.5 relative overflow-hidden">
                 <div id="progress-bar"
-                    class="bg-gradient-to-r from-[#0b3b3c] via-[#1b5e5f] to-[#0b3b3c] h-2.5 transition-all duration-700 ease-out relative"
+                    class="bg-gradient-to-r from-[var(--navy)] via-[var(--teal)] to-[var(--navy)] h-2.5 transition-all duration-700 ease-out relative"
                     style="width: 0%">
                     <div
                         class="absolute top-0 right-0 bottom-0 w-10 bg-white/40 blur-[4px] -skew-x-12 translate-x-full animate-[shimmer_2s_infinite]">
@@ -25,7 +25,7 @@
                 <div>
                     <h3 class="text-xl leading-6 font-bold text-slate-800">Phase 4: Final Stream Recommendation</h3>
                     <p class="mt-1 max-w-2xl text-sm text-slate-500 font-medium tracking-wide uppercase">Question <span
-                            id="current-step-text" class="text-[#0b3b3c] font-bold">1</span> of <span
+                            id="current-step-text" class="text-[var(--navy)] font-bold">1</span> of <span
                             id="total-steps-text">10</span></p>
                     <a href="/assessment/reset" onclick="return confirm('Restart assessment from scratch?')"
                         class="text-[10px] font-bold text-rose-500 uppercase hover:underline mt-1 block">Restart
@@ -33,7 +33,7 @@
                 </div>
                 <div class="flex space-x-2">
                     <button type="button" onclick="speakCurrentQuestion()"
-                        class="p-3 rounded-full bg-white text-[#0b3b3c] shadow-sm border border-slate-200 hover:bg-[#d9f0ef] hover:text-[#0b3b3c] transition-all transform hover:scale-105"
+                        class="p-3 rounded-full bg-white text-[var(--navy)] shadow-sm border border-slate-200 hover:bg-[var(--teal-soft)] hover:text-[var(--navy)] transition-all transform hover:scale-105"
                         title="Read Aloud">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor">
@@ -42,7 +42,7 @@
                         </svg>
                     </button>
                     <button type="button" onclick="togglePauseVoice()" id="pause-btn"
-                        class="p-3 rounded-full bg-white text-[#0b3b3c] shadow-sm border border-slate-200 hover:bg-[#d9f0ef] hover:text-[#0b3b3c] transition-all transform hover:scale-105"
+                        class="p-3 rounded-full bg-white text-[var(--navy)] shadow-sm border border-slate-200 hover:bg-[var(--teal-soft)] hover:text-[var(--navy)] transition-all transform hover:scale-105"
                         title="Pause/Resume Audio">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor">
@@ -75,7 +75,7 @@
                                 <img src="{{ section_img }}" alt="{{ section.title }}" class="w-full h-40 object-cover">
                             </div>
                             <span
-                                class="inline-block px-3 py-1 text-xs font-semibold tracking-wide uppercase text-[#0b3b3c] bg-[#d9f0ef] rounded-full mb-3">{{
+                                class="inline-block px-3 py-1 text-xs font-semibold tracking-wide uppercase text-[var(--navy)] bg-[var(--teal-soft)] rounded-full mb-3">{{
                                 section.title }}</span>
                             <h4 class="text-2xl font-extrabold text-slate-800 mb-2 question-title">{{ q.question }}</h4>
                         </div>
@@ -87,20 +87,20 @@
                                     Answer (Type or Speak)</label>
                                 <div class="flex gap-3">
                                     <textarea id="{{ q.id }}" name="{{ q.id }}" rows="3" required
-                                        class="shadow-sm focus:ring-4 focus:ring-[#1b5e5f]/20 focus:border-[#1b5e5f] block w-full sm:text-lg border-slate-200 rounded-xl p-4 transition-all duration-300 bg-white/80 backdrop-blur-sm"
+                                        class="shadow-sm focus:ring-4 focus:ring-[var(--teal)]/20 focus:border-[var(--teal)] block w-full sm:text-lg border-slate-200 rounded-xl p-4 transition-all duration-300 bg-white/80 backdrop-blur-sm"
                                         placeholder="{{ q.placeholder or 'I love...' }}"></textarea>
                                     <button type="button" onclick="toggleSpeech('{{ q.id }}', '10th')"
-                                        class="inline-flex items-center px-4 py-2 border border-slate-200 shadow-sm text-2xl rounded-xl text-slate-700 bg-white hover:bg-[#d9f0ef] hover:text-[#0b3b3c] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#1b5e5f] transition-all"
+                                        class="inline-flex items-center px-4 py-2 border border-slate-200 shadow-sm text-2xl rounded-xl text-slate-700 bg-white hover:bg-[var(--teal-soft)] hover:text-[var(--navy)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--teal)] transition-all"
                                         id="btn-10th-{{ q.id }}" title="Record Audio">🎤
                                     </button>
                                 </div>
                                 <p id="status-10th-{{ q.id }}"
-                                    class="text-sm font-bold text-[#0b3b3c] mt-2 hidden animate-pulse flex items-center gap-2">
-                                    <span class="h-2 w-2 bg-[#0b3b3c] rounded-full"></span> Listening...
+                                    class="text-sm font-bold text-[var(--navy)] mt-2 hidden animate-pulse flex items-center gap-2">
+                                    <span class="h-2 w-2 bg-[var(--navy)] rounded-full"></span> Listening...
                                 </p>
                             </div>
                             <button type="button" onclick="moveToNextStep()"
-                                class="w-full py-3 bg-[#0b3b3c] text-white font-bold rounded-xl hover:bg-[#1b5e5f] transition-all shadow-lg shadow-[#d9f0ef] mt-4">
+                                class="w-full py-3 bg-[var(--navy)] text-white font-bold rounded-xl hover:bg-[var(--teal)] transition-all shadow-lg shadow-[var(--teal-soft)] mt-4">
                                 Next Question
                             </button>
                         </div>
@@ -108,7 +108,7 @@
                         <div class="space-y-3">
                             {% for opt in q.options %}
                             <label
-                                class="relative flex items-center p-4 rounded-xl border-2 border-slate-200/60 bg-white/80 cursor-pointer transition-all duration-300 hover:shadow-lg hover:shadow-[#d9f0ef] hover:border-[#a8ded9] hover:-translate-y-1 has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50/50 has-[:checked]:shadow-emerald-200/30 group">
+                                class="relative flex items-center p-4 rounded-xl border-2 border-slate-200/60 bg-white/80 cursor-pointer transition-all duration-300 hover:shadow-lg hover:shadow-[var(--teal-soft)] hover:border-[var(--teal-light)] hover:-translate-y-1 has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50/50 has-[:checked]:shadow-emerald-200/30 group">
                                 <input type="radio" name="{{ q.id }}" value="{{ opt.value }}" required
                                     onchange="handleSelection(this)"
                                     class="h-5 w-5 text-emerald-500 focus:ring-emerald-500 border-slate-300 transition-colors">
@@ -142,7 +142,7 @@
                                     class="w-full h-48 object-cover">
                             </div>
                             <span
-                                class="inline-block px-3 py-1 text-xs font-semibold tracking-wide uppercase text-[#0b3b3c] bg-[#d9f0ef] rounded-full mb-3">Scenario
+                                class="inline-block px-3 py-1 text-xs font-semibold tracking-wide uppercase text-[var(--navy)] bg-[var(--teal-soft)] rounded-full mb-3">Scenario
                                 {{ loop.index }}</span>
                             <h4 class="text-2xl font-extrabold text-slate-800 mb-2 question-title">{{ q.title or
                                 q.question }}</h4>
@@ -158,7 +158,7 @@
                         <div class="space-y-3">
                             {% for opt in q.options %}
                             <label
-                                class="relative flex items-center p-4 rounded-xl border-2 border-slate-200/60 bg-white/80 cursor-pointer transition-all duration-300 hover:shadow-lg hover:shadow-[#d9f0ef]/50 hover:border-[#a8ded9] hover:-translate-y-1 has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50/50 has-[:checked]:shadow-emerald-200/30 group">
+                                class="relative flex items-center p-4 rounded-xl border-2 border-slate-200/60 bg-white/80 cursor-pointer transition-all duration-300 hover:shadow-lg hover:shadow-[var(--teal-soft)]/50 hover:border-[var(--teal-light)] hover:-translate-y-1 has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-50/50 has-[:checked]:shadow-emerald-200/30 group">
                                 <input type="radio" name="{{ q.id }}" value="{{ opt.value }}" required
                                     onchange="handleSelection(this)"
                                     class="h-5 w-5 text-emerald-500 focus:ring-emerald-500 border-slate-300 transition-colors">
@@ -175,16 +175,16 @@
                                 Response (Type or Speak)</label>
                             <div class="flex gap-3">
                                 <textarea id="{{ q.id }}" name="{{ q.id }}" rows="4" required
-                                    class="shadow-sm focus:ring-4 focus:ring-[#1b5e5f]/20 focus:border-[#1b5e5f] block w-full sm:text-lg border-slate-200 rounded-xl p-4 transition-all duration-300 bg-white/80 backdrop-blur-sm"
+                                    class="shadow-sm focus:ring-4 focus:ring-[var(--teal)]/20 focus:border-[var(--teal)] block w-full sm:text-lg border-slate-200 rounded-xl p-4 transition-all duration-300 bg-white/80 backdrop-blur-sm"
                                     placeholder="I would..."></textarea>
                                 <button type="button" onclick="toggleSpeech('{{ q.id }}', '12th')"
-                                    class="inline-flex items-center px-4 py-2 border border-slate-200 shadow-sm text-2xl rounded-xl text-slate-700 bg-white hover:bg-[#d9f0ef] hover:text-[#0b3b3c] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#1b5e5f] transition-all"
+                                    class="inline-flex items-center px-4 py-2 border border-slate-200 shadow-sm text-2xl rounded-xl text-slate-700 bg-white hover:bg-[var(--teal-soft)] hover:text-[var(--navy)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--teal)] transition-all"
                                     id="btn-12th-{{ q.id }}" title="Record Audio">🎤
                                 </button>
                             </div>
                             <p id="status-12th-{{ q.id }}"
-                                class="text-sm font-bold text-[#0b3b3c] mt-2 hidden animate-pulse flex items-center gap-2">
-                                <span class="h-2 w-2 bg-[#0b3b3c] rounded-full"></span> Listening...
+                                class="text-sm font-bold text-[var(--navy)] mt-2 hidden animate-pulse flex items-center gap-2">
+                                <span class="h-2 w-2 bg-[var(--navy)] rounded-full"></span> Listening...
                             </p>
                         </div>
                         {% endif %}
@@ -195,7 +195,7 @@
 
                             {% if not q.options %}
                             <button type="button" onclick="moveToNextStep()"
-                                class="px-8 py-3 bg-gradient-to-r from-[#0b3b3c] to-[#1b5e5f] text-white font-bold rounded-xl hover:from-[#0b3b3c] hover:to-[#0b3b3c] transition-all shadow-lg shadow-[#d9f0ef]/50 transform hover:scale-105">Next
+                                class="px-8 py-3 bg-gradient-to-r from-[var(--navy)] to-[var(--teal)] text-white font-bold rounded-xl hover:from-[var(--navy)] hover:to-[var(--navy)] transition-all shadow-lg shadow-[var(--teal-soft)]/50 transform hover:scale-105">Next
                                 Question</button>
                             {% endif %}
                         </div>
@@ -219,7 +219,7 @@
                                 AI career insights and stream recommendations.</p>
                         </div>
                         <button type="submit" id="submit-btn"
-                            class="w-full py-4 px-8 border border-transparent rounded-2xl shadow-xl shadow-[#d9f0ef] text-xl font-bold text-white bg-gradient-to-r from-[#0b3b3c] via-[#1b5e5f] to-[#0b3b3c] hover:from-[#1b5e5f] hover:via-[#0b3b3c] hover:to-[#1b5e5f] focus:outline-none focus:ring-4 focus:ring-[#a8ded9] transition-all duration-300 transform hover:-translate-y-1 hover:scale-[1.02] flex items-center justify-center relative overflow-hidden group">
+                            class="w-full py-4 px-8 border border-transparent rounded-2xl shadow-xl shadow-[var(--teal-soft)] text-xl font-bold text-white bg-gradient-to-r from-[var(--navy)] via-[var(--teal)] to-[var(--navy)] hover:from-[var(--teal)] hover:via-[var(--navy)] hover:to-[var(--teal)] focus:outline-none focus:ring-4 focus:ring-[var(--teal-light)] transition-all duration-300 transform hover:-translate-y-1 hover:scale-[1.02] flex items-center justify-center relative overflow-hidden group">
                             <div
                                 class="absolute inset-0 bg-white/20 -skew-x-12 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]">
                             </div>
@@ -235,7 +235,7 @@
                                 </svg>
                             </div>
                         </button>
-                        <p id="loading-text" class="hidden mt-6 text-[#0b3b3c] font-bold animate-pulse text-lg">
+                        <p id="loading-text" class="hidden mt-6 text-[var(--navy)] font-bold animate-pulse text-lg">
                             AI is analyzing your profile to generate professional recommendations... This may take 10
                             seconds.
                         </p>
@@ -249,10 +249,10 @@
 <!-- Floating Premium AI Buddy Orb -->
 <div id="talking-buddy" onclick="window.location.href='/chatbot'"
     class="fixed top-24 right-8 z-[100] flex items-center justify-center w-20 h-20 cursor-pointer pointer-events-auto hover:scale-110 transition-transform">
-    <div class="pulse-ring absolute inset-0 rounded-full bg-[#1b5e5f] opacity-0"></div>
-    <div class="pulse-ring absolute inset-0 rounded-full bg-[#1b5e5f] opacity-0" style="animation-delay: 0.5s"></div>
+    <div class="pulse-ring absolute inset-0 rounded-full bg-[var(--teal)] opacity-0"></div>
+    <div class="pulse-ring absolute inset-0 rounded-full bg-[var(--teal)] opacity-0" style="animation-delay: 0.5s"></div>
     <div
-        class="buddy-orb relative w-14 h-14 rounded-full bg-gradient-to-br from-[#0b3b3c] to-[#0b3b3c] shadow-[0_0_30px_rgba(139,92,246,0.6)] flex items-center justify-center border-2 border-[#1b5e5f]/30 overflow-hidden">
+        class="buddy-orb relative w-14 h-14 rounded-full bg-gradient-to-br from-[var(--navy)] to-[var(--navy)] shadow-[0_0_30px_rgba(139,92,246,0.6)] flex items-center justify-center border-2 border-[var(--teal)]/30 overflow-hidden">
         <div class="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.2),transparent)]"></div>
         <span class="text-3xl z-10">🎓</span>
     </div>

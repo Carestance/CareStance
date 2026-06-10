@@ -37,7 +37,7 @@
 
         <form action="/notifications/{{ notif.id }}/dismiss" method="POST">
             <button type="submit" @click="open = false"
-                class="w-full py-4 bg-slate-900 hover:bg-[#0b3b3c] text-white font-bold rounded-2xl transition-all shadow-lg hover:shadow-[#d9f0ef] hover:scale-[1.02] uppercase tracking-widest text-xs">
+                class="w-full py-4 bg-slate-900 hover:bg-[var(--navy)] text-white font-bold rounded-2xl transition-all shadow-lg hover:shadow-[var(--teal-soft)] hover:scale-[1.02] uppercase tracking-widest text-xs">
                 Claim My Benefit →
             </button>
         </form>
@@ -86,9 +86,9 @@
 
 {% if profile and not profile.tnc_accepted and not profile.is_blocked %}
 <!-- Terms & Conditions Acceptance Required -->
-<div class="mb-6 bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-[#a8ded9] overflow-hidden"
+<div class="mb-6 bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-[var(--teal-light)] overflow-hidden"
     x-data="{ agreed: false }">
-    <div class="px-8 py-5 bg-gradient-to-r from-[#0b3b3c] to-[#1b5e5f] flex items-center gap-3">
+    <div class="px-8 py-5 bg-gradient-to-r from-[var(--navy)] to-[var(--teal)] flex items-center gap-3">
         <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24"
                 stroke="currentColor">
@@ -189,15 +189,15 @@
     <div class="px-8 py-5 border-t border-slate-100 space-y-4">
         <label class="flex items-start gap-3 cursor-pointer select-none group">
             <input type="checkbox" x-model="agreed"
-                class="mt-0.5 w-5 h-5 rounded border-slate-300 text-[#0b3b3c] focus:ring-[#1b5e5f] transition">
+                class="mt-0.5 w-5 h-5 rounded border-slate-300 text-[var(--navy)] focus:ring-[var(--teal)] transition">
             <span class="text-sm text-slate-600 group-hover:text-slate-800 transition-colors">
                 I have read, understood, and agree to abide by these
-                <span class="font-bold text-[#0b3b3c]">Terms & Conditions</span>.
+                <span class="font-bold text-[var(--navy)]">Terms & Conditions</span>.
             </span>
         </label>
         <form action="/counsellor/accept-tnc" method="POST">
             <button type="submit"
-                class="w-full sm:w-auto px-8 py-3 rounded-xl font-bold text-white bg-gradient-to-r from-[#0b3b3c] to-[#1b5e5f] hover:scale-[1.02] hover:shadow-xl transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
+                class="w-full sm:w-auto px-8 py-3 rounded-xl font-bold text-white bg-gradient-to-r from-[var(--navy)] to-[var(--teal)] hover:scale-[1.02] hover:shadow-xl transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
                 :disabled="!agreed">
                 I Agree & Continue →
             </button>
@@ -249,7 +249,7 @@
 <div x-data="{ tab: 'overview' }"
     class="bg-white/70 backdrop-blur-xl rounded-3xl overflow-hidden shadow-2xl border border-white/50">
     <!-- Dashboard Header & Tabs -->
-    <div class="px-6 py-6 sm:px-8 bg-[#d9f0ef]/50 border-b border-[#a8ded9]">
+    <div class="px-6 py-6 sm:px-8 bg-[var(--teal-soft)]/50 border-b border-[var(--teal-light)]">
         <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
             <div class="flex items-center gap-6">
                 <!-- Profile Image -->
@@ -257,7 +257,7 @@
                     <img src="{{ user.profile_photo if user.profile_photo else 'https://ui-avatars.com/api/?name=' + user.full_name + '&background=random' }}"
                         alt="Profile" class="w-20 h-20 rounded-2xl object-cover border-4 border-white/20 shadow-xl">
                     <button onclick="document.getElementById('photo-upload').click()"
-                        class="absolute -bottom-2 -right-2 bg-[#0b3b3c] text-white p-2 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                        class="absolute -bottom-2 -right-2 bg-[var(--navy)] text-white p-2 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
                         <i class="fas fa-camera text-xs"></i>
                     </button>
                     <form id="photo-form" action="/profile/upload-photo" method="POST" enctype="multipart/form-data"
@@ -288,22 +288,22 @@
 
             <div class="flex items-center gap-4 bg-white/50 p-1.5 rounded-2xl border border-white/80 shadow-sm">
                 <button @click="tab = 'overview'"
-                    :class="tab === 'overview' ? 'bg-[#0b3b3c] text-white shadow-lg' : 'text-slate-600 hover:bg-white'"
+                    :class="tab === 'overview' ? 'bg-[var(--navy)] text-white shadow-lg' : 'text-slate-600 hover:bg-white'"
                     class="px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
                     <i class="fas fa-th-large"></i> Home
                 </button>
                 <button @click="tab = 'appointments'"
-                    :class="tab === 'appointments' ? 'bg-[#0b3b3c] text-white shadow-lg' : 'text-slate-600 hover:bg-white'"
+                    :class="tab === 'appointments' ? 'bg-[var(--navy)] text-white shadow-lg' : 'text-slate-600 hover:bg-white'"
                     class="px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
                     <i class="fas fa-calendar-alt"></i> Sessions
                 </button>
                 <button @click="tab = 'settings'"
-                    :class="tab === 'settings' ? 'bg-[#0b3b3c] text-white shadow-lg' : 'text-slate-600 hover:bg-white'"
+                    :class="tab === 'settings' ? 'bg-[var(--navy)] text-white shadow-lg' : 'text-slate-600 hover:bg-white'"
                     class="px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
                     <i class="fas fa-cog"></i> Profile
                 </button>
                 <button @click="tab = 'verification'"
-                    :class="tab === 'verification' ? 'bg-[#0b3b3c] text-white shadow-lg' : 'text-slate-600 hover:bg-white'"
+                    :class="tab === 'verification' ? 'bg-[var(--navy)] text-white shadow-lg' : 'text-slate-600 hover:bg-white'"
                     class="px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
                     <i class="fas fa-user-check"></i> Verification
                 </button>
@@ -319,10 +319,10 @@
             <!-- Stats Grid -->
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 <div
-                    class="bg-gradient-to-br from-[#d9f0ef] to-white p-6 rounded-3xl border border-[#a8ded9] shadow-sm">
-                    <p class="text-[10px] font-black uppercase text-[#1b5e5f] tracking-widest mb-1">Total Clients</p>
+                    class="bg-gradient-to-br from-[var(--teal-soft)] to-white p-6 rounded-3xl border border-[var(--teal-light)] shadow-sm">
+                    <p class="text-[10px] font-black uppercase text-[var(--teal)] tracking-widest mb-1">Total Clients</p>
                     <h4 class="text-3xl font-black text-slate-900">{{ stats.total_clients }}</h4>
-                    <div class="flex items-center gap-1.5 mt-2 text-[#0b3b3c]">
+                    <div class="flex items-center gap-1.5 mt-2 text-[var(--navy)]">
                         <i class="fas fa-users text-xs"></i>
                         <span class="text-[10px] font-bold">Lifetime Scholars</span>
                     </div>
@@ -349,10 +349,10 @@
                 </div>
 
                 <div
-                    class="bg-gradient-to-br from-[#d9f0ef] to-white p-6 rounded-3xl border border-[#a8ded9] shadow-sm">
-                    <p class="text-[10px] font-black uppercase text-[#1b5e5f] tracking-widest mb-1">Platform Rating</p>
+                    class="bg-gradient-to-br from-[var(--teal-soft)] to-white p-6 rounded-3xl border border-[var(--teal-light)] shadow-sm">
+                    <p class="text-[10px] font-black uppercase text-[var(--teal)] tracking-widest mb-1">Platform Rating</p>
                     <h4 class="text-3xl font-black text-slate-900">{{ stats.avg_rating }}</h4>
-                    <div class="flex items-center gap-1 mt-2 text-[#0b3b3c]">
+                    <div class="flex items-center gap-1 mt-2 text-[var(--navy)]">
                         {% for i in range(5) %}
                         <i
                             class="fas fa-star text-[8px] {{ 'text-amber-400' if i < stats.avg_rating|int else 'text-slate-200' }}"></i>
@@ -369,7 +369,7 @@
                         <i class="fas fa-wallet text-[200px]"></i>
                     </div>
                     <div class="relative z-10">
-                        <h5 class="text-[#a8ded9] font-bold uppercase tracking-widest text-xs mb-6">Business Dashboard
+                        <h5 class="text-[var(--teal-light)] font-bold uppercase tracking-widest text-xs mb-6">Business Dashboard
                         </h5>
                         <div class="space-y-6">
                             <div>
@@ -395,13 +395,13 @@
                 <!-- Notifications & Quick Actions -->
                 <div class="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm">
                     <h5 class="font-bold text-slate-900 mb-6 flex items-center gap-2">
-                        <i class="fas fa-bell text-[#1b5e5f]"></i> Pending Tasks
+                        <i class="fas fa-bell text-[var(--teal)]"></i> Pending Tasks
                     </h5>
                     <div class="space-y-4">
                         {% if notifications %}
                         {% for notif in notifications %}
                         <div class="flex items-start gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100 italic">
-                            <div class="w-2 h-2 rounded-full bg-[#1b5e5f] mt-1.5"></div>
+                            <div class="w-2 h-2 rounded-full bg-[var(--teal)] mt-1.5"></div>
                             <p class="text-xs text-slate-600">{{ notif.message }}</p>
                         </div>
                         {% endfor %}
@@ -439,7 +439,7 @@
                             }}"</p>
                         <div class="flex items-center gap-3">
                             <div
-                                class="w-8 h-8 rounded-full bg-[#d9f0ef] flex items-center justify-center text-[#0b3b3c] text-[10px] font-black uppercase">
+                                class="w-8 h-8 rounded-full bg-[var(--teal-soft)] flex items-center justify-center text-[var(--navy)] text-[10px] font-black uppercase">
                                 {{ review.student.full_name[0] if (review.student and review.student.full_name) else 'A'
                                 }}
                             </div>
@@ -462,7 +462,7 @@
         <!-- Tab 2: Appointments -->
         <div x-show="tab === 'appointments'" x-transition style="display: none;">
             <h4 class="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
-                <i class="fas fa-calendar-alt text-[#1b5e5f]"></i> Scheduled Sessions
+                <i class="fas fa-calendar-alt text-[var(--teal)]"></i> Scheduled Sessions
             </h4>
             {% if appointments %}
             <div class="space-y-4">
@@ -491,7 +491,7 @@
                     }">
                     <div class="flex items-center gap-4">
                         <div
-                            class="w-12 h-12 bg-[#d9f0ef] rounded-2xl flex items-center justify-center text-[#0b3b3c] text-xl shadow-inner">
+                            class="w-12 h-12 bg-[var(--teal-soft)] rounded-2xl flex items-center justify-center text-[var(--navy)] text-xl shadow-inner">
                             <i class="fas fa-user"></i>
                         </div>
                         <div>
@@ -509,20 +509,20 @@
                                     class="px-2 py-0.5 bg-slate-200 text-slate-600 rounded-full font-bold uppercase">{{
                                     apt.status }}</span>
                                 {% endif %}
-                                | Payment: <span class="text-[#0b3b3c] font-bold uppercase">{{ apt.payment_status
+                                | Payment: <span class="text-[var(--navy)] font-bold uppercase">{{ apt.payment_status
                                     }}</span>
                             </p>
 
                             {% if apt.student.assessment %}
                             <div class="mt-2 flex flex-wrap gap-2">
                                 <span
-                                    class="px-2 py-0.5 bg-[#d9f0ef] text-[#0b3b3c] rounded-lg text-[10px] font-black uppercase tracking-wider border border-[#a8ded9]">
+                                    class="px-2 py-0.5 bg-[var(--teal-soft)] text-[var(--navy)] rounded-lg text-[10px] font-black uppercase tracking-wider border border-[var(--teal-light)]">
                                     {{ apt.student.assessment.phase_2_category }}
                                 </span>
                             </div>
                             {% endif %}
                             <p class="text-sm font-bold text-slate-700 mt-2">
-                                <i class="far fa-calendar-alt text-[#1b5e5f]"></i>
+                                <i class="far fa-calendar-alt text-[var(--teal)]"></i>
                                 {{ apt.appointment_time.strftime('%b %d, %Y') }} at {{
                                 apt.appointment_time.strftime('%I:%M %p') }}
                             </p>
@@ -532,14 +532,14 @@
                     <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
                         {% if apt.student.assessment %}
                         <a href="/share/report/{{ apt.student.assessment.id }}?mode=minimal" target="_blank"
-                            class="px-5 py-2.5 bg-white hover:bg-[#d9f0ef] text-[#0b3b3c] border border-[#a8ded9] font-bold rounded-xl transition-all shadow-sm flex items-center gap-2">
+                            class="px-5 py-2.5 bg-white hover:bg-[var(--teal-soft)] text-[var(--navy)] border border-[var(--teal-light)] font-bold rounded-xl transition-all shadow-sm flex items-center gap-2">
                             <i class="fas fa-file-alt"></i> View Report
                         </a>
                         {% endif %}
                         {% if apt.status == 'requested' %}
                         <form action="/appointment/accept/{{ apt.id }}" method="POST" class="inline">
                             <button type="submit"
-                                class="px-5 py-2.5 bg-[#0b3b3c] hover:bg-[#1b5e5f] text-white font-bold rounded-xl transition-all shadow-lg flex items-center gap-2">
+                                class="px-5 py-2.5 bg-[var(--navy)] hover:bg-[var(--teal)] text-white font-bold rounded-xl transition-all shadow-lg flex items-center gap-2">
                                 <i class="fas fa-check"></i> Accept
                             </button>
                         </form>
@@ -555,7 +555,7 @@
                         <template x-if="isActive">
                             <div class="flex flex-wrap items-center gap-2">
                                 <a href="/join_meeting/{{ apt.id }}" target="_blank"
-                                    class="px-5 py-2.5 bg-[#0b3b3c] hover:bg-[#1b5e5f] text-white font-bold rounded-xl transition-all shadow-lg shadow-[#d9f0ef] flex items-center gap-2 animate-pulse">
+                                    class="px-5 py-2.5 bg-[var(--navy)] hover:bg-[var(--teal)] text-white font-bold rounded-xl transition-all shadow-lg shadow-[var(--teal-soft)] flex items-center gap-2 animate-pulse">
                                     <i class="fas fa-video"></i> <span x-text="timeLabel"></span>
                                 </a>
                                 <form action="/appointment/complete/{{ apt.id }}" method="POST" class="inline">
@@ -618,7 +618,7 @@
                                 <p class="text-[10px] text-slate-400 mt-2 italic">Fee is managed by Admin.</p>
                                 {% else %}
                                 <input type="number" name="fee" value="{{ profile.fee }}" required
-                                    class="mt-1 block w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#1b5e5f]">
+                                    class="mt-1 block w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-[var(--teal)]">
                                 {% endif %}
                             </div>
                             <script>
@@ -655,7 +655,7 @@
                                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
                                     <template x-for="day in days" :key="day">
                                         <button type="button" @click="toggleDay(day)"
-                                            :class="slots[day] ? 'bg-[#0b3b3c] text-white border-[#0b3b3c] shadow-md' : 'bg-white text-slate-500 border-slate-200 hover:border-[#a8ded9]'"
+                                            :class="slots[day] ? 'bg-[var(--navy)] text-white border-[var(--navy)] shadow-md' : 'bg-white text-slate-500 border-slate-200 hover:border-[var(--teal-light)]'"
                                             class="px-3 py-2 rounded-xl border text-xs font-bold transition-all">
                                             <span x-text="day.substring(0,3)"></span>
                                         </button>
@@ -665,23 +665,23 @@
                                 <!-- Time slots for selected days -->
                                 <template x-for="day in days.filter(d => slots[d])" :key="day + '_slot'">
                                     <div class="flex items-center gap-2 mb-2 p-2 bg-slate-50 rounded-xl border border-slate-100">
-                                        <span x-text="day.substring(0,3)" class="text-xs font-bold text-[#0b3b3c] w-8"></span>
+                                        <span x-text="day.substring(0,3)" class="text-xs font-bold text-[var(--navy)] w-8"></span>
                                         <input type="time" :value="slots[day].start" @change="slots[day].start = $event.target.value"
-                                            class="flex-1 px-2 py-1.5 text-xs border border-slate-200 rounded-lg bg-white focus:ring-1 focus:ring-[#1b5e5f]">
+                                            class="flex-1 px-2 py-1.5 text-xs border border-slate-200 rounded-lg bg-white focus:ring-1 focus:ring-[var(--teal)]">
                                         <span class="text-slate-400 text-xs">to</span>
                                         <input type="time" :value="slots[day].end" @change="slots[day].end = $event.target.value"
-                                            class="flex-1 px-2 py-1.5 text-xs border border-slate-200 rounded-lg bg-white focus:ring-1 focus:ring-[#1b5e5f]">
+                                            class="flex-1 px-2 py-1.5 text-xs border border-slate-200 rounded-lg bg-white focus:ring-1 focus:ring-[var(--teal)]">
                                     </div>
                                 </template>
 
-                                <p class="text-[10px] text-slate-500 mt-2 font-medium"><i class="fas fa-info-circle mr-1 text-[#1b5e5f]"></i> Summary: <span x-text="textSummary"></span></p>
+                                <p class="text-[10px] text-slate-500 mt-2 font-medium"><i class="fas fa-info-circle mr-1 text-[var(--teal)]"></i> Summary: <span x-text="textSummary"></span></p>
 
                                 <!-- Hidden inputs to send data -->
                                 <input type="hidden" name="availability_text" :value="textSummary">
                                 <input type="hidden" name="availability_slots" :value="slotsJson">
                             </div>
                             <button type="submit"
-                                class="w-full py-3 bg-[#0b3b3c] text-white font-bold rounded-xl shadow-lg hover:bg-[#0b3b3c] transition-all">
+                                class="w-full py-3 bg-[var(--navy)] text-white font-bold rounded-xl shadow-lg hover:bg-[var(--navy)] transition-all">
                                 Save Profile Changes
                             </button>
                         </form>
@@ -719,7 +719,7 @@
                             </div>
                         </div>
                         <button type="submit"
-                            class="w-full py-3 bg-[#0b3b3c] text-white font-bold rounded-xl shadow-lg hover:bg-[#1b5e5f] transition-all">
+                            class="w-full py-3 bg-[var(--navy)] text-white font-bold rounded-xl shadow-lg hover:bg-[var(--teal)] transition-all">
                             Update Bank Info
                         </button>
                     </form>
@@ -740,14 +740,14 @@
                         <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Years of Experience &
                             Expertise</label>
                         <textarea name="experience" rows="4" required
-                            class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-2xl focus:ring-2 focus:ring-[#1b5e5f] focus:outline-none transition-all">{{ profile.experience or '' }}</textarea>
+                            class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-2xl focus:ring-2 focus:ring-[var(--teal)] focus:outline-none transition-all">{{ profile.experience or '' }}</textarea>
                     </div>
 
                     <div>
                         <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Certificates
                             (PDF/Images)</label>
                         <input type="file" name="files" multiple accept=".pdf,image/*"
-                            class="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-[#0b3b3c] file:text-white hover:file:bg-[#0b3b3c]">
+                            class="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-[var(--navy)] file:text-white hover:file:bg-[var(--navy)]">
                     </div>
 
                     {% if profile.certificates %}
@@ -773,7 +773,7 @@
                     {% endif %}
 
                     <button type="submit"
-                        class="w-full py-4 bg-[#0b3b3c] text-white font-black rounded-2xl shadow-xl hover:bg-[#0b3b3c] hover:scale-[1.02] transition-all uppercase tracking-widest text-xs">
+                        class="w-full py-4 bg-[var(--navy)] text-white font-black rounded-2xl shadow-xl hover:bg-[var(--navy)] hover:scale-[1.02] transition-all uppercase tracking-widest text-xs">
                         Submit Verification Documents
                     </button>
                 </form>
