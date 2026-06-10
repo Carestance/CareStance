@@ -6,10 +6,12 @@
       "use": "@vercel/static"
     }
   ],
-  "routes": [
-    {
-      "src": "(.*)",
-      "dest": "/index.html"
-    }
+  "rewrites": [
+    { "source": "/login", "destination": "https://carestance-production.up.railway.app/login" },
+    { "source": "/signup", "destination": "https://carestance-production.up.railway.app/signup" },
+    { "source": "/dashboard", "destination": "https://carestance-production.up.railway.app/dashboard" },
+    { "source": "/auth/(.*)", "destination": "https://carestance-production.up.railway.app/auth/$1" },
+    { "source": "/static/(.*)", "destination": "/static/$1" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
