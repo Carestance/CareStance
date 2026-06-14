@@ -105,3 +105,89 @@ def get_user_by_email(email):
     except Exception as e:
         print(f"Appwrite Get User Email Error: {e}")
     return None
+
+def sync_assessment_to_appwrite(user_num_id, result):
+    """Syncs assessment results from Supabase/PostgreSQL to Appwrite.
+    Uses list_attributes to dynamically filter payload keys to only those
+    supported by the Appwrite collection, avoiding schema conflicts.
+    """
+    try:
+        import json
+        from appwrite.query import Query
+        
+        # 1. Fetch available attributes from Appwrite collection
+        try:
+            res_attrs = databases.list_attributes(DB_ID, COLLECTIONS['assessment_results'])
+            attrs = getattr(res_attrs, 'attributes', []) if not isinstance(res_attrs, dict) else res_attrs.get('attributes', [])
+            available_keys = {attr.get('key') for attr in attrs if attr.get('status') == 'available'}
+        except Exception as attr_e:
+            print(f"Appwrite Sync: Could not list attributes (likely project paused): {attr_e}")
+            # Fallback to a safe minimum of commonly supported attributes
+            available_keys = {"user_id", "selected_class", "student_type", "personality", "confidence", "goal_status"}
+            
+        # 2. Build the payload dynamically based on local result object
+        payload = {}
+        
+        # Map values with appropriate serialization
+        for field in [
+            "user_id", "selected_class", "student_type", "current_phase", "intake_turn",
+            "intake_name", "intake_grade", "intake_stream", "chat_turn", "personality",
+            "goal_status", "confidence", "reasoning", "phase_2_category", "phase3_result",
+            "phase3_analysis", "recommended_stream", "final_analysis"
+        ]:
+            val = getattr(result, field, None)
+            if val is not None:
+                payload[field] = val
+                
+        # Handle JSON fields (serialize to string since Appwrite stores them as String attributes or text)
+        for json_field in [
+            "telemetry_logs", "reality_answers", "chat_messages", "proxy_answers",
+            "scenario_answers", "worldview_answers", "future_self_answers",
+            "assessment_report", "raw_answers", "phase3_answers", "final_answers",
+            "stream_scores", "stream_pros", "stream_cons"
+        ]:
+            val = getattr(result, json_field, None)
+            if val is not None:
+                payload[json_field] = json.dumps(val)
+                
+        # Filter payload to only keys present in available_keys
+        filtered_payload = {k: v for k, v in payload.items() if k in available_keys}
+        
+        # Ensure user_id is set
+        if "user_id" in available_keys:
+            filtered_payload["user_id"] = int(user_num_id)
+            
+        if not filtered_payload:
+            print("Appwrite Sync: No matching attributes found to sync.")
+            return False
+            
+        # 3. Check if document already exists
+        res = databases.list_documents(
+            DB_ID,
+            COLLECTIONS['assessment_results'],
+            [Query.equal('user_id', int(user_num_id))]
+        )
+        
+        if res['total'] > 0:
+            doc_id = res['documents'][0]['$id']
+            databases.update_document(
+                DB_ID,
+                COLLECTIONS['assessment_results'],
+                doc_id,
+                filtered_payload
+            )
+            print(f"Appwrite Sync: Updated assessment for user {user_num_id}")
+        else:
+            doc_uuid = f"ar_{user_num_id}" # Predictable unique doc ID
+            databases.create_document(
+                DB_ID,
+                COLLECTIONS['assessment_results'],
+                doc_uuid,
+                filtered_payload
+            )
+            print(f"Appwrite Sync: Created assessment for user {user_num_id}")
+            
+        return True
+    except Exception as e:
+        print(f"Appwrite Sync Assessment Error (Non-blocking): {e}")
+        return False

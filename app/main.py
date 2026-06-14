@@ -10,7 +10,7 @@ from functools import lru_cache
 from types import SimpleNamespace
 from . import email_utils
 from .appwrite_client import databases, account, storage, DB_ID, COLLECTIONS
-from .appwrite_helper import get_user_by_id, get_user_by_email, update_assessment_simulation
+from .appwrite_helper import get_user_by_id, get_user_by_email, update_assessment_simulation, sync_assessment_to_appwrite
 from dotenv import load_dotenv
 from starlette.middleware.sessions import SessionMiddleware
 from authlib.integrations.starlette_client import OAuth
@@ -1169,6 +1169,7 @@ async def assessment_start(
             db.add(result)
         
         await db.commit()
+        sync_assessment_to_appwrite(user.id, result)
     except Exception as e:
         print(f"Assessment start error: {e}")
         await db.rollback()
@@ -1215,6 +1216,7 @@ async def assessment_reset(request: Request, db: AsyncSession = Depends(get_db))
         result.stream_pros = None
         result.stream_cons = None
         await db.commit()
+        sync_assessment_to_appwrite(user.id, result)
     
     return RedirectResponse(url="/dashboard?message=Assessment+reset+successfully", status_code=status.HTTP_302_FOUND)
 
@@ -1300,6 +1302,7 @@ async def assessment_api_intake(request: Request, payload: dict, db: AsyncSessio
         result.current_phase = 1
         
         await db.commit()
+        sync_assessment_to_appwrite(user.id, result)
         
         validation_payload = {
             "student_metadata": {
@@ -1364,6 +1367,7 @@ async def assessment_api_intake(request: Request, payload: dict, db: AsyncSessio
             is_complete = True
 
     await db.commit()
+    sync_assessment_to_appwrite(user.id, result)
     return {"status": "success", "content": response_text, "is_complete": is_complete, "payload": validation_payload}
 
 @app.get("/assessment/api/questions")
@@ -1419,6 +1423,7 @@ async def assessment_api_swipe(request: Request, payload: dict, db: AsyncSession
     
     result.current_phase = 2
     await db.commit()
+    sync_assessment_to_appwrite(user.id, result)
     
     return {"status": "success", "next_phase": 2}
 
@@ -1441,6 +1446,7 @@ async def assessment_api_chat(request: Request, payload: dict, db: AsyncSession 
         result.chat_messages = chat_history
         result.chat_turn = 0
         await db.commit()
+        sync_assessment_to_appwrite(user.id, result)
         return {"status": "success", "message": first_q, "chat_turn": 0, "phase_complete": False}
         
     chat_history.append({"role": "user", "content": user_message})
@@ -1458,6 +1464,7 @@ async def assessment_api_chat(request: Request, payload: dict, db: AsyncSession 
         result.personality = json.dumps(riasec)
         result.current_phase = 3
         await db.commit()
+        sync_assessment_to_appwrite(user.id, result)
         return {
             "status": "success",
             "message": "That was great! Ready for the next phase?",
@@ -1470,6 +1477,7 @@ async def assessment_api_chat(request: Request, payload: dict, db: AsyncSession 
         result.chat_messages = chat_history
         result.chat_turn = next_turn
         await db.commit()
+        sync_assessment_to_appwrite(user.id, result)
         
         return {"status": "success", "message": next_q, "chat_turn": next_turn, "phase_complete": False}
 
@@ -1488,6 +1496,7 @@ async def assessment_api_proxy(request: Request, payload: dict, db: AsyncSession
     
     result.current_phase = 4
     await db.commit()
+    sync_assessment_to_appwrite(user.id, result)
     return {"status": "success", "next_phase": 4}
 
 @app.post("/assessment/api/scenarios")
@@ -1504,6 +1513,7 @@ async def assessment_api_scenarios(request: Request, payload: dict, db: AsyncSes
     result.scenario_answers = answers
     result.current_phase = 5
     await db.commit()
+    sync_assessment_to_appwrite(user.id, result)
     
     return {"status": "success", "next_phase": 5}
 
@@ -1654,6 +1664,7 @@ async def assessment_api_compile(request: Request, db: AsyncSession = Depends(ge
             ]
             
         await db.commit()
+        sync_assessment_to_appwrite(user.id, result)
         return {"status": "success", "redirect": "/assessment/result"}
         
     except Exception as e:
