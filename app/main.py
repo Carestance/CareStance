@@ -1011,7 +1011,12 @@ async def auth_callback(request: Request, db: AsyncSession = Depends(get_db)):
     try:
         try:
             redirect_uri = get_oauth_redirect_uri(request)
-            token = await oauth.google.authorize_access_token(request, redirect_uri=redirect_uri)
+            try:
+                # Try calling without explicit redirect_uri to let Authlib load it from session state
+                token = await oauth.google.authorize_access_token(request)
+            except Exception as inner_e:
+                print(f"DEBUG: Authlib direct authorize_access_token failed: {inner_e}. Retrying with explicit redirect_uri.")
+                token = await oauth.google.authorize_access_token(request, redirect_uri=redirect_uri)
         except Exception as e:
             import traceback
             print(f"OAuth Token Exchange Error: {e}")
