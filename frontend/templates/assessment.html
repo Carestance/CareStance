@@ -490,88 +490,220 @@
     function renderIntakePhase() {
         const body = document.getElementById("phase-body");
         body.innerHTML = `
-            <div class="text-center mb-6 stagger-in">
-                <span class="cyber-badge mb-2">Phase 1: Intake Diagnostic</span>
-                <h2 class="text-2xl font-bold mt-2 text-white">Student Metadata Profile</h2>
-                <p class="text-[#7f999c] text-sm mt-1">We collect your academic configuration to anchor final results recommendations.</p>
-            </div>
+            <div class="stagger-in max-w-3xl mx-auto">
+                <!-- Header Title block -->
+                <div class="mb-8 text-center md:text-left">
+                    <span class="cyber-badge mb-2">Phase 1: Student Intake</span>
+                    <h2 class="text-3xl font-extrabold text-white mt-1">Let's get to know you better</h2>
+                    <p class="text-[#7f999c] text-sm mt-1">We'll ask you a few questions to understand you better and provide personalized insights.</p>
+                </div>
 
-            <div class="border border-white/5 bg-black/40 rounded-2xl p-4 flex flex-col justify-between h-[360px] stagger-in">
-                <div class="chat-container flex flex-col" id="intake-chat-box">
-                    <!-- Dialogue nodes -->
+                <!-- Alert Box -->
+                <div class="bg-cyan-950/30 border border-cyan-800/30 text-cyan-400 rounded-2xl p-4 mb-8 flex items-center gap-3 text-sm">
+                    <i class="fas fa-info-circle text-lg"></i>
+                    <span>Your information is safe with us and will only be used to guide your career journey.</span>
                 </div>
-                
-                <div class="flex gap-2 pt-3 border-t border-white/5 mt-2">
-                    <input type="text" id="intake-input" placeholder="Supply requested detail..." class="flex-1 px-4 py-3 rounded-xl border border-white/10 focus:border-cyan-400 focus:outline-none text-sm font-medium bg-black/40 text-white" onkeydown="if(event.key === 'Enter') sendIntakeMessage()">
-                    <button onclick="sendIntakeMessage()" id="intake-send-btn" class="px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-400 to-indigo-500 text-white font-extrabold hover:brightness-110 transition-all text-sm">Submit</button>
-                </div>
+
+                <!-- Form Rows -->
+                <form id="intake-form" onsubmit="submitIntakeForm(event)" class="space-y-6">
+                    <!-- Row 1: Full Name -->
+                    <div class="flex flex-col md:flex-row md:items-center justify-between p-5 bg-white/5 border border-white/5 rounded-2xl gap-4 hover:border-cyan-500/20 transition-all duration-300">
+                        <div class="flex items-center gap-4">
+                            <div class="h-12 w-12 bg-cyan-500/10 text-cyan-400 rounded-2xl flex items-center justify-center text-xl flex-shrink-0">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-base font-bold text-white">What is your full name?</h4>
+                                <p class="text-[#7f999c] text-xs">Please enter your full name.</p>
+                            </div>
+                        </div>
+                        <div class="w-full md:w-80">
+                            <input type="text" name="name" required placeholder="Enter your full name" 
+                                class="w-full px-4 py-3 rounded-xl border border-white/10 bg-black/40 text-white placeholder-slate-600 focus:border-cyan-400 focus:outline-none text-sm transition-all">
+                            <div class="error-msg text-red-400 text-xs mt-1 hidden">Please enter a valid name (at least 2 characters).</div>
+                        </div>
+                    </div>
+
+                    <!-- Row 2: Currently Pursuing -->
+                    <div class="flex flex-col md:flex-row md:items-center justify-between p-5 bg-white/5 border border-white/5 rounded-2xl gap-4 hover:border-cyan-500/20 transition-all duration-300">
+                        <div class="flex items-center gap-4">
+                            <div class="h-12 w-12 bg-teal-500/10 text-teal-400 rounded-2xl flex items-center justify-center text-xl flex-shrink-0">
+                                <i class="fas fa-graduation-cap"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-base font-bold text-white">What are you currently pursuing?</h4>
+                                <p class="text-[#7f999c] text-xs">Select your current class/education level.</p>
+                            </div>
+                        </div>
+                        <div class="w-full md:w-80">
+                            <input type="text" name="pursuing" required placeholder="Enter current education (e.g. Grade 12)" 
+                                class="w-full px-4 py-3 rounded-xl border border-white/10 bg-black/40 text-white placeholder-slate-600 focus:border-cyan-400 focus:outline-none text-sm transition-all">
+                            <div class="error-msg text-red-400 text-xs mt-1 hidden">Please enter your current studies (at least 2 characters).</div>
+                        </div>
+                    </div>
+
+                    <!-- Row 3: Areas of Interest -->
+                    <div class="flex flex-col md:flex-row md:items-center justify-between p-5 bg-white/5 border border-white/5 rounded-2xl gap-4 hover:border-cyan-500/20 transition-all duration-300">
+                        <div class="flex items-center gap-4">
+                            <div class="h-12 w-12 bg-purple-500/10 text-purple-400 rounded-2xl flex items-center justify-center text-xl flex-shrink-0">
+                                <i class="fas fa-star"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-base font-bold text-white">What are your areas of interest?</h4>
+                                <p class="text-[#7f999c] text-xs">Select all that interest you.</p>
+                            </div>
+                        </div>
+                        <div class="w-full md:w-80">
+                            <input type="text" name="interests" required placeholder="Enter interests (e.g. Technology, Art)" 
+                                class="w-full px-4 py-3 rounded-xl border border-white/10 bg-black/40 text-white placeholder-slate-600 focus:border-cyan-400 focus:outline-none text-sm transition-all">
+                            <div class="error-msg text-red-400 text-xs mt-1 hidden">Please enter your interests.</div>
+                        </div>
+                    </div>
+
+                    <!-- Row 4: Parent Income -->
+                    <div class="flex flex-col md:flex-row md:items-center justify-between p-5 bg-white/5 border border-white/5 rounded-2xl gap-4 hover:border-cyan-500/20 transition-all duration-300">
+                        <div class="flex items-center gap-4">
+                            <div class="h-12 w-12 bg-amber-500/10 text-amber-400 rounded-2xl flex items-center justify-center text-xl flex-shrink-0">
+                                <i class="fas fa-wallet"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-base font-bold text-white">What is your parent's approximate annual income?</h4>
+                                <p class="text-[#7f999c] text-xs">This helps us suggest better career paths.</p>
+                            </div>
+                        </div>
+                        <div class="w-full md:w-80">
+                            <input type="text" name="parent_income" required placeholder="Enter income in numbers (e.g. 800000)" 
+                                class="w-full px-4 py-3 rounded-xl border border-white/10 bg-black/40 text-white placeholder-slate-600 focus:border-cyan-400 focus:outline-none text-sm transition-all">
+                            <div class="error-msg text-red-400 text-xs mt-1 hidden">Please enter a valid numeric income (number only).</div>
+                        </div>
+                    </div>
+
+                    <!-- Row 5: Parent Occupation -->
+                    <div class="flex flex-col md:flex-row md:items-center justify-between p-5 bg-white/5 border border-white/5 rounded-2xl gap-4 hover:border-cyan-500/20 transition-all duration-300">
+                        <div class="flex items-center gap-4">
+                            <div class="h-12 w-12 bg-emerald-500/10 text-emerald-400 rounded-2xl flex items-center justify-center text-xl flex-shrink-0">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-base font-bold text-white">What do your parents do?</h4>
+                                <p class="text-[#7f999c] text-xs">Select their primary occupation.</p>
+                            </div>
+                        </div>
+                        <div class="w-full md:w-80">
+                            <input type="text" name="parent_occupation" required placeholder="Enter parents' occupation (e.g. Service)" 
+                                class="w-full px-4 py-3 rounded-xl border border-white/10 bg-black/40 text-white placeholder-slate-600 focus:border-cyan-400 focus:outline-none text-sm transition-all">
+                            <div class="error-msg text-red-400 text-xs mt-1 hidden">Please enter parent's occupation.</div>
+                        </div>
+                    </div>
+
+                    <!-- Footer Control Bar -->
+                    <div class="flex justify-between items-center pt-6 border-t border-white/5 mt-8">
+                        <div class="text-xs font-bold text-[#7f999c] uppercase tracking-widest flex items-center gap-2">
+                            <i class="fas fa-shield-alt text-cyan-400"></i> Secure & Confidential
+                        </div>
+                        <button type="submit" id="intake-submit-btn" class="px-8 py-3.5 rounded-xl bg-gradient-to-r from-cyan-400 to-indigo-500 hover:brightness-110 text-white font-extrabold transition-all text-sm flex items-center gap-2 shadow-lg shadow-cyan-500/20">
+                            Save & Continue <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </form>
             </div>
         `;
+    }
+
+    async function submitIntakeForm(event) {
+        event.preventDefault();
+        const form = event.target;
+        const submitBtn = document.getElementById("intake-submit-btn");
         
-        // Initial intake message from Alex
-        addIntakeBubble("Hello! I'm Alex, your career mentor. Let's start with your name. What's your name?", "ai");
-    }
-
-    function addIntakeBubble(text, role) {
-        const box = document.getElementById("intake-chat-box");
-        if (!box) return;
-        const bubble = document.createElement("div");
-        bubble.className = `chat-bubble console-bubble ${role === 'ai' ? 'ai mentor' : 'user'}`;
-        bubble.innerText = role === 'ai' ? `SYS_PROMPT> ${text}` : `USR_INPUT> ${text}`;
-        box.appendChild(bubble);
-        box.scrollTop = box.scrollHeight;
-    }
-
-    async function sendIntakeMessage() {
-        const input = document.getElementById("intake-input");
-        const btn = document.getElementById("intake-send-btn");
-        if (!input || !btn) return;
-        const msg = input.value.trim();
-        if (!msg) return;
-
-        input.value = "";
-        addIntakeBubble(msg, "user");
-
-        input.disabled = true;
-        btn.disabled = true;
+        const nameVal = form.name.value.trim();
+        const pursuingVal = form.pursuing.value.trim();
+        const interestsVal = form.interests.value.trim();
+        const incomeRaw = form.parent_income.value.trim().replace(/,/g, '');
+        const occupationVal = form.parent_occupation.value.trim();
+        
+        let isValid = true;
+        
+        function toggleError(inputName, show) {
+            const input = form[inputName];
+            const error = input.nextElementSibling;
+            if (show) {
+                input.classList.add("border-red-400");
+                error.classList.remove("hidden");
+                isValid = false;
+            } else {
+                input.classList.remove("border-red-400");
+                error.classList.add("hidden");
+            }
+        }
+        
+        if (nameVal.length < 2) {
+            toggleError("name", true);
+        } else {
+            toggleError("name", false);
+        }
+        
+        if (pursuingVal.length < 2) {
+            toggleError("pursuing", true);
+        } else {
+            toggleError("pursuing", false);
+        }
+        
+        if (interestsVal.length < 2) {
+            toggleError("interests", true);
+        } else {
+            toggleError("interests", false);
+        }
+        
+        const incomeNum = Number(incomeRaw);
+        if (incomeRaw === "" || isNaN(incomeNum) || incomeNum <= 0) {
+            toggleError("parent_income", true);
+        } else {
+            toggleError("parent_income", false);
+        }
+        
+        if (occupationVal.length < 2) {
+            toggleError("parent_occupation", true);
+        } else {
+            toggleError("parent_occupation", false);
+        }
+        
+        if (!isValid) return;
+        
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `<i class="fas fa-spinner animate-spin"></i> Processing...`;
         
         document.getElementById("bottom-status").innerHTML = `<span class="h-2 w-2 rounded-full bg-cyan-400 animate-ping"></span> Querying extraction pipeline...`;
-
+        
         try {
             const res = await fetch("/assessment/api/intake", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message: msg })
+                body: JSON.stringify({
+                    name: nameVal,
+                    pursuing: pursuingVal,
+                    interests: interestsVal,
+                    parent_income: incomeNum,
+                    parent_occupation: occupationVal
+                })
             });
             const data = await res.json();
             
             document.getElementById("bottom-status").innerHTML = `<span class="h-2 w-2 rounded-full bg-cyan-400 animate-ping"></span> Sync Ready`;
             
             if (data.status === "success") {
-                addIntakeBubble(data.content, "ai");
-                
-                // Read AI voice synthesizer
-                const speech = new SpeechSynthesisUtterance(data.content);
-                const voices = speechSynth.getVoices();
-                const preferredVoice = voices.find(v => v.lang.startsWith("en-IN")) || voices.find(v => v.lang.startsWith("en"));
-                if (preferredVoice) speech.voice = preferredVoice;
-                speechSynth.speak(speech);
-
-                if (data.is_complete) {
-                    setTimeout(async () => {
-                        await refreshState();
-                    }, 1800);
-                } else {
-                    input.disabled = false;
-                    btn.disabled = false;
-                    input.focus();
-                }
+                setTimeout(async () => {
+                    await refreshState();
+                }, 800);
+            } else {
+                alert("Failed to submit intake. Please verify your data and try again.");
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `Save & Continue <i class="fas fa-arrow-right"></i>`;
             }
         } catch (e) {
             console.error(e);
             document.getElementById("bottom-status").innerHTML = `Extraction Error`;
-            input.disabled = false;
-            btn.disabled = false;
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = `Save & Continue <i class="fas fa-arrow-right"></i>`;
         }
     }
 

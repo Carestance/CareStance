@@ -1263,6 +1263,58 @@ async def assessment_api_intake(request: Request, payload: dict, db: AsyncSessio
     if not result or result.student_type != "12th":
         raise HTTPException(status_code=404, detail="Assessment not found or invalid type")
         
+    # Check if payload is from the new form submission
+    if "name" in payload and "pursuing" in payload and "interests" in payload:
+        name = payload.get("name", "").strip()
+        pursuing = payload.get("pursuing", "").strip()
+        interests = payload.get("interests", "").strip()
+        try:
+            parent_income = float(payload.get("parent_income", 0))
+        except (ValueError, TypeError):
+            raise HTTPException(status_code=400, detail="Invalid parent income type")
+        parent_occupation = payload.get("parent_occupation", "").strip()
+        
+        # Validations
+        if not name or len(name) < 2:
+            raise HTTPException(status_code=400, detail="Invalid name")
+        if not pursuing or len(pursuing) < 2:
+            raise HTTPException(status_code=400, detail="Invalid pursuing status")
+        if not interests or len(interests) < 2:
+            raise HTTPException(status_code=400, detail="Invalid interests")
+        if parent_income <= 0:
+            raise HTTPException(status_code=400, detail="Invalid parent income value")
+        if not parent_occupation or len(parent_occupation) < 2:
+            raise HTTPException(status_code=400, detail="Invalid parent occupation")
+            
+        result.intake_name = name
+        result.intake_grade = 12
+        result.intake_stream = pursuing
+        result.raw_answers = {
+            "name": name,
+            "pursuing": pursuing,
+            "interests": interests,
+            "parent_income": parent_income,
+            "parent_occupation": parent_occupation
+        }
+        result.intake_turn = 3
+        result.current_phase = 1
+        
+        await db.commit()
+        
+        validation_payload = {
+            "student_metadata": {
+                "name": result.intake_name, 
+                "grade": result.intake_grade, 
+                "current_stream": result.intake_stream
+            }, 
+            "system_validation": {
+                "stream_lock_flag": True, 
+                "normalization_confidence": 0.95
+            }
+        }
+        return {"status": "success", "content": "Metadata locked. Transitioning to Phase 1.", "is_complete": True, "payload": validation_payload}
+
+    # Fallback to legacy chat interface payload
     user_message = payload.get("message", "").strip()
     
     # Extract metadata using service
