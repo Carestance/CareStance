@@ -177,7 +177,7 @@
         box-shadow: 0 4px 12px rgba(13, 148, 136, 0.1);
     }
 
-    /* Fira Code Style for Console logs (Phase 0) */
+    /* Fira Code Style for Console logs */
     .console-bubble {
         font-family: 'Fira Code', 'Courier New', monospace;
         font-size: 0.85rem;
@@ -371,7 +371,7 @@
         <div class="flex items-center gap-4">
             <div class="w-20 h-20 flex-shrink-0 relative">
                 <div class="absolute inset-0 bg-teal-500/10 rounded-full blur-md animate-pulse"></div>
-                <img src="/static/images/careo.png?v=101" alt="Careo Mascot" class="w-full h-full object-contain relative z-10">
+                <img src="/static/images/careo.png" alt="Careo Mascot" class="w-full h-full object-contain relative z-10">
             </div>
             <div>
                 <h1 class="text-2xl font-extrabold text-slate-900">Careo</h1>
@@ -424,18 +424,16 @@
 </div>
 
 <script>
-
-    
-    const phase1Inputs = {{ phase1_inputs | default({}) | tojson | safe }};
-    const interestOptions = Object.keys(phase1Inputs.interest_selection_mapping || {}).sort();
-    const incomeOptions = Object.keys(phase1Inputs.family_income_mapping || {});
-    const occupationOptions = Object.keys(phase1Inputs.occupation_category_mapping || {}).sort();
-
     let assessmentState = {};
     let activePhaseData = null;
     let swipeLogs = [];
     let swipeCards = [];
     let activeSwipeIndex = 0;
+    let activeScenarioIdx = 0;
+    const phase1Inputs = {{ phase1_inputs | default({}) | tojson | safe }};
+    const interestOptions = Object.keys(phase1Inputs.interest_selection_mapping || {}).sort();
+    const incomeOptions = Object.keys(phase1Inputs.family_income_mapping || {});
+    const occupationOptions = Object.keys(phase1Inputs.occupation_category_mapping || {}).sort();
     
     // Voice synthesizers
     let speechSynth = window.speechSynthesis;
@@ -485,23 +483,14 @@
         if (gradeTitle) {
             gradeTitle.innerText = isG12 ? "Grade 12 Career Track" : "Grade 10 Stream Planner";
         }
-        
-        let phaseName = "Student Information Intake";
-        if (assessmentState.current_phase === 1) phaseName = "Behavioral Assessment";
-        if (assessmentState.current_phase === 2) phaseName = "Career Matching";
-        
-        document.getElementById("phase-step-label").innerText = phaseName;
+        document.getElementById("phase-step-label").innerText = `Student Information Intake`;
         
         // Progress percentage calculation
-        let percent = 33;
-        if (assessmentState.current_phase === 1) percent = 66;
-        if (assessmentState.current_phase === 2) percent = 100;
-        
-        document.getElementById("global-progress-fill").style.width = `${percent}%`;
+        document.getElementById("global-progress-fill").style.width = `100%`;
         
         const subtitleTracker = document.getElementById("subtitle-tracker");
         if (subtitleTracker) {
-            subtitleTracker.innerText = phaseName;
+            subtitleTracker.innerText = isG12 ? "Student Information Intake" : "Student Information Intake";
         }
     }
 
@@ -520,11 +509,29 @@
             } else if (phase === 1) {
                 renderPhase2MCQs();
             } else if (phase === 2) {
-                // Redirect to Phase 3 Career Buddy
-                window.location.href = "/assessment/phase3";
-            } else if (phase === 5) {
-                renderCompilePhase();
+                const body = document.getElementById("phase-body");
+                body.innerHTML = `
+                    <div class="text-center p-8 sm:p-12">
+                        <i class="fas fa-check-circle text-6xl text-teal-500 mb-6 drop-shadow-lg"></i>
+                        <h2 class="text-3xl font-black text-slate-900 mb-2">Assessment Completed</h2>
+                        <p class="text-slate-500 mb-8 max-w-md mx-auto">Your responses have been processed. You are now ready for the Deep Dive phase with your AI Career Mentor.</p>
+                        
+                        <div class="space-y-4 max-w-sm mx-auto">
+                            <a href="/assessment/phase3?mode=voice" style="background-color: #0f766e; color: white; border: none;" class="w-full flex items-center justify-center gap-3 px-8 py-4 rounded-2xl font-bold shadow-xl transition-all hover:scale-[1.02] active:scale-95">
+                                <span class="text-2xl">🎙️</span>
+                                Voice Interaction (Recommended)
+                            </a>
+                            
+                            <a href="/assessment/phase3?mode=chat" style="background-color: white; color: #0f766e; border: 2px solid #0f766e;" class="w-full flex items-center justify-center gap-3 px-8 py-4 rounded-2xl font-bold shadow-sm transition-all hover:scale-[1.02] active:scale-95">
+                                <span class="text-2xl">💬</span>
+                                Text Chat Interaction
+                            </a>
+                        </div>
+                    </div>
+                `;
                 hideLoader();
+            } else {
+                window.location.href = "/dashboard";
             }
         } catch (e) {
             console.error("Critical failure during question load state", e);
@@ -532,38 +539,35 @@
         }
     }
 
-    function speakActivePrompt() {}
-
-
-    // --- PHASE 0: CLINICAL CONVERSATIONAL INTAKE ---
-
-    function toggleInterest(val, btn) {
-        const select = document.getElementById('hidden-interests');
-        let option = Array.from(select.options).find(opt => opt.value === val);
-        if (!option) return;
-        
-        if (option.selected) {
-            option.selected = false;
-            btn.classList.remove('bg-teal-600', 'text-white', 'border-teal-600', 'shadow-md');
-            btn.classList.add('text-slate-600', 'border-slate-200', 'hover:bg-slate-50', 'hover:border-teal-300');
-        } else {
-            if (select.selectedOptions.length >= 4) {
-                btn.classList.add('animate-pulse', 'bg-red-50', 'border-red-300');
-                setTimeout(() => btn.classList.remove('animate-pulse', 'bg-red-50', 'border-red-300'), 400);
-                return;
-            }
-            option.selected = true;
-            btn.classList.add('bg-teal-600', 'text-white', 'border-teal-600', 'shadow-md');
-            btn.classList.remove('text-slate-600', 'border-slate-200', 'hover:bg-slate-50', 'hover:border-teal-300');
+    function speakActivePrompt() {
+        if (speechSynth.speaking) {
+            speechSynth.cancel();
+            return;
         }
         
-        if (select.selectedOptions.length > 0) {
-            const container = document.getElementById('interests-container');
-            if(container) container.classList.remove('border-red-400');
-            const err = container?.parentElement?.querySelector('.error-msg');
-            if(err) err.classList.add('hidden');
+        let text = "";
+        const phase = assessmentState.current_phase;
+        
+        if (phase === 1) {
+            const activeCard = swipeCards[activeSwipeIndex];
+            if (activeCard) text = activeCard.content || activeCard.text || "";
+        } else {
+            const pText = document.querySelector("#phase-body h2, #phase-body p");
+            if (pText) text = pText.innerText;
+        }
+
+        if (text) {
+            // strip console prefixes
+            text = text.replace(/^SYS_PROMPT>\s*/, '');
+            activeUtterance = new SpeechSynthesisUtterance(text);
+            const voices = speechSynth.getVoices();
+            const preferredVoice = voices.find(v => v.lang.startsWith("en-IN")) || voices.find(v => v.lang.startsWith("en"));
+            if (preferredVoice) activeUtterance.voice = preferredVoice;
+            speechSynth.speak(activeUtterance);
         }
     }
+
+    // --- PHASE 1: STUDENT INTAKE ---
     function renderIntakePhase() {
         const body = document.getElementById("phase-body");
         body.innerHTML = `
@@ -842,33 +846,58 @@
         }
     }
 
-    // --- PHASE 1: REFLEX PREFERENCE CARD SWIPES (BOTH) ---
-    
+    window.toggleInterest = function(value, btn) {
+        const select = document.getElementById('hidden-interests');
+        const option = Array.from(select.options).find(o => o.value === value);
+        
+        if (option.selected) {
+            option.selected = false;
+            btn.classList.remove('bg-teal-600', 'text-white', 'border-teal-600', 'shadow-md');
+            btn.classList.add('text-slate-600', 'border-slate-200', 'hover:bg-slate-50', 'hover:border-teal-300');
+        } else {
+            if (select.selectedOptions.length >= 4) {
+                // Flash to indicate max 4
+                btn.classList.add('animate-pulse', 'bg-red-50', 'border-red-300');
+                setTimeout(() => btn.classList.remove('animate-pulse', 'bg-red-50', 'border-red-300'), 400);
+                return;
+            }
+            option.selected = true;
+            btn.classList.add('bg-teal-600', 'text-white', 'border-teal-600', 'shadow-md');
+            btn.classList.remove('text-slate-600', 'border-slate-200', 'hover:bg-slate-50', 'hover:border-teal-300');
+        }
+        
+        // Clear error visually if selected
+        if (select.selectedOptions.length > 0) {
+            const container = document.getElementById('interests-container');
+            container.classList.remove('border-red-400');
+            container.parentElement.querySelector('.error-msg').classList.add('hidden');
+        }
+    };
 
-    // --- PHASE 1: BEHAVIORAL MCQs ---
+    // --- PHASE 2: BEHAVIORAL MCQs ---
     let phase2Questions = [];
     let currentQuestionIdx = 0;
     let phase2Answers = [];
-    let currentLang = 'en';
+    let currentLang = 'en'; // Default language
 
     window.togglePhase2Lang = function(lang) {
         currentLang = lang;
+        // Update visibility of text elements
         document.querySelectorAll('.lang-en').forEach(el => el.classList.toggle('hidden', lang !== 'en'));
         document.querySelectorAll('.lang-hi').forEach(el => el.classList.toggle('hidden', lang !== 'hi'));
         
+        // Update toggle button styles
         const btnEn = document.getElementById('btn-lang-en');
         const btnHi = document.getElementById('btn-lang-hi');
         const activeClass = "px-4 py-1.5 text-sm font-bold rounded-full bg-teal-600 text-white shadow-sm transition-all";
         const inactiveClass = "px-4 py-1.5 text-sm font-medium rounded-full bg-white text-slate-500 border border-slate-200 hover:bg-slate-50 transition-all";
         
-        if (btnEn && btnHi) {
-            if (lang === 'en') {
-                btnEn.className = activeClass;
-                btnHi.className = inactiveClass;
-            } else {
-                btnEn.className = inactiveClass;
-                btnHi.className = activeClass;
-            }
+        if (lang === 'en') {
+            btnEn.className = activeClass;
+            btnHi.className = inactiveClass;
+        } else {
+            btnEn.className = inactiveClass;
+            btnHi.className = activeClass;
         }
     };
 
@@ -899,13 +928,16 @@
             submitPhase2Answers();
             return;
         }
-
+        
+        document.getElementById("phase-step-label").innerText = `Behavioral Assessment (${currentQuestionIdx + 1}/${phase2Questions.length})`;
+        document.getElementById("global-progress-fill").style.width = `${((currentQuestionIdx) / phase2Questions.length) * 100}%`;
+        
         const q = phase2Questions[currentQuestionIdx];
         
         const enClass = currentLang === 'en' ? "px-4 py-1.5 text-sm font-bold rounded-full bg-teal-600 text-white shadow-sm transition-all" : "px-4 py-1.5 text-sm font-medium rounded-full bg-white text-slate-500 border border-slate-200 hover:bg-slate-50 transition-all";
         const hiClass = currentLang === 'hi' ? "px-4 py-1.5 text-sm font-bold rounded-full bg-teal-600 text-white shadow-sm transition-all" : "px-4 py-1.5 text-sm font-medium rounded-full bg-white text-slate-500 border border-slate-200 hover:bg-slate-50 transition-all";
         
-        let optionsHtml = q.options.map((opt) => `
+        let optionsHtml = q.options.map((opt, idx) => `
             <button onclick="selectPhase2Option('${opt.archetype_id}', this)" class="w-full text-left p-4 rounded-xl border border-slate-200 bg-white hover:border-teal-500 hover:bg-teal-50 hover:shadow-md transition-all duration-300 group">
                 <div class="flex items-start gap-4">
                     <div class="h-8 w-8 shrink-0 rounded-full border-2 border-slate-200 group-hover:border-teal-500 flex items-center justify-center text-teal-600 transition-colors mt-0.5">
@@ -942,18 +974,30 @@
     }
 
     window.selectPhase2Option = function(archetypeId, btn) {
+        // Prevent double click
         if (btn.disabled) return;
+        
+        // Highlight button
+        const buttons = btn.parentElement.querySelectorAll("button");
+        buttons.forEach(b => {
+            b.classList.remove("border-teal-500", "bg-teal-50");
+            b.querySelector(".h-8").classList.remove("border-teal-500");
+            b.querySelector(".h-8 span").classList.remove("opacity-100");
+            b.disabled = true; // Disable all to prevent multi-select
+        });
         
         btn.classList.add("border-teal-500", "bg-teal-50");
         btn.querySelector(".h-8").classList.add("border-teal-500");
         btn.querySelector(".h-8 span").classList.add("opacity-100");
         
+        // Save answer
         const q = phase2Questions[currentQuestionIdx];
         phase2Answers.push({
             question_id: q.id,
             archetype_id: archetypeId
         });
         
+        // Next question
         setTimeout(() => {
             currentQuestionIdx++;
             renderCurrentMCQ();
@@ -981,57 +1025,5 @@
             alert("Network error.");
         }
     }
-
-
-    // --- PHASE 2: COMPILING RESULTS ---
-function renderCompilePhase() {
-        const body = document.getElementById("phase-body");
-        body.innerHTML = `
-            <div class="text-center py-10 flex flex-col items-center justify-center stagger-in">
-                <div class="relative flex items-center justify-center mb-8">
-                    <div class="animate-ping absolute inline-flex h-20 w-20 rounded-full bg-teal-500 opacity-20"></div>
-                    <div class="w-20 h-20 rounded-full bg-gradient-to-tr from-teal-500 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-teal-600/10">
-                        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
-                    </div>
-                </div>
-                <h2 class="text-2xl font-extrabold text-slate-900">Shadow Compilation Ready</h2>
-                <p class="text-slate-500 max-w-md mt-3 text-sm leading-relaxed">Your reflex latency indices, RIASEC profiles, geographical variables, and ego coefficients are consolidated.</p>
-                
-                <button onclick="compileFinalResults()" id="compile-btn" class="mt-8 px-12 py-4 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-extrabold transition-all shadow-md shadow-teal-600/10 hover:scale-105 active:scale-95 tracking-widest uppercase text-xs">Execute Matrix Compilation</button>
-                <p id="compiling-indicator" class="hidden text-teal-600 font-bold mt-5 animate-pulse text-xs tracking-widest uppercase">Formulating career fit projections...</p>
-            </div>
-        `;
-    }
-
-    async function compileFinalResults() {
-        const btn = document.getElementById("compile-btn");
-        const ind = document.getElementById("compiling-indicator");
-        if (btn) btn.disabled = true;
-        if (btn) btn.classList.add("opacity-40", "cursor-not-allowed");
-        if (ind) ind.classList.remove("hidden");
-        
-        try {
-            const res = await fetch("/assessment/api/compile", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" }
-            });
-            const data = await res.json();
-            if (data.status === "success") {
-                window.location.href = data.redirect;
-            } else {
-                alert("Compilation failed. Please try resetting assessment progress.");
-                if (btn) btn.disabled = false;
-                if (btn) btn.classList.remove("opacity-40", "cursor-not-allowed");
-                if (ind) ind.classList.add("hidden");
-            }
-        } catch (e) {
-            console.error(e);
-            alert("Matrix Compilation Error. Check local gateway connections.");
-            if (btn) btn.disabled = false;
-            if (btn) btn.classList.remove("opacity-40", "cursor-not-allowed");
-            if (ind) ind.classList.add("hidden");
-        }
-    }
-
 </script>
 {% endblock %}

@@ -1,0 +1,1077 @@
+diff --git a/frontend/templates/assessment.html b/frontend/templates/assessment.html
+index 67cd4c3..6afb8fd 100644
+--- a/frontend/templates/assessment.html
++++ b/frontend/templates/assessment.html
+@@ -430,8 +430,11 @@
+     let swipeCards = [];
+     let activeSwipeIndex = 0;
+     let activeScenarioIdx = 0;
+-    const total = (activePhaseData.scenarios || []).length;
+-    const sc = activePhaseData.scenarios[activeScenarioIdx];
++    const phase1Inputs = {{ phase1_inputs | default({}) | tojson | safe }};
++    const interestOptions = Object.keys(phase1Inputs.interest_selection_mapping || {}).sort();
++    const incomeOptions = Object.keys(phase1Inputs.family_income_mapping || {});
++    const occupationOptions = Object.keys(phase1Inputs.occupation_category_mapping || {}).sort();
++    
+     // Voice synthesizers
+     let speechSynth = window.speechSynthesis;
+     let activeUtterance = null;
+@@ -475,22 +478,19 @@
+ 
+     function updateHeader() {
+         const isG12 = assessmentState.student_type === "12th";
+-        const totalPhases = assessmentState.total_phases || 5;
+-        const currentLabelVal = assessmentState.display_phase || 1;
+         
+         const gradeTitle = document.getElementById("grade-title");
+         if (gradeTitle) {
+             gradeTitle.innerText = isG12 ? "Grade 12 Career Track" : "Grade 10 Stream Planner";
+         }
+-        document.getElementById("phase-step-label").innerText = `Phase ${currentLabelVal} of ${totalPhases}`;
++        document.getElementById("phase-step-label").innerText = `Student Information Intake`;
+         
+         // Progress percentage calculation
+-        const percent = Math.round((currentLabelVal / totalPhases) * 100);
+-        document.getElementById("global-progress-fill").style.width = `${percent}%`;
++        document.getElementById("global-progress-fill").style.width = `100%`;
+         
+         const subtitleTracker = document.getElementById("subtitle-tracker");
+         if (subtitleTracker) {
+-            subtitleTracker.innerText = isG12 ? "Advanced Multi-Phase Diagnostic Flow" : "Interactive Stream Strategy Matrix";
++            subtitleTracker.innerText = isG12 ? "Student Information Intake" : "Student Information Intake";
+         }
+     }
+ 
+@@ -500,26 +500,39 @@
+         if (speechSynth.speaking) speechSynth.cancel();
+ 
+         try {
+-            const res = await fetch("/assessment/api/questions");
+-            activePhaseData = await res.json();
+-            
+             const body = document.getElementById("phase-body");
+             body.innerHTML = "";
+ 
+             if (phase === 0) {
+                 renderIntakePhase();
++                hideLoader();
+             } else if (phase === 1) {
+-                renderSwipePhase();
++                renderPhase2MCQs();
+             } else if (phase === 2) {
+-                await refreshState();
+-            } else if (phase === 3) {
+-                renderProxyPhase();
+-            } else if (phase === 4) {
+-                renderSequencePlannerPhase();
+-            } else if (phase === 5) {
+-                renderCompilePhase();
++                const body = document.getElementById("phase-body");
++                body.innerHTML = `
++                    <div class="text-center p-8 sm:p-12">
++                        <i class="fas fa-check-circle text-6xl text-teal-500 mb-6 drop-shadow-lg"></i>
++                        <h2 class="text-3xl font-black text-slate-900 mb-2">Assessment Completed</h2>
++                        <p class="text-slate-500 mb-8 max-w-md mx-auto">Your responses have been processed. You are now ready for the Deep Dive phase with your AI Career Mentor.</p>
++                        
++                        <div class="space-y-4 max-w-sm mx-auto">
++                            <a href="/assessment/phase3?mode=voice" style="background-color: #0f766e; color: white; border: none;" class="w-full flex items-center justify-center gap-3 px-8 py-4 rounded-2xl font-bold shadow-xl transition-all hover:scale-[1.02] active:scale-95">
++                                <span class="text-2xl">🎙️</span>
++                                Voice Interaction (Recommended)
++                            </a>
++                            
++                            <a href="/assessment/phase3?mode=chat" style="background-color: white; color: #0f766e; border: 2px solid #0f766e;" class="w-full flex items-center justify-center gap-3 px-8 py-4 rounded-2xl font-bold shadow-sm transition-all hover:scale-[1.02] active:scale-95">
++                                <span class="text-2xl">💬</span>
++                                Text Chat Interaction
++                            </a>
++                        </div>
++                    </div>
++                `;
++                hideLoader();
++            } else {
++                window.location.href = "/dashboard";
+             }
+-            hideLoader();
+         } catch (e) {
+             console.error("Critical failure during question load state", e);
+             hideLoader();
+@@ -617,50 +630,108 @@
+                                 <i class="fas fa-star"></i>
+                             </div>
+                             <div>
+-                                <h4 class="text-base font-bold text-slate-900">What are your areas of interest?</h4>
+-                                <p class="text-slate-400 text-xs">Select all that interest you.</p>
++                                <h4 class="text-base font-bold text-slate-900">Which areas interest you the most?</h4>
++                                <p class="text-slate-400 text-xs">Choose up to four areas you would enjoy exploring.</p>
+                             </div>
+                         </div>
+                         <div class="w-full md:w-80">
+-                            <input type="text" name="interests" required placeholder="Enter interests (e.g. Technology, Art)" 
+-                                class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder-slate-400 focus:border-teal-500 focus:bg-white focus:outline-none text-sm transition-all">
+-                            <div class="error-msg text-red-500 text-xs mt-1 hidden">Please enter your interests.</div>
++                            <select name="interests" multiple required class="hidden" id="hidden-interests">
++                                ${interestOptions.map(opt => `<option value="${opt}">${opt}</option>`).join("")}
++                            </select>
++                            <div class="flex flex-wrap gap-2 max-h-52 overflow-y-auto p-1 border-2 border-transparent rounded-xl" id="interests-container">
++                                ${interestOptions.map(opt => `
++                                    <button type="button" 
++                                        onclick="toggleInterest('${opt}', this)"
++                                        class="px-3 py-1.5 rounded-full border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:border-teal-300 transition-all text-left select-none">
++                                        ${opt}
++                                    </button>
++                                `).join("")}
++                            </div>
++                            <div class="text-xs text-slate-400 mt-2">Select up to 4 areas</div>
++                            <div class="error-msg text-red-500 text-xs mt-1 hidden">Please select 1 to 4 interests.</div>
+                         </div>
+                     </div>
+ 
+-                    <!-- Row 4: Parent Income -->
++                    <!-- Row 4: Family Income -->
+                     <div class="flex flex-col md:flex-row md:items-center justify-between p-5 bg-slate-50/40 border border-slate-100 rounded-2xl gap-4 hover:border-teal-500/10 transition-all duration-300">
+                         <div class="flex items-center gap-4">
+                             <div class="h-12 w-12 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center text-xl flex-shrink-0">
+-                                <i class="fas fa-wallet"></i>
++                                <i class="fas fa-money-bill-wave"></i>
+                             </div>
+                             <div>
+-                                <h4 class="text-base font-bold text-slate-900">What is your parent's approximate annual income?</h4>
+-                                <p class="text-slate-400 text-xs">This helps us suggest better career paths.</p>
++                                <h4 class="text-base font-bold text-slate-900">Family Income Range</h4>
++                                <p class="text-slate-400 text-xs">Select your family's annual income bracket.</p>
+                             </div>
+                         </div>
+                         <div class="w-full md:w-80">
+-                            <input type="text" name="parent_income" required placeholder="Enter income in numbers (e.g. 800000)" 
+-                                class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder-slate-400 focus:border-teal-500 focus:bg-white focus:outline-none text-sm transition-all">
+-                            <div class="error-msg text-red-500 text-xs mt-1 hidden">Please enter a valid numeric income (number only).</div>
++                            <select name="family_income" required class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:border-teal-500 focus:outline-none text-sm transition-all">
++                                <option value="" disabled selected>Select an option...</option>
++                                ${incomeOptions.map(opt => `<option value="${opt}">${opt}</option>`).join("")}
++                            </select>
++                            <div class="error-msg text-red-500 text-xs mt-1 hidden">Please select an income range.</div>
+                         </div>
+                     </div>
+ 
+-                    <!-- Row 5: Parent Occupation -->
++                    <!-- Row 5: Father's Occupation -->
+                     <div class="flex flex-col md:flex-row md:items-center justify-between p-5 bg-slate-50/40 border border-slate-100 rounded-2xl gap-4 hover:border-teal-500/10 transition-all duration-300">
+                         <div class="flex items-center gap-4">
+                             <div class="h-12 w-12 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center text-xl flex-shrink-0">
+-                                <i class="fas fa-users"></i>
++                                <i class="fas fa-user-tie"></i>
+                             </div>
+                             <div>
+-                                <h4 class="text-base font-bold text-slate-900">What do your parents do?</h4>
+-                                <p class="text-slate-400 text-xs">Select their primary occupation.</p>
++                                <h4 class="text-base font-bold text-slate-900">Father's Occupation</h4>
++                                <p class="text-slate-400 text-xs">Select primary occupation.</p>
+                             </div>
+                         </div>
+                         <div class="w-full md:w-80">
+-                            <input type="text" name="parent_occupation" required placeholder="Enter parents' occupation (e.g. Service)" 
+-                                class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder-slate-400 focus:border-teal-500 focus:bg-white focus:outline-none text-sm transition-all">
+-                            <div class="error-msg text-red-500 text-xs mt-1 hidden">Please enter parent's occupation.</div>
++                            <select name="father_occupation" required class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:border-teal-500 focus:outline-none text-sm transition-all">
++                                <option value="" disabled selected>Select an option...</option>
++                                ${occupationOptions.map(opt => `<option value="${opt}">${opt}</option>`).join("")}
++                            </select>
++                            <div class="error-msg text-red-500 text-xs mt-1 hidden">Please select an occupation.</div>
++                        </div>
++                    </div>
++
++                    <!-- Row 6: Mother's Occupation -->
++                    <div class="flex flex-col md:flex-row md:items-center justify-between p-5 bg-slate-50/40 border border-slate-100 rounded-2xl gap-4 hover:border-teal-500/10 transition-all duration-300">
++                        <div class="flex items-center gap-4">
++                            <div class="h-12 w-12 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center text-xl flex-shrink-0">
++                                <i class="fas fa-user-nurse"></i>
++                            </div>
++                            <div>
++                                <h4 class="text-base font-bold text-slate-900">Mother's Occupation</h4>
++                                <p class="text-slate-400 text-xs">Select primary occupation.</p>
++                            </div>
++                        </div>
++                        <div class="w-full md:w-80">
++                            <select name="mother_occupation" required class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:border-teal-500 focus:outline-none text-sm transition-all">
++                                <option value="" disabled selected>Select an option...</option>
++                                ${occupationOptions.map(opt => `<option value="${opt}">${opt}</option>`).join("")}
++                            </select>
++                            <div class="error-msg text-red-500 text-xs mt-1 hidden">Please select an occupation.</div>
++                        </div>
++                    </div>
++
++                    <!-- Row 7: Salary Priority (Career Choice) -->
++                    <div class="flex flex-col md:flex-row md:items-center justify-between p-5 bg-slate-50/40 border border-slate-100 rounded-2xl gap-4 hover:border-teal-500/10 transition-all duration-300">
++                        <div class="flex items-center gap-4">
++                            <div class="h-12 w-12 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center text-xl flex-shrink-0">
++                                <i class="fas fa-wallet"></i>
++                            </div>
++                            <div>
++                                <h4 class="text-base font-bold text-slate-900">What matters most to you?</h4>
++                                <p class="text-slate-400 text-xs">When choosing a future career.</p>
++                            </div>
++                        </div>
++                        <div class="w-full md:w-80">
++                            <select name="salary_priority" required class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:border-teal-500 focus:outline-none text-sm transition-all">
++                                <option value="" disabled selected>Select an option...</option>
++                                <option value="high_salary">High salary and financial growth</option>
++                                <option value="balanced">A balance of salary, interest, and stability</option>
++                                <option value="meaningful_work">Interest, purpose, and meaningful work</option>
++                                <option value="unsure">I am still exploring</option>
++                            </select>
++                            <div class="error-msg text-red-500 text-xs mt-1 hidden">Please select a priority.</div>
+                         </div>
+                     </div>
+ 
+@@ -685,55 +756,53 @@
+         
+         const nameVal = form.name.value.trim();
+         const pursuingVal = form.pursuing.value.trim();
+-        const interestsVal = form.interests.value.trim();
+-        const incomeRaw = form.parent_income.value.trim().replace(/,/g, '');
+-        const occupationVal = form.parent_occupation.value.trim();
++        const interestsSelect = Array.from(form.interests.selectedOptions).map(opt => opt.value);
++        const familyIncomeVal = form.family_income.value;
++        const fatherOccupationVal = form.father_occupation.value;
++        const motherOccupationVal = form.mother_occupation.value;
++        const salaryPriorityVal = form.salary_priority.value;
+         
+         let isValid = true;
+         
+         function toggleError(inputName, show) {
+             const input = form[inputName];
+-            const error = input.nextElementSibling;
++            const error = (input.parentElement || document.getElementById('interests-container').parentElement).querySelector('.error-msg');
++            
++            let targetEl = input;
++            if (inputName === 'interests') {
++                targetEl = document.getElementById('interests-container');
++            }
++
+             if (show) {
+-                input.classList.add("border-red-400");
+-                error.classList.remove("hidden");
++                if (targetEl && targetEl.classList) targetEl.classList.add("border-red-400");
++                if (error) error.classList.remove("hidden");
+                 isValid = false;
+             } else {
+-                input.classList.remove("border-red-400");
+-                error.classList.add("hidden");
++                if (targetEl && targetEl.classList) targetEl.classList.remove("border-red-400");
++                if (error) error.classList.add("hidden");
+             }
+         }
+         
+-        if (nameVal.length < 2) {
+-            toggleError("name", true);
+-        } else {
+-            toggleError("name", false);
+-        }
++        if (nameVal.length < 2) toggleError("name", true);
++        else toggleError("name", false);
+         
+-        if (pursuingVal.length < 2) {
+-            toggleError("pursuing", true);
+-        } else {
+-            toggleError("pursuing", false);
+-        }
++        if (pursuingVal.length < 2) toggleError("pursuing", true);
++        else toggleError("pursuing", false);
+         
+-        if (interestsVal.length < 2) {
+-            toggleError("interests", true);
+-        } else {
+-            toggleError("interests", false);
+-        }
++        if (interestsSelect.length === 0) toggleError("interests", true);
++        else toggleError("interests", false);
+         
+-        const incomeNum = Number(incomeRaw);
+-        if (incomeRaw === "" || isNaN(incomeNum) || incomeNum <= 0) {
+-            toggleError("parent_income", true);
+-        } else {
+-            toggleError("parent_income", false);
+-        }
++        if (!familyIncomeVal) toggleError("family_income", true);
++        else toggleError("family_income", false);
+         
+-        if (occupationVal.length < 2) {
+-            toggleError("parent_occupation", true);
+-        } else {
+-            toggleError("parent_occupation", false);
+-        }
++        if (!fatherOccupationVal) toggleError("father_occupation", true);
++        else toggleError("father_occupation", false);
++        
++        if (!motherOccupationVal) toggleError("mother_occupation", true);
++        else toggleError("mother_occupation", false);
++        
++        if (!salaryPriorityVal) toggleError("salary_priority", true);
++        else toggleError("salary_priority", false);
+         
+         if (!isValid) return;
+         
+@@ -749,9 +818,11 @@
+                 body: JSON.stringify({
+                     name: nameVal,
+                     pursuing: pursuingVal,
+-                    interests: interestsVal,
+-                    parent_income: incomeNum,
+-                    parent_occupation: occupationVal
++                    interests: interestsSelect,
++                    family_income: familyIncomeVal,
++                    father_occupation: fatherOccupationVal,
++                    mother_occupation: motherOccupationVal,
++                    salary_priority: salaryPriorityVal
+                 })
+             });
+             const data = await res.json();
+@@ -775,173 +846,75 @@
+         }
+     }
+ 
+-    // --- PHASE 2: REFLEX PREFERENCE CARD SWIPES (BOTH) ---
+-    function renderSwipePhase() {
+-        swipeCards = activePhaseData.cards || [];
+-        activeSwipeIndex = 0;
+-        swipeLogs = [];
+-
+-        const body = document.getElementById("phase-body");
+-        body.innerHTML = `
+-            <div class="text-center mb-6 stagger-in">
+-                <span class="cyber-badge mb-2">Phase ${assessmentState.student_type === "12th" ? '2' : '1'}: Reflex Mapping</span>
+-                <h2 class="text-2xl font-bold mt-2 text-slate-900">Preference Cards</h2>
+-                <p class="text-slate-500 text-sm mt-1">Swipe right for yes, left for no. Your response speed and hesitation coordinates are measured.</p>
+-            </div>
+-            
+-            <div class="deck-container stagger-in" id="card-deck">
+-                <!-- Glowing telemetry cards loaded dynamically -->
+-            </div>
+-
+-            <div class="flex justify-center gap-6 mt-8 stagger-in">
+-                <button onclick="executeUiSwipe('left')" class="w-14 h-14 flex items-center justify-center rounded-full bg-indigo-50 border border-indigo-100 text-indigo-600 shadow-md hover:bg-indigo-100/80 hover:border-indigo-200 hover:scale-105 active:scale-95 transition-all duration-300">
+-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+-                </button>
+-                <button onclick="executeUiSwipe('right')" class="w-14 h-14 flex items-center justify-center rounded-full bg-teal-50 border border-teal-100 text-teal-600 shadow-md hover:bg-teal-100/80 hover:border-teal-200 hover:scale-105 active:scale-95 transition-all duration-300">
+-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+-                </button>
+-            </div>
+-            <div class="text-center mt-4 stagger-in">
+-                <span class="text-xs font-semibold text-slate-500" id="swipe-counter">0 / 0 Completed</span>
+-            </div>
+-        `;
+-        buildSwipeCards();
+-    }
+-
+-    let cardStartTime = Date.now();
+-    let isTransitioning = false;
+-
+-    function buildSwipeCards() {
+-        const deck = document.getElementById("card-deck");
+-        if (!deck) return;
+-        deck.innerHTML = "";
++    window.toggleInterest = function(value, btn) {
++        const select = document.getElementById('hidden-interests');
++        const option = Array.from(select.options).find(o => o.value === value);
+         
+-        const total = swipeCards.length;
+-        document.getElementById("swipe-counter").innerText = `${activeSwipeIndex} / ${total} Cards Analyzed`;
+-
+-        if (activeSwipeIndex >= total) {
+-            submitSwipeTelemetry();
+-            return;
+-        }
+-
+-        const cardsToShow = swipeCards.slice(activeSwipeIndex, activeSwipeIndex + 3);
+-        
+-        cardsToShow.forEach((c, idx) => {
+-            const cardEl = document.createElement("div");
+-            cardEl.className = "swipe-card";
+-            
+-            const scale = 1 - idx * 0.05;
+-            const yOffset = idx * 18;
+-            cardEl.style.transform = `translateY(${yOffset}px) scale(${scale})`;
+-            cardEl.style.zIndex = 100 - idx;
+-            
+-            cardEl.innerHTML = `
+-                <div>
+-                    <span class="px-2.5 py-1 bg-teal-50 text-teal-600 border border-teal-100 rounded-full text-[10px] font-bold tracking-widest uppercase">${c.category || 'OBJECTIVE'}</span>
+-                    <h3 class="text-xl font-bold mt-6 text-slate-900 leading-relaxed font-outfit">${c.content || c.text || ''}</h3>
+-                </div>
+-                <div class="flex justify-between items-center text-[10px] text-slate-400 font-bold tracking-wider pt-4 border-t border-slate-100">
+-                    <span>← SWIPE LEFT (NO)</span>
+-                    <span>SWIPE RIGHT (YES) →</span>
+-                </div>
+-            `;
+-            deck.appendChild(cardEl);
+-            if (idx === 0) {
+-                setupDragInteraction(cardEl);
++        if (option.selected) {
++            option.selected = false;
++            btn.classList.remove('bg-teal-600', 'text-white', 'border-teal-600', 'shadow-md');
++            btn.classList.add('text-slate-600', 'border-slate-200', 'hover:bg-slate-50', 'hover:border-teal-300');
++        } else {
++            if (select.selectedOptions.length >= 4) {
++                // Flash to indicate max 4
++                btn.classList.add('animate-pulse', 'bg-red-50', 'border-red-300');
++                setTimeout(() => btn.classList.remove('animate-pulse', 'bg-red-50', 'border-red-300'), 400);
++                return;
+             }
+-        });
+-        
+-        cardStartTime = Date.now();
+-        isTransitioning = false;
+-    }
+-
+-    function setupDragInteraction(el) {
+-        let startX = 0;
+-        let currentX = 0;
+-        
+-        el.addEventListener('mousedown', start);
+-        el.addEventListener('touchstart', start, {passive: true});
+-        
+-        function start(e) {
+-            startX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+-            document.addEventListener('mousemove', move);
+-            document.addEventListener('mouseup', end);
+-            document.addEventListener('touchmove', move, {passive: false});
+-            document.addEventListener('touchend', end);
++            option.selected = true;
++            btn.classList.add('bg-teal-600', 'text-white', 'border-teal-600', 'shadow-md');
++            btn.classList.remove('text-slate-600', 'border-slate-200', 'hover:bg-slate-50', 'hover:border-teal-300');
+         }
+         
+-        function move(e) {
+-            currentX = (e.type === 'touchmove' ? e.touches[0].clientX : e.clientX) - startX;
+-            el.style.transform = `translateX(${currentX}px) rotate(${currentX / 16}deg)`;
+-            
+-            if (currentX > 50) {
+-                el.classList.add('swiping-right'); el.classList.remove('swiping-left');
+-            } else if (currentX < -50) {
+-                el.classList.add('swiping-left'); el.classList.remove('swiping-right');
+-            } else {
+-                el.classList.remove('swiping-right', 'swiping-left');
+-            }
++        // Clear error visually if selected
++        if (select.selectedOptions.length > 0) {
++            const container = document.getElementById('interests-container');
++            container.classList.remove('border-red-400');
++            container.parentElement.querySelector('.error-msg').classList.add('hidden');
+         }
++    };
++
++    // --- PHASE 2: BEHAVIORAL MCQs ---
++    let phase2Questions = [];
++    let currentQuestionIdx = 0;
++    let phase2Answers = [];
++    let currentLang = 'en'; // Default language
++
++    window.togglePhase2Lang = function(lang) {
++        currentLang = lang;
++        // Update visibility of text elements
++        document.querySelectorAll('.lang-en').forEach(el => el.classList.toggle('hidden', lang !== 'en'));
++        document.querySelectorAll('.lang-hi').forEach(el => el.classList.toggle('hidden', lang !== 'hi'));
+         
+-        async function end() {
+-            document.removeEventListener('mousemove', move);
+-            document.removeEventListener('mouseup', end);
+-            document.removeEventListener('touchmove', move);
+-            document.removeEventListener('touchend', end);
+-            
+-            if (Math.abs(currentX) > 120) {
+-                const direction = currentX > 0 ? 'right' : 'left';
+-                handleSwipeTelemetry(direction);
+-            } else {
+-                el.style.transform = '';
+-                el.classList.remove('swiping-right', 'swiping-left');
+-            }
+-        }
+-    }
+-
+-    function executeUiSwipe(direction) {
+-        if (isTransitioning) return;
+-        isTransitioning = true;
+-
+-        const deck = document.getElementById("card-deck");
+-        const topCard = deck.querySelector(".swipe-card");
+-        if (!topCard) return;
+-
+-        topCard.classList.add(direction === "right" ? "swiped-right" : "swiped-left");
++        // Update toggle button styles
++        const btnEn = document.getElementById('btn-lang-en');
++        const btnHi = document.getElementById('btn-lang-hi');
++        const activeClass = "px-4 py-1.5 text-sm font-bold rounded-full bg-teal-600 text-white shadow-sm transition-all";
++        const inactiveClass = "px-4 py-1.5 text-sm font-medium rounded-full bg-white text-slate-500 border border-slate-200 hover:bg-slate-50 transition-all";
+         
+-        setTimeout(() => {
+-            handleSwipeTelemetry(direction);
+-        }, 200);
+-    }
+-
+-    function handleSwipeTelemetry(direction) {
+-        const endTime = Date.now();
+-        const duration = endTime - cardStartTime;
+-        const activeCard = swipeCards[activeSwipeIndex];
+-
+-        swipeLogs.push({
+-            card_id: activeCard.id,
+-            direction: direction,
+-            reaction_ms: Math.round(duration * 0.45),
+-            dwell_ms: duration,
+-            hesitation_ms: duration > 2000 ? Math.round((duration - 1000) * 0.75) : 0
+-        });
+-
+-        activeSwipeIndex++;
+-        buildSwipeCards();
+-    }
++        if (lang === 'en') {
++            btnEn.className = activeClass;
++            btnHi.className = inactiveClass;
++        } else {
++            btnEn.className = inactiveClass;
++            btnHi.className = activeClass;
++        }
++    };
+ 
+-    async function submitSwipeTelemetry() {
+-        showLoader("Syncing biometric preferences...");
++    async function renderPhase2MCQs() {
++        showLoader("Loading behavioral assessment...");
+         try {
+-            const res = await fetch("/assessment/api/swipe", {
+-                method: "POST",
+-                headers: { "Content-Type": "application/json" },
+-                body: JSON.stringify({ swipes: swipeLogs })
+-            });
++            const res = await fetch("/assessment/api/phase2_mcqs");
+             const data = await res.json();
+             if (data.status === "success") {
+-                await refreshState();
++                phase2Questions = data.mcqs;
++                currentQuestionIdx = 0;
++                phase2Answers = [];
++                hideLoader();
++                renderCurrentMCQ();
++            } else {
++                hideLoader();
++                alert("Failed to load questions.");
+             }
+         } catch (e) {
+             console.error(e);
+@@ -949,443 +922,107 @@
+         }
+     }
+ 
+-    // --- PHASE 2: ARCHETYPE DISCOVERY (BOTH) ---
+-    async function renderArchetypePhase() {
++    function renderCurrentMCQ() {
+         const body = document.getElementById("phase-body");
+-        const arch = activePhaseData.archetype || "The Seeker";
+-        const msg = activePhaseData.message || "Your biometric signatures have resolved into a unique cognitive archetype.";
+-        
+-        body.innerHTML = `
+-            <div class="text-center mb-8 stagger-in">
+-                <span class="cyber-badge mb-2">Phase 3: Cognitive Profile</span>
+-                <h2 class="text-3xl font-extrabold mt-2 text-slate-900 font-outfit">Your Archetype: ${arch}</h2>
+-                <p class="text-slate-500 text-sm mt-2 max-w-md mx-auto">${msg}</p>
+-            </div>
+-
+-            <div class="max-w-2xl mx-auto stagger-in" style="animation-delay: 0.2s;">
+-                <div class="bg-gradient-to-br from-teal-50 to-white border border-teal-100 rounded-3xl p-8 shadow-xl shadow-teal-900/5 relative overflow-hidden">
+-                    <div class="relative z-10">
+-                        <div class="w-20 h-20 bg-teal-600 rounded-2xl flex items-center justify-center text-white text-4xl mb-6 shadow-lg shadow-teal-500/30">
+-                            ${arch.includes("Founder") ? '🚀' : arch.includes("Architect") ? '🏢' : '🔬'}
+-                        </div>
+-                        <h3 class="text-xl font-bold text-slate-800 mb-4">Core Trait: Dominant Reflex</h3>
+-                        <p class="text-slate-600 leading-relaxed text-sm mb-8">
+-                            Based on your reaction times and dwell periods, your mind prioritizes structural integrity and creative leaps over standard conventional routes. You are naturally inclined towards problem-solving in high-autonomy environments.
+-                        </p>
+-                        
+-                        <button onclick="confirmArchetype()" id="arch-confirm-btn" class="w-full py-4 bg-teal-600 hover:bg-teal-700 text-white rounded-2xl font-extrabold transition-all shadow-lg shadow-teal-600/30 flex items-center justify-center gap-2">
+-                            <span>Lock Metadata & Continue</span>
+-                            <i class="fas fa-arrow-right"></i>
+-                        </button>
+-                    </div>
+-                </div>
+-            </div>
+-        `;
+-    }
+-
+-    async function confirmArchetype() {
+-        const btn = document.getElementById("arch-confirm-btn");
+-        btn.disabled = true;
+-        btn.innerHTML = `<i class="fas fa-spinner animate-spin"></i> Finalizing Profile...`;
+-        
+-        try {
+-            const res = await fetch("/assessment/api/archetype_confirm", { method: "POST" });
+-            const data = await res.json();
+-            if (data.status === "success") {
+-                await refreshState();
+-            }
+-        } catch (e) {
+-            console.error(e);
+-            btn.disabled = false;
+-        }
+-    }
+-
+-    // --- PHASE 3: ENVIRONMENTAL FIT PROXIES (BOTH) ---
+-    let proxyAnswersLog = [];
+-    let activeProxyIdx = 0;
+-
+-    function renderProxyPhase() {
+-        proxyAnswersLog = [];
+-        activeProxyIdx = 0;
+-        showProxyQuestion();
+-    }
+-
+-    function showProxyQuestion() {
+-        const total = activePhaseData.proxy_questions.length;
+-        if (activeProxyIdx >= total) {
+-            submitProxyAnswers();
++        if (currentQuestionIdx >= phase2Questions.length) {
++            submitPhase2Answers();
+             return;
+         }
+-
+-        const q = activePhaseData.proxy_questions[activeProxyIdx];
+-        const body = document.getElementById("phase-body");
+-        body.innerHTML = `
+-            <div class="text-center mb-6 stagger-in">
+-                <span class="cyber-badge mb-2">Phase ${assessmentState.student_type === "12th" ? '4' : '3'}: Socio-Demo Context</span>
+-                <h2 class="text-2xl font-bold mt-2 text-slate-900 leading-relaxed font-outfit">${q.question || q.question_text || q.text || ''}</h2>
+-                <p class="text-slate-500 text-sm mt-1">This evaluates external socioeconomic, digital infrastructure, and geographical limits.</p>
+-            </div>
+-
+-            <div class="grid grid-cols-1 gap-3 max-w-md mx-auto stagger-in" style="animation-delay: 0.1s;">
+-                ${(q.options || []).map(opt => `
+-                    <button onclick="handleProxySelection('${q.question_id || q.id}', '${opt.option_text || opt.text || ''}', ${opt.multiplier})" class="premium-option-btn w-full flex items-center justify-between group">
+-                        <span class="font-semibold text-slate-700 group-hover:text-teal-600">${opt.option_text || opt.text || ''}</span>
+-                        <svg class="w-5 h-5 text-slate-400 group-hover:text-teal-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+-                    </button>
+-                `).join('')}
+-            </div>
+-
+-            <div class="text-center mt-6 stagger-in">
+-                <span class="text-xs font-semibold text-slate-500">${activeProxyIdx} / ${total} Environmental Nodes Checked</span>
+-            </div>
+-        `;
+-    }
+-
+-    function handleProxySelection(qId, val, mult) {
+-        proxyAnswersLog.push({
+-            question_id: qId,
+-            answer: val,
+-            multiplier: mult
+-        });
+-        activeProxyIdx++;
+-        showProxyQuestion();
+-    }
+-
+-    async function submitProxyAnswers() {
+-        showLoader("Configuring environment arrays...");
+-        try {
+-            const res = await fetch("/assessment/api/proxy", {
+-                method: "POST",
+-                headers: { "Content-Type": "application/json" },
+-                body: JSON.stringify({ answers: proxyAnswersLog })
+-            });
+-            const data = await res.json();
+-            if (data.status === "success") {
+-                await refreshState();
+-            }
+-        } catch (e) {
+-            console.error(e);
+-            hideLoader();
+-        }
+-    }
+-
+-    // --- PHASE 4: SEQUENCE PLANNER TASK (BOTH) ---
+-    let phase4Items = [];
+-    let phase4Connections = [];
+-    let phase4NextId = 1;
+-    let phase4DraggedTool = null;
+-
+-    function renderScenariosPhase() {
+-        const task = activePhaseData.phase4_task || {};
+-        const phase4Json = activePhaseData.phase4_json || {};
+-        const tools = task.tools_required || (phase4Json.nodes || []).map(n => n.label) || [];
+-        const body = document.getElementById("phase-body");
+-        const taskData = activePhaseData.task || {};
+-        // The JSON uses 'task' as the scenario name field
+-        const scenarioTitle = taskData.task || "Design your strategic plan";
+-        const scenarioDesc = `Use the tools below to map how you would approach: "${scenarioTitle}". Connect them to show how they work together.`;
+-        const toolsRequired = taskData.tools_required || [];
+         
+-        // Reset state
+-        plannerWorkspaceItems = [];
+-        plannerConnections = [];
+-        nextPlannerId = 1;
+-        linkingMode = false;
+-        selectedSourceId = null;
+-        draggingNodeId = null;
+-        body.innerHTML = `
+-            <div class="stagger-in">
+-                <header class="flex flex-col gap-2 p-4 border-b border-slate-100 bg-slate-50/30 rounded-t-2xl">
+-                    <div class="flex items-center gap-2">
+-                        <span class="w-8 h-8 flex items-center justify-center bg-teal-100 text-teal-600 rounded-lg text-sm font-bold">4</span>
+-                        <h2 class="text-sm font-bold text-slate-800 uppercase tracking-widest">Phase 4: Strategy Planner</h2>
++        document.getElementById("phase-step-label").innerText = `Behavioral Assessment (${currentQuestionIdx + 1}/${phase2Questions.length})`;
++        document.getElementById("global-progress-fill").style.width = `${((currentQuestionIdx) / phase2Questions.length) * 100}%`;
++        
++        const q = phase2Questions[currentQuestionIdx];
++        
++        const enClass = currentLang === 'en' ? "px-4 py-1.5 text-sm font-bold rounded-full bg-teal-600 text-white shadow-sm transition-all" : "px-4 py-1.5 text-sm font-medium rounded-full bg-white text-slate-500 border border-slate-200 hover:bg-slate-50 transition-all";
++        const hiClass = currentLang === 'hi' ? "px-4 py-1.5 text-sm font-bold rounded-full bg-teal-600 text-white shadow-sm transition-all" : "px-4 py-1.5 text-sm font-medium rounded-full bg-white text-slate-500 border border-slate-200 hover:bg-slate-50 transition-all";
++        
++        let optionsHtml = q.options.map((opt, idx) => `
++            <button onclick="selectPhase2Option('${opt.archetype_id}', this)" class="w-full text-left p-4 rounded-xl border border-slate-200 bg-white hover:border-teal-500 hover:bg-teal-50 hover:shadow-md transition-all duration-300 group">
++                <div class="flex items-start gap-4">
++                    <div class="h-8 w-8 shrink-0 rounded-full border-2 border-slate-200 group-hover:border-teal-500 flex items-center justify-center text-teal-600 transition-colors mt-0.5">
++                        <span class="opacity-0 group-hover:opacity-100 text-sm"><i class="fas fa-check"></i></span>
+                     </div>
+-                    <div class="p-3 bg-white border border-teal-100 rounded-xl">
+-                        <p class="text-xs font-bold text-teal-700 mb-1">📌 Scenario: ${scenarioTitle}</p>
+-                        <p class="text-[11px] text-slate-500 leading-relaxed">${scenarioDesc}</p>
++                    <div class="flex flex-col justify-center min-h-[32px]">
++                        <p class="lang-en text-slate-800 font-bold text-base ${currentLang !== 'en' ? 'hidden' : ''}">${opt.option_en}</p>
++                        <p class="lang-hi text-slate-800 font-bold text-base ${currentLang !== 'hi' ? 'hidden' : ''}">${opt.option_hi_en}</p>
+                     </div>
+-                </header>
+-
+-                <div class="flex overflow-hidden rounded-b-2xl border border-slate-100" style="height: 460px;">
+-                    <!-- Palette -->
+-                    <aside id="planner-sidebar" class="w-44 border-r border-slate-100 p-3 overflow-y-auto bg-slate-50/50 flex-shrink-0">
+-                        <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">🛠 Tool Palette</h3>
+-                        <p class="text-[9px] text-slate-400 mb-3">Click a tool to add it to the canvas</p>
+-                        <div id="planner-palette" class="flex flex-col gap-2">
+-                        </div>
+-                    </aside>
+-
+-                    <!-- Canvas Container -->
+-                    <div class="flex-1 flex flex-col">
+-                        <div class="relative workspace-grid" id="planner-canvas-container" style="flex: 1; position: relative; overflow: hidden; cursor: crosshair;">
+-                            <!-- SVG for connections -->
+-                            <svg id="planner-connections-svg" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;"></svg>
+-
+-                            <div id="planner-canvas" style="position:absolute;inset:0;width:100%;height:100%;z-index:2;">
+-                                <div id="planner-empty-state" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;color:#94a3b8;">
+-                                    <div style="width:48px;height:48px;background:#f1f5f9;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:8px;">📥</div>
+-                                    <p style="font-size:11px;font-weight:700;">Click a tool to add it here</p>
+-                                    <p style="font-size:9px;color:#cbd5e1;margin-top:4px;">Then drag to reposition, 🔗 to connect</p>
+-                                </div>
+-                            </div>
+-                        </div>
++                </div>
++            </button>
++        `).join("");
+ 
+-                        <!-- Bottom action bar -->
+-                        <div style="padding: 10px 12px; border-top: 1px solid #e2e8f0; background: #f8fafc; display: flex; align-items: center; justify-content: space-between;">
+-                            <span id="linking-mode-indicator" class="hidden" style="font-size:10px;font-weight:700;background:#ccfbf1;color:#0f766e;padding:4px 12px;border-radius:99px;border:1px solid #99f6e4;">🔗 Linking Mode — click another node to connect</span>
+-                            <button onclick="submitPlannerProject()" id="planner-submit-btn" style="padding: 8px 20px; background: #0d9488; color: white; border-radius: 12px; font-size: 12px; font-weight: 700; border: none; cursor: pointer; margin-left: auto;">Submit Strategy →</button>
+-                        </div>
++        body.innerHTML = `
++            <div class="max-w-3xl mx-auto stagger-in">
++                <!-- Header with Toggle -->
++                <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
++                    <span class="cyber-badge">Question ${currentQuestionIdx + 1} of ${phase2Questions.length}</span>
++                    <div class="flex bg-slate-100 p-1 rounded-full border border-slate-200 shadow-inner">
++                        <button id="btn-lang-en" onclick="togglePhase2Lang('en')" class="${enClass}">English</button>
++                        <button id="btn-lang-hi" onclick="togglePhase2Lang('hi')" class="${hiClass}">Hinglish</button>
+                     </div>
+                 </div>
++                
++                <div class="mb-8 text-center md:text-left bg-slate-50 p-6 rounded-2xl border border-slate-100 shadow-sm">
++                    <h2 class="lang-en text-2xl md:text-3xl font-extrabold text-slate-900 leading-tight ${currentLang !== 'en' ? 'hidden' : ''}">${q.question_en}</h2>
++                    <h2 class="lang-hi text-2xl md:text-3xl font-extrabold text-slate-900 leading-tight ${currentLang !== 'hi' ? 'hidden' : ''}">${q.question_hi_en}</h2>
++                </div>
++                <div class="space-y-4">
++                    ${optionsHtml}
++                </div>
+             </div>
+         `;
+-
+-        initPlanner(toolsRequired);
+     }
+ 
+-    const TOOL_RESOURCES = [
+-        { type: 'database', label: 'Cloud Database', icon: '🗄️', category: 'Tech' },
+-        { type: 'ai_model', label: 'AI Engine', icon: '🧠', category: 'Tech' },
+-        { type: 'frontend', label: 'Dashboard UI', icon: '💻', category: 'Tech' },
+-        { type: 'api', label: 'Backend API', icon: '🔌', category: 'Tech' },
+-        { type: 'strategy', label: 'Market Strategy', icon: '🎯', category: 'Business' },
+-        { type: 'team', label: 'Core Team', icon: '👥', category: 'People' },
+-        { type: 'security', label: 'Cyber Security', icon: '🔒', category: 'Ops' },
+-        { type: 'budget', label: 'Funding', icon: '💰', category: 'Business' },
+-        { type: 'marketing', label: 'Growth Plan', icon: '📢', category: 'Business' },
+-        { type: 'timeline', label: 'Milestones', icon: '📅', category: 'Ops' }
+-    ];
+-
+-    function initPlanner(requiredTools) {
+-        const palette = document.getElementById("planner-palette");
+-        const allowed = (requiredTools || []).map(t => t.toLowerCase());
++    window.selectPhase2Option = function(archetypeId, btn) {
++        // Prevent double click
++        if (btn.disabled) return;
+         
+-        const filtered = TOOL_RESOURCES.filter(tr => 
+-            allowed.length === 0 || allowed.some(a => tr.label.toLowerCase().includes(a) || tr.type.toLowerCase().includes(a))
+-        );
+-
+-        palette.innerHTML = filtered.map(item => `
+-            <div class="planner-palette-item group flex items-center gap-2 p-2 border border-slate-100 rounded-xl hover:bg-slate-50 cursor-grab transition-all" 
+-                 draggable="true" 
+-                 ondragstart="event.dataTransfer.setData('tool', '${JSON.stringify(item).replace(/'/g, "&apos;")}')">
+-                <span class="w-8 h-8 flex items-center justify-center bg-slate-100 rounded-lg group-hover:bg-teal-100 group-hover:text-teal-600 transition-colors">${item.icon}</span>
+-                <span class="text-[10px] font-bold text-slate-700">${item.label}</span>
+-            </div>
+-        `;
+-
+-        wirePhase4Planner();
+-        seedPhase4Nodes(phase4Json.nodes || []);
+-        renderPhase4Canvas();
+-    }
+-
+-    function wirePhase4Planner() {
+-        document.querySelectorAll(".phase4-tool").forEach(el => {
+-            el.addEventListener("dragstart", e => {
+-                phase4DraggedTool = decodeURIComponent(el.dataset.tool || "");
+-                e.dataTransfer.effectAllowed = "copy";
+-            });
+-        });
+-
+-        const canvas = document.getElementById("phase4-canvas");
+-        canvas.addEventListener("dragover", e => e.preventDefault());
+-        canvas.addEventListener("drop", e => {
+-            e.preventDefault();
+-            if (!phase4DraggedTool) return;
+-            const rect = canvas.getBoundingClientRect();
+-            addPhase4Node(phase4DraggedTool, e.clientX - rect.left, e.clientY - rect.top);
+-            phase4DraggedTool = null;
++        // Highlight button
++        const buttons = btn.parentElement.querySelectorAll("button");
++        buttons.forEach(b => {
++            b.classList.remove("border-teal-500", "bg-teal-50");
++            b.querySelector(".h-8").classList.remove("border-teal-500");
++            b.querySelector(".h-8 span").classList.remove("opacity-100");
++            b.disabled = true; // Disable all to prevent multi-select
+         });
+-    }
+-
+-    function seedPhase4Nodes(nodes) {
+-        phase4Items = [];
+-        phase4Connections = [];
+-        phase4NextId = 1;
+-        nodes.slice(0, 3).forEach((node, idx) => {
+-            addPhase4Node(node.label, 40 + idx * 210, 45 + idx * 70, node.description || "");
+-        });
+-    }
+-
+-    function addPhase4Node(label, x, y, description = "") {
+-        phase4Items.push({
+-            id: phase4NextId++,
+-            label,
+-            description,
+-            x: Math.max(12, Math.round(x || 24)),
+-            y: Math.max(12, Math.round(y || 24))
+-        });
+-        renderPhase4Canvas();
+-    }
+-
+-    function renderPhase4Canvas() {
+-        const canvas = document.getElementById("phase4-canvas");
+-        if (!canvas) return;
+-        canvas.querySelectorAll(".phase4-node, .phase4-connection").forEach(el => el.remove());
+-        document.getElementById("phase4-empty").style.display = phase4Items.length ? "none" : "flex";
+-
+-        phase4Connections.forEach(conn => {
+-            const from = phase4Items.find(i => i.id === conn.from);
+-            const to = phase4Items.find(i => i.id === conn.to);
+-            if (!from || !to) return;
+-            const line = document.createElement("div");
+-            const x1 = from.x + 80;
+-            const y1 = from.y + 32;
+-            const x2 = to.x + 80;
+-            const y2 = to.y + 32;
+-            const length = Math.hypot(x2 - x1, y2 - y1);
+-            const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+-            line.className = "phase4-connection absolute h-[2px] bg-cyan-300/70 origin-left";
+-            line.style.left = x1 + "px";
+-            line.style.top = y1 + "px";
+-            line.style.width = length + "px";
+-            line.style.transform = `rotate(${angle}deg)`;
+-            canvas.appendChild(line);
+-        });
+-
+-        phase4Items.forEach(item => {
+-            const node = document.createElement("div");
+-            node.className = "phase4-node absolute w-44 rounded-xl border border-cyan-400/30 bg-slate-950/90 p-3 shadow-xl cursor-move";
+-            node.style.left = item.x + "px";
+-            node.style.top = item.y + "px";
+-            node.innerHTML = `
+-                <div class="text-sm font-bold text-white leading-snug">${item.label}</div>
+-                <textarea class="mt-2 w-full h-14 rounded-lg bg-black/40 border border-white/10 text-xs text-slate-200 p-2 resize-none" placeholder="Describe this step...">${item.description || ""}</textarea>
+-                <button class="mt-2 text-[10px] font-bold uppercase tracking-widest text-red-300 hover:text-red-200">Remove</button>
+-            `;
+-            node.querySelector("textarea").addEventListener("input", e => item.description = e.target.value);
+-            node.querySelector("button").addEventListener("click", () => {
+-                phase4Items = phase4Items.filter(i => i.id !== item.id);
+-                phase4Connections = phase4Connections.filter(c => c.from !== item.id && c.to !== item.id);
+-                renderPhase4Canvas();
+-            });
+-            node.addEventListener("mousedown", e => startPhase4NodeDrag(e, item));
+-            canvas.appendChild(node);
++        
++        btn.classList.add("border-teal-500", "bg-teal-50");
++        btn.querySelector(".h-8").classList.add("border-teal-500");
++        btn.querySelector(".h-8 span").classList.add("opacity-100");
++        
++        // Save answer
++        const q = phase2Questions[currentQuestionIdx];
++        phase2Answers.push({
++            question_id: q.id,
++            archetype_id: archetypeId
+         });
++        
++        // Next question
++        setTimeout(() => {
++            currentQuestionIdx++;
++            renderCurrentMCQ();
++        }, 400);
++    };
+ 
+-        refreshPhase4Selects();
+-    }
+-
+-    function startPhase4NodeDrag(e, item) {
+-        if (e.target.tagName === "TEXTAREA" || e.target.tagName === "BUTTON") return;
+-        const canvas = document.getElementById("phase4-canvas");
+-        const rect = canvas.getBoundingClientRect();
+-        const offsetX = e.clientX - rect.left - item.x;
+-        const offsetY = e.clientY - rect.top - item.y;
+-
+-        function move(ev) {
+-            item.x = Math.max(8, Math.round(ev.clientX - rect.left - offsetX));
+-            item.y = Math.max(8, Math.round(ev.clientY - rect.top - offsetY));
+-            renderPhase4Canvas();
+-        }
+-        function stop() {
+-            document.removeEventListener("mousemove", move);
+-            document.removeEventListener("mouseup", stop);
+-        }
+-        document.addEventListener("mousemove", move);
+-        document.addEventListener("mouseup", stop);
+-    }
+-
+-    function refreshPhase4Selects() {
+-        const from = document.getElementById("phase4-from");
+-        const to = document.getElementById("phase4-to");
+-        if (!from || !to) return;
+-        const options = phase4Items.map(item => `<option value="${item.id}">${item.label}</option>`).join("");
+-        from.innerHTML = options;
+-        to.innerHTML = options;
+-    }
+-
+-    function addPhase4Connection() {
+-        const from = parseInt(document.getElementById("phase4-from").value, 10);
+-        const to = parseInt(document.getElementById("phase4-to").value, 10);
+-        if (!from || !to || from === to) return;
+-        if (!phase4Connections.some(c => c.from === from && c.to === to)) {
+-            phase4Connections.push({ from, to });
+-            renderPhase4Canvas();
+-        }
+-    }
+-
+-    function clearPhase4Canvas() {
+-        phase4Items = [];
+-        phase4Connections = [];
+-        renderPhase4Canvas();
+-    }
+-
+-    async function submitScenarioAnswers() {
+-        if (phase4Items.length === 0) {
+-            alert("Add at least one resource to the workspace before exporting.");
+-            return;
+-        }
+-        showLoader("Exporting sequence JSON...");
++    async function submitPhase2Answers() {
++        showLoader("Analyzing behavioral patterns...");
+         try {
+-            const res = await fetch("/assessment/api/phase4_complete", {
++            const res = await fetch("/assessment/api/phase2/submit", {
+                 method: "POST",
+                 headers: { "Content-Type": "application/json" },
+-                body: JSON.stringify({
+-                    answers: {
+-                        task: activePhaseData.phase4_task || {},
+-                        nodes: phase4Items,
+-                        connections: phase4Connections
+-                    }
+-                })
++                body: JSON.stringify({ answers: phase2Answers })
+             });
+             const data = await res.json();
+             if (data.status === "success") {
+                 await refreshState();
+-            }
+-        } catch (e) {
+-            console.error(e);
+-            hideLoader();
+-        }
+-    }
+-
+-    // --- PHASE 5: COMPILING RESULTS AND REDIRECT (BOTH) ---
+-    function renderCompilePhase() {
+-        const body = document.getElementById("phase-body");
+-        body.innerHTML = `
+-            <div class="text-center py-10 flex flex-col items-center justify-center stagger-in">
+-                <span class="cyber-badge mb-4">Phase 5: Career Matching</span>
+-                <div class="relative flex items-center justify-center mb-8">
+-                    <div class="animate-ping absolute inline-flex h-20 w-20 rounded-full bg-teal-500 opacity-20"></div>
+-                    <div class="w-20 h-20 rounded-full bg-gradient-to-tr from-teal-500 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-teal-600/10">
+-                        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+-                    </div>
+-                </div>
+-                <h2 class="text-2xl font-extrabold text-slate-900">Shadow Compilation Ready</h2>
+-                <p class="text-slate-500 max-w-md mt-3 text-sm leading-relaxed">Your reflex latency indices, RIASEC profiles, geographical variables, and ego coefficients are consolidated.</p>
+-                
+-                <button onclick="compileFinalResults()" id="compile-btn" class="mt-8 px-12 py-4 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-extrabold transition-all shadow-md shadow-teal-600/10 hover:scale-105 active:scale-95 tracking-widest uppercase text-xs">Execute Matrix Compilation</button>
+-                <p id="compiling-indicator" class="hidden text-teal-600 font-bold mt-5 animate-pulse text-xs tracking-widest uppercase">Formulating career fit projections...</p>
+-            </div>
+-        `;
+-    }
+-
+-    async function compileFinalResults() {
+-        const btn = document.getElementById("compile-btn");
+-        const ind = document.getElementById("compiling-indicator");
+-        if (btn) btn.disabled = true;
+-        if (btn) btn.classList.add("opacity-40", "cursor-not-allowed");
+-        if (ind) ind.classList.remove("hidden");
+-        
+-        try {
+-            const res = await fetch("/assessment/api/compile", {
+-                method: "POST",
+-                headers: { "Content-Type": "application/json" }
+-            });
+-            const data = await res.json();
+-            if (data.status === "success") {
+-                window.location.href = data.redirect;
+             } else {
+-                alert("Compilation failed. Please try resetting assessment progress.");
+-                if (btn) btn.disabled = false;
+-                if (btn) btn.classList.remove("opacity-40", "cursor-not-allowed");
+-                if (ind) ind.classList.add("hidden");
++                hideLoader();
++                alert("Failed to submit Phase 2 assessment.");
+             }
+-        } catch (e) {
++        } catch(e) {
+             console.error(e);
+-            alert("Matrix Compilation Error. Check local gateway connections.");
+-            if (btn) btn.disabled = false;
+-            if (btn) btn.classList.remove("opacity-40", "cursor-not-allowed");
+-            if (ind) ind.classList.add("hidden");
++            hideLoader();
++            alert("Network error.");
+         }
+     }
+ </script>
