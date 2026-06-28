@@ -520,8 +520,8 @@
             } else if (phase === 1) {
                 renderPhase2MCQs();
             } else if (phase === 2) {
-                // Redirect to Phase 3 Career Buddy
-                window.location.href = "/assessment/phase3";
+                renderPhase3Selection();
+                hideLoader();
             } else if (phase === 5) {
                 renderCompilePhase();
                 hideLoader();
@@ -982,6 +982,44 @@
         }
     }
 
+    function renderPhase3Selection() {
+        const body = document.getElementById("phase-body");
+        body.innerHTML = `
+            <div class="text-center py-10 flex flex-col items-center justify-center stagger-in">
+                <div class="mb-8">
+                    <span class="cyber-badge mb-2">Phase 3: Deep Dive</span>
+                    <h2 class="text-3xl font-extrabold text-slate-900 mt-2">Meet Your Career Buddy</h2>
+                    <p class="text-slate-500 max-w-md mx-auto mt-3 text-sm leading-relaxed">
+                        We're ready to dive deeper into your choices. How would you like to interact with your Career Mentor?
+                    </p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-2xl">
+                    <!-- Voice Mode -->
+                    <button onclick="window.location.href='/assessment/phase3?mode=voice'" class="group flex flex-col items-center p-8 bg-white border-2 border-slate-100 rounded-3xl hover:border-teal-500 hover:shadow-xl hover:shadow-teal-500/10 transition-all duration-300 transform hover:-translate-y-1">
+                        <div class="w-16 h-16 rounded-full bg-teal-50 text-teal-600 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 group-hover:bg-teal-500 group-hover:text-white transition-all duration-300">
+                            <i class="fas fa-microphone"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-900 mb-2">Voice Call</h3>
+                        <p class="text-slate-500 text-xs leading-relaxed">
+                            Have a natural, spoken conversation with your AI mentor. Best for an immersive experience.
+                        </p>
+                    </button>
+                    
+                    <!-- Chat Mode -->
+                    <button onclick="window.location.href='/assessment/phase3?mode=chat'" class="group flex flex-col items-center p-8 bg-white border-2 border-slate-100 rounded-3xl hover:border-indigo-500 hover:shadow-xl hover:shadow-indigo-500/10 transition-all duration-300 transform hover:-translate-y-1">
+                        <div class="w-16 h-16 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 group-hover:bg-indigo-500 group-hover:text-white transition-all duration-300">
+                            <i class="fas fa-keyboard"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-900 mb-2">Text Chat</h3>
+                        <p class="text-slate-500 text-xs leading-relaxed">
+                            Type your answers at your own pace in a familiar messaging interface.
+                        </p>
+                    </button>
+                </div>
+            </div>
+        `;
+    }
 
     // --- PHASE 2: COMPILING RESULTS ---
 function renderCompilePhase() {

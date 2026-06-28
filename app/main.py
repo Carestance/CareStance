@@ -3806,6 +3806,15 @@ async def phase3_chat_v2(request: Request, chat_req: Phase3V2ChatRequest, db: As
     if chat_req.message.strip():
         messages.append({"role": "user", "content": chat_req.message})
 
+    # Immediately persist the user's message to the database before waiting for AI
+    full_history = chat_req.answers.copy() if chat_req.answers else []
+    if chat_req.message and chat_req.message.strip():
+        full_history.append({"role": "user", "content": chat_req.message})
+    
+    if result:
+        result.chat_messages = full_history.copy()
+        await db.commit()
+
     # Use Groq API directly
     try:
         gclient = get_groq_client()
@@ -3826,6 +3835,12 @@ async def phase3_chat_v2(request: Request, chat_req: Phase3V2ChatRequest, db: As
     except Exception as e:
         print(f"Phase 3 Chat Error: {e}")
         ai_text = "I appreciate your patience. Could you tell me a bit more about that? I want to make sure I really understand your perspective."
+
+    # Update conversation history in database with AI response
+    full_history.append({"role": "assistant", "content": ai_text})
+    if result:
+        result.chat_messages = full_history.copy()
+        await db.commit()
 
     return JSONResponse({
         "response": ai_text,
@@ -3916,12 +3931,21 @@ async def phase3_finalize(request: Request, finalize_req: Phase3FinalizeRequest,
         result.phase3_analysis = f"Confidence: {data.get('confidence_level', 'High').title()} | {data.get('important_note', '')}"
         
         transformed_pros = []
-        for rec in data.get("career_recommendations", []):
+        recommendations = data.get("career_recommendations") or []
+        for rec in recommendations:
+            why_suitable = rec.get("why_suitable") or []
+            supporting_evidence = rec.get("supporting_evidence_from_conversation") or []
+            likely_challenges = rec.get("likely_challenges") or []
+            key_strengths = rec.get("key_strengths_to_build") or []
+            
+            fit_level = (rec.get('fit_level') or '').replace('_', ' ').title()
+            next_step = rec.get('practical_next_step') or ''
+            
             transformed_pros.append({
                 "title": rec.get("profession", "Unknown Profession"),
-                "reason": f"Match Level: {rec.get('fit_level', '').replace('_', ' ').title()}. {rec.get('practical_next_step', '')}",
-                "pros": rec.get("why_suitable", []) + rec.get("supporting_evidence_from_conversation", []),
-                "cons": rec.get("likely_challenges", []) + rec.get("key_strengths_to_build", [])
+                "reason": f"Match Level: {fit_level}. {next_step}",
+                "pros": why_suitable + supporting_evidence,
+                "cons": likely_challenges + key_strengths
             })
         
         result.stream_pros = transformed_pros
