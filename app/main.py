@@ -3827,6 +3827,15 @@ async def phase3_chat_v2(request: Request, chat_req: Phase3V2ChatRequest, db: As
         print(f"Phase 3 Chat Error: {e}")
         ai_text = "I appreciate your patience. Could you tell me a bit more about that? I want to make sure I really understand your perspective."
 
+    # Update conversation history in database
+    full_history = chat_req.answers.copy() if chat_req.answers else []
+    if chat_req.message and chat_req.message.strip():
+        full_history.append({"role": "user", "content": chat_req.message})
+    full_history.append({"role": "assistant", "content": ai_text})
+    if result:
+        result.chat_messages = full_history
+        await db.commit()
+
     return JSONResponse({
         "response": ai_text,
         "done": False,

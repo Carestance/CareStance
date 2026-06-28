@@ -120,7 +120,38 @@
         const sessionOverlay = document.getElementById('session-overlay');
         const startSessionBtn = document.getElementById('start-session-btn');
 
-        let chatHistory = [];
+        let chatHistory = {{ (result.chat_messages if result.chat_messages else []) | tojson | safe }};
+        if (!Array.isArray(chatHistory)) chatHistory = [];
+        
+        function renderHistoricalMessages() {
+            chatHistory.forEach(msg => {
+                const div = document.createElement('div');
+                if (msg.role === 'assistant') {
+                    div.className = 'flex items-start gap-3 animate-fade-in-up';
+                    div.innerHTML = `
+                        <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-br from-emerald-800 to-green-900 flex items-center justify-center flex-shrink-0 shadow-lg shadow-green-200">
+                            <span class="text-sm sm:text-lg text-white">🤖</span>
+                        </div>
+                        <div class="bg-white text-slate-700 p-4 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 max-w-[85%]">
+                            <div class="prose prose-emerald prose-sm max-w-none leading-relaxed">${marked.parse(msg.content)}</div>
+                        </div>
+                    `;
+                } else if (msg.role === 'user') {
+                    div.className = 'flex items-start gap-3 flex-row-reverse animate-fade-in-up';
+                    div.innerHTML = `
+                        <div class="w-8 h-8 rounded-full bg-slate-200 border-2 border-white flex items-center justify-center flex-shrink-0 shadow-sm">
+                            <span class="text-sm">🗣️</span>
+                        </div>
+                        <div class="bg-emerald-50 text-emerald-900 px-4 py-3 rounded-2xl rounded-tr-none shadow-sm border border-emerald-100 max-w-[75%]">
+                            <p class="text-sm italic">${msg.content}</p>
+                        </div>
+                    `;
+                }
+                chatBox.appendChild(div);
+            });
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
         let timeLeft = 600;
         let timerInterval;
         let conversationDone = false;
@@ -310,7 +341,16 @@
             window.speechSynthesis.speak(v);
 
             startTimer();
-            getAIResponse(""); // Start first greeting
+            if (chatHistory.length === 0) {
+                getAIResponse(""); // Start first greeting
+            } else {
+                renderHistoricalMessages();
+                // Check if recommendation is ready
+                const userMsgCount = chatHistory.filter(m => m.role === 'user').length;
+                if (userMsgCount >= 10 && finishBtn) {
+                    finishBtn.classList.remove('hidden');
+                }
+            }
         };
 
         // Speech Recognition Setup
