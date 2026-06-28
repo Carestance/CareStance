@@ -3806,6 +3806,15 @@ async def phase3_chat_v2(request: Request, chat_req: Phase3V2ChatRequest, db: As
     if chat_req.message.strip():
         messages.append({"role": "user", "content": chat_req.message})
 
+    # Immediately persist the user's message to the database before waiting for AI
+    full_history = chat_req.answers.copy() if chat_req.answers else []
+    if chat_req.message and chat_req.message.strip():
+        full_history.append({"role": "user", "content": chat_req.message})
+    
+    if result:
+        result.chat_messages = full_history.copy()
+        await db.commit()
+
     # Use Groq API directly
     try:
         gclient = get_groq_client()
@@ -3827,13 +3836,10 @@ async def phase3_chat_v2(request: Request, chat_req: Phase3V2ChatRequest, db: As
         print(f"Phase 3 Chat Error: {e}")
         ai_text = "I appreciate your patience. Could you tell me a bit more about that? I want to make sure I really understand your perspective."
 
-    # Update conversation history in database
-    full_history = chat_req.answers.copy() if chat_req.answers else []
-    if chat_req.message and chat_req.message.strip():
-        full_history.append({"role": "user", "content": chat_req.message})
+    # Update conversation history in database with AI response
     full_history.append({"role": "assistant", "content": ai_text})
     if result:
-        result.chat_messages = full_history
+        result.chat_messages = full_history.copy()
         await db.commit()
 
     return JSONResponse({
