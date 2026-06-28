@@ -3902,9 +3902,10 @@ async def phase3_finalize(request: Request, finalize_req: Phase3FinalizeRequest,
     }
 
     import json
-    analysis_prompt = FINALIZE_PROMPT.format(
-        context_json=json.dumps(student_context, indent=2),
-        transcript=transcript
+    analysis_prompt = FINALIZE_PROMPT.replace(
+        "{context_json}", json.dumps(student_context, indent=2)
+    ).replace(
+        "{transcript}", transcript
     )
 
     try:
