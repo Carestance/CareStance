@@ -186,25 +186,43 @@
                 <div class="pt-4">
                     <p class="text-sm font-semibold text-slate-700 mb-3">I am a:</p>
                     <div class="grid grid-cols-2 gap-4">
-                        <label class="cursor-pointer relative">
+                        <label class="cursor-pointer relative block group">
                             <input type="radio" name="role" value="student" class="hidden peer" checked>
-                            <div class="relative p-3 flex flex-col items-center justify-center border-2 rounded-xl transition-all duration-300 bg-white border-slate-200 text-slate-500 hover:shadow-md peer-checked:border-[#02bf65] peer-checked:bg-[#f4fdf8] peer-checked:-translate-y-1 peer-checked:shadow-[0_8px_20px_rgba(2,191,101,0.15)] peer-checked:[&>img]:scale-110 peer-checked:[&>img]:-translate-y-1 peer-checked:[&_.check-icon]:opacity-100 peer-checked:[&_.check-icon]:scale-100 peer-checked:[&>span]:text-slate-900">
-                                <div class="check-icon absolute top-2 right-2 opacity-0 transform scale-50 transition-all duration-300 text-[#02bf65]">
-                                    <i class="fa-solid fa-circle-check text-xl"></i>
+                            <div class="relative overflow-hidden p-3 h-36 flex flex-col items-center justify-center border-2 rounded-2xl transition-all duration-500 ease-out bg-white border-slate-200 text-slate-500 group-hover:border-[#02bf65]/50 peer-checked:border-[#02bf65] peer-checked:shadow-[0_12px_30px_rgba(2,191,101,0.25)] peer-checked:-translate-y-2">
+                                
+                                <!-- Ripple Background -->
+                                <div class="absolute w-10 h-10 bg-gradient-to-br from-[#c9e7ec] to-[#57d299] rounded-full scale-0 peer-checked:scale-[6] transition-transform duration-700 ease-out origin-center opacity-0 peer-checked:opacity-20 z-0"></div>
+
+                                <!-- Content -->
+                                <div class="relative z-10 flex flex-col items-center transition-all duration-500 ease-out peer-checked:scale-110">
+                                    <img src="/static/images/careo_as_student.png" alt="Student Mascot" class="w-16 h-16 object-contain mb-2 drop-shadow-sm transition-all duration-500 ease-out peer-checked:drop-shadow-[0_12px_12px_rgba(0,0,0,0.15)] peer-checked:-translate-y-1">
+                                    <span class="font-extrabold tracking-wide transition-colors duration-500 peer-checked:text-[#0f172a]">Student</span>
                                 </div>
-                                <img src="/static/images/careo_as_student.png" alt="Student Mascot" class="w-16 h-16 object-contain mb-2 drop-shadow-md transition-all duration-300">
-                                <span class="font-bold transition-colors duration-300">Student</span>
+
+                                <!-- Checkmark -->
+                                <div class="absolute top-3 right-3 z-10 text-[#02bf65] opacity-0 scale-50 -rotate-45 peer-checked:opacity-100 peer-checked:scale-100 peer-checked:rotate-0 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] delay-75">
+                                    <i class="fa-solid fa-circle-check text-xl bg-white rounded-full"></i>
+                                </div>
                             </div>
                         </label>
 
-                        <label class="cursor-pointer relative">
+                        <label class="cursor-pointer relative block group">
                             <input type="radio" name="role" value="counsellor" class="hidden peer">
-                            <div class="relative p-3 flex flex-col items-center justify-center border-2 rounded-xl transition-all duration-300 bg-white border-slate-200 text-slate-500 hover:shadow-md peer-checked:border-[#02bf65] peer-checked:bg-[#f4fdf8] peer-checked:-translate-y-1 peer-checked:shadow-[0_8px_20px_rgba(2,191,101,0.15)] peer-checked:[&>img]:scale-110 peer-checked:[&>img]:-translate-y-1 peer-checked:[&_.check-icon]:opacity-100 peer-checked:[&_.check-icon]:scale-100 peer-checked:[&>span]:text-slate-900">
-                                <div class="check-icon absolute top-2 right-2 opacity-0 transform scale-50 transition-all duration-300 text-[#02bf65]">
-                                    <i class="fa-solid fa-circle-check text-xl"></i>
+                            <div class="relative overflow-hidden p-3 h-36 flex flex-col items-center justify-center border-2 rounded-2xl transition-all duration-500 ease-out bg-white border-slate-200 text-slate-500 group-hover:border-[#02bf65]/50 peer-checked:border-[#02bf65] peer-checked:shadow-[0_12px_30px_rgba(2,191,101,0.25)] peer-checked:-translate-y-2">
+                                
+                                <!-- Ripple Background -->
+                                <div class="absolute w-10 h-10 bg-gradient-to-br from-[#c9e7ec] to-[#57d299] rounded-full scale-0 peer-checked:scale-[6] transition-transform duration-700 ease-out origin-center opacity-0 peer-checked:opacity-20 z-0"></div>
+
+                                <!-- Content -->
+                                <div class="relative z-10 flex flex-col items-center transition-all duration-500 ease-out peer-checked:scale-110">
+                                    <img src="/static/images/careo_as_counseller.png" alt="Counsellor Mascot" class="w-16 h-16 object-contain mb-2 drop-shadow-sm transition-all duration-500 ease-out peer-checked:drop-shadow-[0_12px_12px_rgba(0,0,0,0.15)] peer-checked:-translate-y-1">
+                                    <span class="font-extrabold tracking-wide transition-colors duration-500 peer-checked:text-[#0f172a]">Counsellor</span>
                                 </div>
-                                <img src="/static/images/careo_as_counseller.png" alt="Counsellor Mascot" class="w-16 h-16 object-contain mb-2 drop-shadow-md transition-all duration-300">
-                                <span class="font-bold transition-colors duration-300">Counsellor</span>
+
+                                <!-- Checkmark -->
+                                <div class="absolute top-3 right-3 z-10 text-[#02bf65] opacity-0 scale-50 -rotate-45 peer-checked:opacity-100 peer-checked:scale-100 peer-checked:rotate-0 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] delay-75">
+                                    <i class="fa-solid fa-circle-check text-xl bg-white rounded-full"></i>
+                                </div>
                             </div>
                         </label>
                     </div>
