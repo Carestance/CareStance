@@ -86,7 +86,7 @@
                     {% if result.student_type == '10th' %}
                         {{ result.recommended_stream }} Stream Alignment
                     {% else %}
-                        {{ dominant_trait }} Archetype
+                        {{ result.phase_2_category or 'Unassigned' }} Archetype
                     {% endif %}
                 </h1>
                 
