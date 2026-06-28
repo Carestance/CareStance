@@ -412,9 +412,26 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ history: chatHistory })
                 });
+                
+                if (!resp.ok) {
+                    throw new Error(`Server returned ${resp.status}`);
+                }
+
                 const data = await resp.json();
-                if (data.redirect) window.location.href = data.redirect;
+                if (data.redirect) {
+                    window.location.href = data.redirect;
+                } else if (data.detail) {
+                    alert("Error finalizing assessment: " + data.detail);
+                    finishBtn.disabled = false;
+                    finishBtn.textContent = '✨ Finish & Get Results';
+                } else {
+                    alert("Error: No redirect URL provided by server.");
+                    finishBtn.disabled = false;
+                    finishBtn.textContent = '✨ Finish & Get Results';
+                }
             } catch (e) {
+                console.error(e);
+                alert("Network or server error while finalizing. Please try again.");
                 finishBtn.disabled = false;
                 finishBtn.textContent = '✨ Finish & Get Results';
             }

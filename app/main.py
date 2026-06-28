@@ -3925,12 +3925,21 @@ async def phase3_finalize(request: Request, finalize_req: Phase3FinalizeRequest,
         result.phase3_analysis = f"Confidence: {data.get('confidence_level', 'High').title()} | {data.get('important_note', '')}"
         
         transformed_pros = []
-        for rec in data.get("career_recommendations", []):
+        recommendations = data.get("career_recommendations") or []
+        for rec in recommendations:
+            why_suitable = rec.get("why_suitable") or []
+            supporting_evidence = rec.get("supporting_evidence_from_conversation") or []
+            likely_challenges = rec.get("likely_challenges") or []
+            key_strengths = rec.get("key_strengths_to_build") or []
+            
+            fit_level = (rec.get('fit_level') or '').replace('_', ' ').title()
+            next_step = rec.get('practical_next_step') or ''
+            
             transformed_pros.append({
                 "title": rec.get("profession", "Unknown Profession"),
-                "reason": f"Match Level: {rec.get('fit_level', '').replace('_', ' ').title()}. {rec.get('practical_next_step', '')}",
-                "pros": rec.get("why_suitable", []) + rec.get("supporting_evidence_from_conversation", []),
-                "cons": rec.get("likely_challenges", []) + rec.get("key_strengths_to_build", [])
+                "reason": f"Match Level: {fit_level}. {next_step}",
+                "pros": why_suitable + supporting_evidence,
+                "cons": likely_challenges + key_strengths
             })
         
         result.stream_pros = transformed_pros
