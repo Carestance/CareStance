@@ -136,6 +136,7 @@ Career recommendation rules:
 Return this structured JSON exactly. Do not wrap it in markdown block quotes (e.g. ```json). Do not output any additional text.
 
 {
+"initial_intake_summary": "Generate a 2-3 line summary of the student's background based purely on their Phase 1 intake context (interests, current trajectory, salary priority).",
 "career_recommendations": [
 {
 "rank": 1,
