@@ -3952,6 +3952,14 @@ async def phase3_finalize(request: Request, finalize_req: Phase3FinalizeRequest,
         result.stream_pros = transformed_pros
         result.stream_scores = {}
         result.phase3_result = json.dumps(data)
+        
+        # Save intake summary
+        if result.raw_answers:
+            updated_answers = result.raw_answers.copy()
+            updated_answers["groq_summary"] = data.get("initial_intake_summary", "Intake profile analyzed successfully.")
+            result.raw_answers = updated_answers
+            from sqlalchemy.orm.attributes import flag_modified
+            flag_modified(result, "raw_answers")
 
         result.final_answers = {"skipped": True, "flow": "simplified"}
 

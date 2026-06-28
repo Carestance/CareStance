@@ -113,18 +113,34 @@
                         <h3 class="text-lg font-bold text-slate-800 font-outfit">Initial Intake</h3>
                     </div>
                     <div class="space-y-4">
-                        <div>
-                            <span class="block text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1">Expressed Interests</span>
-                            <span class="text-slate-700 font-medium text-sm">{{ (result.raw_answers.get('interests', []) | join(', ')) if result.raw_answers and result.raw_answers.get('interests') else 'Not specified' }}</span>
-                        </div>
-                        <div>
-                            <span class="block text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1">Salary Priority</span>
-                            <span class="text-slate-700 font-medium text-sm">{{ result.raw_answers.get('salary_priority', 'Not specified') if result.raw_answers else 'Not specified' }}</span>
-                        </div>
-                        <div>
-                            <span class="block text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1">Current Trajectory</span>
-                            <span class="text-slate-700 font-medium text-sm">{{ result.student_type }} - {{ result.raw_answers.get('pursuing', 'General') if result.raw_answers else 'General' }}</span>
-                        </div>
+                        {% if result.raw_answers and result.raw_answers.get('groq_summary') %}
+                            <div>
+                                <span class="block text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1">Student Context</span>
+                                <span class="text-slate-600 text-xs leading-relaxed block">{{ result.raw_answers.get('groq_summary') }}</span>
+                            </div>
+                        {% else %}
+                            <div>
+                                <span class="block text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1">Expressed Interests</span>
+                                <span class="text-slate-700 font-medium text-sm">
+                                    {% set interests = result.raw_answers.get('interests') if result.raw_answers else '' %}
+                                    {% if interests is string %}
+                                        {{ interests }}
+                                    {% elif interests %}
+                                        {{ interests | join(', ') }}
+                                    {% else %}
+                                        Not specified
+                                    {% endif %}
+                                </span>
+                            </div>
+                            <div>
+                                <span class="block text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1">Salary Priority</span>
+                                <span class="text-slate-700 font-medium text-sm">{{ result.raw_answers.get('salary_priority', 'Not specified') if result.raw_answers else 'Not specified' }}</span>
+                            </div>
+                            <div>
+                                <span class="block text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1">Current Trajectory</span>
+                                <span class="text-slate-700 font-medium text-sm">{{ result.student_type }} - {{ result.raw_answers.get('pursuing', 'General') if result.raw_answers else 'General' }}</span>
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
 
