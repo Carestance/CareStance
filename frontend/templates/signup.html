@@ -27,6 +27,25 @@
     #f-main-nav.scrolled .nav-logo-badge img { width: 30px; height: 30px; }
     #f-main-nav.scrolled .nav-logo-text { font-size: 1.25rem; margin-left: 1.5rem; }
 
+    /* ── ROLE SELECTOR ANIMATION ── */
+    .role-card { transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    .peer:checked + .role-card { border-color: #02bf65; box-shadow: 0 12px 30px rgba(2, 191, 101, 0.25); transform: translateY(-8px); }
+    
+    .role-bg-ripple { transition: transform 0.7s ease-out, opacity 0.5s; opacity: 0; transform: scale(0); z-index: 0; }
+    .peer:checked + .role-card .role-bg-ripple { transform: scale(6); opacity: 0.2; }
+    
+    .role-content { transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); z-index: 10; }
+    .peer:checked + .role-card .role-content { transform: scale(1.1); }
+    
+    .role-img { transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1)); }
+    .peer:checked + .role-card .role-img { filter: drop-shadow(0 12px 12px rgba(0,0,0,0.15)); transform: translateY(-4px); }
+    
+    .role-text { transition: color 0.5s; color: #64748b; }
+    .peer:checked + .role-card .role-text { color: #0f172a; }
+    
+    .role-check { transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); opacity: 0; transform: scale(0.5) rotate(-45deg); z-index: 10; }
+    .peer:checked + .role-card .role-check { opacity: 1; transform: scale(1) rotate(0); }
+
     @media (max-width: 768px) { .nav-links { display: none; } .nav-logo-text { display: none; } }
 </style>
 <nav id="f-main-nav" class="f-nav">
@@ -188,19 +207,19 @@
                     <div class="grid grid-cols-2 gap-4">
                         <label class="cursor-pointer relative block group">
                             <input type="radio" name="role" value="student" class="hidden peer" checked>
-                            <div class="relative overflow-hidden p-3 h-36 flex flex-col items-center justify-center border-2 rounded-2xl transition-all duration-500 ease-out bg-white border-slate-200 text-slate-500 group-hover:border-[#02bf65]/50 peer-checked:border-[#02bf65] peer-checked:shadow-[0_12px_30px_rgba(2,191,101,0.25)] peer-checked:-translate-y-2">
+                            <div class="role-card relative overflow-hidden p-3 h-36 flex flex-col items-center justify-center border-2 rounded-2xl bg-white border-slate-200 group-hover:border-[#02bf65]/50">
                                 
                                 <!-- Ripple Background -->
-                                <div class="absolute w-10 h-10 bg-gradient-to-br from-[#c9e7ec] to-[#57d299] rounded-full scale-0 peer-checked:scale-[6] transition-transform duration-700 ease-out origin-center opacity-0 peer-checked:opacity-20 z-0"></div>
+                                <div class="role-bg-ripple absolute w-10 h-10 bg-gradient-to-br from-[#c9e7ec] to-[#57d299] rounded-full origin-center"></div>
 
                                 <!-- Content -->
-                                <div class="relative z-10 flex flex-col items-center transition-all duration-500 ease-out peer-checked:scale-110">
-                                    <img src="/static/images/careo_as_student.png" alt="Student Mascot" class="w-16 h-16 object-contain mb-2 drop-shadow-sm transition-all duration-500 ease-out peer-checked:drop-shadow-[0_12px_12px_rgba(0,0,0,0.15)] peer-checked:-translate-y-1">
-                                    <span class="font-extrabold tracking-wide transition-colors duration-500 peer-checked:text-[#0f172a]">Student</span>
+                                <div class="role-content relative flex flex-col items-center">
+                                    <img src="/static/images/careo_as_student.png" alt="Student Mascot" class="role-img w-16 h-16 object-contain mb-2">
+                                    <span class="role-text font-extrabold tracking-wide">Student</span>
                                 </div>
 
                                 <!-- Checkmark -->
-                                <div class="absolute top-3 right-3 z-10 text-[#02bf65] opacity-0 scale-50 -rotate-45 peer-checked:opacity-100 peer-checked:scale-100 peer-checked:rotate-0 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] delay-75">
+                                <div class="role-check absolute top-3 right-3 text-[#02bf65] delay-75">
                                     <i class="fa-solid fa-circle-check text-xl bg-white rounded-full"></i>
                                 </div>
                             </div>
@@ -208,19 +227,19 @@
 
                         <label class="cursor-pointer relative block group">
                             <input type="radio" name="role" value="counsellor" class="hidden peer">
-                            <div class="relative overflow-hidden p-3 h-36 flex flex-col items-center justify-center border-2 rounded-2xl transition-all duration-500 ease-out bg-white border-slate-200 text-slate-500 group-hover:border-[#02bf65]/50 peer-checked:border-[#02bf65] peer-checked:shadow-[0_12px_30px_rgba(2,191,101,0.25)] peer-checked:-translate-y-2">
+                            <div class="role-card relative overflow-hidden p-3 h-36 flex flex-col items-center justify-center border-2 rounded-2xl bg-white border-slate-200 group-hover:border-[#02bf65]/50">
                                 
                                 <!-- Ripple Background -->
-                                <div class="absolute w-10 h-10 bg-gradient-to-br from-[#c9e7ec] to-[#57d299] rounded-full scale-0 peer-checked:scale-[6] transition-transform duration-700 ease-out origin-center opacity-0 peer-checked:opacity-20 z-0"></div>
+                                <div class="role-bg-ripple absolute w-10 h-10 bg-gradient-to-br from-[#c9e7ec] to-[#57d299] rounded-full origin-center"></div>
 
                                 <!-- Content -->
-                                <div class="relative z-10 flex flex-col items-center transition-all duration-500 ease-out peer-checked:scale-110">
-                                    <img src="/static/images/careo_as_counseller.png" alt="Counsellor Mascot" class="w-16 h-16 object-contain mb-2 drop-shadow-sm transition-all duration-500 ease-out peer-checked:drop-shadow-[0_12px_12px_rgba(0,0,0,0.15)] peer-checked:-translate-y-1">
-                                    <span class="font-extrabold tracking-wide transition-colors duration-500 peer-checked:text-[#0f172a]">Counsellor</span>
+                                <div class="role-content relative flex flex-col items-center">
+                                    <img src="/static/images/careo_as_counseller.png" alt="Counsellor Mascot" class="role-img w-16 h-16 object-contain mb-2">
+                                    <span class="role-text font-extrabold tracking-wide">Counsellor</span>
                                 </div>
 
                                 <!-- Checkmark -->
-                                <div class="absolute top-3 right-3 z-10 text-[#02bf65] opacity-0 scale-50 -rotate-45 peer-checked:opacity-100 peer-checked:scale-100 peer-checked:rotate-0 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] delay-75">
+                                <div class="role-check absolute top-3 right-3 text-[#02bf65] delay-75">
                                     <i class="fa-solid fa-circle-check text-xl bg-white rounded-full"></i>
                                 </div>
                             </div>
