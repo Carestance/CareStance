@@ -18,7 +18,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
   <style>
     /* ── THEME VARIABLES ── */
     :root {
@@ -1243,16 +1244,45 @@
     }
 
     /* Color per archetype */
-    .arch-stop:nth-of-type(2) .arch-stop-arrow { background: linear-gradient(180deg, transparent, var(--yellow)); }
-    .arch-stop:nth-of-type(3) .arch-stop-arrow { background: linear-gradient(180deg, transparent, #e05fa3); }
-    .arch-stop:nth-of-type(4) .arch-stop-arrow { background: linear-gradient(180deg, transparent, #0ea5e9); }
-    .arch-stop:nth-of-type(5) .arch-stop-arrow { background: linear-gradient(180deg, transparent, #8b5cf6); }
-    .arch-stop:nth-of-type(6) .arch-stop-arrow { background: linear-gradient(180deg, transparent, #f59e0b); }
-    .arch-stop.stop-below:nth-of-type(2) .arch-stop-arrow { background: linear-gradient(0deg, transparent, var(--yellow)); }
-    .arch-stop.stop-below:nth-of-type(3) .arch-stop-arrow { background: linear-gradient(0deg, transparent, #e05fa3); }
-    .arch-stop.stop-below:nth-of-type(4) .arch-stop-arrow { background: linear-gradient(0deg, transparent, #0ea5e9); }
-    .arch-stop.stop-below:nth-of-type(5) .arch-stop-arrow { background: linear-gradient(0deg, transparent, #8b5cf6); }
-    .arch-stop.stop-below:nth-of-type(6) .arch-stop-arrow { background: linear-gradient(0deg, transparent, #f59e0b); }
+    .arch-stop:nth-of-type(2) .arch-stop-arrow {
+      background: linear-gradient(180deg, transparent, var(--yellow));
+    }
+
+    .arch-stop:nth-of-type(3) .arch-stop-arrow {
+      background: linear-gradient(180deg, transparent, #e05fa3);
+    }
+
+    .arch-stop:nth-of-type(4) .arch-stop-arrow {
+      background: linear-gradient(180deg, transparent, #0ea5e9);
+    }
+
+    .arch-stop:nth-of-type(5) .arch-stop-arrow {
+      background: linear-gradient(180deg, transparent, #8b5cf6);
+    }
+
+    .arch-stop:nth-of-type(6) .arch-stop-arrow {
+      background: linear-gradient(180deg, transparent, #f59e0b);
+    }
+
+    .arch-stop.stop-below:nth-of-type(2) .arch-stop-arrow {
+      background: linear-gradient(0deg, transparent, var(--yellow));
+    }
+
+    .arch-stop.stop-below:nth-of-type(3) .arch-stop-arrow {
+      background: linear-gradient(0deg, transparent, #e05fa3);
+    }
+
+    .arch-stop.stop-below:nth-of-type(4) .arch-stop-arrow {
+      background: linear-gradient(0deg, transparent, #0ea5e9);
+    }
+
+    .arch-stop.stop-below:nth-of-type(5) .arch-stop-arrow {
+      background: linear-gradient(0deg, transparent, #8b5cf6);
+    }
+
+    .arch-stop.stop-below:nth-of-type(6) .arch-stop-arrow {
+      background: linear-gradient(0deg, transparent, #f59e0b);
+    }
 
     /* Pin circle on road */
     .arch-pin {
@@ -1312,20 +1342,66 @@
     }
 
     /* Card body tinted with a lighter wash of its own icon's accent color, instead of plain white */
-    .arch-stop:nth-of-type(1) .arch-card-road { background: #ecfdf9; border-color: rgba(13, 148, 136, 0.25); }
-    .arch-stop:nth-of-type(2) .arch-card-road { background: #fffbeb; border-color: rgba(202, 138, 4, 0.25); }
-    .arch-stop:nth-of-type(3) .arch-card-road { background: #fdf2f8; border-color: rgba(224, 95, 163, 0.25); }
-    .arch-stop:nth-of-type(4) .arch-card-road { background: #f0f9ff; border-color: rgba(14, 165, 233, 0.25); }
-    .arch-stop:nth-of-type(5) .arch-card-road { background: #f5f3ff; border-color: rgba(139, 92, 246, 0.25); }
-    .arch-stop:nth-of-type(6) .arch-card-road { background: #fff7ed; border-color: rgba(245, 158, 11, 0.25); }
+    .arch-stop:nth-of-type(1) .arch-card-road {
+      background: #ecfdf9;
+      border-color: rgba(13, 148, 136, 0.25);
+    }
+
+    .arch-stop:nth-of-type(2) .arch-card-road {
+      background: #fffbeb;
+      border-color: rgba(202, 138, 4, 0.25);
+    }
+
+    .arch-stop:nth-of-type(3) .arch-card-road {
+      background: #fdf2f8;
+      border-color: rgba(224, 95, 163, 0.25);
+    }
+
+    .arch-stop:nth-of-type(4) .arch-card-road {
+      background: #f0f9ff;
+      border-color: rgba(14, 165, 233, 0.25);
+    }
+
+    .arch-stop:nth-of-type(5) .arch-card-road {
+      background: #f5f3ff;
+      border-color: rgba(139, 92, 246, 0.25);
+    }
+
+    .arch-stop:nth-of-type(6) .arch-card-road {
+      background: #fff7ed;
+      border-color: rgba(245, 158, 11, 0.25);
+    }
 
     /* On hover, deepen into a lighter tint of that same stop's accent color */
-    .arch-stop:nth-of-type(1) .arch-card-road:hover { background: #c8fbef; border-color: rgba(13, 148, 136, 0.45); }
-    .arch-stop:nth-of-type(2) .arch-card-road:hover { background: #fef3c7; border-color: rgba(202, 138, 4, 0.45); }
-    .arch-stop:nth-of-type(3) .arch-card-road:hover { background: #fbcfe8; border-color: rgba(224, 95, 163, 0.45); }
-    .arch-stop:nth-of-type(4) .arch-card-road:hover { background: #bae6fd; border-color: rgba(14, 165, 233, 0.45); }
-    .arch-stop:nth-of-type(5) .arch-card-road:hover { background: #ddd6fe; border-color: rgba(139, 92, 246, 0.45); }
-    .arch-stop:nth-of-type(6) .arch-card-road:hover { background: #fde68a; border-color: rgba(245, 158, 11, 0.45); }
+    .arch-stop:nth-of-type(1) .arch-card-road:hover {
+      background: #c8fbef;
+      border-color: rgba(13, 148, 136, 0.45);
+    }
+
+    .arch-stop:nth-of-type(2) .arch-card-road:hover {
+      background: #fef3c7;
+      border-color: rgba(202, 138, 4, 0.45);
+    }
+
+    .arch-stop:nth-of-type(3) .arch-card-road:hover {
+      background: #fbcfe8;
+      border-color: rgba(224, 95, 163, 0.45);
+    }
+
+    .arch-stop:nth-of-type(4) .arch-card-road:hover {
+      background: #bae6fd;
+      border-color: rgba(14, 165, 233, 0.45);
+    }
+
+    .arch-stop:nth-of-type(5) .arch-card-road:hover {
+      background: #ddd6fe;
+      border-color: rgba(139, 92, 246, 0.45);
+    }
+
+    .arch-stop:nth-of-type(6) .arch-card-road:hover {
+      background: #fde68a;
+      border-color: rgba(245, 158, 11, 0.45);
+    }
 
     .arch-icon-road {
       width: 2.8rem;
@@ -1460,9 +1536,17 @@
     }
 
     /* Lighter, brighter teal/turquoise/blue family instead of the old dark shades */
-    .sim-stack-card.sim-c1 { background: linear-gradient(155deg, #5eead4 0%, #14b8a6 100%); }
-    .sim-stack-card.sim-c2 { background: linear-gradient(155deg, #6ee7b7 0%, #0f9b8e 100%); }
-    .sim-stack-card.sim-c3 { background: linear-gradient(155deg, #67e8f9 0%, #0ea5e9 100%); }
+    .sim-stack-card.sim-c1 {
+      background: linear-gradient(155deg, #5eead4 0%, #14b8a6 100%);
+    }
+
+    .sim-stack-card.sim-c2 {
+      background: linear-gradient(155deg, #6ee7b7 0%, #0f9b8e 100%);
+    }
+
+    .sim-stack-card.sim-c3 {
+      background: linear-gradient(155deg, #67e8f9 0%, #0ea5e9 100%);
+    }
 
     /* Three fan positions — back card pushed further left so its content is actually readable */
     .pos-back {
@@ -2754,8 +2838,7 @@
     <div class="container">
       <div class="discovery-header reveal">
         <div class="section-mascot-wrap">
-          <img src="/static/images/mascot_telling.png" alt="CareStance Mascot Telling" class="mascot-img"
-            onerror="this.src='https://i.ibb.co/XzB9h5Z/Carestance-Mascot-Waving.png';">
+          <img src="/static/images/mascot_explaining.png?v=1" alt="CareStance Mascot Explaining" class="mascot-img">
           <div class="story-bubble">Let me walk you through it, step by step!</div>
         </div>
         <div class="discovery-text">
@@ -2771,7 +2854,7 @@
         <!-- Pipeline Card 1 -->
         <div class="pipeline-card">
           <div class="pipeline-img-wrap">
-            <img src="/static/images/p1.jpg" alt="Card swipe" >
+            <img src="/static/images/p1.jpg" alt="Card swipe">
 
           </div>
           <div class="pipe-num">01</div>
@@ -2784,7 +2867,7 @@
         <!-- Pipeline Card 2 -->
         <div class="pipeline-card">
           <div class="pipeline-img-wrap">
-             <img src="/static/images/p2.jpg" alt="Guieded evaluation" >
+            <img src="/static/images/p2.jpg" alt="Guieded evaluation">
           </div>
           <div class="pipe-num">02</div>
           <div class="pipe-icon-badge pipe-icon-purple"><i class="fa-solid fa-brain"></i></div>
@@ -2796,7 +2879,7 @@
         <!-- Pipeline Card 3 -->
         <div class="pipeline-card">
           <div class="pipeline-img-wrap">
-            <img src="/static/images/p3.jpg" alt="test drive" >
+            <img src="/static/images/p3.jpg" alt="test drive">
           </div>
           <div class="pipe-num">03</div>
           <div class="pipe-icon-badge pipe-icon-pink"><i class="fa-solid fa-flask-vial"></i></div>
@@ -2808,7 +2891,7 @@
         <!-- Pipeline Card 4 -->
         <div class="pipeline-card">
           <div class="pipeline-img-wrap">
-             <img src="/static/images/p4.jpg" alt="planning" >
+            <img src="/static/images/p4.jpg" alt="planning">
           </div>
           <div class="pipe-num">04</div>
           <div class="pipe-icon-badge pipe-icon-green"><i class="fa-solid fa-chart-line"></i></div>
@@ -2825,17 +2908,18 @@
   <section id="archetypes" class="archetype-section">
     <div class="container">
       <!-- Section Header -->
-      <div class="reveal" style="display:flex;align-items:center;justify-content:center;gap:3rem;margin-bottom:3.5rem;flex-wrap:wrap;">
+      <div class="reveal"
+        style="display:flex;align-items:center;justify-content:center;gap:3rem;margin-bottom:3.5rem;flex-wrap:wrap;">
         <div style="flex:1;text-align:left;min-width:260px;max-width:420px;">
-          <div class="section-tag" style="margin-bottom:1.5rem;"><i class="fa-solid fa-dna"></i> Personality Archetypes</div>
+          <div class="section-tag" style="margin-bottom:1.5rem;"><i class="fa-solid fa-dna"></i> Personality Archetypes
+          </div>
           <h2 class="section-title" style="font-size:3.5rem;line-height:1.2;margin:0;">
             Discover Your Dominant<br><span class="text-serif">Archetype</span>
           </h2>
         </div>
         <div style="flex:0 0 auto;display:flex;justify-content:center;min-width:260px;">
           <div class="section-mascot-wrap" style="max-width:400px;width:100%;margin:0;">
-            <img src="/static/images/mascot_amazed.png" alt="CareStance Mascot Amazed" class="mascot-img"
-              onerror="this.src='https://i.ibb.co/XzB9h5Z/Carestance-Mascot-Waving.png';">
+            <img src="/static/images/mascot_amazed.png?v=1" alt="CareStance Mascot Amazed" class="mascot-img">
             <div class="story-bubble">Whoa — six totally different paths!</div>
           </div>
         </div>
@@ -2942,8 +3026,8 @@
         <!-- Stop 6 — below -->
         <div class="arch-stop stagger-child stop-below" style="--stop-x:87.14%; --stop-y:75%;">
           <div class="arch-card-road">
-            <div class="arch-icon-road" style="background:#fef3c7;color:#f59e0b"><i
-                class="fa-solid fa-arrows-spin"></i></div>
+            <div class="arch-icon-road" style="background:#fef3c7;color:#f59e0b"><i class="fa-solid fa-arrows-spin"></i>
+            </div>
             <div>
               <h3>Dynamic Generalist</h3>
               <span class="arch-tag" style="background:#fef3c7;color:#f59e0b">Breadth · Synthesis</span>
@@ -2958,67 +3042,67 @@
   </section>
 
   <script>
-  // ── CAR SCROLL ANIMATION: rides the *actual* curves of the road path, not just a straight vertical line ──
-  (function(){
-    const wrapper = document.getElementById('arch-road-wrapper');
-    const car = document.getElementById('road-car');
-    const pathEl = document.getElementById('arch-road-path');
-    const svgEl = document.querySelector('.arch-road-svg');
-    if (!wrapper || !car || !pathEl || !svgEl) return;
+    // ── CAR SCROLL ANIMATION: rides the *actual* curves of the road path, not just a straight vertical line ──
+    (function () {
+      const wrapper = document.getElementById('arch-road-wrapper');
+      const car = document.getElementById('road-car');
+      const pathEl = document.getElementById('arch-road-path');
+      const svgEl = document.querySelector('.arch-road-svg');
+      if (!wrapper || !car || !pathEl || !svgEl) return;
 
-    const VB_W = 1400, VB_H = 460; // matches the SVG viewBox of arch-road-svg
-    const pathLength = pathEl.getTotalLength();
-    let ticking = false;
+      const VB_W = 1400, VB_H = 460; // matches the SVG viewBox of arch-road-svg
+      const pathLength = pathEl.getTotalLength();
+      let ticking = false;
 
-    function updateCar() {
-      ticking = false;
+      function updateCar() {
+        ticking = false;
 
-      const rect = wrapper.getBoundingClientRect();
-      const wrapH = wrapper.offsetHeight;
-      const viewH = window.innerHeight;
-      // fraction 0→1 as section scrolls through viewport
-      const progress = Math.min(1, Math.max(0, (viewH - rect.top) / (viewH + wrapH)));
+        const rect = wrapper.getBoundingClientRect();
+        const wrapH = wrapper.offsetHeight;
+        const viewH = window.innerHeight;
+        // fraction 0→1 as section scrolls through viewport
+        const progress = Math.min(1, Math.max(0, (viewH - rect.top) / (viewH + wrapH)));
 
-      // sample the path at this progress, plus a hair further along, to get a heading angle
-      const dist = progress * pathLength;
-      const pt = pathEl.getPointAtLength(dist);
-      const aheadDist = Math.min(pathLength, dist + 4);
-      const pt2 = pathEl.getPointAtLength(aheadDist);
-      const rawAngle = Math.atan2(pt2.y - pt.y, pt2.x - pt.x) * (180 / Math.PI);
-      // road runs mostly left-to-right, so treat "facing right" (0deg) as the neutral heading,
-      // and only let the car bank gently into curves either side of that
-      const tilt = Math.max(-32, Math.min(32, rawAngle));
+        // sample the path at this progress, plus a hair further along, to get a heading angle
+        const dist = progress * pathLength;
+        const pt = pathEl.getPointAtLength(dist);
+        const aheadDist = Math.min(pathLength, dist + 4);
+        const pt2 = pathEl.getPointAtLength(aheadDist);
+        const rawAngle = Math.atan2(pt2.y - pt.y, pt2.x - pt.x) * (180 / Math.PI);
+        // road runs mostly left-to-right, so treat "facing right" (0deg) as the neutral heading,
+        // and only let the car bank gently into curves either side of that
+        const tilt = Math.max(-32, Math.min(32, rawAngle));
 
-      // convert the path's own viewBox coordinates into actual on-screen pixels,
-      // since the svg is stretched non-uniformly (preserveAspectRatio="none")
-      const svgRect = svgEl.getBoundingClientRect();
-      const scaleX = svgRect.width / VB_W;
-      const scaleY = svgRect.height / VB_H;
-      const svgLeftOffset = svgRect.left - rect.left;
-      const svgTopOffset = svgRect.top - rect.top;
+        // convert the path's own viewBox coordinates into actual on-screen pixels,
+        // since the svg is stretched non-uniformly (preserveAspectRatio="none")
+        const svgRect = svgEl.getBoundingClientRect();
+        const scaleX = svgRect.width / VB_W;
+        const scaleY = svgRect.height / VB_H;
+        const svgLeftOffset = svgRect.left - rect.left;
+        const svgTopOffset = svgRect.top - rect.top;
 
-      const carW = car.offsetWidth;
-      const carH = car.offsetHeight;
+        const carW = car.offsetWidth;
+        const carH = car.offsetHeight;
 
-      const x = svgLeftOffset + pt.x * scaleX - carW / 2;
-      const y = svgTopOffset + pt.y * scaleY - carH / 2;
+        const x = svgLeftOffset + pt.x * scaleX - carW / 2;
+        const y = svgTopOffset + pt.y * scaleY - carH / 2;
 
-      car.style.left = x + 'px';
-      car.style.top = y + 'px';
-      car.style.transform = `rotate(${tilt}deg)`;
-    }
-
-    function onScroll() {
-      if (!ticking) {
-        ticking = true;
-        requestAnimationFrame(updateCar);
+        car.style.left = x + 'px';
+        car.style.top = y + 'px';
+        car.style.transform = `rotate(${tilt}deg)`;
       }
-    }
 
-    window.addEventListener('scroll', onScroll, {passive:true});
-    window.addEventListener('resize', updateCar);
-    updateCar();
-  })();
+      function onScroll() {
+        if (!ticking) {
+          ticking = true;
+          requestAnimationFrame(updateCar);
+        }
+      }
+
+      window.addEventListener('scroll', onScroll, { passive: true });
+      window.addEventListener('resize', updateCar);
+      updateCar();
+    })();
   </script>
 
   <!-- ── CAREER SIMULATION ── -->
@@ -3028,7 +3112,8 @@
         <div class="sim-text">
           <div class="section-tag"><i class="fa-solid fa-gamepad"></i> Interactive Scenarios</div>
           <h2 class="section-title">Test-Drive Real Career <span class="text-serif">Decisions</span></h2>
-          <p class="section-desc">Experience mock daily scenarios across actual industries to evaluate where your judgment
+          <p class="section-desc">Experience mock daily scenarios across actual industries to evaluate where your
+            judgment
             excels.</p>
         </div>
         <div class="sim-stack-col">
@@ -3068,8 +3153,10 @@
             </div>
           </div>
           <div class="sim-stack-actions">
-            <button class="sim-stack-btn reject" id="simReject" aria-label="Discard card"><i class="fa-solid fa-xmark"></i></button>
-            <button class="sim-stack-btn accept" id="simAccept" aria-label="Open card"><i class="fa-solid fa-check"></i></button>
+            <button class="sim-stack-btn reject" id="simReject" aria-label="Discard card"><i
+                class="fa-solid fa-xmark"></i></button>
+            <button class="sim-stack-btn accept" id="simAccept" aria-label="Open card"><i
+                class="fa-solid fa-check"></i></button>
           </div>
         </div>
       </div>
@@ -3077,43 +3164,43 @@
   </section>
 
   <script>
-  // ── SIM STACK: tap check/cross to straighten + scale the front card for a clear read, then cycle the deck ──
-  (function () {
-    const stack = document.getElementById('simStack');
-    const acceptBtn = document.getElementById('simAccept');
-    const rejectBtn = document.getElementById('simReject');
-    if (!stack || !acceptBtn || !rejectBtn) return;
+    // ── SIM STACK: tap check/cross to straighten + scale the front card for a clear read, then cycle the deck ──
+    (function () {
+      const stack = document.getElementById('simStack');
+      const acceptBtn = document.getElementById('simAccept');
+      const rejectBtn = document.getElementById('simReject');
+      if (!stack || !acceptBtn || !rejectBtn) return;
 
-    let order = Array.from(stack.querySelectorAll('.sim-stack-card'));
-    const posClasses = ['pos-front', 'pos-mid', 'pos-back'];
-    let busy = false;
+      let order = Array.from(stack.querySelectorAll('.sim-stack-card'));
+      const posClasses = ['pos-front', 'pos-mid', 'pos-back'];
+      let busy = false;
 
-    function applyPositions() {
-      order.forEach((card, i) => {
-        card.classList.remove('pos-front', 'pos-mid', 'pos-back', 'is-deciding');
-        card.classList.add(posClasses[i]);
-      });
-    }
+      function applyPositions() {
+        order.forEach((card, i) => {
+          card.classList.remove('pos-front', 'pos-mid', 'pos-back', 'is-deciding');
+          card.classList.add(posClasses[i]);
+        });
+      }
 
-    function decide(outcomeClass) {
-      if (busy) return;
-      busy = true;
-      const front = order[0];
-      front.classList.add('is-deciding', outcomeClass);
+      function decide(outcomeClass) {
+        if (busy) return;
+        busy = true;
+        const front = order[0];
+        front.classList.add('is-deciding', outcomeClass);
 
-      setTimeout(() => {
-        front.classList.remove('is-deciding', outcomeClass);
-        order.push(order.shift()); // front card goes to the back of the deck
-        applyPositions();
-        busy = false;
-      }, 650);
-    }
+        setTimeout(() => {
+          front.classList.remove('is-deciding', outcomeClass);
+          order.push(order.shift()); // front card goes to the back of the deck
+          applyPositions();
+          busy = false;
+        }, 650);
+      }
 
-    acceptBtn.addEventListener('click', () => decide('is-accepted'));
-    rejectBtn.addEventListener('click', () => decide('is-rejected'));
+      acceptBtn.addEventListener('click', () => decide('is-accepted'));
+      rejectBtn.addEventListener('click', () => decide('is-rejected'));
 
-    applyPositions();
-  })();
+      applyPositions();
+    })();
   </script>
 
   <!-- ── AI CHATBOT ── -->
@@ -3156,7 +3243,8 @@
     <div class="container">
       <div class="text-center reveal">
         <div class="section-tag"><i class="fa-solid fa-video"></i> Verified Counsellors</div>
-        <h2 class="section-title counsel-title">Personalized Guidance, <span class="text-serif">One Session Away</span></h2>
+        <h2 class="section-title counsel-title">Personalized Guidance, <span class="text-serif">One Session Away</span>
+        </h2>
         <p class="section-desc counsel-desc">Connect directly with vetted counselors for tailored 1-on-1 feedback.</p>
       </div>
       <div class="counsel-grid stagger-parent">
@@ -3278,8 +3366,7 @@
         </div>
         <div class="roadmap-mascot-col">
           <div class="section-mascot-wrap roadmap-mascot-wrap">
-            <img src="/static/images/mascot_thinking.png" alt="CareStance Mascot Thinking" class="mascot-img"
-              onerror="this.src='https://i.ibb.co/XzB9h5Z/Carestance-Mascot-Waving.png';">
+            <img src="/static/images/mascot_excited.png?v=1" alt="CareStance Mascot Excited" class="mascot-img">
             <div class="story-bubble">Here's your roadmap to launch!</div>
           </div>
         </div>
@@ -3303,8 +3390,7 @@
 
         <div class="trust-v-center">
           <div class="trust-v-mascot-wrap">
-            <img src="/static/images/mascot_excited.png" alt="CareStance Mascot" class="mascot-img"
-              onerror="this.src='https://i.ibb.co/XzB9h5Z/Carestance-Mascot-Waving.png';">
+            <img src="/static/images/mascot_telling.png?v=1" alt="CareStance Mascot Telling" class="mascot-img">
           </div>
           <div class="trust-card card trust-v-mid stagger-child">
             <div class="trust-icon trust-icon-orange"><i class="fa-solid fa-handshake"></i></div>
@@ -3336,7 +3422,7 @@
         <span>Your Future Is Waiting to Be Discovered&nbsp;&nbsp;✦&nbsp;&nbsp;</span>
       </div>
     </div>
-    
+
   </section>
 
   <!-- ── FOOTER ── -->
@@ -3348,7 +3434,9 @@
             <img src="/static/images/image.webp" alt="CareStance" height="32">
             <span class="footer-logo-text">CareStance</span>
           </div>
-          <p style="font-family:'Space Grotesk',var(--font-sans); font-size:1rem; color: #94a3b8; margin-bottom: 1.5rem;">Authentic educational and structural
+          <p
+            style="font-family:'Space Grotesk',var(--font-sans); font-size:1rem; color: #94a3b8; margin-bottom: 1.5rem;">
+            Authentic educational and structural
             counseling designed for students.</p>
           <div>
             <a href="https://www.instagram.com/carestance.in/" target="_blank" rel="noopener" class="social-btn-f"><i
@@ -3384,7 +3472,8 @@
       </div>
       <div class="footer-divider">
         <p class="footer-copy">© 2026 CareStance AI. All rights reserved.</p>
-        <span class="footer-contact-link" style="font-family:'Space Grotesk',var(--font-sans);font-size:.98rem;color:#94a3b8"><i class="fas fa-envelope"
+        <span class="footer-contact-link"
+          style="font-family:'Space Grotesk',var(--font-sans);font-size:.98rem;color:#94a3b8"><i class="fas fa-envelope"
             style="margin-right:.4rem;color:var(--teal)"></i>contact@carestance.me</span>
       </div>
     </div>
