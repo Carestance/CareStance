@@ -3,122 +3,222 @@
 {% block title %}Login{% endblock %}
 
 {% block content %}
-<div class="min-h-screen flex items-center justify-center relative overflow-hidden" style="background: var(--bg-deep);">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,400&display=swap');
 
+  /* ── Page ── */
+  .su-page * { box-sizing: border-box; }
 
-    <div class="relative max-w-md w-full px-6">
-        <div class="bg-white/70 backdrop-blur-xl p-10 rounded-3xl shadow-2xl border border-white/40">
+  /* Override base.html body padding — su-page covers full viewport including nav area */
+  body { padding-top: 0 !important; }
 
-            <!-- Header -->
-            <div class="text-center space-y-2">
-                <h2 class="text-3xl font-extrabold text-slate-900 tracking-tight">
-                    Welcome back 👋
-                </h2>
-                <p class="text-sm text-slate-500">
-                    Login to continue your journey with
-                    <span style="color: var(--navy); font-weight: 600;">CareStance</span>
-                </p>
-            </div>
+  .su-page {
+    min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    padding: 7rem 1rem 5rem;
+    background: linear-gradient(160deg, #d7f3f1 0%, #bfe9e6 28%, #9ddcd9 55%, #6fc4c2 78%, #4fb0ae 100%);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    position: relative; overflow: hidden;
+  }
 
-            {% if error or request.query_params.get('error') %}
-            <div
-                class="mt-4 p-4 bg-rose-50 border border-rose-100 text-rose-600 rounded-xl text-sm font-medium flex items-center gap-3">
-                <i class="fas fa-exclamation-circle"></i>
-                {{ error or request.query_params.get('error') }}
-            </div>
-            {% endif %}
+  /* ── Floating glass bubbles, matching landing.html site-bg ── */
+  .su-blob { position: absolute; border-radius: 50%; pointer-events: none; z-index: 0; background: radial-gradient(circle at 32% 28%, rgba(255,255,255,0.85) 0%, rgba(102,158,167,0.25) 35%, rgba(103,211,210,0.383) 70%, transparent 100%); filter: blur(0.5px); will-change: transform; }
+  .su-blob-1 { width: 380px; height: 380px; top: -6%; right: 4%; animation: suBubbleFloat1 24s ease-in-out infinite; }
+  .su-blob-2 { width: 220px; height: 220px; top: 18%; right: 22%; background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.9) 0%, rgba(56,189,248,0.55) 40%, rgba(13,148,136,0.2) 75%, transparent 100%); animation: suBubbleFloat2 19s ease-in-out infinite; }
+  .su-blob-3 { width: 120px; height: 120px; top: 60%; left: 5%; background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.95) 0%, rgba(45,212,191,0.6) 45%, transparent 100%); animation: suBubbleFloat3 16s ease-in-out infinite; }
+  .su-blob-4 { width: 150px; height: 150px; bottom: -6%; left: 6%; animation: suBubbleFloat2 21s ease-in-out infinite reverse; }
+  .su-blob-5 { width: 90px; height: 90px; top: 80%; right: 14%; background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.9) 0%, rgba(56,189,248,0.5) 45%, transparent 100%); animation: suBubbleFloat1 17s ease-in-out infinite reverse; }
 
-            {% if message or request.query_params.get('message') %}
-            <div
-                class="mt-4 p-4 bg-emerald-50 border border-emerald-100 text-emerald-600 rounded-xl text-sm font-medium flex items-center gap-3">
-                <i class="fas fa-check-circle"></i>
-                {{ message or request.query_params.get('message') }}
-            </div>
-            {% endif %}
+  @keyframes suBubbleFloat1 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-18px,22px); } }
+  @keyframes suBubbleFloat2 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(16px,-20px); } }
+  @keyframes suBubbleFloat3 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-14px,-16px); } }
 
-            <!-- Form -->
-            <form class="mt-8 space-y-6" action="/login" method="POST">
+  .su-card {
+    position: relative; z-index: 1;
+    width: 100%; max-width: 460px;
+    background: rgba(255,255,255,0.82);
+    backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255,255,255,0.6);
+    border-radius: 2rem; padding: 2.5rem 2.25rem;
+    box-shadow: 0 32px 64px rgba(15,23,42,0.12), 0 8px 24px rgba(13,148,136,0.1), inset 0 1px 0 rgba(255,255,255,0.9);
+  }
 
-                <!-- Floating Inputs -->
-                <div class="space-y-4">
+  .su-logo-row { display: flex; align-items: center; justify-content: center; gap: 0.6rem; margin-bottom: 0.5rem; }
+  .su-logo-badge { width: 36px; height: 36px; border-radius: 50%; background: #0f172a; border: 2px solid #02bf65; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 4px rgba(255,255,255,0.8); overflow: hidden; }
+  .su-logo-badge img { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; }
+  .su-brand { font-family: 'Playfair Display', serif; font-style: italic; font-size: 1.1rem; font-weight: 500; color: #0f172a; letter-spacing: 0.02em; }
 
-                    <div class="relative">
-                        <input id="email-address" name="email" type="email" required
-                            class="peer w-full px-4 pt-5 pb-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-[var(--teal)] focus:border-[var(--teal)] outline-none transition"
-                            placeholder=" ">
-                        <label for="email-address"
-                            class="absolute left-4 top-2 text-xs text-slate-500 peer-placeholder-shown:text-sm peer-placeholder-shown:top-4 peer-placeholder-shown:text-slate-400 transition-all">
-                            Email Address
-                        </label>
-                    </div>
+  .su-headline { text-align: center; font-size: 1.65rem; font-weight: 800; color: #0f172a; letter-spacing: -0.02em; line-height: 1.2; margin-bottom: 0.3rem; }
+  .su-sub { text-align: center; font-size: 0.85rem; color: #64748b; margin-bottom: 1.75rem; font-weight: 500; }
 
-                    <div class="relative">
-                        <input id="password" name="password" type="password" required
-                            class="peer w-full px-4 pt-5 pb-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-[var(--teal)] focus:border-[var(--teal)] outline-none transition"
-                            placeholder=" ">
-                        <label for="password"
-                            class="absolute left-4 top-2 text-xs text-slate-500 peer-placeholder-shown:text-sm peer-placeholder-shown:top-4 peer-placeholder-shown:text-slate-400 transition-all">
-                            Password
-                        </label>
-                    </div>
+  .su-field { position: relative; margin-bottom: 1rem; }
 
-                </div>
+  .su-input {
+    width: 100%; padding: 1.05rem 2.75rem 0.55rem 1rem;
+    border: 1.5px solid #cbd5e1; border-radius: 0.875rem;
+    font-size: 0.92rem; font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 500; color: #0f172a;
+    background: rgba(255,255,255,0.7); outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    -webkit-appearance: none;
+  }
+  .su-input::placeholder { color: transparent; }
+  .su-input:focus { border-color: #0d9488; box-shadow: 0 0 0 3px rgba(13,148,136,0.14); background: rgba(255,255,255,0.95); }
+  .su-input:valid:not(:placeholder-shown) { border-color: #10b981; background: rgba(240,253,249,0.9); }
+  .su-input:invalid:not(:placeholder-shown):not(:focus) { border-color: #f87171; background: rgba(254,242,242,0.8); }
 
-                <!-- Forgot Password -->
-                <div class="flex justify-end">
-                    <a href="/forgot-password"
-                        class="text-sm font-medium transition" style="color: var(--navy);">
-                        Forgot your password?
-                    </a>
-                </div>
+  .su-label {
+    position: absolute; left: 1rem; top: 0.6rem;
+    font-size: 0.7rem; font-weight: 700; letter-spacing: 0.04em;
+    text-transform: uppercase; color: #94a3b8;
+    pointer-events: none; transition: all 0.18s ease;
+  }
+  .su-input:placeholder-shown + .su-label { top: 50%; transform: translateY(-50%); font-size: 0.88rem; text-transform: none; letter-spacing: 0; font-weight: 500; color: #94a3b8; }
 
-                <!-- Submit Button -->
-                <button type="submit"
-                    class="w-full py-3 rounded-xl text-white font-bold hover:scale-[1.03] hover:shadow-xl transition-all duration-300" style="background: var(--gradient-primary);">
-                    Sign In
-                </button>
+  .su-tick {
+    position: absolute; right: 0.85rem; top: 50%; transform: translateY(-50%);
+    width: 20px; height: 20px; border-radius: 50%; background: #10b981;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity 0.2s, transform 0.2s; pointer-events: none;
+  }
+  .su-tick svg { width: 11px; height: 11px; }
+  .su-input:valid:not(:placeholder-shown) ~ .su-tick { opacity: 1; transform: translateY(-50%) scale(1); }
 
-                <!-- Divider -->
-                <div class="relative py-2">
-                    <div class="absolute inset-0 flex items-center">
-                        <div class="w-full border-t border-slate-200"></div>
-                    </div>
-                    <div class="relative flex justify-center text-sm">
-                        <span class="px-2 bg-white text-slate-400">or continue with</span>
-                    </div>
-                </div>
+  .su-forgot { display: flex; justify-content: flex-end; margin-bottom: 1rem; }
+  .su-forgot a { font-size: 0.82rem; font-weight: 600; color: #0d9488; text-decoration: none; }
+  .su-forgot a:hover { color: #0f766e; text-decoration: underline; }
 
-                <!-- Google Button -->
-                <a href="/login/google"
-                    class="w-full flex justify-center items-center py-3 px-4 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 font-semibold transition hover:shadow-md">
+  .su-btn {
+    width: 100%; padding: 0.95rem; border: none; border-radius: 0.875rem;
+    font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.95rem; font-weight: 800;
+    color: white; letter-spacing: 0.02em;
+    background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+    cursor: pointer; transition: transform 0.22s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.22s;
+    box-shadow: 0 6px 20px rgba(13,148,136,0.32); margin-bottom: 1.25rem;
+    position: relative; overflow: hidden;
+  }
+  .su-btn::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 60%); opacity: 0; transition: opacity 0.2s; }
+  .su-btn:hover { transform: translateY(-2px) scale(1.015); box-shadow: 0 12px 32px rgba(13,148,136,0.42); }
+  .su-btn:hover::before { opacity: 1; }
+  .su-btn:active { transform: translateY(0) scale(0.99); }
 
-                    <svg class="h-5 w-5 mr-3" viewBox="0 0 24 24">
-                        <path
-                            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                            fill="#4285F4" />
-                        <path
-                            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                            fill="#34A853" />
-                        <path
-                            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"
-                            fill="#FBBC05" />
-                        <path
-                            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 12-4.53z"
-                            fill="#EA4335" />
-                    </svg>
+  .su-alert-error { margin-bottom: 1rem; padding: 0.85rem 1rem; background: rgba(254,242,242,0.9); border: 1px solid #fca5a5; border-radius: 0.875rem; font-size: 0.85rem; font-weight: 600; color: #dc2626; display: flex; align-items: center; gap: 0.6rem; }
+  .su-alert-success { margin-bottom: 1rem; padding: 0.85rem 1rem; background: rgba(240,253,249,0.9); border: 1px solid #6ee7b7; border-radius: 0.875rem; font-size: 0.85rem; font-weight: 600; color: #059669; display: flex; align-items: center; gap: 0.6rem; }
 
-                    Sign in with Google
-                </a>
+  .su-divider { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
+  .su-divider-line { flex: 1; height: 1px; background: #e2e8f0; }
+  .su-divider-text { font-size: 0.78rem; color: #94a3b8; font-weight: 600; white-space: nowrap; }
 
-                <p class="text-center text-sm text-slate-500 pt-4">
-                    Don’t have an account?
-                    <a href="/signup" class="font-semibold" style="color: var(--navy);">
-                        Sign up
-                    </a>
-                </p>
+  .su-google {
+    width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.65rem;
+    padding: 0.85rem 1.25rem; border: 1.5px solid #e2e8f0; border-radius: 0.875rem;
+    background: white; font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.88rem; font-weight: 700; color: #0f172a; text-decoration: none;
+    transition: all 0.2s ease; box-shadow: 0 2px 8px rgba(15,23,42,0.06); margin-bottom: 1.25rem;
+  }
+  .su-google:hover { background: #f8fafc; border-color: #cbd5e1; box-shadow: 0 6px 18px rgba(15,23,42,0.1); transform: translateY(-1px); }
 
-            </form>
-        </div>
+  .su-footer { text-align: center; font-size: 0.82rem; color: #64748b; font-weight: 500; }
+  .su-footer a { color: #0d9488; font-weight: 700; text-decoration: none; }
+  .su-footer a:hover { color: #0f766e; text-decoration: underline; }
+
+  @media (max-width: 480px) {
+    .su-card { padding: 2rem 1.4rem; border-radius: 1.5rem; }
+    .su-headline { font-size: 1.4rem; }
+  }
+</style>
+
+<div class="su-page">
+  <div class="su-blob su-blob-1"></div>
+  <div class="su-blob su-blob-2"></div>
+  <div class="su-blob su-blob-3"></div>
+  <div class="su-blob su-blob-4"></div>
+  <div class="su-blob su-blob-5"></div>
+
+  <div class="su-card">
+    <div class="su-logo-row">
+      <div class="su-logo-badge">
+        <img src="/static/images/logo.png" alt="CareStance">
+      </div>
+      <span class="su-brand">CareStance</span>
     </div>
+
+    <h1 class="su-headline">Welcome back 👋</h1>
+    <p class="su-sub">Login to continue your journey ✦</p>
+
+    {% if error or request.query_params.get('error') %}
+    <div class="su-alert-error">
+      <i class="fas fa-exclamation-circle"></i>
+      {{ error or request.query_params.get('error') }}
+    </div>
+    {% endif %}
+
+    {% if message or request.query_params.get('message') %}
+    <div class="su-alert-success">
+      <i class="fas fa-check-circle"></i>
+      {{ message or request.query_params.get('message') }}
+    </div>
+    {% endif %}
+
+    <form action="/login" method="POST" novalidate>
+
+      <div class="su-field">
+        <input id="email" name="email" type="email" class="su-input" placeholder=" " required autocomplete="email">
+        <label for="email" class="su-label">Email Address</label>
+        <span class="su-tick" aria-hidden="true"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </div>
+
+      <div class="su-field" style="margin-bottom:0.5rem;">
+        <input id="password" name="password" type="password" class="su-input" placeholder=" " required autocomplete="current-password">
+        <label for="password" class="su-label">Password</label>
+        <span class="su-tick" aria-hidden="true"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </div>
+
+      <div class="su-forgot">
+        <a href="/forgot-password">Forgot your password?</a>
+      </div>
+
+      <button type="submit" class="su-btn">Sign In →</button>
+
+      <div class="su-divider">
+        <div class="su-divider-line"></div>
+        <span class="su-divider-text">or continue with</span>
+        <div class="su-divider-line"></div>
+      </div>
+
+      <a href="/login/google" class="su-google">
+        <svg width="18" height="18" viewBox="0 0 24 24">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        </svg>
+        Sign in with Google
+      </a>
+
+      <p class="su-footer">Don't have an account? <a href="/signup">Sign up</a></p>
+
+    </form>
+  </div>
 </div>
+
+<script>
+  const menuToggle = document.getElementById('f-menu-toggle');
+  const mobileMenu = document.getElementById('f-mobile-menu');
+  const menuIcon   = document.getElementById('f-menu-icon');
+  if (menuToggle && mobileMenu) {
+    menuToggle.addEventListener('click', () => {
+      if (mobileMenu.style.display === 'flex') {
+        mobileMenu.style.display = 'none';
+        menuIcon.className = 'fa-solid fa-bars';
+      } else {
+        mobileMenu.style.display = 'flex';
+        menuIcon.className = 'fa-solid fa-xmark';
+      }
+    });
+  }
+  function closeMobileF() {
+    if (mobileMenu) { mobileMenu.style.display = 'none'; menuIcon.className = 'fa-solid fa-bars'; }
+  }
+</script>
 {% endblock %}
