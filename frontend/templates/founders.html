@@ -6,24 +6,12 @@
 <!-- Custom Styles for Premium Light Animations -->
 <style>
     @keyframes float {
-
-        0%,
-        100% {
-            transform: translateY(0px);
-        }
-
-        50% {
-            transform: translateY(-15px);
-        }
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-15px); }
     }
 
-    .animate-float {
-        animation: float 6s ease-in-out infinite;
-    }
-
-    .animate-float-delayed {
-        animation: float 6s ease-in-out infinite 3s;
-    }
+    .animate-float { animation: float 6s ease-in-out infinite; }
+    .animate-float-delayed { animation: float 6s ease-in-out infinite 3s; }
 
     .founder-card {
         background: rgba(255, 255, 255, 0.85);
@@ -38,23 +26,51 @@
         transform: translateY(-4px);
     }
 
-    .avatar-glow-1 {
-        box-shadow: 0 0 40px -10px rgba(11, 59, 60, 0.3);
-    }
+    .avatar-glow-1 { box-shadow: 0 0 40px -10px rgba(11, 59, 60, 0.3); }
+    .avatar-glow-2 { box-shadow: 0 0 40px -10px rgba(217, 150, 6, 0.3); }
 
-    .avatar-glow-2 {
-        box-shadow: 0 0 40px -10px rgba(217, 150, 6, 0.3);
+    /* ── Bubble background matching landing.html ── */
+    .fo-bg {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: -1;
+        overflow: hidden;
+        background: linear-gradient(160deg, #d7f3f1 0%, #bfe9e6 28%, #9ddcd9 55%, #6fc4c2 78%, #4fb0ae 100%);
+    }
+    .fo-bubble { position: absolute; border-radius: 50%; background: radial-gradient(circle at 32% 28%, rgba(255,255,255,0.85) 0%, rgba(102,158,167,0.25) 35%, rgba(103,211,210,0.383) 70%, transparent 100%); filter: blur(0.5px); will-change: transform; }
+    .fo-bubble.b1 { width: 380px; height: 380px; top: -6%; right: 4%; animation: foBubble1 24s ease-in-out infinite; }
+    .fo-bubble.b2 { width: 220px; height: 220px; top: 18%; right: 22%; background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.9) 0%, rgba(56,189,248,0.55) 40%, rgba(13,148,136,0.2) 75%, transparent 100%); animation: foBubble2 19s ease-in-out infinite; }
+    .fo-bubble.b3 { width: 120px; height: 120px; top: 38%; right: 6%; background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.95) 0%, rgba(45,212,191,0.6) 45%, transparent 100%); animation: foBubble3 16s ease-in-out infinite; }
+    .fo-bubble.b4 { width: 150px; height: 150px; top: 58%; left: 4%; animation: foBubble2 21s ease-in-out infinite reverse; }
+    .fo-bubble.b5 { width: 90px; height: 90px; top: 80%; left: 18%; background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.9) 0%, rgba(56,189,248,0.5) 45%, transparent 100%); animation: foBubble1 17s ease-in-out infinite reverse; }
+    .fo-bubble.b6 { width: 260px; height: 260px; bottom: -8%; right: 12%; animation: foBubble3 27s ease-in-out infinite; }
+    .fo-bubble.b7 { width: 140px; height: 140px; top: 4%; left: 8%; background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.9) 0%, rgba(20,184,166,0.4) 45%, transparent 100%); animation: foBubble2 22s ease-in-out infinite; }
+
+    @keyframes foBubble1 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-18px,22px); } }
+    @keyframes foBubble2 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(16px,-20px); } }
+    @keyframes foBubble3 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-14px,-16px); } }
+
+    @media (max-width: 768px) {
+        .fo-bubble.b1 { width: 220px; height: 220px; }
+        .fo-bubble.b2 { width: 130px; height: 130px; }
+        .fo-bubble.b6 { width: 160px; height: 160px; }
     }
 </style>
 
-<div class="min-h-screen py-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden"
-    style="background: linear-gradient(135deg, #fefcf5 0%, var(--teal-soft) 50%, #fef3c7 100%);">
+<!-- Bubble background -->
+<div class="fo-bg" aria-hidden="true">
+    <div class="fo-bubble b1"></div>
+    <div class="fo-bubble b2"></div>
+    <div class="fo-bubble b3"></div>
+    <div class="fo-bubble b4"></div>
+    <div class="fo-bubble b5"></div>
+    <div class="fo-bubble b6"></div>
+    <div class="fo-bubble b7"></div>
+</div>
 
-    <!-- Decorative Elements -->
-    <div class="absolute top-20 left-10 w-64 h-64 rounded-full blur-[100px] pointer-events-none"
-        style="background: rgba(11, 59, 60, 0.08);"></div>
-    <div class="absolute bottom-20 right-10 w-96 h-96 rounded-full blur-[120px] pointer-events-none"
-        style="background: rgba(217, 150, 6, 0.08);"></div>
+<div class="min-h-screen py-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
 
     <!-- Heading Section -->
     <div class="text-center mb-24 relative z-10" data-aos="fade-down">

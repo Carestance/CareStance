@@ -239,4 +239,24 @@
     <!-- Bottom spacer -->
     <div class="w-full flex-grow" style="min-height: 60px;"></div>
 </div>
+
+<script>
+  const menuToggle = document.getElementById('f-menu-toggle');
+  const mobileMenu = document.getElementById('f-mobile-menu');
+  const menuIcon   = document.getElementById('f-menu-icon');
+  if (menuToggle && mobileMenu) {
+    menuToggle.addEventListener('click', () => {
+      if (mobileMenu.style.display === 'flex') {
+        mobileMenu.style.display = 'none';
+        menuIcon.className = 'fa-solid fa-bars';
+      } else {
+        mobileMenu.style.display = 'flex';
+        menuIcon.className = 'fa-solid fa-xmark';
+      }
+    });
+  }
+  function closeMobileF() {
+    if (mobileMenu) { mobileMenu.style.display = 'none'; menuIcon.className = 'fa-solid fa-bars'; }
+  }
+</script>
 {% endblock %}
