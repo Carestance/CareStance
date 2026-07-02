@@ -79,6 +79,12 @@
 
         <div class="bg-white p-4 sm:p-6 border-t border-slate-100">
             <div class="flex flex-col items-center gap-3">
+                {% if mode == 'chat' %}
+                <div id="chat-input-container" class="w-full max-w-3xl flex gap-2">
+                    <input type="text" id="chatInput" class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:border-emerald-500 text-slate-700" placeholder="Type your response here..." onkeypress="if(event.key === 'Enter') handleTextSubmit()">
+                    <button id="sendBtn" onclick="handleTextSubmit()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-md">Send</button>
+                </div>
+                {% else %}
                 <div id="transcript-display" class="text-sm text-slate-400 italic text-center min-h-[20px] max-w-md">Tap
                     the mic and start speaking...</div>
                 <button type="button" id="micBtn"
@@ -89,6 +95,7 @@
                     </div>
                 </button>
                 <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Tap to Talk</p>
+                {% endif %}
                 <button id="finishBtn" onclick="finishAssessment()"
                     class="mt-2 px-6 py-2.5 bg-white border-2 border-emerald-500 text-emerald-600 font-bold rounded-2xl shadow-sm hover:bg-emerald-50 hover:scale-105 active:scale-95 transition-all text-xs uppercase tracking-wider hidden">✨
                     Finish & Get Results</button>
@@ -100,6 +107,7 @@
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
+        const interactionMode = "{{ mode }}";
         const chatBox = document.getElementById('chat-box');
         const micBtn = document.getElementById('micBtn');
         const micIcon = document.getElementById('micIcon');
@@ -112,7 +120,38 @@
         const sessionOverlay = document.getElementById('session-overlay');
         const startSessionBtn = document.getElementById('start-session-btn');
 
-        let chatHistory = [];
+        let chatHistory = {{ (result.chat_messages if result.chat_messages else []) | tojson | safe }};
+        if (!Array.isArray(chatHistory)) chatHistory = [];
+        
+        function renderHistoricalMessages() {
+            chatHistory.forEach(msg => {
+                const div = document.createElement('div');
+                if (msg.role === 'assistant') {
+                    div.className = 'flex items-start gap-3 animate-fade-in-up';
+                    div.innerHTML = `
+                        <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-br from-emerald-800 to-green-900 flex items-center justify-center flex-shrink-0 shadow-lg shadow-green-200">
+                            <span class="text-sm sm:text-lg text-white">🤖</span>
+                        </div>
+                        <div class="bg-white text-slate-700 p-4 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 max-w-[85%]">
+                            <div class="prose prose-emerald prose-sm max-w-none leading-relaxed">${marked.parse(msg.content)}</div>
+                        </div>
+                    `;
+                } else if (msg.role === 'user') {
+                    div.className = 'flex items-start gap-3 flex-row-reverse animate-fade-in-up';
+                    div.innerHTML = `
+                        <div class="w-8 h-8 rounded-full bg-slate-200 border-2 border-white flex items-center justify-center flex-shrink-0 shadow-sm">
+                            <span class="text-sm">🗣️</span>
+                        </div>
+                        <div class="bg-emerald-50 text-emerald-900 px-4 py-3 rounded-2xl rounded-tr-none shadow-sm border border-emerald-100 max-w-[75%]">
+                            <p class="text-sm italic">${msg.content}</p>
+                        </div>
+                    `;
+                }
+                chatBox.appendChild(div);
+            });
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
         let timeLeft = 600;
         let timerInterval;
         let conversationDone = false;
@@ -196,7 +235,9 @@
                 if (timeLeft <= 0) {
                     clearInterval(timerInterval);
                     conversationDone = true;
-                    micBtn.style.display = 'none';
+                    if (micBtn) micBtn.style.display = 'none';
+                    const chatInputContainer = document.getElementById('chat-input-container');
+                    if (chatInputContainer) chatInputContainer.style.display = 'none';
                     if (finishBtn) finishBtn.classList.remove('hidden');
                     appendMentorMessage("Time's up! Click Finish to see results.");
                 }
@@ -217,7 +258,9 @@
             chatBox.appendChild(div);
             chatBox.scrollTop = chatBox.scrollHeight;
             chatHistory.push({ role: "assistant", content: text });
-            speakText(text);
+            if (interactionMode !== 'chat') {
+                speakText(text);
+            }
         }
 
         function appendUserTranscript(text) {
@@ -239,8 +282,14 @@
         async function getAIResponse(userMsg = "") {
             if (isProcessing) return;
             isProcessing = true;
-            micBtn.disabled = true;
-            micBtn.classList.add('opacity-50');
+            if (micBtn) {
+                micBtn.disabled = true;
+                micBtn.classList.add('opacity-50');
+            }
+            const chatInput = document.getElementById('chatInput');
+            const sendBtn = document.getElementById('sendBtn');
+            if (chatInput) chatInput.disabled = true;
+            if (sendBtn) sendBtn.disabled = true;
             setMentorStatus('Thinking...');
 
             try {
@@ -260,10 +309,29 @@
                 appendMentorMessage("Connection issue. Please check your internet.");
             } finally {
                 isProcessing = false;
-                micBtn.disabled = false;
-                micBtn.classList.remove('opacity-50');
+                if (micBtn) {
+                    micBtn.disabled = false;
+                    micBtn.classList.remove('opacity-50');
+                }
+                if (chatInput) {
+                    chatInput.disabled = false;
+                    chatInput.focus();
+                }
+                if (sendBtn) sendBtn.disabled = false;
             }
         }
+
+        window.handleTextSubmit = function() {
+            if (conversationDone || isProcessing) return;
+            const input = document.getElementById('chatInput');
+            if (!input) return;
+            const text = input.value.trim();
+            if (text) {
+                input.value = '';
+                appendUserTranscript(text);
+                setTimeout(() => getAIResponse(text), 300);
+            }
+        };
 
         startSessionBtn.onclick = () => {
             voiceUnlocked = true;
@@ -273,7 +341,16 @@
             window.speechSynthesis.speak(v);
 
             startTimer();
-            getAIResponse(""); // Start first greeting
+            if (chatHistory.length === 0) {
+                getAIResponse(""); // Start first greeting
+            } else {
+                renderHistoricalMessages();
+                // Check if recommendation is ready
+                const userMsgCount = chatHistory.filter(m => m.role === 'user').length;
+                if (userMsgCount >= 10 && finishBtn) {
+                    finishBtn.classList.remove('hidden');
+                }
+            }
         };
 
         // Speech Recognition Setup
@@ -301,14 +378,16 @@
             };
 
             recognition.onend = () => {
-                micIcon.innerText = '🎙️';
-                micPulse.classList.remove('animate-ping', 'opacity-30');
+                if (micIcon) micIcon.innerText = '🎙️';
+                if (micPulse) micPulse.classList.remove('animate-ping', 'opacity-30');
             };
 
-            micBtn.onclick = () => {
-                if (conversationDone || isProcessing) return;
-                try { recognition.start(); } catch (e) { recognition.stop(); }
-            };
+            if (micBtn) {
+                micBtn.onclick = () => {
+                    if (conversationDone || isProcessing) return;
+                    try { recognition.start(); } catch (e) { recognition.stop(); }
+                };
+            }
         }
 
         window.finishAssessment = async function () {
@@ -333,9 +412,26 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ history: chatHistory })
                 });
+                
+                if (!resp.ok) {
+                    throw new Error(`Server returned ${resp.status}`);
+                }
+
                 const data = await resp.json();
-                if (data.redirect) window.location.href = data.redirect;
+                if (data.redirect) {
+                    window.location.href = data.redirect;
+                } else if (data.detail) {
+                    alert("Error finalizing assessment: " + data.detail);
+                    finishBtn.disabled = false;
+                    finishBtn.textContent = '✨ Finish & Get Results';
+                } else {
+                    alert("Error: No redirect URL provided by server.");
+                    finishBtn.disabled = false;
+                    finishBtn.textContent = '✨ Finish & Get Results';
+                }
             } catch (e) {
+                console.error(e);
+                alert("Network or server error while finalizing. Please try again.");
                 finishBtn.disabled = false;
                 finishBtn.textContent = '✨ Finish & Get Results';
             }

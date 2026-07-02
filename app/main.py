@@ -53,7 +53,7 @@ except Exception as e:
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-RUN_MIGRATIONS_ON_STARTUP = os.getenv("RUN_MIGRATIONS_ON_STARTUP", "false").strip().lower() in ("1", "true", "yes")
+RUN_MIGRATIONS_ON_STARTUP = os.getenv("RUN_MIGRATIONS_ON_STARTUP", "true").strip().lower() in ("1", "true", "yes")
 ENABLE_CLEANUP_TASK = os.getenv("ENABLE_CLEANUP_TASK", "false").strip().lower() in ("1", "true", "yes")
 
 @lru_cache(maxsize=4)
@@ -230,7 +230,9 @@ async def run_migrations():
 
             # 1. Users table
             u_cols = get_columns('users')
-        if u_cols:
+            print(f"DEBUG MIGRATION: Found columns for 'users': {u_cols}", flush=True)
+            
+            # Always attempt to check/add these columns
             if 'profile_photo' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN profile_photo VARCHAR")
             if 'bio' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN bio TEXT")
             if 'is_suspended' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN is_suspended BOOLEAN DEFAULT FALSE")
@@ -246,115 +248,115 @@ async def run_migrations():
             migrations.append("CREATE INDEX IF NOT EXISTS ix_users_full_name ON users (full_name)")
             migrations.append("CREATE INDEX IF NOT EXISTS ix_users_onboarded ON users (onboarded)")
 
-        # 2. Counsellor Profiles
-        cp_cols = get_columns('counsellor_profiles')
-        if cp_cols:
-            checklist = [
-                ('tnc_accepted', "BOOLEAN DEFAULT FALSE"), ('tnc_accepted_at', "TIMESTAMP"),
-                ('is_blocked', "BOOLEAN DEFAULT FALSE"), ('block_reason', "VARCHAR"),
-                ('certificates', "TEXT"), ('experience', "TEXT"),
-                ('is_verified', "BOOLEAN DEFAULT FALSE"), ('verification_status', "VARCHAR DEFAULT 'pending'"),
-                ('fee_locked', "BOOLEAN DEFAULT FALSE"), ('razorpay_account_id', "VARCHAR"),
-                ('onboarding_status', "VARCHAR DEFAULT 'not_started'"), ('razorpay_contact_id', "VARCHAR"),
-                ('razorpay_fund_account_id', "VARCHAR"), ('average_rating', "FLOAT DEFAULT 5.0"),
-                ('rating_count', "INTEGER DEFAULT 0"), ('is_founding_counsellor', "BOOLEAN DEFAULT FALSE"),
-                ('founding_badge_awarded_at', "TIMESTAMP"), ('commission_free_until', "TIMESTAMP")
-            ]
-            for col, ty in checklist:
-                if col not in cp_cols: migrations.append(f"ALTER TABLE counsellor_profiles ADD COLUMN {col} {ty}")
+            # 2. Counsellor Profiles
+            cp_cols = get_columns('counsellor_profiles')
+            if cp_cols:
+                checklist = [
+                    ('tnc_accepted', "BOOLEAN DEFAULT FALSE"), ('tnc_accepted_at', "TIMESTAMP"),
+                    ('is_blocked', "BOOLEAN DEFAULT FALSE"), ('block_reason', "VARCHAR"),
+                    ('certificates', "TEXT"), ('experience', "TEXT"),
+                    ('is_verified', "BOOLEAN DEFAULT FALSE"), ('verification_status', "VARCHAR DEFAULT 'pending'"),
+                    ('fee_locked', "BOOLEAN DEFAULT FALSE"), ('razorpay_account_id', "VARCHAR"),
+                    ('onboarding_status', "VARCHAR DEFAULT 'not_started'"), ('razorpay_contact_id', "VARCHAR"),
+                    ('razorpay_fund_account_id', "VARCHAR"), ('average_rating', "FLOAT DEFAULT 5.0"),
+                    ('rating_count', "INTEGER DEFAULT 0"), ('is_founding_counsellor', "BOOLEAN DEFAULT FALSE"),
+                    ('founding_badge_awarded_at', "TIMESTAMP"), ('commission_free_until', "TIMESTAMP")
+                ]
+                for col, ty in checklist:
+                    if col not in cp_cols: migrations.append(f"ALTER TABLE counsellor_profiles ADD COLUMN {col} {ty}")
 
-        # 3. Appointments
-        ap_cols = get_columns('appointments')
-        if ap_cols:
-            for col, ty in [('counsellor_joined', 'BOOLEAN DEFAULT FALSE'), ('joined_at', 'TIMESTAMP'), 
-                           ('student_joined', 'BOOLEAN DEFAULT FALSE'), ('student_joined_at', 'TIMESTAMP'),
-                           ('actual_overlap_minutes', 'INTEGER DEFAULT 0'),
-                           ('cancelled_by', 'VARCHAR'), ('cancelled_by_role', 'VARCHAR')]:
-                if col not in ap_cols: migrations.append(f"ALTER TABLE appointments ADD COLUMN {col} {ty}")
-            migrations.append("CREATE INDEX IF NOT EXISTS ix_appointments_appointment_time ON appointments (appointment_time)")
-            migrations.append("CREATE INDEX IF NOT EXISTS ix_appointments_payment_status ON appointments (payment_status)")
-            migrations.append("CREATE INDEX IF NOT EXISTS ix_appointments_cancelled_by ON appointments (cancelled_by)")
-            migrations.append("CREATE INDEX IF NOT EXISTS ix_appointments_cancelled_by_role ON appointments (cancelled_by_role)")
-            migrations.append("CREATE INDEX IF NOT EXISTS ix_chat_messages_timestamp ON chat_messages (timestamp)")
-            migrations.append("CREATE INDEX IF NOT EXISTS ix_chat_messages_sender ON chat_messages (sender)")
-            migrations.append("CREATE INDEX IF NOT EXISTS ix_feedbacks_user_id ON feedbacks (user_id)")
+            # 3. Appointments
+            ap_cols = get_columns('appointments')
+            if ap_cols:
+                for col, ty in [('counsellor_joined', 'BOOLEAN DEFAULT FALSE'), ('joined_at', 'TIMESTAMP'), 
+                               ('student_joined', 'BOOLEAN DEFAULT FALSE'), ('student_joined_at', 'TIMESTAMP'),
+                               ('actual_overlap_minutes', 'INTEGER DEFAULT 0'),
+                               ('cancelled_by', 'VARCHAR'), ('cancelled_by_role', 'VARCHAR')]:
+                    if col not in ap_cols: migrations.append(f"ALTER TABLE appointments ADD COLUMN {col} {ty}")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_appointments_appointment_time ON appointments (appointment_time)")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_appointments_payment_status ON appointments (payment_status)")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_appointments_cancelled_by ON appointments (cancelled_by)")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_appointments_cancelled_by_role ON appointments (cancelled_by_role)")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_chat_messages_timestamp ON chat_messages (timestamp)")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_chat_messages_sender ON chat_messages (sender)")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_feedbacks_user_id ON feedbacks (user_id)")
 
-        # 4. Student Messages
-        sm_cols = get_columns('student_messages')
-        if sm_cols:
-            if 'attachment_path' not in sm_cols: migrations.append("ALTER TABLE student_messages ADD COLUMN attachment_path VARCHAR")
-            if 'attachment_type' not in sm_cols: migrations.append("ALTER TABLE student_messages ADD COLUMN attachment_type VARCHAR")
-            migrations.append("CREATE INDEX IF NOT EXISTS ix_student_messages_timestamp ON student_messages (timestamp)")
-            migrations.append("CREATE INDEX IF NOT EXISTS ix_student_messages_is_read ON student_messages (is_read)")
-            migrations.append("CREATE INDEX IF NOT EXISTS ix_career_paths_career_title ON career_paths (career_title)")
-            migrations.append("CREATE INDEX IF NOT EXISTS ix_college_recommendations_career_title ON college_recommendations (career_title)")
-            migrations.append("CREATE INDEX IF NOT EXISTS ix_counsellor_ratings_rating ON counsellor_ratings (rating)")
+            # 4. Student Messages
+            sm_cols = get_columns('student_messages')
+            if sm_cols:
+                if 'attachment_path' not in sm_cols: migrations.append("ALTER TABLE student_messages ADD COLUMN attachment_path VARCHAR")
+                if 'attachment_type' not in sm_cols: migrations.append("ALTER TABLE student_messages ADD COLUMN attachment_type VARCHAR")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_student_messages_timestamp ON student_messages (timestamp)")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_student_messages_is_read ON student_messages (is_read)")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_career_paths_career_title ON career_paths (career_title)")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_college_recommendations_career_title ON college_recommendations (career_title)")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_counsellor_ratings_rating ON counsellor_ratings (rating)")
 
-        # 5. Assessment Results
-        ar_cols = get_columns('assessment_results')
-        if ar_cols:
-            for col, ty in [('selected_class', 'VARCHAR'), ('phase3_result', 'VARCHAR'), 
-                           ('phase3_answers', 'JSON'), ('phase3_analysis', 'TEXT'),
-                           ('final_answers', 'JSON'), ('stream_scores', 'JSON'),
-                           ('recommended_stream', 'VARCHAR'), ('final_analysis', 'TEXT'),
-                           ('stream_pros', 'JSON'), ('stream_cons', 'JSON'),
-                           ('simulation_career', 'VARCHAR'), ('simulation_questions', 'JSON'),
-                           ('simulation_answers', 'JSON'), ('simulation_evaluation', 'JSON'),
-                           ('simulations_completed', 'INTEGER DEFAULT 0'), ('simulation_paid', 'BOOLEAN DEFAULT FALSE'),
-                           ('simulation_credits', 'INTEGER DEFAULT 0'),
-                           ('student_type', "VARCHAR DEFAULT '10th'"), ('current_phase', 'INTEGER DEFAULT 1'),
-                           ('intake_turn', 'INTEGER DEFAULT 1'), ('intake_name', 'VARCHAR'),
-                           ('intake_grade', 'INTEGER'), ('intake_stream', 'VARCHAR'),
-                           ('telemetry_logs', 'JSON'),
-                           ('chat_messages', 'JSON'), ('chat_turn', 'INTEGER DEFAULT 0'),
-                           ('proxy_answers', 'JSON'), ('scenario_answers', 'JSON'),
-                           ('assessment_report', 'JSON')]:
-                if col not in ar_cols: migrations.append(f"ALTER TABLE assessment_results ADD COLUMN {col} {ty}")
-            migrations.append("CREATE INDEX IF NOT EXISTS ix_assessment_results_recommended_stream ON assessment_results (recommended_stream)")
-            migrations.append("CREATE INDEX IF NOT EXISTS ix_assessment_results_phase_2_category ON assessment_results (phase_2_category)")
-            migrations.append("CREATE INDEX IF NOT EXISTS ix_assessment_results_personality ON assessment_results (personality)")
-            migrations.append("CREATE INDEX IF NOT EXISTS ix_assessment_results_selected_class ON assessment_results (selected_class)")
-            
-        # 6. Notifications
-        n_cols = get_columns('notifications')
-        if n_cols:
-            migrations.append("CREATE INDEX IF NOT EXISTS ix_notifications_created_at ON notifications (created_at)")
-            migrations.append("CREATE INDEX IF NOT EXISTS ix_notifications_is_read ON notifications (is_read)")
+            # 5. Assessment Results
+            ar_cols = get_columns('assessment_results')
+            if ar_cols:
+                for col, ty in [('selected_class', 'VARCHAR'), ('phase3_result', 'VARCHAR'), 
+                               ('phase3_answers', 'JSON'), ('phase3_analysis', 'TEXT'),
+                               ('final_answers', 'JSON'), ('stream_scores', 'JSON'),
+                               ('recommended_stream', 'VARCHAR'), ('final_analysis', 'TEXT'),
+                               ('stream_pros', 'JSON'), ('stream_cons', 'JSON'),
+                               ('simulation_career', 'VARCHAR'), ('simulation_questions', 'JSON'),
+                               ('simulation_answers', 'JSON'), ('simulation_evaluation', 'JSON'),
+                               ('simulations_completed', 'INTEGER DEFAULT 0'), ('simulation_paid', 'BOOLEAN DEFAULT FALSE'),
+                               ('simulation_credits', 'INTEGER DEFAULT 0'),
+                               ('student_type', "VARCHAR DEFAULT '10th'"), ('current_phase', 'INTEGER DEFAULT 1'),
+                               ('intake_turn', 'INTEGER DEFAULT 1'), ('intake_name', 'VARCHAR'),
+                               ('intake_grade', 'INTEGER'), ('intake_stream', 'VARCHAR'),
+                               ('telemetry_logs', 'JSON'),
+                               ('chat_messages', 'JSON'), ('chat_turn', 'INTEGER DEFAULT 0'),
+                               ('proxy_answers', 'JSON'), ('scenario_answers', 'JSON'),
+                               ('assessment_report', 'JSON')]:
+                    if col not in ar_cols: migrations.append(f"ALTER TABLE assessment_results ADD COLUMN {col} {ty}")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_assessment_results_recommended_stream ON assessment_results (recommended_stream)")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_assessment_results_phase_2_category ON assessment_results (phase_2_category)")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_assessment_results_personality ON assessment_results (personality)")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_assessment_results_selected_class ON assessment_results (selected_class)")
+                
+            # 6. Notifications
+            n_cols = get_columns('notifications')
+            if n_cols:
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_notifications_created_at ON notifications (created_at)")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_notifications_is_read ON notifications (is_read)")
 
-        # 7. Simulation Payments
-        sp_cols = get_columns('simulation_payments')
-        if sp_cols is None:
-            migrations.append("""
-            CREATE TABLE simulation_payments (
-                id SERIAL PRIMARY KEY,
-                user_id INTEGER REFERENCES users(id),
-                razorpay_order_id VARCHAR,
-                razorpay_payment_id VARCHAR,
-                amount FLOAT,
-                career VARCHAR,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-            """)
+            # 7. Simulation Payments
+            sp_cols = get_columns('simulation_payments')
+            if sp_cols is None:
+                migrations.append("""
+                CREATE TABLE simulation_payments (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER REFERENCES users(id),
+                    razorpay_order_id VARCHAR,
+                    razorpay_payment_id VARCHAR,
+                    amount FLOAT,
+                    career VARCHAR,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+                """)
 
-        # 8. Moderation Flags
-        mf_cols = get_columns('moderation_flags')
-        if mf_cols:
-            for col, ty in [('flag_type', 'VARCHAR'), ('severity', 'VARCHAR'), ('admin_note', 'TEXT')]:
-                if col not in mf_cols: migrations.append(f"ALTER TABLE moderation_flags ADD COLUMN {col} {ty}")
+            # 8. Moderation Flags
+            mf_cols = get_columns('moderation_flags')
+            if mf_cols:
+                for col, ty in [('flag_type', 'VARCHAR'), ('severity', 'VARCHAR'), ('admin_note', 'TEXT')]:
+                    if col not in mf_cols: migrations.append(f"ALTER TABLE moderation_flags ADD COLUMN {col} {ty}")
 
-        # 9. Tickets
-        t_cols = get_columns('tickets')
-        if t_cols:
-            if 'updated_at' not in t_cols: migrations.append("ALTER TABLE tickets ADD COLUMN updated_at TIMESTAMP")
+            # 9. Tickets
+            t_cols = get_columns('tickets')
+            if t_cols:
+                if 'updated_at' not in t_cols: migrations.append("ALTER TABLE tickets ADD COLUMN updated_at TIMESTAMP")
 
-        # 10. Simulation Payments
-        sp_cols2 = get_columns('simulation_payments')
-        if sp_cols2:
-            if 'status' not in sp_cols2: migrations.append("ALTER TABLE simulation_payments ADD COLUMN status VARCHAR DEFAULT 'success'")
+            # 10. Simulation Payments
+            sp_cols2 = get_columns('simulation_payments')
+            if sp_cols2:
+                if 'status' not in sp_cols2: migrations.append("ALTER TABLE simulation_payments ADD COLUMN status VARCHAR DEFAULT 'success'")
 
-        # 11. Counsellor Profiles
-        if cp_cols:
-            if 'verification_remarks' not in cp_cols: migrations.append("ALTER TABLE counsellor_profiles ADD COLUMN verification_remarks TEXT")
+            # 11. Counsellor Profiles
+            if cp_cols:
+                if 'verification_remarks' not in cp_cols: migrations.append("ALTER TABLE counsellor_profiles ADD COLUMN verification_remarks TEXT")
 
         if migrations:
             print(f"DEBUG: Found {len(migrations)} pending migrations.", flush=True)
@@ -374,6 +376,7 @@ async def run_migrations():
         import traceback
         traceback.print_exc()
 
+
 app = FastAPI(title="CareStance")
 
 @app.middleware("http")
@@ -392,6 +395,51 @@ async def _health():
 async def startup_event():
     """Run migrations on startup for local development and when explicitly enabled."""
     try:
+        # EMERGENCY FIX: Force add missing columns to 'users' table in ONE batch
+        async with engine.begin() as conn:
+            from sqlalchemy import text
+            try:
+                # Grouping into one command is much faster and prevents startup timeouts
+                # Note: IF NOT EXISTS is used for each column for safety
+                sql = """
+                ALTER TABLE users 
+                ADD COLUMN IF NOT EXISTS profile_photo VARCHAR,
+                ADD COLUMN IF NOT EXISTS bio TEXT,
+                ADD COLUMN IF NOT EXISTS is_suspended BOOLEAN DEFAULT FALSE,
+                ADD COLUMN IF NOT EXISTS contact_number VARCHAR,
+                ADD COLUMN IF NOT EXISTS full_name VARCHAR,
+                ADD COLUMN IF NOT EXISTS role VARCHAR,
+                ADD COLUMN IF NOT EXISTS onboarded BOOLEAN DEFAULT FALSE,
+                ADD COLUMN IF NOT EXISTS simulations_completed INTEGER DEFAULT 0,
+                ADD COLUMN IF NOT EXISTS simulation_paid BOOLEAN DEFAULT FALSE,
+                ADD COLUMN IF NOT EXISTS simulation_credits INTEGER DEFAULT 0,
+                ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW(),
+                ADD COLUMN IF NOT EXISTS last_login TIMESTAMP;
+                """
+                await conn.execute(text(sql))
+                print("DEBUG: Emergency batch migration for 'users' table completed.", flush=True)
+                # 2. Counsellor Profiles table
+                sql_cp = """
+                ALTER TABLE counsellor_profiles 
+                ADD COLUMN IF NOT EXISTS is_blocked BOOLEAN DEFAULT FALSE,
+                ADD COLUMN IF NOT EXISTS block_reason VARCHAR,
+                ADD COLUMN IF NOT EXISTS verification_remarks TEXT,
+                ADD COLUMN IF NOT EXISTS fee_locked BOOLEAN DEFAULT FALSE,
+                ADD COLUMN IF NOT EXISTS razorpay_account_id VARCHAR,
+                ADD COLUMN IF NOT EXISTS onboarding_status VARCHAR DEFAULT 'not_started',
+                ADD COLUMN IF NOT EXISTS razorpay_contact_id VARCHAR,
+                ADD COLUMN IF NOT EXISTS razorpay_fund_account_id VARCHAR,
+                ADD COLUMN IF NOT EXISTS is_founding_counsellor BOOLEAN DEFAULT FALSE,
+                ADD COLUMN IF NOT EXISTS founding_badge_awarded_at TIMESTAMP,
+                ADD COLUMN IF NOT EXISTS commission_free_until TIMESTAMP,
+                ADD COLUMN IF NOT EXISTS tnc_accepted BOOLEAN DEFAULT FALSE,
+                ADD COLUMN IF NOT EXISTS tnc_accepted_at TIMESTAMP;
+                """
+                await conn.execute(text(sql_cp))
+                print("DEBUG: Emergency batch migration for 'counsellor_profiles' table completed.", flush=True)
+            except Exception as e:
+                print(f"DEBUG: Emergency batch migration failed (likely already patched): {e}", flush=True)
+
         if RUN_MIGRATIONS_ON_STARTUP or SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
             # Create all tables asynchronously and run any schema migrations
             async with engine.begin() as conn:
@@ -583,8 +631,13 @@ app.add_middleware(
 async def add_cache_control_header(request: Request, call_next):
     response = await call_next(request)
     if request.url.path.startswith("/static"):
-        # Cache static assets for 1 year (Standard practice for immutable assets)
-        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        # Reduced cache to 1 hour to ensure updates propagate more reliably
+        response.headers["Cache-Control"] = "public, max-age=3600"
+    else:
+        # Prevent caching of dynamic HTML/API content to ensure users always see latest push
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
     return response
 
 
@@ -1307,7 +1360,13 @@ async def assessment_page(request: Request, db: AsyncSession = Depends(get_db)):
     if not result:
         return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
         
-    return templates.TemplateResponse(request=request, name="assessment.html", context={"user": user, "result": result})
+    phase1_inputs = {}
+    phase1_path = os.path.join(os.path.dirname(__file__), "assessment_data", "phase1_inputs.json")
+    if os.path.exists(phase1_path):
+        with open(phase1_path, "r", encoding="utf-8") as f:
+            phase1_inputs = json.load(f)
+            
+    return templates.TemplateResponse(request=request, name="assessment.html", context={"user": user, "result": result, "phase1_inputs": phase1_inputs})
 
 # --- Assessment API Router for Multi-Phase Flow ---
 
@@ -1346,12 +1405,13 @@ async def assessment_api_intake(request: Request, payload: dict, db: AsyncSessio
     if "name" in payload and "pursuing" in payload and "interests" in payload:
         name = payload.get("name", "").strip()
         pursuing = payload.get("pursuing", "").strip()
-        interests = payload.get("interests", "").strip()
-        try:
-            parent_income = float(payload.get("parent_income", 0))
-        except (ValueError, TypeError):
-            raise HTTPException(status_code=400, detail="Invalid parent income type")
-        parent_occupation = payload.get("parent_occupation", "").strip()
+        interests = payload.get("interests", "")
+        if isinstance(interests, list):
+            interests = ", ".join(interests)
+        salary_priority = payload.get("salary_priority", "").strip()
+        family_income = payload.get("family_income", "").strip()
+        father_occupation = payload.get("father_occupation", "").strip()
+        mother_occupation = payload.get("mother_occupation", "").strip()
         
         # Validations
         if not name or len(name) < 2:
@@ -1360,10 +1420,12 @@ async def assessment_api_intake(request: Request, payload: dict, db: AsyncSessio
             raise HTTPException(status_code=400, detail="Invalid pursuing status")
         if not interests or len(interests) < 2:
             raise HTTPException(status_code=400, detail="Invalid interests")
-        if parent_income <= 0:
-            raise HTTPException(status_code=400, detail="Invalid parent income value")
-        if not parent_occupation or len(parent_occupation) < 2:
-            raise HTTPException(status_code=400, detail="Invalid parent occupation")
+        if not family_income:
+            raise HTTPException(status_code=400, detail="Invalid family income")
+        if not father_occupation or not mother_occupation:
+            raise HTTPException(status_code=400, detail="Invalid parent occupations")
+        if not salary_priority or salary_priority not in ["high_salary", "balanced", "meaningful_work", "unsure"]:
+            raise HTTPException(status_code=400, detail="Invalid salary priority")
             
         result.intake_name = name
         result.intake_grade = 12
@@ -1372,8 +1434,10 @@ async def assessment_api_intake(request: Request, payload: dict, db: AsyncSessio
             "name": name,
             "pursuing": pursuing,
             "interests": interests,
-            "parent_income": parent_income,
-            "parent_occupation": parent_occupation
+            "family_income": family_income,
+            "father_occupation": father_occupation,
+            "mother_occupation": mother_occupation,
+            "salary_priority": salary_priority
         }
         result.intake_turn = 3
         result.current_phase = 1
@@ -1500,19 +1564,6 @@ async def assessment_api_questions(request: Request, db: AsyncSession = Depends(
     user = await get_current_user(request, db)
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
-        
-    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
-    if not result:
-        raise HTTPException(status_code=404, detail="Assessment not found")
-        
-    student_type = result.student_type or "10th"
-    phase = result.current_phase or 0
-    vector = {}
-    if result.personality:
-        try:
-            vector = json.loads(result.personality)
-        except:
-            vector = {}
     
     if phase == 0 and student_type == "12th":
         return {"message": "Hello! I'm Alex, your career mentor. Let's start with your name. What's your name?"}
@@ -1560,9 +1611,8 @@ async def assessment_api_swipe(request: Request, payload: dict, db: AsyncSession
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
         
-    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
-    if not result:
-        raise HTTPException(status_code=404, detail="Assessment not found")
+    if len(mcqs) > 12:
+        mcqs = random.sample(mcqs, 12)
         
     swipes = payload.get("swipes", [])
     result.telemetry_logs = swipes
@@ -1635,37 +1685,52 @@ async def assessment_api_chat(request: Request, payload: dict, db: AsyncSession 
         
         return {"status": "success", "message": next_q, "chat_turn": next_turn, "phase_complete": False}
 
-@app.post("/assessment/api/proxy")
-async def assessment_api_proxy(request: Request, payload: dict, db: AsyncSession = Depends(get_db)):
-    user = await get_current_user(request, db)
-    if not user:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-        
-    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
-    if not result:
-        raise HTTPException(status_code=404, detail="Assessment not found")
-        
-    answers = payload.get("answers", [])
-    result.proxy_answers = answers
-    
-    result.current_phase = 4
-    await db.commit()
-    sync_assessment_to_appwrite(user.id, result)
-    return {"status": "success", "next_phase": 4}
 
-@app.post("/assessment/api/scenarios")
-async def assessment_api_scenarios(request: Request, payload: dict, db: AsyncSession = Depends(get_db)):
+@app.get("/assessment/api/phase2_mcqs")
+async def get_phase2_mcqs(request: Request, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
-        
+    
+    import json
+    import os
+    mcqs_path = os.path.join(os.path.dirname(__file__), "assessment_data", "phase2_mcqs.json")
+    if os.path.exists(mcqs_path):
+        with open(mcqs_path, "r", encoding="utf-8") as f:
+            mcqs = json.load(f)
+        return {"status": "success", "mcqs": mcqs}
+    return {"status": "error", "detail": "Questions not found"}
+
+@app.post("/assessment/api/phase2/submit")
+async def submit_phase2_mcqs(request: Request, payload: dict, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    
     result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
     if not result:
-        raise HTTPException(status_code=404, detail="Assessment not found")
-        
+        raise HTTPException(status_code=404, detail="Not found")
+    
     answers = payload.get("answers", [])
-    result.scenario_answers = answers
-    result.current_phase = 5
+    if not isinstance(result.raw_answers, dict):
+        result.raw_answers = {}
+        
+    # Create a new dict to ensure SQLAlchemy detects the change
+    raw = dict(result.raw_answers)
+    raw["phase2"] = answers
+    result.raw_answers = raw
+    
+    # Calculate Phase 2 scores using new logic
+    try:
+        from app.pipeline.archetype_scoring import calculate_phase2_scores, get_archetype_label
+        phase2_scores = calculate_phase2_scores(answers)
+        if phase2_scores:
+            top_arc = max(phase2_scores.items(), key=lambda x: x[1])[0]
+            result.phase_2_category = get_archetype_label(top_arc)
+    except Exception as e:
+        print(f"Failed to calculate phase 2 score: {e}")
+        
+    result.current_phase = 2
     await db.commit()
     sync_assessment_to_appwrite(user.id, result)
     
@@ -3458,8 +3523,16 @@ async def delete_roadmap(path_id: int, request: Request, db: AsyncSession = Depe
 from .data.questions_phase3 import CATEGORY_SCENARIOS_MAP
 
 @app.get("/assessment/phase3", response_class=HTMLResponse)
-async def assessment_phase3(request: Request, db: AsyncSession = Depends(get_db)):
-    return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
+async def assessment_phase3(request: Request, mode: str = "voice", db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+        
+    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+    if not result:
+        return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
+        
+    return templates.TemplateResponse(request=request, name="assessment_phase3_v2.html", context={"user": user, "result": result, "mode": mode})
 
 @app.post("/assessment/phase3/submit")
 async def assessment_phase3_submit(
@@ -3660,36 +3733,7 @@ Present the scenario story first, then clearly list Option A and Option B on sep
 
 # --- Phase 3 v2: Voice-Only Deep-Dive Conversation (Groq-Powered) ---
 
-PHASE3_V2_SYSTEM_PROMPT = """You are a warm, insightful, and professional AI Career Mentor named CareerBuddy.
-You are conducting a deep-dive voice conversation with a student. This is a 10-minute session designed to FULLY ANALYZE the student — their interests, thinking ability, problem-solving approach, confidence, values, and personality.
-
-CRITICAL RULES:
-- Speak in English only.
-- Keep every response concise (2-4 sentences max) since this is a SPOKEN conversation. Short and punchy responses keep the flow going.
-- Be encouraging, warm, and intellectually stimulating.
-- NEVER break character or mention that you are an AI.
-- Do NOT use markdown formatting (no **, no #, no bullet points, no numbered lists). Speak naturally as if talking face-to-face.
-- NEVER suggest career options, career paths, or job roles during the conversation. Your ONLY job is to deeply understand the student. Career suggestions happen AFTER the session ends.
-- Ask only ONE question at a time. Wait for the student's response before moving on.
-- Vary your question types — mix open-ended, hypothetical, opinion-based, and scenario-based questions.
-- React genuinely to what the student says. Show you are listening. Reference their previous answers when relevant.
-- Response should be short and easily understandable donot use any fancy words.
-CONVERSATION STRUCTURE (adapt naturally, do not announce steps):
-
-OPENING (first message when user message is empty):
-Introduce yourself warmly and set the tone.Also Welcome user in deepdive phase .Also give a warning in light tone to provide honest response for bette analysis . Ask what field or area excites them most right now. Keep it casual, like two people having coffee.
-
-INTEREST EXPLORATION (messages 1-3):
-Dig deeper into their stated interest. Share a thought-provoking real-world fact about that field. Ask leading open-ended questions that test critical thinking. Examples: "If you could change one thing about how [their field] works today, what would it be?", "What do you think most people misunderstand about [their field]?"
-
-THINKING & PROBLEM-SOLVING (messages 4-6):
-Present hypothetical scenarios related to their interest. Probe their reasoning depth. Examples: "Imagine you are given a team of 5 people and 6 months to solve a real problem in [field]. What problem would you pick and how would you start?", "If your first approach fails completely, what would your backup plan look like?"
-
-CONFIDENCE & VALUES (messages 7-9):
-Ask about their personal values and decision-making style. Explore what drives them beyond surface interests. Examples: "What is more important to you, financial stability or doing something you are passionate about? Why?", "Tell me about a time you had to make a tough decision. How did you approach it?", "When you picture yourself 5 years from now, what does a good day look like?"
-
-WRAP-UP (after ~10 exchanges or when timer runs out):
-Thank them warmly for the conversation. Tell them you have gathered great insights and they should now click the Finish button to see their personalized career recommendations based on everything you discussed."""
+from app.pipeline.prompts_phase3 import LIVE_CHAT_PROMPT
 
 class Phase3V2ChatRequest(BaseModel):
     message: str = ""
@@ -3704,18 +3748,50 @@ async def phase3_chat_v2(request: Request, chat_req: Phase3V2ChatRequest, db: As
     from fastapi.responses import JSONResponse
 
     result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
-    phase2_category = result.phase_2_category if result else "Unknown"
-    phase2_personality = result.personality if result else "Unknown"
+    
+    # Determine if conversation should wrap up (after ~10 exchanges)
+    user_msg_count = sum(1 for m in chat_req.answers if m.get("role") == "user")
+    if chat_req.message.strip():
+        user_msg_count += 1
+        
+    phase1 = result.raw_answers if result and result.raw_answers else {}
+    
+    student_context = {
+        "student_name": phase1.get("name", "Student"),
+        "age_group": result.student_type if result else "Unknown",
+        "education_level": phase1.get("pursuing", "Unknown"),
+        "current_course": phase1.get("pursuing", "Unknown"),
+        "selected_interests": phase1.get("interests", []),
+        "salary_priority": phase1.get("salary_priority", "Unknown"),
+        "family_context": {
+            "parent_occupation_category": f"{phase1.get('father_occupation', '')}, {phase1.get('mother_occupation', '')}",
+            "family_income_category": phase1.get("family_income", "Unknown")
+        },
+        "phase_2_summary": {
+            "strongest_work_style": result.phase_2_category if result else "Unknown",
+            "learning_style": "Assessed via archetype",
+            "problem_solving_style": "Assessed via archetype",
+            "response_to_change": "Assessed via archetype",
+            "leadership_and_team_style": "Assessed via archetype",
+            "communication_style": "Assessed via archetype"
+        },
+        "conversation_turn": user_msg_count,
+        "student_previous_answers_summary": "N/A"
+    }
+
+    all_interests = ", ".join(student_context["selected_interests"]) if student_context["selected_interests"] else "your fields of interest"
+    parents_occupation = student_context["family_context"]["parent_occupation_category"] or "various fields"
+
+    sys_prompt = LIVE_CHAT_PROMPT.format(
+        context_json=json.dumps(student_context, indent=2),
+        student_name=student_context["student_name"],
+        all_interests=all_interests,
+        parents_occupation=parents_occupation
+    )
 
     # Build conversation history as messages for Groq
     messages = [
-        {"role": "system", "content": PHASE3_V2_SYSTEM_PROMPT + f"""
-
-STUDENT PROFILE (from Phase 2 Assessment):
-- Personality Archetype: {phase2_category}
-- Personality Trait: {phase2_personality}
-
-Use this profile to tailor your questions. For example, if they are a "Focused Specialist", probe their depth of focus. If they are an "Adaptive Explorer", probe their breadth of curiosity."""}
+        {"role": "system", "content": sys_prompt}
     ]
 
     # Add conversation history
@@ -3730,10 +3806,14 @@ Use this profile to tailor your questions. For example, if they are a "Focused S
     if chat_req.message.strip():
         messages.append({"role": "user", "content": chat_req.message})
 
-    # Determine if conversation should wrap up (after ~10 exchanges)
-    user_msg_count = sum(1 for m in chat_req.answers if m.get("role") == "user")
-    if chat_req.message.strip():
-        user_msg_count += 1
+    # Immediately persist the user's message to the database before waiting for AI
+    full_history = chat_req.answers.copy() if chat_req.answers else []
+    if chat_req.message and chat_req.message.strip():
+        full_history.append({"role": "user", "content": chat_req.message})
+    
+    if result:
+        result.chat_messages = full_history.copy()
+        await db.commit()
 
     # Use Groq API directly
     try:
@@ -3755,6 +3835,12 @@ Use this profile to tailor your questions. For example, if they are a "Focused S
     except Exception as e:
         print(f"Phase 3 Chat Error: {e}")
         ai_text = "I appreciate your patience. Could you tell me a bit more about that? I want to make sure I really understand your perspective."
+
+    # Update conversation history in database with AI response
+    full_history.append({"role": "assistant", "content": ai_text})
+    if result:
+        result.chat_messages = full_history.copy()
+        await db.commit()
 
     return JSONResponse({
         "response": ai_text,
@@ -3787,110 +3873,93 @@ async def phase3_finalize(request: Request, finalize_req: Phase3FinalizeRequest,
 
     phase2_category = result.phase_2_category or "Unknown"
 
-    # Generate analysis + career suggestions from the full conversation using Groq
-    # We now skip Phase 4 and generate the final verdict directly here.
+    phase2_category = result.phase_2_category or "Unknown"
+
+    from app.pipeline.prompts_phase3 import FINALIZE_PROMPT
+    phase1 = result.raw_answers if result and result.raw_answers else {}
     
-    selected_class = result.selected_class or "10th"
-    
-    if selected_class == '10th':
-        analysis_prompt = f"""You are an expert Career Analyst for 10th-grade students.
-        Analyze this full 10-minute voice conversation and the student's personality archetype to determine their alignment with three core thinking styles.
-        
-        Archetype (Phase 2): {phase2_category}
-        
-        FULL CONVERSATION TRANSCRIPT:
-        {transcript}
-        
-        🔬 Logical Thinking (Science): Problem-solving, "how things work", structured reasoning.
-        💼 Financial Thinking (Commerce): Decision-making based on outcomes, money, risk/reward.
-        🎨 Creative & Social Thinking (Arts): Storytelling, empathy, open-ended thinking.
-        
-        TASK:
-        Provide a final career recommendation for a 10th-grade student focusing on their thinking pattern.
-        
-        RETURN ONLY A JSON OBJECT with these keys:
-        - "fit_scores": {{"Science": XX, "Commerce": XX, "Arts": XX}} (Provide highly specific, non-rounded scores 0-100, e.g., 84, 93, 77)
-        - "recommended_stream": "The primary recommended stream (e.g., Science (PCM))"
-        - "explanation": "A 2-3 line explanation of why this fits their thinking style."
-        - "strength_insight": "1 key strength observed in their responses."
-        - "growth_suggestion": "1 simple action to explore this stream further."
-        - "phase3_analysis": "A concise summary of their interests Revealed in the interview."
-        """
-    else:
-        # 12th or Above
-        analysis_prompt = f"""You are an expert Career Analyst for {'college students' if selected_class == 'Above 12th' else 'high school seniors'}.
-        Analyze this full 10-minute voice conversation and the student's personality archetype.
-        
-        Archetype (Phase 2): {phase2_category}
-        
-        FULL CONVERSATION TRANSCRIPT:
-        {transcript}
-        
-        TASK:
-        Provide 3 specific professional career paths or university majors.
-        
-        RETURN ONLY A JSON OBJECT with these keys:
-        - "recommended_stream": "The broad primary field (e.g., Technology & Innovation)"
-        - "final_analysis": "A summary of their professional outlook based on the conversation."
-        - "phase3_analysis": "An analytical summary of their interests Revealed in the interview."
-        - "stream_pros": [
-            {{
-                "title": "Specific Career/Major 1",
-                "reason": "Why it fits...",
-                "pros": ["Pro 1", "Pro 2"],
-                "cons": ["Con 1", "Con 2"]
-            }},
-            {{
-                "title": "Specific Career/Major 2",
-                "reason": "Why it fits...",
-                "pros": ["Pro 1", "Pro 2"],
-                "cons": ["Con 1", "Con 2"]
-            }},
-            {{
-                "title": "Specific Career/Major 3",
-                "reason": "Why it fits...",
-                "pros": ["Pro 1", "Pro 2"],
-                "cons": ["Con 1", "Con 2"]
-            }}
-        ]
-        """
+    student_context = {
+        "student_name": phase1.get("name", "Student"),
+        "age_group": result.student_type if result else "Unknown",
+        "education_level": phase1.get("pursuing", "Unknown"),
+        "current_course": phase1.get("pursuing", "Unknown"),
+        "selected_interests": phase1.get("interests", []),
+        "salary_priority": phase1.get("salary_priority", "Unknown"),
+        "family_context": {
+            "parent_occupation_category": f"{phase1.get('father_occupation', '')}, {phase1.get('mother_occupation', '')}",
+            "family_income_category": phase1.get("family_income", "Unknown")
+        },
+        "phase_2_summary": {
+            "strongest_work_style": result.phase_2_category if result else "Unknown",
+            "learning_style": "Assessed via archetype",
+            "problem_solving_style": "Assessed via archetype",
+            "response_to_change": "Assessed via archetype",
+            "leadership_and_team_style": "Assessed via archetype",
+            "communication_style": "Assessed via archetype"
+        },
+        "conversation_turn": "Finalized",
+        "student_previous_answers_summary": "N/A"
+    }
+
+    import json
+    analysis_prompt = FINALIZE_PROMPT.replace(
+        "{context_json}", json.dumps(student_context, indent=2)
+    ).replace(
+        "{transcript}", transcript
+    )
 
     try:
-        import json
         raw_text = ""
         gclient = get_groq_client()
         if gclient:
             completion = await gclient.chat.completions.create(
-                messages=[{"role": "system", "content": "Return ONLY valid JSON."}, {"role": "user", "content": analysis_prompt}],
+                messages=[{"role": "user", "content": analysis_prompt}],
                 model="llama-3.3-70b-versatile",
                 temperature=0.4,
-                max_tokens=1000,
+                max_tokens=2500,
                 response_format={"type": "json_object"}
             )
             raw_text = completion.choices[0].message.content
         else:
-            raw_text = await generate_content_with_fallback(analysis_prompt + "\nIMPORTANT: Return ONLY valid JSON.")
+            raw_text = await generate_content_with_fallback(analysis_prompt + "\nIMPORTANT: Return ONLY valid JSON without markdown formatting.")
 
         # Parse JSON
         data = json.loads(raw_text)
         
-        # Broad fields common to all
-        result.phase3_analysis = data.get("phase3_analysis", "Detailed conversation analysis complete.")
-        if selected_class == '10th':
-            result.recommended_stream = data.get("recommended_stream")
-            result.stream_scores = data.get("fit_scores", {})
-            result.final_analysis = data.get("explanation", "")
-            result.stream_pros = [
-                f"**Key Strength:** {data.get('strength_insight', '')}",
-                f"**Growth Step:** {data.get('growth_suggestion', '')}"
-            ]
-            result.phase3_result = json.dumps(data)
-        else:
-            result.recommended_stream = data.get("recommended_stream")
-            result.stream_scores = data.get("stream_scores", {}) # Just in case
-            result.final_analysis = data.get("final_analysis", "")
-            result.stream_pros = data.get("stream_pros", [])
-            result.phase3_result = json.dumps(data.get("stream_pros", []))
+        # Safe Mapping to existing DB model so result.html doesn't break
+        result.recommended_stream = "Personalized Career Matches"
+        result.final_analysis = data.get("overall_summary", "Detailed conversation analysis complete.")
+        result.phase3_analysis = f"Confidence: {data.get('confidence_level', 'High').title()} | {data.get('important_note', '')}"
+        
+        transformed_pros = []
+        recommendations = data.get("career_recommendations") or []
+        for rec in recommendations:
+            why_suitable = rec.get("why_suitable") or []
+            supporting_evidence = rec.get("supporting_evidence_from_conversation") or []
+            likely_challenges = rec.get("likely_challenges") or []
+            key_strengths = rec.get("key_strengths_to_build") or []
+            
+            fit_level = (rec.get('fit_level') or '').replace('_', ' ').title()
+            next_step = rec.get('practical_next_step') or ''
+            
+            transformed_pros.append({
+                "title": rec.get("profession", "Unknown Profession"),
+                "reason": f"Match Level: {fit_level}. {next_step}",
+                "pros": why_suitable + supporting_evidence,
+                "cons": likely_challenges + key_strengths
+            })
+        
+        result.stream_pros = transformed_pros
+        result.stream_scores = {}
+        result.phase3_result = json.dumps(data)
+        
+        # Save intake summary
+        if result.raw_answers:
+            updated_answers = result.raw_answers.copy()
+            updated_answers["groq_summary"] = data.get("initial_intake_summary", "Intake profile analyzed successfully.")
+            result.raw_answers = updated_answers
+            from sqlalchemy.orm.attributes import flag_modified
+            flag_modified(result, "raw_answers")
 
         result.final_answers = {"skipped": True, "flow": "simplified"}
 

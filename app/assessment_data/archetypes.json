@@ -1,115 +1,155 @@
 {
-  "archetypes": [
-    {
-      "id": "ARC_001",
-      "archetype_name": "FOCUSED SPECIALIST",
-      "tagline": "Precision & Mastery",
-      "description": "Thrives on deep expertise in a single domain.",
-      "classification": {
-        "nature": "Introvert",
-        "goal_status": "Goal Directed"
+  "phase_1_form": {
+    "title": "Know Your Starting Point",
+    "description": "Choose what genuinely interests you and what matters most to you in a future career.",
+    "fields": [
+      {
+        "id": "interest_areas",
+        "label": "Which areas interest you the most?",
+        "type": "multi_select",
+        "min_selections": 1,
+        "max_selections": 3,
+        "required": true,
+        "options_source": "interest_selection_mapping",
+        "helper_text": "Choose up to three areas that you would enjoy exploring."
       },
-      "feature_vector_ranges": {
-        "IT_Social": [-1.0, -0.4],
-        "IT_Conventional": [0.6, 1.0],
-        "IT_Realistic": [0.6, 1.0],
-        "WS_Attention to Detail": [0.8, 1.0],
-        "WS_Perseverance": [0.7, 1.0],
-        "WS_Achievement Orientation": [0.7, 1.0],
-        "WS_Tolerance for Ambiguity": [-1.0, -0.2],
-        "AB_Selective Attention": [0.8, 1.0]
+      {
+        "id": "salary_priority",
+        "label": "What matters most to you when choosing a future career?",
+        "type": "single_select",
+        "required": true,
+        "options": [
+          {
+            "value": "high_salary",
+            "label": "High salary and financial growth"
+          },
+          {
+            "value": "balanced",
+            "label": "A balance of salary, interest, and stability"
+          },
+          {
+            "value": "meaningful_work",
+            "label": "Interest, purpose, and meaningful work"
+          },
+          {
+            "value": "unsure",
+            "label": "I am still exploring"
+          }
+        ]
+      }
+    ]
+  },
+  "phase_1_archetype_scoring": {
+    "purpose": "Initial archetype signal only. Do not show this as the final archetype before the assessment and Deep Dive.",
+    "weights": {
+      "interest_areas": 0.8,
+      "salary_priority": 0.2
+    },
+    "interest_to_archetype_feature_weights": {
+      "ARC_001": {
+        "IT_Realistic": 1.0,
+        "IT_Conventional": 1.0,
+        "IT_Investigative": 0.45,
+        "WS_Attention to Detail": 1.0,
+        "WS_Perseverance": 0.9,
+        "WS_Achievement Orientation": 0.85,
+        "AB_Selective Attention": 0.8,
+        "WS_Tolerance for Ambiguity": -0.35
+      },
+      "ARC_002": {
+        "IT_Investigative": 1.0,
+        "IT_Artistic": 0.35,
+        "IT_Social": -0.4,
+        "WS_Intellectual Curiosity": 1.0,
+        "WS_Tolerance for Ambiguity": 0.55,
+        "AB_Inductive Reasoning": 0.9
+      },
+      "ARC_003": {
+        "IT_Investigative": 0.75,
+        "IT_Conventional": 0.9,
+        "IT_Realistic": 0.45,
+        "IT_Enterprising": 0.35,
+        "WS_Achievement Orientation": 0.9,
+        "WS_Cautiousness": 0.65,
+        "AB_Information Ordering": 1.0,
+        "AB_Deductive Reasoning": 0.95
+      },
+      "ARC_004": {
+        "IT_Investigative": 0.55,
+        "IT_Artistic": 0.75,
+        "IT_Social": 0.35,
+        "IT_Enterprising": 0.35,
+        "WS_Intellectual Curiosity": 1.0,
+        "WS_Tolerance for Ambiguity": 0.8,
+        "WS_Innovation": 0.7,
+        "AB_Category Flexibility": 1.0,
+        "AB_Fluency of Ideas": 0.85
+      },
+      "ARC_005": {
+        "IT_Enterprising": 1.0,
+        "IT_Social": 0.6,
+        "WS_Leadership Orientation": 1.0,
+        "WS_Self-Confidence": 0.9,
+        "WS_Initiative": 1.0,
+        "WS_Social Orientation": 0.85,
+        "AB_Oral Expression": 0.9
+      },
+      "ARC_006": {
+        "IT_Social": 0.8,
+        "IT_Enterprising": 0.6,
+        "IT_Artistic": 0.45,
+        "IT_Investigative": 0.4,
+        "WS_Adaptability": 1.0,
+        "WS_Tolerance for Ambiguity": 1.0,
+        "WS_Innovation": 0.85,
+        "AB_Perceptual Speed": 0.8,
+        "AB_Category Flexibility": 0.8
       }
     },
-    {
-      "id": "ARC_002",
-      "archetype_name": "QUIET EXPLORER",
-      "tagline": "Curiosity & Depth",
-      "description": "Discovers through quiet observation and rigorous analysis.",
-      "classification": {
-        "nature": "Introvert",
-        "goal_status": "Non-Goal Directed"
+    "salary_to_archetype_scores": {
+      "high_salary": {
+        "ARC_001": 0.15,
+        "ARC_002": 0.02,
+        "ARC_003": 0.2,
+        "ARC_004": 0.05,
+        "ARC_005": 0.18,
+        "ARC_006": 0.08
       },
-      "feature_vector_ranges": {
-        "IT_Investigative": [0.7, 1.0],
-        "IT_Social": [-1.0, -0.3],
-        "WS_Intellectual Curiosity": [0.8, 1.0],
-        "WS_Tolerance for Ambiguity": [0.3, 0.7],
-        "WS_Leadership Orientation": [-1.0, -0.3],
-        "AB_Inductive Reasoning": [0.6, 1.0]
+      "balanced": {
+        "ARC_001": 0.1,
+        "ARC_002": 0.1,
+        "ARC_003": 0.12,
+        "ARC_004": 0.12,
+        "ARC_005": 0.1,
+        "ARC_006": 0.12
+      },
+      "meaningful_work": {
+        "ARC_001": 0.05,
+        "ARC_002": 0.18,
+        "ARC_003": 0.08,
+        "ARC_004": 0.2,
+        "ARC_005": 0.08,
+        "ARC_006": 0.16
+      },
+      "unsure": {
+        "ARC_001": 0.0,
+        "ARC_002": 0.05,
+        "ARC_003": 0.0,
+        "ARC_004": 0.08,
+        "ARC_005": 0.0,
+        "ARC_006": 0.08
       }
     },
-    {
-      "id": "ARC_003",
-      "archetype_name": "STRATEGIC BUILDER",
-      "tagline": "Strategy & Systems",
-      "description": "Systems thinker who builds frameworks and sees hidden patterns.",
-      "classification": {
-        "nature": "Ambivert",
-        "goal_status": "Goal Directed"
-      },
-      "feature_vector_ranges": {
-        "IT_Social": [-0.3, 0.4],
-        "IT_Conventional": [0.5, 0.9],
-        "WS_Achievement Orientation": [0.6, 1.0],
-        "WS_Cautiousness": [0.3, 0.8],
-        "AB_Information Ordering": [0.7, 1.0],
-        "AB_Deductive Reasoning": [0.6, 1.0]
-      }
-    },
-    {
-      "id": "ARC_004",
-      "archetype_name": "DYNAMIC GENERALIST",
-      "tagline": "Breadth & Synthesis",
-      "description": "Jack of all trades; master of integrating diverse domains.",
-      "classification": {
-        "nature": "Ambivert",
-        "goal_status": "Non-Goal Directed"
-      },
-      "feature_vector_ranges": {
-        "IT_Social": [-0.3, 0.5],
-        "WS_Intellectual Curiosity": [0.7, 1.0],
-        "WS_Tolerance for Ambiguity": [0.4, 0.8],
-        "WS_Cautiousness": [-0.6, 0.1],
-        "AB_Category Flexibility": [0.8, 1.0],
-        "AB_Fluency of Ideas": [0.6, 0.9]
-      }
-    },
-    {
-      "id": "ARC_005",
-      "archetype_name": "VISIONARY LEADER",
-      "tagline": "Vision & Impact",
-      "description": "Born to lead, inspire, and transform raw ideas into movements.",
-      "classification": {
-        "nature": "Extrovert",
-        "goal_status": "Goal Directed"
-      },
-      "feature_vector_ranges": {
-        "IT_Enterprising": [0.7, 1.0],
-        "WS_Leadership Orientation": [0.8, 1.0],
-        "WS_Self-Confidence": [0.7, 1.0],
-        "WS_Initiative": [0.8, 1.0],
-        "WS_Social Orientation": [0.6, 1.0],
-        "AB_Oral Expression": [0.7, 1.0]
-      }
-    },
-    {
-      "id": "ARC_006",
-      "archetype_name": "ADAPTIVE EXPLORER",
-      "tagline": "Agility & Range",
-      "description": "Highly versatile; navigates uncertainty with extreme confidence.",
-      "classification": {
-        "nature": "Extrovert",
-        "goal_status": "Non-Goal Directed"
-      },
-      "feature_vector_ranges": {
-        "IT_Social": [0.5, 1.0],
-        "WS_Adaptability": [0.8, 1.0],
-        "WS_Tolerance for Ambiguity": [0.7, 1.0],
-        "WS_Innovation": [0.6, 1.0],
-        "WS_Cautiousness": [-1.0, -0.3],
-        "AB_Perceptual Speed": [0.6, 0.9],
-        "AB_Category Flexibility": [0.6, 0.9]
-      }
+    "final_phase_1_formula": "phase_1_archetype_score = (0.80 * normalized_interest_score) + (0.20 * salary_priority_score)",
+    "confidence_rule": {
+      "minimum_difference_between_top_two_scores": 0.08,
+      "if_not_met": "Mark student as Exploratory. Continue assessment without assigning a fixed archetype."
     }
-  ]
+  },
+  "final_assessment_combination": {
+    "phase_1_form_score": 0.2,
+    "psychometric_assessment_score": 0.45,
+    "careerbuddy_deep_dive_score": 0.35,
+    "formula": "final_archetype_score = (0.20 * phase_1_score) + (0.45 * assessment_score) + (0.35 * deep_dive_score)"
+  }
 }

@@ -1,0 +1,1405 @@
+{% extends "base.html" %}
+
+{% block title %}Assessment{% endblock %}
+
+{% block content %}
+<!-- Premium Fonts and Icons -->
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+    :root {
+        --dark-bg: #f8fafc;
+        --dark-card: #ffffff;
+        --neon-cyan: #0d9488;
+        --neon-purple: #6366f1;
+        --glow-cyan: rgba(13, 148, 136, 0.04);
+        --glow-purple: rgba(99, 102, 241, 0.04);
+        --text-bright: #0f172a;
+        --text-dim: #64748b;
+        --border-neon: rgba(13, 148, 136, 0.12);
+        --border-purple: rgba(99, 102, 241, 0.12);
+        --glass-border: rgba(15, 23, 42, 0.08);
+    }
+
+    body {
+        font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+        background: radial-gradient(circle at 10% 20%, rgba(240, 253, 250, 0.7) 0%, rgba(254, 243, 199, 0.2) 90%) !important;
+        color: var(--text-bright);
+    }
+
+    /* Outer Glowing Backgrounds - Softened for light theme */
+    .cyber-bg-glow {
+        position: fixed;
+        width: 40vw;
+        height: 40vw;
+        border-radius: 50%;
+        background: radial-gradient(circle, var(--glow-purple) 0%, transparent 70%);
+        filter: blur(120px);
+        opacity: 0.15;
+        z-index: 0;
+        top: -10%;
+        right: -10%;
+        pointer-events: none;
+    }
+
+    .cyber-bg-glow-2 {
+        position: fixed;
+        width: 40vw;
+        height: 40vw;
+        border-radius: 50%;
+        background: radial-gradient(circle, var(--glow-cyan) 0%, transparent 70%);
+        filter: blur(120px);
+        opacity: 0.15;
+        z-index: 0;
+        bottom: -10%;
+        left: -10%;
+        pointer-events: none;
+    }
+
+    .premium-assessment-card {
+        background: var(--dark-card);
+        border: 1px solid var(--glass-border);
+        box-shadow: 0 20px 40px rgba(15, 23, 42, 0.04);
+        border-radius: 28px;
+        position: relative;
+        overflow: hidden;
+        z-index: 10;
+        transition: all 0.4s ease;
+    }
+
+    /* Swipe Deck Structure */
+    .deck-container {
+        height: 380px;
+        position: relative;
+        perspective: 1000px;
+        margin: 0 auto;
+        width: 100%;
+        max-width: 340px;
+    }
+
+    .swipe-card {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        background: #ffffff;
+        border: 1px solid var(--glass-border);
+        border-radius: 24px;
+        padding: 32px 24px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        box-shadow: 0 15px 35px rgba(15, 23, 42, 0.06);
+        cursor: grab;
+        user-select: none;
+        transform-origin: 50% 100%;
+        transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s;
+    }
+
+    .swipe-card:nth-child(2) {
+        transform: scale(0.95) translateY(18px);
+        z-index: -1;
+        opacity: 0.6;
+        filter: blur(1px);
+    }
+
+    .swipe-card:nth-child(3) {
+        transform: scale(0.9) translateY(36px);
+        z-index: -2;
+        opacity: 0.3;
+        filter: blur(2px);
+    }
+
+    .swipe-card.swiping-right {
+        box-shadow: 0 0 30px rgba(13, 148, 136, 0.08) inset, 0 15px 35px rgba(15, 23, 42, 0.06);
+        border-color: var(--neon-cyan);
+    }
+
+    .swipe-card.swiping-left {
+        box-shadow: 0 0 30px rgba(99, 102, 241, 0.08) inset, 0 15px 35px rgba(15, 23, 42, 0.06);
+        border-color: var(--neon-purple);
+    }
+
+    .swipe-card.swiped-right {
+        transform: translate(180%, -20%) rotate(40deg) !important;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .swipe-card.swiped-left {
+        transform: translate(-180%, -20%) rotate(-40deg) !important;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    /* Conversational Chat System */
+    .chat-container {
+        height: 380px;
+        overflow-y: auto;
+        padding-right: 8px;
+    }
+
+    .chat-container::-webkit-scrollbar {
+        width: 6px;
+    }
+    .chat-container::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.01);
+        border-radius: 10px;
+    }
+    .chat-container::-webkit-scrollbar-thumb {
+        background: rgba(0, 0, 0, 0.06);
+        border-radius: 10px;
+    }
+
+    .chat-bubble {
+        max-width: 85%;
+        padding: 14px 20px;
+        border-radius: 20px;
+        line-height: 1.5;
+        font-size: 0.95rem;
+        animation: bubble-stagger 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        margin-bottom: 16px;
+    }
+
+    .chat-bubble.mentor {
+        background: #f1f5f9;
+        border: 1px solid var(--glass-border);
+        color: var(--text-bright);
+        border-bottom-left-radius: 4px;
+        align-self: flex-start;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.02);
+    }
+
+    .chat-bubble.user {
+        background: linear-gradient(135deg, var(--neon-cyan), #0b7a70);
+        color: white;
+        border-bottom-right-radius: 4px;
+        align-self: flex-end;
+        box-shadow: 0 4px 12px rgba(13, 148, 136, 0.1);
+    }
+
+    /* Fira Code Style for Console logs (Phase 0) */
+    .console-bubble {
+        font-family: 'Fira Code', 'Courier New', monospace;
+        font-size: 0.85rem;
+        background: #f8fafc !important;
+        border: 1px solid var(--border-neon) !important;
+        color: var(--neon-cyan) !important;
+    }
+    .console-bubble.user {
+        border-color: var(--border-purple) !important;
+        color: var(--neon-purple) !important;
+        background: #f8fafc !important;
+    }
+
+    @keyframes bubble-stagger {
+        from { opacity: 0; transform: translateY(14px) scale(0.96); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .typing-indicator-dots {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 12px 18px;
+        background: #f1f5f9;
+        border: 1px solid var(--glass-border);
+        border-radius: 18px;
+        align-self: flex-start;
+        margin-bottom: 16px;
+    }
+
+    .typing-indicator-dots .dot {
+        width: 6px;
+        height: 6px;
+        background-color: var(--text-dim);
+        border-radius: 50%;
+        animation: typing-wave 1.4s infinite ease-in-out both;
+    }
+    .typing-indicator-dots .dot:nth-child(1) { animation-delay: -0.32s; }
+    .typing-indicator-dots .dot:nth-child(2) { animation-delay: -0.16s; }
+
+    @keyframes typing-wave {
+        0%, 80%, 100% { transform: scale(0.3); opacity: 0.3; }
+        40% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Option buttons */
+    .premium-option-btn {
+        background: #ffffff;
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        padding: 16px 20px;
+        color: var(--text-bright);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        text-align: left;
+        cursor: pointer;
+        outline: none;
+        box-shadow: 0 2px 4px rgba(15, 23, 42, 0.01);
+    }
+
+    .premium-option-btn:hover {
+        background: rgba(13, 148, 136, 0.04);
+        border-color: var(--neon-cyan);
+        box-shadow: 0 4px 12px rgba(13, 148, 136, 0.04);
+        transform: translateY(-2px);
+    }
+
+    .premium-option-btn.selected {
+        background: rgba(13, 148, 136, 0.08);
+        border-color: var(--neon-cyan);
+        box-shadow: 0 4px 12px rgba(13, 148, 136, 0.06);
+        transform: scale(0.98);
+    }
+
+    /* Custom Cyber UI Elements */
+    .cyber-badge {
+        font-family: 'Outfit', sans-serif;
+        letter-spacing: 2px;
+        font-size: 0.7rem;
+        background: rgba(13, 148, 136, 0.08);
+        border: 1px solid rgba(13, 148, 136, 0.15);
+        color: var(--neon-cyan);
+        border-radius: 20px;
+        padding: 4px 12px;
+        text-transform: uppercase;
+        display: inline-block;
+        font-weight: 700;
+    }
+
+    /* Custom Progress bar */
+    .cyber-progress-bg {
+        height: 6px;
+        background: #e2e8f0;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .cyber-progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--neon-cyan) 0%, #0b7a70 100%);
+        border-radius: 10px;
+        transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Oblique trigger animations */
+    .stagger-in {
+        opacity: 0;
+        transform: translateY(16px);
+        animation: cyber-stagger 0.45s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+
+    @keyframes cyber-stagger {
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    #intake-submit-btn, #chat-send-btn, #compile-btn {
+        background-color: #0d9488 !important;
+        color: #ffffff !important;
+    }
+    #intake-submit-btn:hover, #chat-send-btn:hover, #compile-btn:hover {
+        background-color: #0f766e !important;
+    }
+
+    /* --- ENHANCED SEQUENCE PLANNER STYLES --- */
+    .workspace-grid {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(248, 250, 252, 0.95) 100%);
+        background-image: 
+            radial-gradient(rgba(148, 163, 184, 0.1) 1px, transparent 1px);
+        background-size: 32px 32px;
+    }
+
+    .planner-palette-item {
+        background: white;
+        border: 1px solid rgba(148, 163, 184, 0.1);
+        border-radius: 12px;
+        transition: all 0.2s ease;
+        cursor: grab;
+    }
+
+    .planner-palette-item:hover {
+        background: rgba(13, 148, 136, 0.05);
+        border-color: rgba(13, 148, 136, 0.3);
+        transform: translateX(4px);
+    }
+
+    .planner-node {
+        background: white;
+        border: 1px solid rgba(13, 148, 136, 0.2);
+        border-radius: 16px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+        transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+        min-width: 200px;
+    }
+
+    .planner-node.selected {
+        border-color: #0d9488;
+        box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.1);
+    }
+
+    .connection-path {
+        stroke: #0d9488;
+        stroke-width: 2;
+        fill: none;
+        stroke-dasharray: 5, 5;
+        animation: dash-flow 0.5s linear infinite;
+    }
+
+    @keyframes dash-flow {
+        to { stroke-dashoffset: -10; }
+    }
+
+    .node-connector {
+        width: 10px;
+        height: 10px;
+        background: #0d9488;
+        border-radius: 50%;
+        position: absolute;
+        bottom: -5px;
+        left: 50%;
+        transform: translateX(-50%);
+        cursor: crosshair;
+        border: 2px solid white;
+    }
+</style>
+
+<div class="cyber-bg-glow"></div>
+<div class="cyber-bg-glow-2"></div>
+
+<div class="max-w-4xl mx-auto py-12 px-4 sm:px-6 relative z-10">
+    <!-- Header Details with Mascot -->
+    <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+        <div class="flex items-center gap-4">
+            <div class="w-20 h-20 flex-shrink-0 relative">
+                <div class="absolute inset-0 bg-teal-500/10 rounded-full blur-md animate-pulse"></div>
+                <img src="/static/images/careo.png" alt="Careo Mascot" class="w-full h-full object-contain relative z-10">
+            </div>
+            <div>
+                <h1 class="text-2xl font-extrabold text-slate-900">Careo</h1>
+                <p class="text-xs font-semibold tracking-wider text-teal-600 uppercase">Your Career Guide</p>
+            </div>
+        </div>
+        <div class="flex flex-col items-end gap-1">
+            <span class="text-xs font-bold uppercase tracking-widest text-slate-500" id="phase-step-label">Phase 1 of 5</span>
+            <div class="w-48 cyber-progress-bg mt-1">
+                <div class="cyber-progress-fill" id="global-progress-fill" style="width: 20%;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Glowing Interactive Container Card -->
+    <div class="premium-assessment-card p-8 sm:p-10 min-h-[520px] flex flex-col justify-between">
+        
+        <!-- Loading Shield overlay -->
+        <div id="loader" class="absolute inset-0 bg-white/95 z-50 flex flex-col items-center justify-center transition-opacity duration-300">
+            <div class="relative flex items-center justify-center mb-6">
+                <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-teal-600"></div>
+                <div class="absolute h-10 w-10 rounded-full bg-teal-50 border border-teal-200 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                </div>
+            </div>
+            <p class="text-teal-600 font-extrabold text-sm tracking-widest uppercase animate-pulse" id="loader-text">Loading Assessment...</p>
+        </div>
+
+        <!-- Upper Section Workspace -->
+        <div class="w-full" id="phase-body">
+            <!-- Phase layouts render here dynamically -->
+        </div>
+
+        <!-- Footer / Panel Control Bar -->
+        <div class="mt-8 pt-6 border-t border-slate-100 flex justify-between items-center w-full relative z-10">
+            <a href="/assessment/reset" onclick="return confirm('WARNING: Re-initializing will wipe your current psychometric telemetry logs. Proceed?')" class="text-xs font-bold uppercase tracking-widest text-red-500 hover:text-red-600 transition-colors">
+                Reset Engine
+            </a>
+            
+            <div class="flex items-center gap-3">
+                <button type="button" id="speak-btn" onclick="speakActivePrompt()" class="p-2.5 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200 transition-all" title="Audio Synthesizer Readout">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
+                </button>
+                <div class="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2" id="bottom-status">
+                    <span class="h-2 w-2 rounded-full bg-teal-500 animate-ping"></span> Sync Ready
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let assessmentState = {};
+    let activePhaseData = null;
+    let swipeLogs = [];
+    let swipeCards = [];
+    let activeSwipeIndex = 0;
+    
+    // Voice synthesizers
+    let speechSynth = window.speechSynthesis;
+    let activeUtterance = null;
+
+    document.addEventListener("DOMContentLoaded", async () => {
+        await refreshState();
+    });
+
+    async function refreshState() {
+        showLoader("Retrieving pipeline states...");
+        try {
+            const res = await fetch("/assessment/api/state");
+            const data = await res.json();
+            if (data.status === "success") {
+                assessmentState = data;
+                updateHeader();
+                await loadPhase();
+            } else {
+                window.location.href = "/dashboard";
+            }
+        } catch (e) {
+            console.error("Critical: Failed to resolve phase nodes", e);
+            hideLoader();
+        }
+    }
+
+    function showLoader(text = "Processing...") {
+        document.getElementById("loader-text").innerText = text;
+        const loader = document.getElementById("loader");
+        loader.style.opacity = "1";
+        loader.style.pointerEvents = "auto";
+        loader.classList.remove("hidden");
+    }
+
+    function hideLoader() {
+        const loader = document.getElementById("loader");
+        loader.style.opacity = "0";
+        loader.style.pointerEvents = "none";
+        setTimeout(() => loader.classList.add("hidden"), 300);
+    }
+
+    function updateHeader() {
+        const isG12 = assessmentState.student_type === "12th";
+        // G12 has 6 phases (0 to 5), G10 has 5 phases (1 to 5)
+        const totalPhases = isG12 ? 6 : 5;
+        const currentLabelVal = isG12 ? (assessmentState.current_phase + 1) : assessmentState.current_phase;
+        
+        const gradeTitle = document.getElementById("grade-title");
+        if (gradeTitle) {
+            gradeTitle.innerText = isG12 ? "Grade 12 Career Track" : "Grade 10 Stream Planner";
+        }
+        document.getElementById("phase-step-label").innerText = `Phase ${currentLabelVal} of ${totalPhases}`;
+        
+        // Progress percentage calculation
+        const percent = Math.round((currentLabelVal / totalPhases) * 100);
+        document.getElementById("global-progress-fill").style.width = `${percent}%`;
+        
+        const subtitleTracker = document.getElementById("subtitle-tracker");
+        if (subtitleTracker) {
+            subtitleTracker.innerText = isG12 ? "Advanced Multi-Phase Diagnostic Flow" : "Interactive Stream Strategy Matrix";
+        }
+    }
+
+    async function loadPhase() {
+        const phase = assessmentState.current_phase;
+        
+        if (speechSynth.speaking) speechSynth.cancel();
+
+        try {
+            const res = await fetch("/assessment/api/questions");
+            activePhaseData = await res.json();
+            
+            const body = document.getElementById("phase-body");
+            body.innerHTML = "";
+
+            if (phase === 0) {
+                renderIntakePhase();
+            } else if (phase === 1) {
+                renderSwipePhase();
+            } else if (phase === 2) {
+                renderArchetypePhase();
+            } else if (phase === 3) {
+                renderProxyPhase();
+            } else if (phase === 4) {
+                renderSequencePlannerPhase();
+            } else if (phase === 5) {
+                renderCompilePhase();
+            }
+            hideLoader();
+        } catch (e) {
+            console.error("Critical failure during question load state", e);
+            hideLoader();
+        }
+    }
+
+    function speakActivePrompt() {
+        if (speechSynth.speaking) {
+            speechSynth.cancel();
+            return;
+        }
+        
+        let text = "";
+        const phase = assessmentState.current_phase;
+        
+        if (phase === 0) {
+            const lastAI = document.querySelector(".chat-bubble.ai:last-child");
+            if (lastAI) text = lastAI.innerText;
+        } else if (phase === 1) {
+            const activeCard = swipeCards[activeSwipeIndex];
+            if (activeCard) text = activeCard.content || activeCard.text || "";
+        } else if (phase === 2) {
+            const lastAI = document.querySelector(".chat-bubble.ai:last-child");
+            if (lastAI) text = lastAI.innerText;
+        } else {
+            const pText = document.querySelector("#phase-body h2, #phase-body p");
+            if (pText) text = pText.innerText;
+        }
+
+        if (text) {
+            // strip console prefixes
+            text = text.replace(/^SYS_PROMPT>\s*/, '');
+            activeUtterance = new SpeechSynthesisUtterance(text);
+            const voices = speechSynth.getVoices();
+            const preferredVoice = voices.find(v => v.lang.startsWith("en-IN")) || voices.find(v => v.lang.startsWith("en"));
+            if (preferredVoice) activeUtterance.voice = preferredVoice;
+            speechSynth.speak(activeUtterance);
+        }
+    }
+
+    // --- PHASE 0: CLINICAL CONVERSATIONAL INTAKE (G12 ONLY) ---
+    function renderIntakePhase() {
+        const body = document.getElementById("phase-body");
+        body.innerHTML = `
+            <div class="stagger-in max-w-3xl mx-auto">
+                <!-- Header Title block -->
+                <div class="mb-8 text-center md:text-left">
+                    <span class="cyber-badge mb-2">Phase 1: Student Intake</span>
+                    <h2 class="text-3xl font-extrabold text-slate-900 mt-1">Let's get to know you better</h2>
+                    <p class="text-slate-500 text-sm mt-1">We'll ask you a few questions to understand you better and provide personalized insights.</p>
+                </div>
+
+                <!-- Alert Box -->
+                <div class="bg-teal-50 border border-teal-100/80 text-teal-800 rounded-2xl p-4 mb-8 flex items-center gap-3 text-sm">
+                    <i class="fas fa-info-circle text-teal-600 text-lg"></i>
+                    <span>Your information is safe with us and will only be used to guide your career journey.</span>
+                </div>
+
+                <!-- Form Rows -->
+                <form id="intake-form" onsubmit="submitIntakeForm(event)" class="space-y-6">
+                    <!-- Row 1: Full Name -->
+                    <div class="flex flex-col md:flex-row md:items-center justify-between p-5 bg-slate-50/40 border border-slate-100 rounded-2xl gap-4 hover:border-teal-500/10 transition-all duration-300">
+                        <div class="flex items-center gap-4">
+                            <div class="h-12 w-12 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center text-xl flex-shrink-0">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-base font-bold text-slate-900">What is your full name?</h4>
+                                <p class="text-slate-400 text-xs">Please enter your full name.</p>
+                            </div>
+                        </div>
+                        <div class="w-full md:w-80">
+                            <input type="text" name="name" required placeholder="Enter your full name" 
+                                class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder-slate-400 focus:border-teal-500 focus:bg-white focus:outline-none text-sm transition-all">
+                            <div class="error-msg text-red-500 text-xs mt-1 hidden">Please enter a valid name (at least 2 characters).</div>
+                        </div>
+                    </div>
+
+                    <!-- Row 2: Currently Pursuing -->
+                    <div class="flex flex-col md:flex-row md:items-center justify-between p-5 bg-slate-50/40 border border-slate-100 rounded-2xl gap-4 hover:border-teal-500/10 transition-all duration-300">
+                        <div class="flex items-center gap-4">
+                            <div class="h-12 w-12 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center text-xl flex-shrink-0">
+                                <i class="fas fa-graduation-cap"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-base font-bold text-slate-900">What are you currently pursuing?</h4>
+                                <p class="text-slate-400 text-xs">Select your current class/education level.</p>
+                            </div>
+                        </div>
+                        <div class="w-full md:w-80">
+                            <input type="text" name="pursuing" required placeholder="Enter current education (e.g. Grade 12)" 
+                                class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder-slate-400 focus:border-teal-500 focus:bg-white focus:outline-none text-sm transition-all">
+                            <div class="error-msg text-red-500 text-xs mt-1 hidden">Please enter your current studies (at least 2 characters).</div>
+                        </div>
+                    </div>
+
+                    <!-- Row 3: Areas of Interest -->
+                    <div class="flex flex-col md:flex-row md:items-center justify-between p-5 bg-slate-50/40 border border-slate-100 rounded-2xl gap-4 hover:border-teal-500/10 transition-all duration-300">
+                        <div class="flex items-center gap-4">
+                            <div class="h-12 w-12 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center text-xl flex-shrink-0">
+                                <i class="fas fa-star"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-base font-bold text-slate-900">What are your areas of interest?</h4>
+                                <p class="text-slate-400 text-xs">Select all that interest you.</p>
+                            </div>
+                        </div>
+                        <div class="w-full md:w-80">
+                            <input type="text" name="interests" required placeholder="Enter interests (e.g. Technology, Art)" 
+                                class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder-slate-400 focus:border-teal-500 focus:bg-white focus:outline-none text-sm transition-all">
+                            <div class="error-msg text-red-500 text-xs mt-1 hidden">Please enter your interests.</div>
+                        </div>
+                    </div>
+
+                    <!-- Row 4: Parent Income -->
+                    <div class="flex flex-col md:flex-row md:items-center justify-between p-5 bg-slate-50/40 border border-slate-100 rounded-2xl gap-4 hover:border-teal-500/10 transition-all duration-300">
+                        <div class="flex items-center gap-4">
+                            <div class="h-12 w-12 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center text-xl flex-shrink-0">
+                                <i class="fas fa-wallet"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-base font-bold text-slate-900">What is your parent's approximate annual income?</h4>
+                                <p class="text-slate-400 text-xs">This helps us suggest better career paths.</p>
+                            </div>
+                        </div>
+                        <div class="w-full md:w-80">
+                            <input type="text" name="parent_income" required placeholder="Enter income in numbers (e.g. 800000)" 
+                                class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder-slate-400 focus:border-teal-500 focus:bg-white focus:outline-none text-sm transition-all">
+                            <div class="error-msg text-red-500 text-xs mt-1 hidden">Please enter a valid numeric income (number only).</div>
+                        </div>
+                    </div>
+
+                    <!-- Row 5: Parent Occupation -->
+                    <div class="flex flex-col md:flex-row md:items-center justify-between p-5 bg-slate-50/40 border border-slate-100 rounded-2xl gap-4 hover:border-teal-500/10 transition-all duration-300">
+                        <div class="flex items-center gap-4">
+                            <div class="h-12 w-12 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center text-xl flex-shrink-0">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-base font-bold text-slate-900">What do your parents do?</h4>
+                                <p class="text-slate-400 text-xs">Select their primary occupation.</p>
+                            </div>
+                        </div>
+                        <div class="w-full md:w-80">
+                            <input type="text" name="parent_occupation" required placeholder="Enter parents' occupation (e.g. Service)" 
+                                class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder-slate-400 focus:border-teal-500 focus:bg-white focus:outline-none text-sm transition-all">
+                            <div class="error-msg text-red-500 text-xs mt-1 hidden">Please enter parent's occupation.</div>
+                        </div>
+                    </div>
+
+                    <!-- Footer Control Bar -->
+                    <div class="flex justify-between items-center pt-6 border-t border-slate-100 mt-8">
+                        <div class="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                            <i class="fas fa-shield-alt text-teal-600"></i> Secure & Confidential
+                        </div>
+                        <button type="submit" id="intake-submit-btn" class="px-8 py-3.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-extrabold transition-all text-sm flex items-center gap-2 shadow-md shadow-teal-600/10">
+                            Save & Continue <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        `;
+    }
+
+    async function submitIntakeForm(event) {
+        event.preventDefault();
+        const form = event.target;
+        const submitBtn = document.getElementById("intake-submit-btn");
+        
+        const nameVal = form.name.value.trim();
+        const pursuingVal = form.pursuing.value.trim();
+        const interestsVal = form.interests.value.trim();
+        const incomeRaw = form.parent_income.value.trim().replace(/,/g, '');
+        const occupationVal = form.parent_occupation.value.trim();
+        
+        let isValid = true;
+        
+        function toggleError(inputName, show) {
+            const input = form[inputName];
+            const error = input.nextElementSibling;
+            if (show) {
+                input.classList.add("border-red-400");
+                error.classList.remove("hidden");
+                isValid = false;
+            } else {
+                input.classList.remove("border-red-400");
+                error.classList.add("hidden");
+            }
+        }
+        
+        if (nameVal.length < 2) {
+            toggleError("name", true);
+        } else {
+            toggleError("name", false);
+        }
+        
+        if (pursuingVal.length < 2) {
+            toggleError("pursuing", true);
+        } else {
+            toggleError("pursuing", false);
+        }
+        
+        if (interestsVal.length < 2) {
+            toggleError("interests", true);
+        } else {
+            toggleError("interests", false);
+        }
+        
+        const incomeNum = Number(incomeRaw);
+        if (incomeRaw === "" || isNaN(incomeNum) || incomeNum <= 0) {
+            toggleError("parent_income", true);
+        } else {
+            toggleError("parent_income", false);
+        }
+        
+        if (occupationVal.length < 2) {
+            toggleError("parent_occupation", true);
+        } else {
+            toggleError("parent_occupation", false);
+        }
+        
+        if (!isValid) return;
+        
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `<i class="fas fa-spinner animate-spin"></i> Processing...`;
+        
+        document.getElementById("bottom-status").innerHTML = `<span class="h-2 w-2 rounded-full bg-cyan-400 animate-ping"></span> Querying extraction pipeline...`;
+        
+        try {
+            const res = await fetch("/assessment/api/intake", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    name: nameVal,
+                    pursuing: pursuingVal,
+                    interests: interestsVal,
+                    parent_income: incomeNum,
+                    parent_occupation: occupationVal
+                })
+            });
+            const data = await res.json();
+            
+            document.getElementById("bottom-status").innerHTML = `<span class="h-2 w-2 rounded-full bg-cyan-400 animate-ping"></span> Sync Ready`;
+            
+            if (data.status === "success") {
+                setTimeout(async () => {
+                    await refreshState();
+                }, 800);
+            } else {
+                alert("Failed to submit intake. Please verify your data and try again.");
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `Save & Continue <i class="fas fa-arrow-right"></i>`;
+            }
+        } catch (e) {
+            console.error(e);
+            document.getElementById("bottom-status").innerHTML = `Extraction Error`;
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = `Save & Continue <i class="fas fa-arrow-right"></i>`;
+        }
+    }
+
+    // --- PHASE 1: REFLEX PREFERENCE CARD SWIPES (BOTH) ---
+    function renderSwipePhase() {
+        swipeCards = activePhaseData.cards || [];
+        activeSwipeIndex = 0;
+        swipeLogs = [];
+
+        const body = document.getElementById("phase-body");
+        body.innerHTML = `
+            <div class="text-center mb-6 stagger-in">
+                <span class="cyber-badge mb-2">Phase ${assessmentState.student_type === "12th" ? '2' : '1'}: Reflex Mapping</span>
+                <h2 class="text-2xl font-bold mt-2 text-slate-900">Preference Cards</h2>
+                <p class="text-slate-500 text-sm mt-1">Swipe right for yes, left for no. Your response speed and hesitation coordinates are measured.</p>
+            </div>
+            
+            <div class="deck-container stagger-in" id="card-deck">
+                <!-- Glowing telemetry cards loaded dynamically -->
+            </div>
+
+            <div class="flex justify-center gap-6 mt-8 stagger-in">
+                <button onclick="executeUiSwipe('left')" class="w-14 h-14 flex items-center justify-center rounded-full bg-indigo-50 border border-indigo-100 text-indigo-600 shadow-md hover:bg-indigo-100/80 hover:border-indigo-200 hover:scale-105 active:scale-95 transition-all duration-300">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+                <button onclick="executeUiSwipe('right')" class="w-14 h-14 flex items-center justify-center rounded-full bg-teal-50 border border-teal-100 text-teal-600 shadow-md hover:bg-teal-100/80 hover:border-teal-200 hover:scale-105 active:scale-95 transition-all duration-300">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                </button>
+            </div>
+            <div class="text-center mt-4 stagger-in">
+                <span class="text-xs font-semibold text-slate-500" id="swipe-counter">0 / 0 Completed</span>
+            </div>
+        `;
+        buildSwipeCards();
+    }
+
+    let cardStartTime = Date.now();
+    let isTransitioning = false;
+
+    function buildSwipeCards() {
+        const deck = document.getElementById("card-deck");
+        if (!deck) return;
+        deck.innerHTML = "";
+        
+        const total = swipeCards.length;
+        document.getElementById("swipe-counter").innerText = `${activeSwipeIndex} / ${total} Cards Analyzed`;
+
+        if (activeSwipeIndex >= total) {
+            submitSwipeTelemetry();
+            return;
+        }
+
+        const cardsToShow = swipeCards.slice(activeSwipeIndex, activeSwipeIndex + 3);
+        
+        cardsToShow.forEach((c, idx) => {
+            const cardEl = document.createElement("div");
+            cardEl.className = "swipe-card";
+            
+            const scale = 1 - idx * 0.05;
+            const yOffset = idx * 18;
+            cardEl.style.transform = `translateY(${yOffset}px) scale(${scale})`;
+            cardEl.style.zIndex = 100 - idx;
+            
+            cardEl.innerHTML = `
+                <div>
+                    <span class="px-2.5 py-1 bg-teal-50 text-teal-600 border border-teal-100 rounded-full text-[10px] font-bold tracking-widest uppercase">${c.category || 'OBJECTIVE'}</span>
+                    <h3 class="text-xl font-bold mt-6 text-slate-900 leading-relaxed font-outfit">${c.content || c.text || ''}</h3>
+                </div>
+                <div class="flex justify-between items-center text-[10px] text-slate-400 font-bold tracking-wider pt-4 border-t border-slate-100">
+                    <span>← SWIPE LEFT (NO)</span>
+                    <span>SWIPE RIGHT (YES) →</span>
+                </div>
+            `;
+            deck.appendChild(cardEl);
+            if (idx === 0) {
+                setupDragInteraction(cardEl);
+            }
+        });
+        
+        cardStartTime = Date.now();
+        isTransitioning = false;
+    }
+
+    function setupDragInteraction(el) {
+        let startX = 0;
+        let currentX = 0;
+        
+        el.addEventListener('mousedown', start);
+        el.addEventListener('touchstart', start, {passive: true});
+        
+        function start(e) {
+            startX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+            document.addEventListener('mousemove', move);
+            document.addEventListener('mouseup', end);
+            document.addEventListener('touchmove', move, {passive: false});
+            document.addEventListener('touchend', end);
+        }
+        
+        function move(e) {
+            currentX = (e.type === 'touchmove' ? e.touches[0].clientX : e.clientX) - startX;
+            el.style.transform = `translateX(${currentX}px) rotate(${currentX / 16}deg)`;
+            
+            if (currentX > 50) {
+                el.classList.add('swiping-right'); el.classList.remove('swiping-left');
+            } else if (currentX < -50) {
+                el.classList.add('swiping-left'); el.classList.remove('swiping-right');
+            } else {
+                el.classList.remove('swiping-right', 'swiping-left');
+            }
+        }
+        
+        async function end() {
+            document.removeEventListener('mousemove', move);
+            document.removeEventListener('mouseup', end);
+            document.removeEventListener('touchmove', move);
+            document.removeEventListener('touchend', end);
+            
+            if (Math.abs(currentX) > 120) {
+                const direction = currentX > 0 ? 'right' : 'left';
+                handleSwipeTelemetry(direction);
+            } else {
+                el.style.transform = '';
+                el.classList.remove('swiping-right', 'swiping-left');
+            }
+        }
+    }
+
+    function executeUiSwipe(direction) {
+        if (isTransitioning) return;
+        isTransitioning = true;
+
+        const deck = document.getElementById("card-deck");
+        const topCard = deck.querySelector(".swipe-card");
+        if (!topCard) return;
+
+        topCard.classList.add(direction === "right" ? "swiped-right" : "swiped-left");
+        
+        setTimeout(() => {
+            handleSwipeTelemetry(direction);
+        }, 200);
+    }
+
+    function handleSwipeTelemetry(direction) {
+        const endTime = Date.now();
+        const duration = endTime - cardStartTime;
+        const activeCard = swipeCards[activeSwipeIndex];
+
+        swipeLogs.push({
+            card_id: activeCard.id,
+            direction: direction,
+            reaction_ms: Math.round(duration * 0.45),
+            dwell_ms: duration,
+            hesitation_ms: duration > 2000 ? Math.round((duration - 1000) * 0.75) : 0
+        });
+
+        activeSwipeIndex++;
+        buildSwipeCards();
+    }
+
+    async function submitSwipeTelemetry() {
+        showLoader("Syncing biometric preferences...");
+        try {
+            const res = await fetch("/assessment/api/swipe", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ swipes: swipeLogs })
+            });
+            const data = await res.json();
+            if (data.status === "success") {
+                await refreshState();
+            }
+        } catch (e) {
+            console.error(e);
+            hideLoader();
+        }
+    }
+
+    // --- PHASE 2: ARCHETYPE DISCOVERY (BOTH) ---
+    async function renderArchetypePhase() {
+        const body = document.getElementById("phase-body");
+        const arch = activePhaseData.archetype || "The Seeker";
+        const msg = activePhaseData.message || "Your biometric signatures have resolved into a unique cognitive archetype.";
+        
+        body.innerHTML = `
+            <div class="text-center mb-8 stagger-in">
+                <span class="cyber-badge mb-2">Phase 3: Cognitive Profile</span>
+                <h2 class="text-3xl font-extrabold mt-2 text-slate-900 font-outfit">Your Archetype: ${arch}</h2>
+                <p class="text-slate-500 text-sm mt-2 max-w-md mx-auto">${msg}</p>
+            </div>
+
+            <div class="max-w-2xl mx-auto stagger-in" style="animation-delay: 0.2s;">
+                <div class="bg-gradient-to-br from-teal-50 to-white border border-teal-100 rounded-3xl p-8 shadow-xl shadow-teal-900/5 relative overflow-hidden">
+                    <div class="relative z-10">
+                        <div class="w-20 h-20 bg-teal-600 rounded-2xl flex items-center justify-center text-white text-4xl mb-6 shadow-lg shadow-teal-500/30">
+                            ${arch.includes("Founder") ? '🚀' : arch.includes("Architect") ? '🏢' : '🔬'}
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-800 mb-4">Core Trait: Dominant Reflex</h3>
+                        <p class="text-slate-600 leading-relaxed text-sm mb-8">
+                            Based on your reaction times and dwell periods, your mind prioritizes structural integrity and creative leaps over standard conventional routes. You are naturally inclined towards problem-solving in high-autonomy environments.
+                        </p>
+                        
+                        <button onclick="confirmArchetype()" id="arch-confirm-btn" class="w-full py-4 bg-teal-600 hover:bg-teal-700 text-white rounded-2xl font-extrabold transition-all shadow-lg shadow-teal-600/30 flex items-center justify-center gap-2">
+                            <span>Lock Metadata & Continue</span>
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    async function confirmArchetype() {
+        const btn = document.getElementById("arch-confirm-btn");
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fas fa-spinner animate-spin"></i> Finalizing Profile...`;
+        
+        try {
+            const res = await fetch("/assessment/api/archetype_confirm", { method: "POST" });
+            const data = await res.json();
+            if (data.status === "success") {
+                await refreshState();
+            }
+        } catch (e) {
+            console.error(e);
+            btn.disabled = false;
+        }
+    }
+
+    // --- PHASE 3: ENVIRONMENTAL FIT PROXIES (BOTH) ---
+    let proxyAnswersLog = [];
+    let activeProxyIdx = 0;
+
+    function renderProxyPhase() {
+        proxyAnswersLog = [];
+        activeProxyIdx = 0;
+        showProxyQuestion();
+    }
+
+    function showProxyQuestion() {
+        const total = activePhaseData.proxy_questions.length;
+        if (activeProxyIdx >= total) {
+            submitProxyAnswers();
+            return;
+        }
+
+        const q = activePhaseData.proxy_questions[activeProxyIdx];
+        const body = document.getElementById("phase-body");
+        body.innerHTML = `
+            <div class="text-center mb-6 stagger-in">
+                <span class="cyber-badge mb-2">Phase ${assessmentState.student_type === "12th" ? '4' : '3'}: Socio-Demo Context</span>
+                <h2 class="text-2xl font-bold mt-2 text-slate-900 leading-relaxed font-outfit">${q.question || q.question_text || q.text || ''}</h2>
+                <p class="text-slate-500 text-sm mt-1">This evaluates external socioeconomic, digital infrastructure, and geographical limits.</p>
+            </div>
+
+            <div class="grid grid-cols-1 gap-3 max-w-md mx-auto stagger-in" style="animation-delay: 0.1s;">
+                ${(q.options || []).map(opt => `
+                    <button onclick="handleProxySelection('${q.question_id || q.id}', '${opt.option_text || opt.text || ''}', ${opt.multiplier})" class="premium-option-btn w-full flex items-center justify-between group">
+                        <span class="font-semibold text-slate-700 group-hover:text-teal-600">${opt.option_text || opt.text || ''}</span>
+                        <svg class="w-5 h-5 text-slate-400 group-hover:text-teal-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    </button>
+                `).join('')}
+            </div>
+
+            <div class="text-center mt-6 stagger-in">
+                <span class="text-xs font-semibold text-slate-500">${activeProxyIdx} / ${total} Environmental Nodes Checked</span>
+            </div>
+        `;
+    }
+
+    function handleProxySelection(qId, val, mult) {
+        proxyAnswersLog.push({
+            question_id: qId,
+            answer: val,
+            multiplier: mult
+        });
+        activeProxyIdx++;
+        showProxyQuestion();
+    }
+
+    async function submitProxyAnswers() {
+        showLoader("Configuring environment arrays...");
+        try {
+            const res = await fetch("/assessment/api/proxy", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ answers: proxyAnswersLog })
+            });
+            const data = await res.json();
+            if (data.status === "success") {
+                await refreshState();
+            }
+        } catch (e) {
+            console.error(e);
+            hideLoader();
+        }
+    }
+
+    // --- PHASE 4: ENHANCED SEQUENCE PLANNER (NEW) ---
+    let plannerWorkspaceItems = [];
+    let nextPlannerId = 1;
+
+    function renderSequencePlannerPhase() {
+        const body = document.getElementById("phase-body");
+        const taskData = activePhaseData.task || {};
+        // The JSON uses 'task' as the scenario name field
+        const scenarioTitle = taskData.task || "Design your strategic plan";
+        const scenarioDesc = `Use the tools below to map how you would approach: "${scenarioTitle}". Connect them to show how they work together.`;
+        const toolsRequired = taskData.tools_required || [];
+        
+        // Reset state
+        plannerWorkspaceItems = [];
+        plannerConnections = [];
+        nextPlannerId = 1;
+        linkingMode = false;
+        selectedSourceId = null;
+        draggingNodeId = null;
+        body.innerHTML = `
+            <div class="stagger-in">
+                <header class="flex flex-col gap-2 p-4 border-b border-slate-100 bg-slate-50/30 rounded-t-2xl">
+                    <div class="flex items-center gap-2">
+                        <span class="w-8 h-8 flex items-center justify-center bg-teal-100 text-teal-600 rounded-lg text-sm font-bold">4</span>
+                        <h2 class="text-sm font-bold text-slate-800 uppercase tracking-widest">Phase 4: Strategy Planner</h2>
+                    </div>
+                    <div class="p-3 bg-white border border-teal-100 rounded-xl">
+                        <p class="text-xs font-bold text-teal-700 mb-1">📌 Scenario: ${scenarioTitle}</p>
+                        <p class="text-[11px] text-slate-500 leading-relaxed">${scenarioDesc}</p>
+                    </div>
+                </header>
+
+                <div class="flex overflow-hidden rounded-b-2xl border border-slate-100" style="height: 460px;">
+                    <!-- Palette -->
+                    <aside id="planner-sidebar" class="w-44 border-r border-slate-100 p-3 overflow-y-auto bg-slate-50/50 flex-shrink-0">
+                        <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">🛠 Tool Palette</h3>
+                        <p class="text-[9px] text-slate-400 mb-3">Click a tool to add it to the canvas</p>
+                        <div id="planner-palette" class="flex flex-col gap-2">
+                        </div>
+                    </aside>
+
+                    <!-- Canvas Container -->
+                    <div class="flex-1 flex flex-col">
+                        <div class="relative workspace-grid" id="planner-canvas-container" style="flex: 1; position: relative; overflow: hidden; cursor: crosshair;">
+                            <!-- SVG for connections -->
+                            <svg id="planner-connections-svg" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;"></svg>
+
+                            <div id="planner-canvas" style="position:absolute;inset:0;width:100%;height:100%;z-index:2;">
+                                <div id="planner-empty-state" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;color:#94a3b8;">
+                                    <div style="width:48px;height:48px;background:#f1f5f9;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:8px;">📥</div>
+                                    <p style="font-size:11px;font-weight:700;">Click a tool to add it here</p>
+                                    <p style="font-size:9px;color:#cbd5e1;margin-top:4px;">Then drag to reposition, 🔗 to connect</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bottom action bar -->
+                        <div style="padding: 10px 12px; border-top: 1px solid #e2e8f0; background: #f8fafc; display: flex; align-items: center; justify-content: space-between;">
+                            <span id="linking-mode-indicator" class="hidden" style="font-size:10px;font-weight:700;background:#ccfbf1;color:#0f766e;padding:4px 12px;border-radius:99px;border:1px solid #99f6e4;">🔗 Linking Mode — click another node to connect</span>
+                            <button onclick="submitPlannerProject()" id="planner-submit-btn" style="padding: 8px 20px; background: #0d9488; color: white; border-radius: 12px; font-size: 12px; font-weight: 700; border: none; cursor: pointer; margin-left: auto;">Submit Strategy →</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        initPlanner(toolsRequired);
+    }
+
+    const TOOL_RESOURCES = [
+        { type: 'database', label: 'Cloud Database', icon: '🗄️', category: 'Tech' },
+        { type: 'ai_model', label: 'AI Engine', icon: '🧠', category: 'Tech' },
+        { type: 'frontend', label: 'Dashboard UI', icon: '💻', category: 'Tech' },
+        { type: 'api', label: 'Backend API', icon: '🔌', category: 'Tech' },
+        { type: 'strategy', label: 'Market Strategy', icon: '🎯', category: 'Business' },
+        { type: 'team', label: 'Core Team', icon: '👥', category: 'People' },
+        { type: 'security', label: 'Cyber Security', icon: '🔒', category: 'Ops' },
+        { type: 'budget', label: 'Funding', icon: '💰', category: 'Business' },
+        { type: 'marketing', label: 'Growth Plan', icon: '📢', category: 'Business' },
+        { type: 'timeline', label: 'Milestones', icon: '📅', category: 'Ops' }
+    ];
+
+    function initPlanner(requiredTools) {
+        const palette = document.getElementById("planner-palette");
+        const allowed = (requiredTools || []).map(t => t.toLowerCase());
+        
+        const filtered = TOOL_RESOURCES.filter(tr => 
+            allowed.length === 0 || allowed.some(a => tr.label.toLowerCase().includes(a) || tr.type.toLowerCase().includes(a))
+        );
+
+        // Show all tools if none matched
+        const toShow = filtered.length > 0 ? filtered : TOOL_RESOURCES;
+
+        palette.innerHTML = toShow.map(item => `
+            <button onclick="addToolToCanvas('${item.type}')"
+                style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:white;border:1px solid #e2e8f0;border-radius:10px;cursor:pointer;width:100%;text-align:left;transition:all 0.15s;"
+                onmouseover="this.style.borderColor='#0d9488';this.style.background='#f0fdfa'"
+                onmouseout="this.style.borderColor='#e2e8f0';this.style.background='white'">
+                <span style="font-size:16px;">${item.icon}</span>
+                <span style="font-size:10px;font-weight:700;color:#334155;">${item.label}</span>
+            </button>
+        `).join('');
+
+        const container = document.getElementById('planner-canvas-container');
+        container.addEventListener('pointermove', handlePointerMove);
+        container.addEventListener('pointerup', handlePointerUp);
+        container.addEventListener('pointerleave', handlePointerUp);
+    }
+
+    function addToolToCanvas(type) {
+        const tool = TOOL_RESOURCES.find(t => t.type === type);
+        if (!tool) return;
+        const id = nextPlannerId++;
+        // Auto-arrange in a grid pattern
+        const col = plannerWorkspaceItems.length % 3;
+        const row = Math.floor(plannerWorkspaceItems.length / 3);
+        const x = 20 + col * 210;
+        const y = 20 + row * 140;
+        plannerWorkspaceItems.push({ ...tool, id, x, y, description: "" });
+        renderPlannerWorkspace();
+    }
+
+    function handlePointerMove(e) {
+        if (draggingNodeId !== null) {
+            const container = document.getElementById('planner-canvas-container');
+            const rect = container.getBoundingClientRect();
+            const x = e.clientX - rect.left - dragOffset.x;
+            const y = e.clientY - rect.top - dragOffset.y;
+            
+            const item = plannerWorkspaceItems.find(it => it.id === draggingNodeId);
+            if (item) {
+                item.x = x;
+                item.y = y;
+                renderPlannerWorkspace();
+            }
+        }
+    }
+
+    function handlePointerUp() {
+        draggingNodeId = null;
+    }
+
+    function startDragging(e, id) {
+        e.stopPropagation();
+        const nodeRect = e.currentTarget.getBoundingClientRect();
+        dragOffset.x = e.clientX - nodeRect.left;
+        dragOffset.y = e.clientY - nodeRect.top;
+        draggingNodeId = id;
+    }
+
+    function toggleLink(e, id) {
+        e.stopPropagation();
+        if (!linkingMode) {
+            linkingMode = true;
+            selectedSourceId = id;
+            document.getElementById('linking-mode-indicator').classList.remove('hidden');
+        } else {
+            if (selectedSourceId !== id) {
+                const exists = plannerConnections.some(c => c.from === selectedSourceId && c.to === id);
+                if (!exists) {
+                    plannerConnections.push({ from: selectedSourceId, to: id });
+                }
+            }
+            linkingMode = false;
+            selectedSourceId = null;
+            document.getElementById('linking-mode-indicator').classList.add('hidden');
+        }
+        renderPlannerWorkspace();
+    }
+
+    function renderPlannerWorkspace() {
+        const canvas = document.getElementById('planner-canvas');
+        const empty = document.getElementById('planner-empty-state');
+        const svg = document.getElementById('planner-connections-svg');
+        
+        empty.style.display = plannerWorkspaceItems.length > 0 ? 'none' : 'flex';
+
+        svg.innerHTML = `
+            <defs>
+                <marker id="arrowhead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill="#0d9488" />
+                </marker>
+            </defs>
+        `;
+        
+        plannerConnections.forEach(conn => {
+            const from = plannerWorkspaceItems.find(it => it.id === conn.from);
+            const to = plannerWorkspaceItems.find(it => it.id === conn.to);
+            if (from && to) {
+                const x1 = from.x + 90;
+                const y1 = from.y + 40;
+                const x2 = to.x + 10;
+                const y2 = to.y + 20;
+                
+                const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                const d = `M ${x1} ${y1} C ${x1 + 50} ${y1}, ${x2 - 50} ${y2}, ${x2} ${y2}`;
+                path.setAttribute("d", d);
+                path.setAttribute("class", "connection-path");
+                path.setAttribute("marker-end", "url(#arrowhead)");
+                svg.appendChild(path);
+            }
+        });
+
+        const existingNodes = Array.from(canvas.querySelectorAll('.planner-node'));
+        const nodeMap = new Map();
+        
+        plannerWorkspaceItems.forEach(item => {
+            let node = canvas.querySelector(`[data-id="${item.id}"]`);
+            if (!node) {
+                node = document.createElement('div');
+                node.className = `planner-node absolute p-2 cursor-grab group transition-shadow`;
+                node.setAttribute('data-id', item.id);
+                canvas.appendChild(node);
+            }
+            node.style.left = `${item.x}px`;
+            node.style.top = `${item.y}px`;
+            node.style.width = `180px`;
+            node.style.zIndex = item.id === draggingNodeId ? 200 : 100;
+            
+            const isSelected = selectedSourceId === item.id;
+            node.innerHTML = `
+                <div class="flex items-center justify-between mb-1" onpointerdown="startDragging(event, ${item.id})">
+                    <div class="flex items-center gap-1.5 overflow-hidden">
+                        <span class="text-xs">${item.icon}</span>
+                        <span class="text-[9px] font-extrabold text-slate-800 uppercase truncate">${item.label}</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <button onclick="toggleLink(event, ${item.id})" class="w-5 h-5 flex items-center justify-center rounded bg-slate-100 hover:bg-teal-100 text-[10px] ${isSelected ? 'bg-teal-500 text-white animate-pulse' : 'text-slate-500'}">🔗</button>
+                        <button onclick="deleteNode(event, ${item.id})" class="w-5 h-5 flex items-center justify-center rounded bg-slate-100 hover:bg-red-100 text-[10px] text-slate-500">✕</button>
+                    </div>
+                </div>
+                <textarea onchange="updateNodeDesc(${item.id}, this.value)" 
+                          class="w-full text-[9px] bg-slate-50 border-slate-100 focus:bg-white focus:ring-1 focus:ring-teal-500 rounded p-1.5 h-14 resize-none leading-tight" 
+                          placeholder="What purpose does this serve?">${item.description}</textarea>
+                ${isSelected ? '<div class="absolute inset-0 border-2 border-teal-400 rounded-16 pointer-events-none"></div>' : ''}
+            `;
+            nodeMap.set(item.id, true);
+        });
+
+        existingNodes.forEach(rn => {
+            const id = parseInt(rn.getAttribute('data-id'));
+            if (!nodeMap.has(id)) rn.remove();
+        });
+    }
+
+    function updateNodeDesc(id, val) {
+        const item = plannerWorkspaceItems.find(it => it.id === id);
+        if (item) item.description = val;
+    };
+
+    window.deletePlannerNode = (id) => {
+        plannerWorkspaceItems = plannerWorkspaceItems.filter(i => i.id !== id);
+        renderPlannerWorkspace();
+    };
+
+    async function submitPlannerProject() {
+        if (plannerWorkspaceItems.length === 0) return alert("Please map at least one tool.");
+        
+        showLoader("Synchronizing vector multipliers...");
+        try {
+            const res = await fetch("/assessment/api/phase4_complete", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ 
+                    workflow: plannerWorkspaceItems,
+                    connections: plannerConnections
+                })
+            });
+            const data = await res.json();
+            if (data.status === "success") {
+                await refreshState();
+            }
+        } catch (e) {
+            console.error(e);
+            hideLoader();
+        }
+    }
+
+    // --- PHASE 5: COMPILING RESULTS AND REDIRECT (BOTH) ---
+    function renderCompilePhase() {
+        const body = document.getElementById("phase-body");
+        body.innerHTML = `
+            <div class="text-center py-10 flex flex-col items-center justify-center stagger-in">
+                <div class="relative flex items-center justify-center mb-8">
+                    <div class="animate-ping absolute inline-flex h-20 w-20 rounded-full bg-teal-500 opacity-20"></div>
+                    <div class="w-20 h-20 rounded-full bg-gradient-to-tr from-teal-500 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-teal-600/10">
+                        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+                    </div>
+                </div>
+                <h2 class="text-2xl font-extrabold text-slate-900">Shadow Compilation Ready</h2>
+                <p class="text-slate-500 max-w-md mt-3 text-sm leading-relaxed">Your reflex latency indices, RIASEC profiles, geographical variables, and ego coefficients are consolidated.</p>
+                
+                <button onclick="compileFinalResults()" id="compile-btn" class="mt-8 px-12 py-4 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-extrabold transition-all shadow-md shadow-teal-600/10 hover:scale-105 active:scale-95 tracking-widest uppercase text-xs">Execute Matrix Compilation</button>
+                <p id="compiling-indicator" class="hidden text-teal-600 font-bold mt-5 animate-pulse text-xs tracking-widest uppercase">Formulating career fit projections...</p>
+            </div>
+        `;
+    }
+
+    async function compileFinalResults() {
+        const btn = document.getElementById("compile-btn");
+        const ind = document.getElementById("compiling-indicator");
+        if (btn) btn.disabled = true;
+        if (btn) btn.classList.add("opacity-40", "cursor-not-allowed");
+        if (ind) ind.classList.remove("hidden");
+        
+        try {
+            const res = await fetch("/assessment/api/compile", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" }
+            });
+            const data = await res.json();
+            if (data.status === "success") {
+                window.location.href = data.redirect;
+            } else {
+                alert("Compilation failed. Please try resetting assessment progress.");
+                if (btn) btn.disabled = false;
+                if (btn) btn.classList.remove("opacity-40", "cursor-not-allowed");
+                if (ind) ind.classList.add("hidden");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Matrix Compilation Error. Check local gateway connections.");
+            if (btn) btn.disabled = false;
+            if (btn) btn.classList.remove("opacity-40", "cursor-not-allowed");
+            if (ind) ind.classList.add("hidden");
+        }
+    }
+</script>
+{% endblock %}
