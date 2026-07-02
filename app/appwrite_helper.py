@@ -1,11 +1,14 @@
 import json
 from appwrite.query import Query
-from .appwrite_client import databases, DB_ID, COLLECTIONS
+from .appwrite_client import databases, tables_db, DB_ID, COLLECTIONS
 
 def _parse_list_response(res):
-    """Safely extracts total and documents list from Appwrite list response."""
+    """Safely extracts total and rows/documents list from Appwrite list response."""
     total = getattr(res, 'total', 0) if not isinstance(res, dict) else res.get('total', 0)
-    documents = getattr(res, 'documents', []) if not isinstance(res, dict) else res.get('documents', [])
+    # Support both old 'documents' and new 'rows' terminology
+    documents = getattr(res, 'rows', None) or getattr(res, 'documents', [])
+    if isinstance(res, dict):
+        documents = res.get('rows') or res.get('documents', [])
     return total, documents
 
 def doc_to_model(doc, db=None):
@@ -56,10 +59,18 @@ def doc_to_model(doc, db=None):
     
     return model
 
+# Global flag to avoid repeated timeouts if project is paused
+_appwrite_project_paused = False
+
+def _check_appwrite_paused():
+    global _appwrite_project_paused
+    return _appwrite_project_paused
+
 def get_assessment_by_user_id(user_num_id):
     """Fetches assessment result for a user from Appwrite."""
+    if _check_appwrite_paused(): return None
     try:
-        res = databases.list_documents(
+        res = tables_db.list_rows(
             DB_ID, 
             COLLECTIONS['assessment_results'], 
             [Query.equal('user_id', int(user_num_id))]
@@ -68,6 +79,10 @@ def get_assessment_by_user_id(user_num_id):
         if total > 0:
             return doc_to_model(documents[0])
     except Exception as e:
+        if "paused" in str(e).lower():
+            global _appwrite_project_paused
+            _appwrite_project_paused = True
+            print("CRITICAL: Appwrite Project is PAUSED. Disabling Appwrite calls to prevent timeouts.")
         print(f"Appwrite Get Assessment Error: {e}")
     return None
 
@@ -75,7 +90,7 @@ def update_assessment_simulation(user_num_id, career=None, questions=None, answe
     """Updates simulation data for a user in Appwrite."""
     try:
         # 1. Find the document
-        res = databases.list_documents(
+        res = tables_db.list_rows(
             DB_ID, 
             COLLECTIONS['assessment_results'], 
             [Query.equal('user_id', int(user_num_id))]
@@ -100,7 +115,7 @@ def update_assessment_simulation(user_num_id, career=None, questions=None, answe
         if evaluation is not None: sim_data['evaluation'] = evaluation
         
         # 3. Save back
-        databases.update_document(
+        tables_db.update_row(
             DB_ID,
             COLLECTIONS['assessment_results'],
             doc_id,
@@ -113,8 +128,9 @@ def update_assessment_simulation(user_num_id, career=None, questions=None, answe
 
 def get_user_by_id(user_num_id):
     """Fetches a user from Appwrite users collection by their numeric local_id."""
+    if _check_appwrite_paused(): return None
     try:
-        res = databases.list_documents(
+        res = tables_db.list_rows(
             DB_ID, 
             COLLECTIONS['users'], 
             [Query.equal('local_id', int(user_num_id))]
@@ -123,13 +139,17 @@ def get_user_by_id(user_num_id):
         if total > 0:
             return doc_to_model(documents[0])
     except Exception as e:
+        if "paused" in str(e).lower():
+            global _appwrite_project_paused
+            _appwrite_project_paused = True
+            print("CRITICAL: Appwrite Project is PAUSED. Disabling Appwrite calls to prevent timeouts.")
         print(f"Appwrite Get User Error: {e}")
     return None
 
 def get_user_by_email(email):
     """Fetches a user from Appwrite users collection by email."""
     try:
-        res = databases.list_documents(
+        res = tables_db.list_rows(
             DB_ID, 
             COLLECTIONS['users'], 
             [Query.equal('email', email)]
@@ -138,6 +158,8 @@ def get_user_by_email(email):
         if total > 0:
             return doc_to_model(documents[0])
     except Exception as e:
+        if "paused" in str(e).lower():
+            print("CRITICAL: Appwrite Project is PAUSED. Please restore it from the console.")
         print(f"Appwrite Get User Email Error: {e}")
     return None
 
@@ -152,11 +174,13 @@ def sync_assessment_to_appwrite(user_num_id, result):
         
         # 1. Fetch available attributes from Appwrite collection
         try:
-            res_attrs = databases.list_attributes(DB_ID, COLLECTIONS['assessment_results'])
-            attrs = getattr(res_attrs, 'attributes', []) if not isinstance(res_attrs, dict) else res_attrs.get('attributes', [])
+            res_attrs = tables_db.list_columns(DB_ID, COLLECTIONS['assessment_results'])
+            attrs = getattr(res_attrs, 'columns', []) if not isinstance(res_attrs, dict) else res_attrs.get('columns', [])
             available_keys = {attr.get('key') for attr in attrs if attr.get('status') == 'available'}
         except Exception as attr_e:
-            print(f"Appwrite Sync: Could not list attributes (likely project paused): {attr_e}")
+            if "paused" in str(attr_e).lower():
+                print("CRITICAL: Appwrite Project is PAUSED. Please restore it from the console.")
+            print(f"Appwrite Sync: Could not list attributes: {attr_e}")
             # Fallback to a safe minimum of commonly supported attributes
             available_keys = {"user_id", "selected_class", "student_type", "personality", "confidence", "goal_status"}
             
@@ -197,7 +221,7 @@ def sync_assessment_to_appwrite(user_num_id, result):
             return False
             
         # 3. Check if document already exists
-        res = databases.list_documents(
+        res = tables_db.list_rows(
             DB_ID,
             COLLECTIONS['assessment_results'],
             [Query.equal('user_id', int(user_num_id))]
@@ -207,7 +231,7 @@ def sync_assessment_to_appwrite(user_num_id, result):
         if total > 0:
             doc = documents[0]
             doc_id = getattr(doc, 'id', None) or dict(doc).get('$id')
-            databases.update_document(
+            tables_db.update_row(
                 DB_ID,
                 COLLECTIONS['assessment_results'],
                 doc_id,
@@ -216,7 +240,7 @@ def sync_assessment_to_appwrite(user_num_id, result):
             print(f"Appwrite Sync: Updated assessment for user {user_num_id}")
         else:
             doc_uuid = f"ar_{user_num_id}" # Predictable unique doc ID
-            databases.create_document(
+            tables_db.create_row(
                 DB_ID,
                 COLLECTIONS['assessment_results'],
                 doc_uuid,

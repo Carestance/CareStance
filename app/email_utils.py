@@ -6,33 +6,49 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-def send_email(to_email: str, subject: str, body_html: str):
+def send_email(to_email: str, subject: str, body_html: str, attachments: list = None):
     """
     Sends a professional HTML email using SMTP settings from environment variables.
+    attachments: list of tuples (filename, content, content_type)
     """
     mail_server = os.getenv("MAIL_SERVER", "smtp.gmail.com")
     mail_port = int(os.getenv("MAIL_PORT", 587))
     mail_username = os.getenv("MAIL_USERNAME")
     mail_password = os.getenv("MAIL_PASSWORD")
-    app_name = os.getenv("APP_NAME", "NextStep")
-
-    if not mail_username or not mail_password:
-        print(f"SKIPPING EMAIL: SMTP credentials not set. Would have sent '{subject}' to {to_email}")
-        return False
+    app_name = os.getenv("APP_NAME", "CareStance")
 
     try:
-        msg = MIMEMultipart("alternative")
+        msg = MIMEMultipart()
         msg["Subject"] = subject
-        msg["From"] = f"{app_name} <{mail_username}>"
+        msg["From"] = mail_username
         msg["To"] = to_email
 
         html_part = MIMEText(body_html, "html")
         msg.attach(html_part)
 
-        with smtplib.SMTP(mail_server, mail_port) as server:
-            server.starttls()
-            server.login(mail_username, mail_password)
-            server.send_message(msg)
+        if attachments:
+            from email.base64mime import body_encode
+            from email.mime.base import MIMEBase
+            from email import encoders
+            for filename, content, content_type in attachments:
+                part = MIMEBase(*content_type.split('/'))
+                part.set_payload(content)
+                encoders.encode_base64(part)
+                part.add_header(
+                    "Content-Disposition",
+                    f"attachment; filename={filename}",
+                )
+                msg.attach(part)
+
+        if mail_port == 465:
+            with smtplib.SMTP_SSL(mail_server, mail_port) as server:
+                server.login(mail_username, mail_password)
+                server.send_message(msg)
+        else:
+            with smtplib.SMTP(mail_server, mail_port) as server:
+                server.starttls()
+                server.login(mail_username, mail_password)
+                server.send_message(msg)
         
         print(f"EMAIL SENT: '{subject}' to {to_email}")
         return True

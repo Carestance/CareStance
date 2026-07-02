@@ -11,16 +11,11 @@
 
             <!-- Header -->
             <div class="text-center space-y-3">
-                <div
-                    class="mx-auto w-16 h-16 bg-gradient-to-br from-[var(--teal)] to-[var(--teal)] rounded-2xl flex items-center justify-center shadow-lg shadow-[var(--teal-soft)] mb-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
+                <div class="mx-auto flex justify-center mb-4">
+                    <img src="/static/images/careo.png" alt="Careo" class="w-24 h-24 object-contain drop-shadow-xl hover:scale-105 transition-transform duration-300">
                 </div>
                 <h2 class="text-3xl font-extrabold text-slate-900 tracking-tight">
-                    Welcome, <span class="text-[var(--navy)]">{{ user.full_name }}!</span>
+                    Welcome, <span class="text-slate-900">{{ user.full_name }}!</span>
                 </h2>
                 <p class="text-sm text-slate-500">
                     One last step — tell us who you are so we can personalize your experience.
@@ -39,21 +34,21 @@
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <!-- Scholar Card -->
-                    <div class="cursor-pointer group" @click="role = 'student'; agreedToTnC = false">
+                    <div class="cursor-pointer group select-none" @click="role = 'student'; agreedToTnC = false">
                         <div class="relative p-6 text-center border-2 rounded-2xl transition-all duration-300" :class="role === 'student' 
-                                ? 'border-[var(--navy)] bg-gradient-to-br from-[var(--teal-soft)] to-[var(--teal-soft)] shadow-lg shadow-[var(--teal-soft)]' 
-                                : 'border-slate-200 hover:border-[var(--teal-light)] hover:shadow-md'">
+                                ? 'border-slate-900 bg-teal-50 shadow-lg shadow-teal-100' 
+                                : 'border-slate-200 hover:border-teal-400 hover:shadow-md'">
 
                             <div class="text-5xl mb-3 transition-transform duration-300"
                                 :class="role === 'student' ? 'scale-110' : 'group-hover:scale-110'">🎓</div>
                             <h3 class="text-lg font-extrabold"
-                                :class="role === 'student' ? 'text-[var(--navy)]' : 'text-slate-800'">Scholar</h3>
-                            <p class="text-xs text-slate-400 mt-1">Get career guidance, take assessments & book sessions
+                                :class="role === 'student' ? 'text-slate-900' : 'text-slate-800'">Scholar</h3>
+                            <p class="text-xs text-slate-500 mt-1">Get career guidance, take assessments & book sessions
                             </p>
 
                             <!-- Checkmark -->
-                            <div class="absolute top-3 right-3 w-6 h-6 rounded-full bg-[var(--navy)] text-white items-center justify-center shadow-md"
-                                :class="role === 'student' ? 'flex' : 'hidden'">
+                            <div class="absolute top-3 right-3 w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-md"
+                                x-show="role === 'student'" x-transition style="display: none;">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                                     stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
@@ -64,21 +59,21 @@
                     </div>
 
                     <!-- Life Coach Card -->
-                    <div class="cursor-pointer group" @click="role = 'counsellor'; agreedToTnC = false">
+                    <div class="cursor-pointer group select-none" @click="role = 'counsellor'; agreedToTnC = false">
                         <div class="relative p-6 text-center border-2 rounded-2xl transition-all duration-300" :class="role === 'counsellor' 
-                                ? 'border-[var(--navy)] bg-gradient-to-br from-[var(--teal-soft)] to-[var(--teal-soft)] shadow-lg shadow-[var(--teal-soft)]' 
-                                : 'border-slate-200 hover:border-[var(--teal-light)] hover:shadow-md'">
+                                ? 'border-slate-900 bg-teal-50 shadow-lg shadow-teal-100' 
+                                : 'border-slate-200 hover:border-teal-400 hover:shadow-md'">
 
                             <div class="text-5xl mb-3 transition-transform duration-300"
                                 :class="role === 'counsellor' ? 'scale-110' : 'group-hover:scale-110'">🧠</div>
                             <h3 class="text-lg font-extrabold"
-                                :class="role === 'counsellor' ? 'text-[var(--navy)]' : 'text-slate-800'">Life Coach</h3>
-                            <p class="text-xs text-slate-400 mt-1">Offer guidance, manage appointments & help scholars
+                                :class="role === 'counsellor' ? 'text-slate-900' : 'text-slate-800'">Life Coach</h3>
+                            <p class="text-xs text-slate-500 mt-1">Offer guidance, manage appointments & help scholars
                             </p>
 
                             <!-- Checkmark -->
-                            <div class="absolute top-3 right-3 w-6 h-6 rounded-full bg-[var(--navy)] text-white items-center justify-center shadow-md"
-                                :class="role === 'counsellor' ? 'flex' : 'hidden'">
+                            <div class="absolute top-3 right-3 w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-md"
+                                x-show="role === 'counsellor'" x-transition style="display: none;">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                                     stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
@@ -91,7 +86,7 @@
 
                 <!-- Submit -->
                 <button type="submit"
-                    class="w-full py-3.5 rounded-xl text-white font-bold bg-gradient-to-r from-[var(--navy)] to-[var(--teal)] hover:scale-[1.03] hover:shadow-xl transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
+                    class="w-full py-3.5 rounded-xl text-white font-bold bg-gradient-to-r from-slate-900 to-teal-600 hover:scale-[1.03] hover:shadow-xl transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
                     :disabled="!role">
                     Continue →
                 </button>

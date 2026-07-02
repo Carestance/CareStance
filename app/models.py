@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Text, ForeignKey, JSON, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, Float, Text, ForeignKey, JSON, Boolean, DateTime, func
 from sqlalchemy.orm import relationship
 from .database import Base
 
@@ -14,6 +14,10 @@ class User(Base):
     bio = Column(Text, nullable=True)
     role = Column(String, nullable=True, index=True)
     is_suspended = Column(Boolean, default=False)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=True)
+    last_login = Column(DateTime(timezone=True), nullable=True)
+
     onboarded = Column(Boolean, default=False, index=True)
     simulations_completed = Column(Integer, default=0, nullable=False)
     simulation_paid = Column(Boolean, default=False, nullable=False)
@@ -111,7 +115,6 @@ class Ticket(Base):
     status = Column(String, default="Open", index=True)
     admin_reply = Column(Text, nullable=True)
     timestamp = Column(DateTime(timezone=True), server_default=func.now(), index=True)
-
     user = relationship("User", back_populates="tickets")
 
 class CareerPath(Base):
@@ -154,6 +157,9 @@ class CounsellorProfile(Base):
     tnc_accepted_at = Column(DateTime, nullable=True)
     is_blocked = Column(Boolean, default=False)
     block_reason = Column(String, nullable=True)
+
+    verification_remarks = Column(Text, nullable=True)
+
     fee_locked = Column(Boolean, default=False)  # True = only admin can change fee
 
     # Razorpay Route – Linked Account for split payments
@@ -267,6 +273,11 @@ class ModerationFlag(Base):
     content = Column(Text)
     chat_type = Column(String)  # "ai" or "p2p"
     status = Column(String, default="pending_review", index=True)  # pending_review, dismissed, action_taken
+
+    flag_type = Column(String, nullable=True)
+    severity = Column(String, nullable=True)
+    admin_note = Column(Text, nullable=True)
+    
     timestamp = Column(DateTime(timezone=True), server_default=func.now(), index=True)
 
     user = relationship("User", back_populates="moderation_flags")
@@ -335,6 +346,9 @@ class SimulationPayment(Base):
     razorpay_order_id = Column(String, nullable=True, index=True)
     razorpay_payment_id = Column(String, nullable=True, index=True)
     amount = Column(Float, default=10.0, index=True)
+
+    status = Column(String, default="success", nullable=True)
+
     career = Column(String, nullable=True, index=True)
     created_at = Column(DateTime, default=func.now())
 

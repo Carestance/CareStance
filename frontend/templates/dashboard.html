@@ -185,7 +185,7 @@
             <!-- Mascot Image -->
             <div class="w-48 h-48 md:w-56 md:h-56 mascot-container flex-shrink-0 relative">
                 <div class="absolute inset-0 bg-teal-500/10 rounded-full blur-2xl"></div>
-                <img src="/static/images/careo.png" alt="Careo Mascot" class="w-full h-full object-contain relative z-10">
+                <img src="/static/images/careo.png?v=101" alt="Careo Mascot" class="w-full h-full object-contain relative z-10">
             </div>
             
             <!-- Speech Bubble -->
@@ -485,11 +485,17 @@
                     }, 5000);
                 }
 
-                {% for appt in appointments %}
-                {% if appt.status == 'scheduled' %}
-                pollAppointmentStatus({{ appt.id }});
-                {% endif %}
-                {% endfor %}
+                // {% for appt in appointments %}
+                // {% if appt.status == 'scheduled' %}
+                pollAppointmentStatus(Number('{{ appt.id }}'));
+                // {% endif %}
+                // {% endfor %}
+
+                document.addEventListener('DOMContentLoaded', () => {
+                    document.querySelectorAll('.confidence-bar').forEach(bar => {
+                        bar.style.width = bar.getAttribute('data-width') + '%';
+                    });
+                });
             </script>
             {% endif %}
 
@@ -531,7 +537,7 @@
             <!-- Profile Photo Box -->
             <div class="db-card p-6 flex items-center gap-4">
                 <div class="relative group flex-shrink-0">
-                    <img src="{{ user.profile_photo if user.profile_photo else 'https://ui-avatars.com/api/?name=' + user.full_name + '&background=random' }}"
+                    <img src="{{ user.profile_photo if user.profile_photo else 'https://ui-avatars.com/api/?name=' ~ (user.full_name or 'User') ~ '&background=random' }}"
                         alt="Profile" class="w-16 h-16 rounded-2xl object-cover border-2 border-[var(--primary)] shadow-md">
                     <button onclick="document.getElementById('photo-upload').click()"
                         class="absolute -bottom-1 -right-1 text-white p-1.5 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity bg-[var(--navy)] hover:bg-[var(--teal)]">
@@ -559,7 +565,7 @@
                             <span class="font-bold text-slate-900">{{ (assessment.confidence * 100)|int if assessment.confidence else 0 }}%</span>
                         </div>
                         <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
-                            <div class="h-full bg-emerald-500" style="width: {{ (assessment.confidence * 100)|int if assessment.confidence else 0 }}%;"></div>
+                            <div class="h-full bg-emerald-500 confidence-bar" data-width="{{ (assessment.confidence * 100)|int if assessment.confidence else 0 }}"></div>
                         </div>
                     </div>
                     <div>

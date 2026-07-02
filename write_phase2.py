@@ -1,0 +1,452 @@
+import json
+
+questions = [
+  {
+    "id": "Q001",
+    "question_en": "How do you feel when you are given a blank canvas, clay, or a blank file with no instructions?",
+    "question_hi_en": "Jab aapko bina kisi instructions ke ek blank canvas, clay ya file milti hai, toh aap kaisa feel karte hain?",
+    "options": [
+      {
+        "archetype_id": "ARC_001",
+        "option_en": "I focus on applying my specific technical skills to create something precise.",
+        "option_hi_en": "Main apni specific technical skills ka use karke kuch perfect banane par focus karta hoon."
+      },
+      {
+        "archetype_id": "ARC_002",
+        "option_en": "I silently explore the material and test its limits before deciding what to make.",
+        "option_hi_en": "Main chupchap material ko explore karta hoon aur kuch bhi banane se pehle uski limits test karta hoon."
+      },
+      {
+        "archetype_id": "ARC_003",
+        "option_en": "I quickly sketch a structured plan and build it step-by-step.",
+        "option_hi_en": "Main jaldi se ek structured plan banata hoon aur use step-by-step banata hoon."
+      },
+      {
+        "archetype_id": "ARC_004",
+        "option_en": "I try to mix different ideas and styles to see what unique combination emerges.",
+        "option_hi_en": "Main alag-alag ideas aur styles ko mix karke dekhta hoon ki kya naya ban sakta hai."
+      },
+      {
+        "archetype_id": "ARC_005",
+        "option_en": "I think of a grand vision that will impress others and lead my friends to help me.",
+        "option_hi_en": "Main ek bada vision sochta hoon jo sabko impress kare aur doston ko help karne ke liye motivate kare."
+      },
+      {
+        "archetype_id": "ARC_006",
+        "option_en": "I just start creating immediately, adapting and changing the design as I go.",
+        "option_hi_en": "Main turant banana shuru kar deta hoon, aur jaise-jaise aage badhta hoon design badalta rehta hoon."
+      }
+    ]
+  },
+  {
+    "id": "Q002",
+    "question_en": "How do you organize your workspace, files, and tasks when starting a new project?",
+    "question_hi_en": "Naya project shuru karte waqt aap apna workspace, files aur tasks kaise organize karte hain?",
+    "options": [
+      {
+        "archetype_id": "ARC_001",
+        "option_en": "I arrange only the exact, specialized tools I need for my specific task.",
+        "option_hi_en": "Main sirf unhi specialized tools ko arrange karta hoon jo mere specific kaam ke liye zaroori hain."
+      },
+      {
+        "archetype_id": "ARC_002",
+        "option_en": "I gather a lot of research materials and keep them quietly accessible around me.",
+        "option_hi_en": "Main bohot saari research materials ikattha karta hoon aur unhe aas-paas rakhta hoon."
+      },
+      {
+        "archetype_id": "ARC_003",
+        "option_en": "I create a highly logical folder structure and a strict step-by-step schedule.",
+        "option_hi_en": "Main ek highly logical folder structure aur strict step-by-step schedule banata hoon."
+      },
+      {
+        "archetype_id": "ARC_004",
+        "option_en": "I set up a flexible system that links different categories and topics together.",
+        "option_hi_en": "Main ek flexible system banata hoon jo alag-alag categories aur topics ko jodta hai."
+      },
+      {
+        "archetype_id": "ARC_005",
+        "option_en": "I organize the main goals on a big board so the whole team can see the vision.",
+        "option_hi_en": "Main main goals ko ek bade board par rakhta hoon taaki poori team vision dekh sake."
+      },
+      {
+        "archetype_id": "ARC_006",
+        "option_en": "I don't over-organize; I just jump in and organize things naturally as the project grows.",
+        "option_hi_en": "Main zyada organize nahi karta; bas kaam shuru kar deta hoon aur zaroorat ke hisab se arrange karta hoon."
+      }
+    ]
+  },
+  {
+    "id": "Q003",
+    "question_en": "If you start a small weekend business with friends, what role do you take?",
+    "question_hi_en": "Agar aap doston ke sath ek chota weekend business shuru karte hain, toh aap kya role lenge?",
+    "options": [
+      {
+        "archetype_id": "ARC_001",
+        "option_en": "The technical expert who creates the main product flawlessly.",
+        "option_hi_en": "Technical expert jo bina kisi galti ke main product banata hai."
+      },
+      {
+        "archetype_id": "ARC_002",
+        "option_en": "The researcher who quietly studies the market and customer behavior.",
+        "option_hi_en": "Researcher jo chupchap market aur customer behavior study karta hai."
+      },
+      {
+        "archetype_id": "ARC_003",
+        "option_en": "The operations manager who sets up the supply chain and financial system.",
+        "option_hi_en": "Operations manager jo supply chain aur financial system set karta hai."
+      },
+      {
+        "archetype_id": "ARC_004",
+        "option_en": "The versatile coordinator who connects marketing, sales, and product design.",
+        "option_hi_en": "Versatile coordinator jo marketing, sales aur product design ko connect karta hai."
+      },
+      {
+        "archetype_id": "ARC_005",
+        "option_en": "The CEO who pitches the idea to everyone and inspires the team.",
+        "option_hi_en": "CEO jo sabko idea pitch karta hai aur team ko inspire karta hai."
+      },
+      {
+        "archetype_id": "ARC_006",
+        "option_en": "The creative hustler who tries different selling tactics and adapts on the fly.",
+        "option_hi_en": "Creative hustler jo alag-alag selling tactics try karta hai aur jaldi adapt karta hai."
+      }
+    ]
+  },
+  {
+    "id": "Q004",
+    "question_en": "What do you do when you see an error message or a problem in a system?",
+    "question_hi_en": "Jab aap kisi system mein error message ya problem dekhte hain, toh aap kya karte hain?",
+    "options": [
+      {
+        "archetype_id": "ARC_001",
+        "option_en": "I focus deeply to fix the specific technical bug using my core skills.",
+        "option_hi_en": "Main apni core skills ka use karke us specific technical bug ko fix karne par deep focus karta hoon."
+      },
+      {
+        "archetype_id": "ARC_002",
+        "option_en": "I read the logs silently and analyze the root cause before taking action.",
+        "option_hi_en": "Main chupchap logs padhta hoon aur action lene se pehle root cause analyze karta hoon."
+      },
+      {
+        "archetype_id": "ARC_003",
+        "option_en": "I logically trace the steps in the system architecture to find where it broke.",
+        "option_hi_en": "Main system architecture ke steps ko logically trace karta hoon taaki pata chale kahan galti hui."
+      },
+      {
+        "archetype_id": "ARC_004",
+        "option_en": "I look for outside-the-box solutions by comparing it with similar problems in other tools.",
+        "option_hi_en": "Main doosre tools ki similar problems se compare karke outside-the-box solutions dhoondhta hoon."
+      },
+      {
+        "archetype_id": "ARC_005",
+        "option_en": "I take charge, inform the team, and direct resources to get it fixed fast.",
+        "option_hi_en": "Main responsibility leta hoon, team ko inform karta hoon aur ise jaldi theek karwane ke liye resources direct karta hoon."
+      },
+      {
+        "archetype_id": "ARC_006",
+        "option_en": "I quickly try multiple different workarounds until something works.",
+        "option_hi_en": "Main jaldi se kayi alag-alag workarounds try karta hoon jab tak kuch kaam na kar jaye."
+      }
+    ]
+  },
+  {
+    "id": "Q005",
+    "question_en": "How do you prefer to handle a broken household appliance or device?",
+    "question_hi_en": "Ghar ki kharab hui machine ya device ko theek karne ka aapka kya tareeka hai?",
+    "options": [
+      {
+        "archetype_id": "ARC_001",
+        "option_en": "I use my precise tools to carefully repair the exact broken component.",
+        "option_hi_en": "Main apne precise tools ka use karke us exact broken component ko dhyan se theek karta hoon."
+      },
+      {
+        "archetype_id": "ARC_002",
+        "option_en": "I quietly observe how it failed and research the mechanics online.",
+        "option_hi_en": "Main chupchap observe karta hoon ki yeh kaise kharab hua aur online mechanics research karta hoon."
+      },
+      {
+        "archetype_id": "ARC_003",
+        "option_en": "I follow a step-by-step repair manual and systematically reassemble it.",
+        "option_hi_en": "Main step-by-step repair manual follow karta hoon aur ise systematically wapas jodata hoon."
+      },
+      {
+        "archetype_id": "ARC_004",
+        "option_en": "I use a creative hack or mix parts from other broken things to make it work.",
+        "option_hi_en": "Main koi creative hack lagata hoon ya doosri kharab cheezon ke parts mix karke ise chalata hoon."
+      },
+      {
+        "archetype_id": "ARC_005",
+        "option_en": "I guide someone else to fix it while managing the rest of the household tasks.",
+        "option_hi_en": "Main kisi aur ko ise theek karne ke liye guide karta hoon jabki main doosre kaam sambhalta hoon."
+      },
+      {
+        "archetype_id": "ARC_006",
+        "option_en": "I just start unscrewing it and figure out the problem as I go along.",
+        "option_hi_en": "Main bas ise kholna shuru kar deta hoon aur theek karte hue problem samajhta hoon."
+      }
+    ]
+  },
+  {
+    "id": "Q006",
+    "question_en": "How would you like to spend a Saturday afternoon working on a personal project?",
+    "question_hi_en": "Aap Saturday ki dopahar kisi personal project par kaise bitana pasand karenge?",
+    "options": [
+      {
+        "archetype_id": "ARC_001",
+        "option_en": "Perfecting a highly specialized, complex skill all by myself.",
+        "option_hi_en": "Akele kisi highly specialized, complex skill ko perfect karte hue."
+      },
+      {
+        "archetype_id": "ARC_002",
+        "option_en": "Deep in quiet research, reading, and making solitary observations.",
+        "option_hi_en": "Shaanti se deep research, reading aur solitary observations karte hue."
+      },
+      {
+        "archetype_id": "ARC_003",
+        "option_en": "Building a structured, logical framework or planning a complex system.",
+        "option_hi_en": "Ek structured, logical framework ya complex system plan karte hue."
+      },
+      {
+        "archetype_id": "ARC_004",
+        "option_en": "Jumping between different hobbies, reading, and learning diverse topics.",
+        "option_hi_en": "Alag-alag hobbies, reading aur diverse topics seekhne ke beech jump karte hue."
+      },
+      {
+        "archetype_id": "ARC_005",
+        "option_en": "Leading a group initiative, motivating friends, and discussing big ideas.",
+        "option_hi_en": "Kisi group initiative ko lead karte hue, doston ko motivate karte aur big ideas discuss karte hue."
+      },
+      {
+        "archetype_id": "ARC_006",
+        "option_en": "Trying an unplanned, spontaneous activity and adapting to whatever happens.",
+        "option_hi_en": "Kisi unplanned activity ko try karte hue aur jo bhi ho uske hisab se adapt karte hue."
+      }
+    ]
+  },
+  {
+    "id": "Q007",
+    "question_en": "What do you do if you notice a slow part in your team's workflow that others have not mentioned?",
+    "question_hi_en": "Agar aapko team ke workflow mein koi slow part dikhe jiske baare mein kisi ne baat nahi ki, toh aap kya karenge?",
+    "options": [
+      {
+        "archetype_id": "ARC_001",
+        "option_en": "I optimize my specific task within that workflow to the highest level.",
+        "option_hi_en": "Main us workflow mein apne specific task ko highest level tak optimize karta hoon."
+      },
+      {
+        "archetype_id": "ARC_002",
+        "option_en": "I silently collect data on the delays to confirm the exact root cause.",
+        "option_hi_en": "Main chupchap delays ka data collect karta hoon taaki exact root cause confirm kar saku."
+      },
+      {
+        "archetype_id": "ARC_003",
+        "option_en": "I redesign the structural process and propose a logical, efficient system.",
+        "option_hi_en": "Main process ko redesign karta hoon aur ek logical, efficient system propose karta hoon."
+      },
+      {
+        "archetype_id": "ARC_004",
+        "option_en": "I connect ideas from other departments to suggest a versatile workaround.",
+        "option_hi_en": "Main doosre departments ke ideas connect karke ek versatile workaround suggest karta hoon."
+      },
+      {
+        "archetype_id": "ARC_005",
+        "option_en": "I call a meeting, highlight the issue, and rally the team to implement a big fix.",
+        "option_hi_en": "Main meeting bulata hoon, issue highlight karta hoon aur team ko bada fix laagu karne ke liye motivate karta hoon."
+      },
+      {
+        "archetype_id": "ARC_006",
+        "option_en": "I quickly test a new, unconventional method on the spot to speed things up.",
+        "option_hi_en": "Main turant on-the-spot ek naya, unconventional method test karta hoon taaki kaam fast ho jaye."
+      }
+    ]
+  },
+  {
+    "id": "Q008",
+    "question_en": "What do you do when a group project starts with no clear plan or leader?",
+    "question_hi_en": "Jab kisi group project ki shuruat bina kisi plan ya leader ke hoti hai, toh aap kya karte hain?",
+    "options": [
+      {
+        "archetype_id": "ARC_001",
+        "option_en": "I immediately claim the specific technical task I am best at and start working.",
+        "option_hi_en": "Main turant woh specific technical task le leta hoon jisme main best hoon aur kaam shuru kar deta hoon."
+      },
+      {
+        "archetype_id": "ARC_002",
+        "option_en": "I step back quietly, observe the group dynamics, and start gathering information.",
+        "option_hi_en": "Main thoda piche hokar chupchap group dynamics dekhta hoon aur information gather karna shuru karta hoon."
+      },
+      {
+        "archetype_id": "ARC_003",
+        "option_en": "I create a structured roadmap, assign timelines, and build a logical framework.",
+        "option_hi_en": "Main ek structured roadmap banata hoon, timelines assign karta hoon aur logical framework taiyar karta hoon."
+      },
+      {
+        "archetype_id": "ARC_004",
+        "option_en": "I chat with everyone to synthesize their diverse ideas into a combined approach.",
+        "option_hi_en": "Main sabse baat karke unke diverse ideas ko ek combined approach mein jodta hoon."
+      },
+      {
+        "archetype_id": "ARC_005",
+        "option_en": "I boldly step up as the leader, set a grand vision, and assign roles to everyone.",
+        "option_hi_en": "Main confidence ke sath leader banta hoon, ek bada vision set karta hoon aur sabko roles assign karta hoon."
+      },
+      {
+        "archetype_id": "ARC_006",
+        "option_en": "I suggest we just start experimenting right away and adapt our plan dynamically.",
+        "option_hi_en": "Main suggest karta hoon ki hum turant experiment karna shuru karein aur plan dynamically change karein."
+      }
+    ]
+  },
+  {
+    "id": "Q009",
+    "question_en": "How do you react when project requirements change completely halfway through?",
+    "question_hi_en": "Jab project ki requirements aadhi raah mein poori tarah badal jayein, toh aapka reaction kya hota hai?",
+    "options": [
+      {
+        "archetype_id": "ARC_001",
+        "option_en": "I focus on re-tuning my specific technical contribution to meet the new standard.",
+        "option_hi_en": "Main apne specific technical contribution ko naye standard ke hisab se re-tune karne par focus karta hoon."
+      },
+      {
+        "archetype_id": "ARC_002",
+        "option_en": "I quietly analyze the new requirements and read up on the necessary background.",
+        "option_hi_en": "Main chupchap nayi requirements ko analyze karta hoon aur zaroori background padhta hoon."
+      },
+      {
+        "archetype_id": "ARC_003",
+        "option_en": "I dismantle the old plan and systematically build a new logical step-by-step roadmap.",
+        "option_hi_en": "Main purane plan ko hatakar systematically ek naya logical step-by-step roadmap banata hoon."
+      },
+      {
+        "archetype_id": "ARC_004",
+        "option_en": "I find creative ways to merge our previous work with the new diverse requirements.",
+        "option_hi_en": "Main purane kaam ko nayi diverse requirements ke sath jodne ke creative tareeke dhoondhta hoon."
+      },
+      {
+        "archetype_id": "ARC_005",
+        "option_en": "I keep the team's morale high, re-pitch the new vision, and guide the pivot.",
+        "option_hi_en": "Main team ka morale high rakhta hoon, naya vision pitch karta hoon aur pivot guide karta hoon."
+      },
+      {
+        "archetype_id": "ARC_006",
+        "option_en": "I am thrilled! I drop the old stuff instantly and dive into the new challenge.",
+        "option_hi_en": "Main khush ho jata hoon! Purani cheezein chhodkar turant naye challenge mein kood padta hoon."
+      }
+    ]
+  },
+  {
+    "id": "Q010",
+    "question_en": "Why do you work hard and stay up late on a project?",
+    "question_hi_en": "Aap kisi project par der raat tak mehnat kyun karte hain?",
+    "options": [
+      {
+        "archetype_id": "ARC_001",
+        "option_en": "Because I want my specific piece of work to achieve absolute perfection and mastery.",
+        "option_hi_en": "Kyunki main chahta hoon ki mera specific kaam absolute perfection aur mastery achieve kare."
+      },
+      {
+        "archetype_id": "ARC_002",
+        "option_en": "Because my curiosity keeps me digging deeper into the data and hidden facts.",
+        "option_hi_en": "Kyunki meri curiosity mujhe data aur hidden facts ki aur gehrai mein le jati hai."
+      },
+      {
+        "archetype_id": "ARC_003",
+        "option_en": "Because I need to finish designing the perfect structural system and logical workflow.",
+        "option_hi_en": "Kyunki mujhe perfect structural system aur logical workflow design karna poora karna hota hai."
+      },
+      {
+        "archetype_id": "ARC_004",
+        "option_en": "Because I get caught up exploring all the fascinating, diverse tangents of the topic.",
+        "option_hi_en": "Kyunki main topic ke alag-alag fascinating aur diverse angles explore karne mein kho jata hoon."
+      },
+      {
+        "archetype_id": "ARC_005",
+        "option_en": "Because I want to deliver a massive impact that impresses everyone and achieves the grand goal.",
+        "option_hi_en": "Kyunki main ek bada impact deliver karna chahta hoon jo sabko impress kare aur goal poora kare."
+      },
+      {
+        "archetype_id": "ARC_006",
+        "option_en": "Because a sudden burst of spontaneous energy hit me and I just went with the flow.",
+        "option_hi_en": "Kyunki achanak ek spontaneous energy aati hai aur main bas flow ke sath chalta jata hoon."
+      }
+    ]
+  },
+  {
+    "id": "Q011",
+    "question_en": "How do you handle sharing tasks and decisions in a team?",
+    "question_hi_en": "Team mein tasks aur decisions share karte waqt aapka kya approach hota hai?",
+    "options": [
+      {
+        "archetype_id": "ARC_001",
+        "option_en": "I prefer to take full ownership of one specialized area and work independently on it.",
+        "option_hi_en": "Main kisi ek specialized area ki poori responsibility lene aur us par akele kaam karne ko prefer karta hoon."
+      },
+      {
+        "archetype_id": "ARC_002",
+        "option_en": "I listen quietly to others' opinions and make my decisions based on solid research.",
+        "option_hi_en": "Main doosron ki opinions chupchap sunta hoon aur solid research ke basis par decisions leta hoon."
+      },
+      {
+        "archetype_id": "ARC_003",
+        "option_en": "I rely on a structured delegation system where every role is logically defined.",
+        "option_hi_en": "Main ek structured delegation system par depend karta hoon jahan har role logically defined ho."
+      },
+      {
+        "archetype_id": "ARC_004",
+        "option_en": "I like bouncing ideas around to merge different perspectives into a unified choice.",
+        "option_hi_en": "Mujhe ideas discuss karna pasand hai taaki alag-alag perspectives ko jodkar ek choice banai ja sake."
+      },
+      {
+        "archetype_id": "ARC_005",
+        "option_en": "I take the initiative to finalize the big decisions and guide the team's direction.",
+        "option_hi_en": "Main bade decisions final karne ka initiative leta hoon aur team ki direction guide karta hoon."
+      },
+      {
+        "archetype_id": "ARC_006",
+        "option_en": "I stay flexible, taking up whatever task is needed at the moment without rigid rules.",
+        "option_hi_en": "Main flexible rehta hoon, aur bina kisi rigid rules ke jo bhi task zaroori ho use utha leta hoon."
+      }
+    ]
+  },
+  {
+    "id": "Q012",
+    "question_en": "How do you react during a major crisis with tight deadlines and panic around you?",
+    "question_hi_en": "Jab aas-paas panic ho aur tight deadlines wali major crisis aaye, toh aap kaise react karte hain?",
+    "options": [
+      {
+        "archetype_id": "ARC_001",
+        "option_en": "I block out the noise and execute my specific core task with extreme precision.",
+        "option_hi_en": "Main shor ko block kar deta hoon aur apne specific core task ko extreme precision ke sath karta hoon."
+      },
+      {
+        "archetype_id": "ARC_002",
+        "option_en": "I remain silent, observe the chaos, and search for the hidden data that solves it.",
+        "option_hi_en": "Main shaant rehta hoon, chaos observe karta hoon aur woh hidden data dhoondhta hoon jo problem solve kare."
+      },
+      {
+        "archetype_id": "ARC_003",
+        "option_en": "I systematically break the crisis into manageable steps and enforce a strict protocol.",
+        "option_hi_en": "Main crisis ko systematically chhote steps mein baantta hoon aur ek strict protocol laagu karta hoon."
+      },
+      {
+        "archetype_id": "ARC_004",
+        "option_en": "I quickly synthesize multiple backup plans, combining different ideas to find a way out.",
+        "option_hi_en": "Main jaldi se kayi backup plans synthesize karta hoon, aur rasta nikalne ke liye alag ideas combine karta hoon."
+      },
+      {
+        "archetype_id": "ARC_005",
+        "option_en": "I confidently take command, calm the team down, and lead the charge to victory.",
+        "option_hi_en": "Main confidence ke sath command leta hoon, team ko shaant karta hoon aur jeet ki taraf lead karta hoon."
+      },
+      {
+        "archetype_id": "ARC_006",
+        "option_en": "I thrive in the chaos, instantly adapting my approach and rolling with the punches.",
+        "option_hi_en": "Mujhe chaos mein kaam karna pasand hai, main turant apna approach adapt karta hoon aur situations ke hisab se badalta hoon."
+      }
+    ]
+  }
+]
+
+with open("app/assessment_data/phase2_mcqs.json", "w", encoding="utf-8") as f:
+    json.dump(questions, f, indent=2, ensure_ascii=False)
+    f.write("\n")

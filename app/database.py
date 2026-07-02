@@ -25,17 +25,21 @@ else:
 
 engine_args = {}
 
-# Fix for Supabase Transaction Mode/Poolers
-if ":6543" in SQLALCHEMY_DATABASE_URL and "prepare_threshold" not in SQLALCHEMY_DATABASE_URL:
-    if "?" in SQLALCHEMY_DATABASE_URL:
-        SQLALCHEMY_DATABASE_URL += "&prepare_threshold=0"
-    else:
-        SQLALCHEMY_DATABASE_URL += "?prepare_threshold=0"
+# Fix for Supabase Transaction Mode/Poolers (6543 is bouncer)
+if ":6543" in SQLALCHEMY_DATABASE_URL:
+    engine_args.setdefault("connect_args", {})["statement_cache_size"] = 0
 
 if not SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
-    # Use NullPool to completely avoid connection exhaustion/limitations on async serverless deployments
+    # Use NullPool for serverless/constrained environments, but add pre-ping for stability
     from sqlalchemy.pool import NullPool
     engine_args["poolclass"] = NullPool
+    engine_args["pool_pre_ping"] = True
+    
+    # Supabase often requires SSL; ensure it's handled for asyncpg
+    if "supabase.com" in SQLALCHEMY_DATABASE_URL:
+        # asyncpg specific SSL requirements can sometimes be tricky on Windows
+        # We'll let the connection string handle it usually, but ensure the engine is robust
+        pass
 
 engine = create_async_engine(SQLALCHEMY_DATABASE_URL, **engine_args)
 AsyncSessionLocal = sessionmaker(

@@ -25,7 +25,9 @@
             <div
                 class="bg-white/90 backdrop-blur-sm rounded-3xl p-8 shadow-sm border border-slate-100 hover:shadow-2xl hover:border-[var(--teal-light)] transition-all duration-500 group">
                 <div class="flex items-center gap-4 mb-6">
-                    <img src="{{ c.user.profile_photo if c.user.profile_photo else 'https://ui-avatars.com/api/?name=' + c.user.full_name }}"
+                    <img src="{{ c.user.profile_photo if c.user.profile_photo else 'https://ui-avatars.com/api/?name=' ~ (c.user.full_name or 'User') }}"
+                        alt="{{ c.user.full_name }}"
+                        title="{{ c.user.full_name }}"
                         class="h-16 w-16 rounded-2xl object-cover border-2 border-[var(--teal-soft)] shadow-md group-hover:scale-110 transition-transform duration-500"
                         loading="lazy">
                     <div>
@@ -96,12 +98,12 @@
 
                 <div class="space-y-5">
                     <div class="relative">
-                        <label
+                        <label for="time_{{ c.user_id }}"
                             class="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Schedule
                             Your Session</label>
                         <div class="relative">
                             <i class="fas fa-calendar-day absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                            <input type="datetime-local" id="time_{{ c.user_id }}"
+                            <input type="datetime-local" id="time_{{ c.user_id }}" title="Choose a date and time for your session"
                                 class="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-slate-100 bg-white text-slate-900 outline-none font-medium focus:ring-2 focus:ring-[var(--teal)]">
                         </div>
                         <!-- Availability feedback message -->
@@ -110,6 +112,7 @@
 
                     <button id="btn_{{ c.user_id }}"
                         onclick="payNow('{{ c.user_id }}', '{{ c.fee }}', '{{ c.user.full_name }}')"
+                        title="Book and pay for your session"
                         class="w-full py-4 px-6 rounded-2xl bg-[var(--navy)] text-white font-bold hover:bg-[var(--teal)] transition-all shadow-lg shadow-[var(--teal-soft)]">
                         Book Session & Pay
                     </button>

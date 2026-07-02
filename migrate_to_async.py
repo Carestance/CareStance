@@ -27,7 +27,7 @@ with open(BACKUP_FILE, 'w', encoding='utf-8') as f:
 
 print(f"Backup saved to {BACKUP_FILE}")
 
-# ─── Step 1: Fix get_current_user - keep it sync with get_db ──────────────────
+# ─── Step 1: Fix get_current_user - keep it sync with get_db ───────────
 # Already done: get_current_user uses Session = Depends(get_db)
 # We need to make sure async routes use Depends(get_async_db)
 

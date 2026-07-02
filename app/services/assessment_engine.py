@@ -23,28 +23,36 @@ def get_cached_json(path: str):
 def load_grade_data(student_type: str) -> Dict:
     """
     Loads cards, proxy questions, and scenarios based on student type (10th vs 12th).
+    Uses actual data files from assessment_data folder.
     """
-    folder = "grade_10" if student_type == "10th" else "grade_12"
-    path = os.path.join(DATA_DIR, folder)
     data = {}
+
+    # Cards
+    if student_type == "10th":
+        cards_file = os.path.join(DATA_DIR, "cards_10th.json")
+    else:
+        cards_file = os.path.join(DATA_DIR, "cards_12th.json")
+
+    # Proxy questions and scenarios
+    proxy_file = os.path.join(DATA_DIR, "phase3_mcqs.json")
+
     try:
-        data["cards"] = get_cached_json(os.path.join(path, "cards.json"))
-        data["proxy_questions"] = get_cached_json(os.path.join(path, "proxy_questions.json"))
-        data["scenarios"] = get_cached_json(os.path.join(path, "scenarios.json"))
+        data["cards"] = get_cached_json(cards_file)
     except FileNotFoundError:
-        if student_type in ("12th", "12th_above"):
-            # Load cards from grade_12 if possible, otherwise grade_10
-            try:
-                data["cards"] = get_cached_json(os.path.join(os.path.join(DATA_DIR, "grade_12"), "cards.json"))
-            except FileNotFoundError:
-                data["cards"] = get_cached_json(os.path.join(os.path.join(DATA_DIR, "grade_10"), "cards.json"))
-            
-            # Fall back to grade_10 for proxy questions and scenarios
-            data["proxy_questions"] = get_cached_json(os.path.join(os.path.join(DATA_DIR, "grade_10"), "proxy_questions.json"))
-            data["scenarios"] = get_cached_json(os.path.join(os.path.join(DATA_DIR, "grade_10"), "scenarios.json"))
-            return data
-        raise
+        data["cards"] = []
+
+    try:
+        data["proxy_questions"] = get_cached_json(proxy_file)
+    except FileNotFoundError:
+        data["proxy_questions"] = []
+
+    try:
+        data["scenarios"] = get_cached_json(proxy_file)
+    except FileNotFoundError:
+        data["scenarios"] = []
+
     return data
+
 
 def load_g12_interview_questions() -> Dict:
     path = os.path.join(DATA_DIR, "grade_12", "interview_questions.json")

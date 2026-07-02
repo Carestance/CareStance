@@ -65,9 +65,9 @@
         <div class="space-y-3">
             {% for pr in pending_requests %}
             <div class="conn-card fade-in flex items-center gap-4 p-4 bg-white rounded-xl border border-slate-100 shadow-sm"
-                style="animation-delay: {{ loop.index0 * 0.1 }}s">
+                data-delay="{{ loop.index0 * 0.1 }}">
                 <a href="/student/{{ pr.user.id }}">
-                    <img src="{{ pr.user.profile_photo if pr.user.profile_photo else 'https://ui-avatars.com/api/?name=' + pr.user.full_name + '&background=random&size=96' }}"
+                    <img src="{{ pr.user.profile_photo if pr.user.profile_photo else 'https://ui-avatars.com/api/?name=' ~ (pr.user.full_name or 'User') ~ '&background=random&size=96' }}"
                         alt="{{ pr.user.full_name }}"
                         class="w-12 h-12 rounded-xl object-cover border-2 border-white shadow-sm">
                 </a>
@@ -112,9 +112,9 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {% for cu in connected_users %}
             <div class="conn-card fade-in flex items-center gap-4 p-4 bg-white rounded-xl border border-slate-100 shadow-sm"
-                style="animation-delay: {{ loop.index0 * 0.08 }}s">
+                data-delay="{{ loop.index0 * 0.08 }}">
                 <a href="/student/{{ cu.user.id }}">
-                    <img src="{{ cu.user.profile_photo if cu.user.profile_photo else 'https://ui-avatars.com/api/?name=' + cu.user.full_name + '&background=random&size=96' }}"
+                    <img src="{{ cu.user.profile_photo if cu.user.profile_photo else 'https://ui-avatars.com/api/?name=' ~ (cu.user.full_name or 'User') ~ '&background=random&size=96' }}"
                         alt="{{ cu.user.full_name }}"
                         class="w-12 h-12 rounded-xl object-cover border-2 border-white shadow-sm">
                 </a>
@@ -128,16 +128,19 @@
                 </div>
                 <div class="flex gap-2 flex-shrink-0">
                     <a href="/connection/{{ cu.conn_id }}/chat"
+                        title="Chat with {{ cu.user.full_name }}"
                         class="px-3 py-2 bg-[var(--navy)] text-white rounded-xl text-xs font-bold hover:bg-[var(--teal)] transition-all shadow-md">
                         <i class="fas fa-comment"></i>
                     </a>
                     <a href="/student/{{ cu.user.id }}"
+                        title="View {{ cu.user.full_name }}'s profile"
                         class="px-3 py-2 bg-[var(--teal-soft)] text-[var(--navy)] rounded-xl text-xs font-bold hover:bg-[var(--teal-soft)] transition-all">
                         <i class="fas fa-eye"></i>
                     </a>
                     <form action="/disconnect/{{ cu.user.id }}" method="POST"
                         onsubmit="return confirm('Remove connection with {{ cu.user.full_name }}?')">
                         <button type="submit"
+                            title="Remove connection"
                             class="px-3 py-2 bg-slate-50 text-slate-400 rounded-xl text-xs font-bold hover:bg-red-50 hover:text-red-500 transition-all">
                             <i class="fas fa-user-minus"></i>
                         </button>
@@ -173,8 +176,8 @@
         <div class="space-y-3">
             {% for sr in sent_requests %}
             <div class="fade-in flex items-center gap-4 p-3 bg-slate-50 rounded-xl"
-                style="animation-delay: {{ loop.index0 * 0.08 }}s">
-                <img src="{{ sr.user.profile_photo if sr.user.profile_photo else 'https://ui-avatars.com/api/?name=' + sr.user.full_name + '&background=random&size=64' }}"
+                data-delay="{{ loop.index0 * 0.08 }}">
+                <img src="{{ sr.user.profile_photo if sr.user.profile_photo else 'https://ui-avatars.com/api/?name=' ~ (sr.user.full_name or 'User') ~ '&background=random&size=64' }}"
                     alt="{{ sr.user.full_name }}"
                     class="w-10 h-10 rounded-xl object-cover border-2 border-white shadow-sm">
                 <div class="flex-1 min-w-0">
@@ -195,4 +198,23 @@
     {% endif %}
 </div>
 
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('[data-delay]').forEach(el => {
+            el.style.animationDelay = el.getAttribute('data-delay');
+        });
+    });
+</script>
+{% endblock %}
+
+{% block extra_head %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.fade-in').forEach(el => {
+            if (el.dataset.delay) {
+                el.style.animationDelay = el.dataset.delay + 's';
+            }
+        });
+    });
+</script>
 {% endblock %}

@@ -97,7 +97,7 @@
                     </div>
                     {% endif %}
 
-                    <a href="/my-connections"
+                    <a href="/my-connections" title="View your connections"
                         class="relative flex items-center gap-2 bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/10 hover:bg-white/20 transition-all font-bold">
                         <i class="fas fa-user-friends"></i>
                         My Connections
@@ -114,8 +114,10 @@
             <!-- Search -->
             <div class="mt-8 max-w-xl">
                 <div class="relative">
+                    <label for="student-search" class="sr-only">Search students by name</label>
                     <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-[var(--teal-light)]"></i>
                     <input type="text" id="student-search" placeholder="Search students by name..."
+                        title="Search students by name"
                         class="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 text-white placeholder-[var(--teal-light)] focus:outline-none search-glow transition-all text-sm font-medium">
                 </div>
             </div>
@@ -142,12 +144,12 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5" id="similar-grid">
             {% for sd in similar_students %}
             <div class="student-card animate-card bg-white/80 backdrop-blur-xl rounded-2xl border border-white/50 shadow-lg overflow-hidden"
-                style="animation-delay: {{ loop.index0 * 0.08 }}s" data-name="{{ sd.user.full_name|lower }}">
+                data-delay="{{ loop.index0 * 0.08 }}" data-name="{{ sd.user.full_name|lower }}">
 
                 <!-- Card Header with Gradient -->
                 <div class="h-20 bg-gradient-to-br from-emerald-400 via-green-500 to-teal-600 relative">
                     <div class="absolute -bottom-8 left-1/2 -translate-x-1/2">
-                        <img src="{{ sd.user.profile_photo if sd.user.profile_photo else 'https://ui-avatars.com/api/?name=' + sd.user.full_name + '&background=random&size=128' }}"
+                        <img src="{{ sd.user.profile_photo if sd.user.profile_photo else 'https://ui-avatars.com/api/?name=' ~ (sd.user.full_name or 'User') ~ '&background=random&size=128' }}"
                             alt="{{ sd.user.full_name }}"
                             class="w-16 h-16 rounded-2xl object-cover border-4 border-white shadow-lg">
                     </div>
@@ -179,10 +181,12 @@
                         {% if sd.connection.status == 'accepted' %}
                         <div class="flex gap-2">
                             <a href="/connection/{{ sd.connection.conn_id }}/chat"
+                                title="Chat with {{ sd.user.full_name }}"
                                 class="connect-btn flex-1 px-4 py-2 bg-[var(--navy)] text-white rounded-xl text-xs font-bold hover:bg-[var(--teal)] shadow-md flex items-center justify-center gap-2">
                                 <i class="fas fa-comment"></i> Message
                             </a>
                             <a href="/student/{{ sd.user.id }}"
+                                title="View {{ sd.user.full_name }}'s profile"
                                 class="connect-btn px-4 py-2 bg-[var(--teal-soft)] text-[var(--navy)] rounded-xl text-xs font-bold hover:bg-[var(--teal-soft)] transition-all border border-[var(--teal-light)]">
                                 <i class="fas fa-user"></i>
                             </a>
@@ -204,6 +208,7 @@
                             </form>
                             <form action="/connection/{{ sd.connection.conn_id }}/reject" method="POST" class="flex-1">
                                 <button type="submit"
+                                    title="Decline request"
                                     class="connect-btn w-full px-3 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-200">
                                     <i class="fas fa-times"></i>
                                 </button>
@@ -244,11 +249,11 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {% for sd in students %}
             <div class="student-card animate-card bg-white/80 backdrop-blur-xl rounded-2xl border border-white/50 shadow-lg overflow-hidden"
-                style="animation-delay: {{ loop.index0 * 0.08 }}s" data-name="{{ sd.user.full_name|lower }}">
+                data-delay="{{ loop.index0 * 0.08 }}" data-name="{{ sd.user.full_name|lower }}">
 
                 <div class="h-20 bg-gradient-to-br from-[var(--teal)] via-[var(--teal)] to-[var(--teal)] relative">
                     <div class="absolute -bottom-8 left-1/2 -translate-x-1/2">
-                        <img src="{{ sd.user.profile_photo if sd.user.profile_photo else 'https://ui-avatars.com/api/?name=' + sd.user.full_name + '&background=random&size=128' }}"
+                        <img src="{{ sd.user.profile_photo if sd.user.profile_photo else 'https://ui-avatars.com/api/?name=' ~ (sd.user.full_name or 'User') ~ '&background=random&size=128' }}"
                             alt="{{ sd.user.full_name }}"
                             class="w-16 h-16 rounded-2xl object-cover border-4 border-white shadow-lg">
                     </div>
@@ -299,6 +304,7 @@
                             </form>
                             <form action="/connection/{{ sd.connection.conn_id }}/reject" method="POST" class="flex-1">
                                 <button type="submit"
+                                    title="Decline request"
                                     class="connect-btn w-full px-3 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-200">
                                     <i class="fas fa-times"></i>
                                 </button>
@@ -340,11 +346,21 @@
 
 <!-- Search Script -->
 <script>
-    document.getElementById('student-search').addEventListener('input', function (e) {
-        const query = e.target.value.toLowerCase();
-        document.querySelectorAll('.student-card').forEach(card => {
-            const name = card.dataset.name || '';
-            card.style.display = name.includes(query) ? '' : 'none';
+    // Apply animation delays and search logic
+    document.addEventListener('DOMContentLoaded', () => {
+        const studentCards = document.querySelectorAll('.student-card');
+        studentCards.forEach(card => {
+            if (card.dataset.delay) {
+                card.style.animationDelay = card.dataset.delay + 's';
+            }
+        });
+
+        document.getElementById('student-search').addEventListener('input', function (e) {
+            const query = e.target.value.toLowerCase();
+            studentCards.forEach(card => {
+                const name = card.dataset.name || '';
+                card.style.display = name.includes(query) ? '' : 'none';
+            });
         });
     });
 </script>

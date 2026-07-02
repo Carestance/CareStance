@@ -299,6 +299,67 @@
     #intake-submit-btn:hover, #chat-send-btn:hover, #compile-btn:hover {
         background-color: #0f766e !important;
     }
+
+    /* --- ENHANCED SEQUENCE PLANNER STYLES --- */
+    .workspace-grid {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(248, 250, 252, 0.95) 100%);
+        background-image: 
+            radial-gradient(rgba(148, 163, 184, 0.1) 1px, transparent 1px);
+        background-size: 32px 32px;
+    }
+
+    .planner-palette-item {
+        background: white;
+        border: 1px solid rgba(148, 163, 184, 0.1);
+        border-radius: 12px;
+        transition: all 0.2s ease;
+        cursor: grab;
+    }
+
+    .planner-palette-item:hover {
+        background: rgba(13, 148, 136, 0.05);
+        border-color: rgba(13, 148, 136, 0.3);
+        transform: translateX(4px);
+    }
+
+    .planner-node {
+        background: white;
+        border: 1px solid rgba(13, 148, 136, 0.2);
+        border-radius: 16px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+        transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+        min-width: 200px;
+    }
+
+    .planner-node.selected {
+        border-color: #0d9488;
+        box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.1);
+    }
+
+    .connection-path {
+        stroke: #0d9488;
+        stroke-width: 2;
+        fill: none;
+        stroke-dasharray: 5, 5;
+        animation: dash-flow 0.5s linear infinite;
+    }
+
+    @keyframes dash-flow {
+        to { stroke-dashoffset: -10; }
+    }
+
+    .node-connector {
+        width: 10px;
+        height: 10px;
+        background: #0d9488;
+        border-radius: 50%;
+        position: absolute;
+        bottom: -5px;
+        left: 50%;
+        transform: translateX(-50%);
+        cursor: crosshair;
+        border: 2px solid white;
+    }
 </style>
 
 <div class="cyber-bg-glow"></div>
@@ -310,7 +371,7 @@
         <div class="flex items-center gap-4">
             <div class="w-20 h-20 flex-shrink-0 relative">
                 <div class="absolute inset-0 bg-teal-500/10 rounded-full blur-md animate-pulse"></div>
-                <img src="/static/images/careo.png" alt="Careo Mascot" class="w-full h-full object-contain relative z-10">
+                <img src="/static/images/careo.png?v=101" alt="Careo Mascot" class="w-full h-full object-contain relative z-10">
             </div>
             <div>
                 <h1 class="text-2xl font-extrabold text-slate-900">Careo</h1>
@@ -363,6 +424,13 @@
 </div>
 
 <script>
+
+    
+    const phase1Inputs = {{ phase1_inputs | default({}) | tojson | safe }};
+    const interestOptions = Object.keys(phase1Inputs.interest_selection_mapping || {}).sort();
+    const incomeOptions = Object.keys(phase1Inputs.family_income_mapping || {});
+    const occupationOptions = Object.keys(phase1Inputs.occupation_category_mapping || {}).sort();
+
     let assessmentState = {};
     let activePhaseData = null;
     let swipeLogs = [];
@@ -412,23 +480,28 @@
 
     function updateHeader() {
         const isG12 = assessmentState.student_type === "12th";
-        // G12 has 6 phases (0 to 5), G10 has 5 phases (1 to 5)
-        const totalPhases = isG12 ? 6 : 5;
-        const currentLabelVal = isG12 ? (assessmentState.current_phase + 1) : assessmentState.current_phase;
         
         const gradeTitle = document.getElementById("grade-title");
         if (gradeTitle) {
             gradeTitle.innerText = isG12 ? "Grade 12 Career Track" : "Grade 10 Stream Planner";
         }
-        document.getElementById("phase-step-label").innerText = `Phase ${currentLabelVal} of ${totalPhases}`;
+        
+        let phaseName = "Student Information Intake";
+        if (assessmentState.current_phase === 1) phaseName = "Behavioral Assessment";
+        if (assessmentState.current_phase === 2) phaseName = "Career Matching";
+        
+        document.getElementById("phase-step-label").innerText = phaseName;
         
         // Progress percentage calculation
-        const percent = Math.round((currentLabelVal / totalPhases) * 100);
+        let percent = 33;
+        if (assessmentState.current_phase === 1) percent = 66;
+        if (assessmentState.current_phase === 2) percent = 100;
+        
         document.getElementById("global-progress-fill").style.width = `${percent}%`;
         
         const subtitleTracker = document.getElementById("subtitle-tracker");
         if (subtitleTracker) {
-            subtitleTracker.innerText = isG12 ? "Advanced Multi-Phase Diagnostic Flow" : "Interactive Stream Strategy Matrix";
+            subtitleTracker.innerText = phaseName;
         }
     }
 
@@ -438,67 +511,59 @@
         if (speechSynth.speaking) speechSynth.cancel();
 
         try {
-            const res = await fetch("/assessment/api/questions");
-            activePhaseData = await res.json();
-            
             const body = document.getElementById("phase-body");
             body.innerHTML = "";
 
             if (phase === 0) {
                 renderIntakePhase();
+                hideLoader();
             } else if (phase === 1) {
-                renderSwipePhase();
+                renderPhase2MCQs();
             } else if (phase === 2) {
-                renderChatPhase();
-            } else if (phase === 3) {
-                renderProxyPhase();
-            } else if (phase === 4) {
-                renderScenariosPhase();
+                renderPhase3Selection();
+                hideLoader();
             } else if (phase === 5) {
                 renderCompilePhase();
+                hideLoader();
             }
-            hideLoader();
         } catch (e) {
             console.error("Critical failure during question load state", e);
             hideLoader();
         }
     }
 
-    function speakActivePrompt() {
-        if (speechSynth.speaking) {
-            speechSynth.cancel();
-            return;
-        }
-        
-        let text = "";
-        const phase = assessmentState.current_phase;
-        
-        if (phase === 0) {
-            const lastAI = document.querySelector(".chat-bubble.ai:last-child");
-            if (lastAI) text = lastAI.innerText;
-        } else if (phase === 1) {
-            const activeCard = swipeCards[activeSwipeIndex];
-            if (activeCard) text = activeCard.content || activeCard.text || "";
-        } else if (phase === 2) {
-            const lastAI = document.querySelector(".chat-bubble.ai:last-child");
-            if (lastAI) text = lastAI.innerText;
-        } else {
-            const pText = document.querySelector("#phase-body h2, #phase-body p");
-            if (pText) text = pText.innerText;
-        }
+    function speakActivePrompt() {}
 
-        if (text) {
-            // strip console prefixes
-            text = text.replace(/^SYS_PROMPT>\s*/, '');
-            activeUtterance = new SpeechSynthesisUtterance(text);
-            const voices = speechSynth.getVoices();
-            const preferredVoice = voices.find(v => v.lang.startsWith("en-IN")) || voices.find(v => v.lang.startsWith("en"));
-            if (preferredVoice) activeUtterance.voice = preferredVoice;
-            speechSynth.speak(activeUtterance);
+
+    // --- PHASE 0: CLINICAL CONVERSATIONAL INTAKE ---
+
+    function toggleInterest(val, btn) {
+        const select = document.getElementById('hidden-interests');
+        let option = Array.from(select.options).find(opt => opt.value === val);
+        if (!option) return;
+        
+        if (option.selected) {
+            option.selected = false;
+            btn.classList.remove('bg-teal-600', 'text-white', 'border-teal-600', 'shadow-md');
+            btn.classList.add('text-slate-600', 'border-slate-200', 'hover:bg-slate-50', 'hover:border-teal-300');
+        } else {
+            if (select.selectedOptions.length >= 4) {
+                btn.classList.add('animate-pulse', 'bg-red-50', 'border-red-300');
+                setTimeout(() => btn.classList.remove('animate-pulse', 'bg-red-50', 'border-red-300'), 400);
+                return;
+            }
+            option.selected = true;
+            btn.classList.add('bg-teal-600', 'text-white', 'border-teal-600', 'shadow-md');
+            btn.classList.remove('text-slate-600', 'border-slate-200', 'hover:bg-slate-50', 'hover:border-teal-300');
+        }
+        
+        if (select.selectedOptions.length > 0) {
+            const container = document.getElementById('interests-container');
+            if(container) container.classList.remove('border-red-400');
+            const err = container?.parentElement?.querySelector('.error-msg');
+            if(err) err.classList.add('hidden');
         }
     }
-
-    // --- PHASE 0: CLINICAL CONVERSATIONAL INTAKE (G12 ONLY) ---
     function renderIntakePhase() {
         const body = document.getElementById("phase-body");
         body.innerHTML = `
@@ -561,50 +626,108 @@
                                 <i class="fas fa-star"></i>
                             </div>
                             <div>
-                                <h4 class="text-base font-bold text-slate-900">What are your areas of interest?</h4>
-                                <p class="text-slate-400 text-xs">Select all that interest you.</p>
+                                <h4 class="text-base font-bold text-slate-900">Which areas interest you the most?</h4>
+                                <p class="text-slate-400 text-xs">Choose up to four areas you would enjoy exploring.</p>
                             </div>
                         </div>
                         <div class="w-full md:w-80">
-                            <input type="text" name="interests" required placeholder="Enter interests (e.g. Technology, Art)" 
-                                class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder-slate-400 focus:border-teal-500 focus:bg-white focus:outline-none text-sm transition-all">
-                            <div class="error-msg text-red-500 text-xs mt-1 hidden">Please enter your interests.</div>
+                            <select name="interests" multiple required class="hidden" id="hidden-interests">
+                                ${interestOptions.map(opt => `<option value="${opt}">${opt}</option>`).join("")}
+                            </select>
+                            <div class="flex flex-wrap gap-2 max-h-52 overflow-y-auto p-1 border-2 border-transparent rounded-xl" id="interests-container">
+                                ${interestOptions.map(opt => `
+                                    <button type="button" 
+                                        onclick="toggleInterest('${opt}', this)"
+                                        class="px-3 py-1.5 rounded-full border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:border-teal-300 transition-all text-left select-none">
+                                        ${opt}
+                                    </button>
+                                `).join("")}
+                            </div>
+                            <div class="text-xs text-slate-400 mt-2">Select up to 4 areas</div>
+                            <div class="error-msg text-red-500 text-xs mt-1 hidden">Please select 1 to 4 interests.</div>
                         </div>
                     </div>
 
-                    <!-- Row 4: Parent Income -->
+                    <!-- Row 4: Family Income -->
+                    <div class="flex flex-col md:flex-row md:items-center justify-between p-5 bg-slate-50/40 border border-slate-100 rounded-2xl gap-4 hover:border-teal-500/10 transition-all duration-300">
+                        <div class="flex items-center gap-4">
+                            <div class="h-12 w-12 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center text-xl flex-shrink-0">
+                                <i class="fas fa-money-bill-wave"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-base font-bold text-slate-900">Family Income Range</h4>
+                                <p class="text-slate-400 text-xs">Select your family's annual income bracket.</p>
+                            </div>
+                        </div>
+                        <div class="w-full md:w-80">
+                            <select name="family_income" required class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:border-teal-500 focus:outline-none text-sm transition-all">
+                                <option value="" disabled selected>Select an option...</option>
+                                ${incomeOptions.map(opt => `<option value="${opt}">${opt}</option>`).join("")}
+                            </select>
+                            <div class="error-msg text-red-500 text-xs mt-1 hidden">Please select an income range.</div>
+                        </div>
+                    </div>
+
+                    <!-- Row 5: Father's Occupation -->
+                    <div class="flex flex-col md:flex-row md:items-center justify-between p-5 bg-slate-50/40 border border-slate-100 rounded-2xl gap-4 hover:border-teal-500/10 transition-all duration-300">
+                        <div class="flex items-center gap-4">
+                            <div class="h-12 w-12 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center text-xl flex-shrink-0">
+                                <i class="fas fa-user-tie"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-base font-bold text-slate-900">Father's Occupation</h4>
+                                <p class="text-slate-400 text-xs">Select primary occupation.</p>
+                            </div>
+                        </div>
+                        <div class="w-full md:w-80">
+                            <select name="father_occupation" required class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:border-teal-500 focus:outline-none text-sm transition-all">
+                                <option value="" disabled selected>Select an option...</option>
+                                ${occupationOptions.map(opt => `<option value="${opt}">${opt}</option>`).join("")}
+                            </select>
+                            <div class="error-msg text-red-500 text-xs mt-1 hidden">Please select an occupation.</div>
+                        </div>
+                    </div>
+
+                    <!-- Row 6: Mother's Occupation -->
+                    <div class="flex flex-col md:flex-row md:items-center justify-between p-5 bg-slate-50/40 border border-slate-100 rounded-2xl gap-4 hover:border-teal-500/10 transition-all duration-300">
+                        <div class="flex items-center gap-4">
+                            <div class="h-12 w-12 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center text-xl flex-shrink-0">
+                                <i class="fas fa-user-nurse"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-base font-bold text-slate-900">Mother's Occupation</h4>
+                                <p class="text-slate-400 text-xs">Select primary occupation.</p>
+                            </div>
+                        </div>
+                        <div class="w-full md:w-80">
+                            <select name="mother_occupation" required class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:border-teal-500 focus:outline-none text-sm transition-all">
+                                <option value="" disabled selected>Select an option...</option>
+                                ${occupationOptions.map(opt => `<option value="${opt}">${opt}</option>`).join("")}
+                            </select>
+                            <div class="error-msg text-red-500 text-xs mt-1 hidden">Please select an occupation.</div>
+                        </div>
+                    </div>
+
+                    <!-- Row 7: Salary Priority (Career Choice) -->
                     <div class="flex flex-col md:flex-row md:items-center justify-between p-5 bg-slate-50/40 border border-slate-100 rounded-2xl gap-4 hover:border-teal-500/10 transition-all duration-300">
                         <div class="flex items-center gap-4">
                             <div class="h-12 w-12 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center text-xl flex-shrink-0">
                                 <i class="fas fa-wallet"></i>
                             </div>
                             <div>
-                                <h4 class="text-base font-bold text-slate-900">What is your parent's approximate annual income?</h4>
-                                <p class="text-slate-400 text-xs">This helps us suggest better career paths.</p>
+                                <h4 class="text-base font-bold text-slate-900">What matters most to you?</h4>
+                                <p class="text-slate-400 text-xs">When choosing a future career.</p>
                             </div>
                         </div>
                         <div class="w-full md:w-80">
-                            <input type="text" name="parent_income" required placeholder="Enter income in numbers (e.g. 800000)" 
-                                class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder-slate-400 focus:border-teal-500 focus:bg-white focus:outline-none text-sm transition-all">
-                            <div class="error-msg text-red-500 text-xs mt-1 hidden">Please enter a valid numeric income (number only).</div>
-                        </div>
-                    </div>
-
-                    <!-- Row 5: Parent Occupation -->
-                    <div class="flex flex-col md:flex-row md:items-center justify-between p-5 bg-slate-50/40 border border-slate-100 rounded-2xl gap-4 hover:border-teal-500/10 transition-all duration-300">
-                        <div class="flex items-center gap-4">
-                            <div class="h-12 w-12 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center text-xl flex-shrink-0">
-                                <i class="fas fa-users"></i>
-                            </div>
-                            <div>
-                                <h4 class="text-base font-bold text-slate-900">What do your parents do?</h4>
-                                <p class="text-slate-400 text-xs">Select their primary occupation.</p>
-                            </div>
-                        </div>
-                        <div class="w-full md:w-80">
-                            <input type="text" name="parent_occupation" required placeholder="Enter parents' occupation (e.g. Service)" 
-                                class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder-slate-400 focus:border-teal-500 focus:bg-white focus:outline-none text-sm transition-all">
-                            <div class="error-msg text-red-500 text-xs mt-1 hidden">Please enter parent's occupation.</div>
+                            <select name="salary_priority" required class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:border-teal-500 focus:outline-none text-sm transition-all">
+                                <option value="" disabled selected>Select an option...</option>
+                                <option value="high_salary">High salary and financial growth</option>
+                                <option value="balanced">A balance of salary, interest, and stability</option>
+                                <option value="meaningful_work">Interest, purpose, and meaningful work</option>
+                                <option value="unsure">I am still exploring</option>
+                            </select>
+                            <div class="error-msg text-red-500 text-xs mt-1 hidden">Please select a priority.</div>
                         </div>
                     </div>
 
@@ -629,55 +752,53 @@
         
         const nameVal = form.name.value.trim();
         const pursuingVal = form.pursuing.value.trim();
-        const interestsVal = form.interests.value.trim();
-        const incomeRaw = form.parent_income.value.trim().replace(/,/g, '');
-        const occupationVal = form.parent_occupation.value.trim();
+        const interestsSelect = Array.from(form.interests.selectedOptions).map(opt => opt.value);
+        const familyIncomeVal = form.family_income.value;
+        const fatherOccupationVal = form.father_occupation.value;
+        const motherOccupationVal = form.mother_occupation.value;
+        const salaryPriorityVal = form.salary_priority.value;
         
         let isValid = true;
         
         function toggleError(inputName, show) {
             const input = form[inputName];
-            const error = input.nextElementSibling;
+            const error = (input.parentElement || document.getElementById('interests-container').parentElement).querySelector('.error-msg');
+            
+            let targetEl = input;
+            if (inputName === 'interests') {
+                targetEl = document.getElementById('interests-container');
+            }
+
             if (show) {
-                input.classList.add("border-red-400");
-                error.classList.remove("hidden");
+                if (targetEl && targetEl.classList) targetEl.classList.add("border-red-400");
+                if (error) error.classList.remove("hidden");
                 isValid = false;
             } else {
-                input.classList.remove("border-red-400");
-                error.classList.add("hidden");
+                if (targetEl && targetEl.classList) targetEl.classList.remove("border-red-400");
+                if (error) error.classList.add("hidden");
             }
         }
         
-        if (nameVal.length < 2) {
-            toggleError("name", true);
-        } else {
-            toggleError("name", false);
-        }
+        if (nameVal.length < 2) toggleError("name", true);
+        else toggleError("name", false);
         
-        if (pursuingVal.length < 2) {
-            toggleError("pursuing", true);
-        } else {
-            toggleError("pursuing", false);
-        }
+        if (pursuingVal.length < 2) toggleError("pursuing", true);
+        else toggleError("pursuing", false);
         
-        if (interestsVal.length < 2) {
-            toggleError("interests", true);
-        } else {
-            toggleError("interests", false);
-        }
+        if (interestsSelect.length === 0) toggleError("interests", true);
+        else toggleError("interests", false);
         
-        const incomeNum = Number(incomeRaw);
-        if (incomeRaw === "" || isNaN(incomeNum) || incomeNum <= 0) {
-            toggleError("parent_income", true);
-        } else {
-            toggleError("parent_income", false);
-        }
+        if (!familyIncomeVal) toggleError("family_income", true);
+        else toggleError("family_income", false);
         
-        if (occupationVal.length < 2) {
-            toggleError("parent_occupation", true);
-        } else {
-            toggleError("parent_occupation", false);
-        }
+        if (!fatherOccupationVal) toggleError("father_occupation", true);
+        else toggleError("father_occupation", false);
+        
+        if (!motherOccupationVal) toggleError("mother_occupation", true);
+        else toggleError("mother_occupation", false);
+        
+        if (!salaryPriorityVal) toggleError("salary_priority", true);
+        else toggleError("salary_priority", false);
         
         if (!isValid) return;
         
@@ -693,9 +814,11 @@
                 body: JSON.stringify({
                     name: nameVal,
                     pursuing: pursuingVal,
-                    interests: interestsVal,
-                    parent_income: incomeNum,
-                    parent_occupation: occupationVal
+                    interests: interestsSelect,
+                    family_income: familyIncomeVal,
+                    father_occupation: fatherOccupationVal,
+                    mother_occupation: motherOccupationVal,
+                    salary_priority: salaryPriorityVal
                 })
             });
             const data = await res.json();
@@ -720,172 +843,49 @@
     }
 
     // --- PHASE 1: REFLEX PREFERENCE CARD SWIPES (BOTH) ---
-    function renderSwipePhase() {
-        swipeCards = activePhaseData.cards || [];
-        activeSwipeIndex = 0;
-        swipeLogs = [];
+    
 
-        const body = document.getElementById("phase-body");
-        body.innerHTML = `
-            <div class="text-center mb-6 stagger-in">
-                <span class="cyber-badge mb-2">Phase ${assessmentState.student_type === "12th" ? '2' : '1'}: Reflex Mapping</span>
-                <h2 class="text-2xl font-bold mt-2 text-slate-900">Preference Cards</h2>
-                <p class="text-slate-500 text-sm mt-1">Swipe right for yes, left for no. Your response speed and hesitation coordinates are measured.</p>
-            </div>
-            
-            <div class="deck-container stagger-in" id="card-deck">
-                <!-- Glowing telemetry cards loaded dynamically -->
-            </div>
+    // --- PHASE 1: BEHAVIORAL MCQs ---
+    let phase2Questions = [];
+    let currentQuestionIdx = 0;
+    let phase2Answers = [];
+    let currentLang = 'en';
 
-            <div class="flex justify-center gap-6 mt-8 stagger-in">
-                <button onclick="executeUiSwipe('left')" class="w-14 h-14 flex items-center justify-center rounded-full bg-indigo-50 border border-indigo-100 text-indigo-600 shadow-md hover:bg-indigo-100/80 hover:border-indigo-200 hover:scale-105 active:scale-95 transition-all duration-300">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                </button>
-                <button onclick="executeUiSwipe('right')" class="w-14 h-14 flex items-center justify-center rounded-full bg-teal-50 border border-teal-100 text-teal-600 shadow-md hover:bg-teal-100/80 hover:border-teal-200 hover:scale-105 active:scale-95 transition-all duration-300">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                </button>
-            </div>
-            <div class="text-center mt-4 stagger-in">
-                <span class="text-xs font-semibold text-slate-500" id="swipe-counter">0 / 0 Completed</span>
-            </div>
-        `;
-        buildSwipeCards();
-    }
-
-    let cardStartTime = Date.now();
-    let isTransitioning = false;
-
-    function buildSwipeCards() {
-        const deck = document.getElementById("card-deck");
-        if (!deck) return;
-        deck.innerHTML = "";
+    window.togglePhase2Lang = function(lang) {
+        currentLang = lang;
+        document.querySelectorAll('.lang-en').forEach(el => el.classList.toggle('hidden', lang !== 'en'));
+        document.querySelectorAll('.lang-hi').forEach(el => el.classList.toggle('hidden', lang !== 'hi'));
         
-        const total = swipeCards.length;
-        document.getElementById("swipe-counter").innerText = `${activeSwipeIndex} / ${total} Cards Analyzed`;
-
-        if (activeSwipeIndex >= total) {
-            submitSwipeTelemetry();
-            return;
-        }
-
-        const cardsToShow = swipeCards.slice(activeSwipeIndex, activeSwipeIndex + 3);
+        const btnEn = document.getElementById('btn-lang-en');
+        const btnHi = document.getElementById('btn-lang-hi');
+        const activeClass = "px-4 py-1.5 text-sm font-bold rounded-full bg-teal-600 text-white shadow-sm transition-all";
+        const inactiveClass = "px-4 py-1.5 text-sm font-medium rounded-full bg-white text-slate-500 border border-slate-200 hover:bg-slate-50 transition-all";
         
-        cardsToShow.forEach((c, idx) => {
-            const cardEl = document.createElement("div");
-            cardEl.className = "swipe-card";
-            
-            const scale = 1 - idx * 0.05;
-            const yOffset = idx * 18;
-            cardEl.style.transform = `translateY(${yOffset}px) scale(${scale})`;
-            cardEl.style.zIndex = 100 - idx;
-            
-            cardEl.innerHTML = `
-                <div>
-                    <span class="px-2.5 py-1 bg-teal-50 text-teal-600 border border-teal-100 rounded-full text-[10px] font-bold tracking-widest uppercase">${c.category || 'OBJECTIVE'}</span>
-                    <h3 class="text-xl font-bold mt-6 text-slate-900 leading-relaxed font-outfit">${c.content || c.text || ''}</h3>
-                </div>
-                <div class="flex justify-between items-center text-[10px] text-slate-400 font-bold tracking-wider pt-4 border-t border-slate-100">
-                    <span>← SWIPE LEFT (NO)</span>
-                    <span>SWIPE RIGHT (YES) →</span>
-                </div>
-            `;
-            deck.appendChild(cardEl);
-            if (idx === 0) {
-                setupDragInteraction(cardEl);
-            }
-        });
-        
-        cardStartTime = Date.now();
-        isTransitioning = false;
-    }
-
-    function setupDragInteraction(el) {
-        let startX = 0;
-        let currentX = 0;
-        
-        el.addEventListener('mousedown', start);
-        el.addEventListener('touchstart', start, {passive: true});
-        
-        function start(e) {
-            startX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
-            document.addEventListener('mousemove', move);
-            document.addEventListener('mouseup', end);
-            document.addEventListener('touchmove', move, {passive: false});
-            document.addEventListener('touchend', end);
-        }
-        
-        function move(e) {
-            currentX = (e.type === 'touchmove' ? e.touches[0].clientX : e.clientX) - startX;
-            el.style.transform = `translateX(${currentX}px) rotate(${currentX / 16}deg)`;
-            
-            if (currentX > 50) {
-                el.classList.add('swiping-right'); el.classList.remove('swiping-left');
-            } else if (currentX < -50) {
-                el.classList.add('swiping-left'); el.classList.remove('swiping-right');
+        if (btnEn && btnHi) {
+            if (lang === 'en') {
+                btnEn.className = activeClass;
+                btnHi.className = inactiveClass;
             } else {
-                el.classList.remove('swiping-right', 'swiping-left');
+                btnEn.className = inactiveClass;
+                btnHi.className = activeClass;
             }
         }
-        
-        async function end() {
-            document.removeEventListener('mousemove', move);
-            document.removeEventListener('mouseup', end);
-            document.removeEventListener('touchmove', move);
-            document.removeEventListener('touchend', end);
-            
-            if (Math.abs(currentX) > 120) {
-                const direction = currentX > 0 ? 'right' : 'left';
-                handleSwipeTelemetry(direction);
-            } else {
-                el.style.transform = '';
-                el.classList.remove('swiping-right', 'swiping-left');
-            }
-        }
-    }
+    };
 
-    function executeUiSwipe(direction) {
-        if (isTransitioning) return;
-        isTransitioning = true;
-
-        const deck = document.getElementById("card-deck");
-        const topCard = deck.querySelector(".swipe-card");
-        if (!topCard) return;
-
-        topCard.classList.add(direction === "right" ? "swiped-right" : "swiped-left");
-        
-        setTimeout(() => {
-            handleSwipeTelemetry(direction);
-        }, 200);
-    }
-
-    function handleSwipeTelemetry(direction) {
-        const endTime = Date.now();
-        const duration = endTime - cardStartTime;
-        const activeCard = swipeCards[activeSwipeIndex];
-
-        swipeLogs.push({
-            card_id: activeCard.id,
-            direction: direction,
-            reaction_ms: Math.round(duration * 0.45),
-            dwell_ms: duration,
-            hesitation_ms: duration > 2000 ? Math.round((duration - 1000) * 0.75) : 0
-        });
-
-        activeSwipeIndex++;
-        buildSwipeCards();
-    }
-
-    async function submitSwipeTelemetry() {
-        showLoader("Syncing biometric preferences...");
+    async function renderPhase2MCQs() {
+        showLoader("Loading behavioral assessment...");
         try {
-            const res = await fetch("/assessment/api/swipe", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ swipes: swipeLogs })
-            });
+            const res = await fetch("/assessment/api/phase2_mcqs");
             const data = await res.json();
             if (data.status === "success") {
-                await refreshState();
+                phase2Questions = data.mcqs;
+                currentQuestionIdx = 0;
+                phase2Answers = [];
+                hideLoader();
+                renderCurrentMCQ();
+            } else {
+                hideLoader();
+                alert("Failed to load questions.");
             }
         } catch (e) {
             console.error(e);
@@ -893,249 +893,136 @@
         }
     }
 
-    // --- PHASE 2: ALEX OBSTACLE RIASEC CHAT (BOTH) ---
-    async function renderChatPhase() {
+    function renderCurrentMCQ() {
         const body = document.getElementById("phase-body");
-        body.innerHTML = `
-            <div class="text-center mb-6 stagger-in">
-                <span class="cyber-badge mb-2">Phase ${assessmentState.student_type === "12th" ? '3' : '2'}: Mentorship Verification</span>
-                <h2 class="text-2xl font-bold mt-2 text-slate-900">Alex RIASEC Chat</h2>
-                <p class="text-slate-500 text-sm mt-1">Answer short prompts as Alex drills into your intrinsic task orientations.</p>
-            </div>
+        if (currentQuestionIdx >= phase2Questions.length) {
+            submitPhase2Answers();
+            return;
+        }
 
-            <div class="border border-slate-200 bg-slate-50/50 rounded-2xl p-4 flex flex-col justify-between h-[360px] stagger-in">
-                <div class="chat-container flex flex-col" id="chat-messages-box">
-                    <!-- Conversations -->
+        const q = phase2Questions[currentQuestionIdx];
+        
+        const enClass = currentLang === 'en' ? "px-4 py-1.5 text-sm font-bold rounded-full bg-teal-600 text-white shadow-sm transition-all" : "px-4 py-1.5 text-sm font-medium rounded-full bg-white text-slate-500 border border-slate-200 hover:bg-slate-50 transition-all";
+        const hiClass = currentLang === 'hi' ? "px-4 py-1.5 text-sm font-bold rounded-full bg-teal-600 text-white shadow-sm transition-all" : "px-4 py-1.5 text-sm font-medium rounded-full bg-white text-slate-500 border border-slate-200 hover:bg-slate-50 transition-all";
+        
+        let optionsHtml = q.options.map((opt) => `
+            <button onclick="selectPhase2Option('${opt.archetype_id}', this)" class="w-full text-left p-4 rounded-xl border border-slate-200 bg-white hover:border-teal-500 hover:bg-teal-50 hover:shadow-md transition-all duration-300 group">
+                <div class="flex items-start gap-4">
+                    <div class="h-8 w-8 shrink-0 rounded-full border-2 border-slate-200 group-hover:border-teal-500 flex items-center justify-center text-teal-600 transition-colors mt-0.5">
+                        <span class="opacity-0 group-hover:opacity-100 text-sm"><i class="fas fa-check"></i></span>
+                    </div>
+                    <div class="flex flex-col justify-center min-h-[32px]">
+                        <p class="lang-en text-slate-800 font-bold text-base ${currentLang !== 'en' ? 'hidden' : ''}">${opt.option_en}</p>
+                        <p class="lang-hi text-slate-800 font-bold text-base ${currentLang !== 'hi' ? 'hidden' : ''}">${opt.option_hi_en}</p>
+                    </div>
+                </div>
+            </button>
+        `).join("");
+
+        body.innerHTML = `
+            <div class="max-w-3xl mx-auto stagger-in">
+                <!-- Header with Toggle -->
+                <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
+                    <span class="cyber-badge">Question ${currentQuestionIdx + 1} of ${phase2Questions.length}</span>
+                    <div class="flex bg-slate-100 p-1 rounded-full border border-slate-200 shadow-inner">
+                        <button id="btn-lang-en" onclick="togglePhase2Lang('en')" class="${enClass}">English</button>
+                        <button id="btn-lang-hi" onclick="togglePhase2Lang('hi')" class="${hiClass}">Hinglish</button>
+                    </div>
                 </div>
                 
-                <div class="flex gap-2 pt-3 border-t border-slate-200 mt-2">
-                    <input type="text" id="chat-input" placeholder="Speak your mind to Alex..." class="flex-1 px-4 py-3 rounded-xl border border-slate-200 focus:border-teal-500 focus:outline-none text-sm font-medium bg-white text-slate-900 placeholder-slate-400" onkeydown="if(event.key === 'Enter') sendChatMessage()">
-                    <button onclick="sendChatMessage()" id="chat-send-btn" class="px-6 py-3 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-extrabold transition-all text-sm">Send</button>
+                <div class="mb-8 text-center md:text-left bg-slate-50 p-6 rounded-2xl border border-slate-100 shadow-sm">
+                    <h2 class="lang-en text-2xl md:text-3xl font-extrabold text-slate-900 leading-tight ${currentLang !== 'en' ? 'hidden' : ''}">${q.question_en}</h2>
+                    <h2 class="lang-hi text-2xl md:text-3xl font-extrabold text-slate-900 leading-tight ${currentLang !== 'hi' ? 'hidden' : ''}">${q.question_hi_en}</h2>
+                </div>
+                <div class="space-y-4">
+                    ${optionsHtml}
                 </div>
             </div>
         `;
-
-        const hist = activePhaseData.chat_messages || [];
-        if (hist.length === 0) {
-            await sendChatMessage(true);
-        } else {
-            renderChatHistory(hist);
-        }
     }
 
-    function renderChatHistory(hist) {
-        const box = document.getElementById("chat-messages-box");
-        if (!box) return;
-        box.innerHTML = "";
-        hist.forEach(m => {
-            const bubble = document.createElement("div");
-            bubble.className = `chat-bubble ${m.role === 'ai' ? 'mentor' : 'user'}`;
-            bubble.innerText = m.content;
-            box.appendChild(bubble);
-        });
-        box.scrollTop = box.scrollHeight;
-    }
-
-    async function sendChatMessage(isInit = false) {
-        const input = document.getElementById("chat-input");
-        const btn = document.getElementById("chat-send-btn");
-        const msg = isInit ? "" : input.value.trim();
-        if (!isInit && !msg) return;
-
-        if (input) input.value = "";
+    window.selectPhase2Option = function(archetypeId, btn) {
+        if (btn.disabled) return;
         
-        if (!isInit) {
-            const box = document.getElementById("chat-messages-box");
-            const bubble = document.createElement("div");
-            bubble.className = "chat-bubble user";
-            bubble.innerText = msg;
-            box.appendChild(bubble);
-            box.scrollTop = box.scrollHeight;
+        btn.classList.add("border-teal-500", "bg-teal-50");
+        btn.querySelector(".h-8").classList.add("border-teal-500");
+        btn.querySelector(".h-8 span").classList.add("opacity-100");
+        
+        const q = phase2Questions[currentQuestionIdx];
+        phase2Answers.push({
+            question_id: q.id,
+            archetype_id: archetypeId
+        });
+        
+        setTimeout(() => {
+            currentQuestionIdx++;
+            renderCurrentMCQ();
+        }, 400);
+    };
 
-            if (input) input.disabled = true;
-            if (btn) btn.disabled = true;
-        }
-
-        document.getElementById("bottom-status").innerHTML = `<span class="h-2 w-2 rounded-full bg-teal-500 animate-ping"></span> Alex is writing...`;
-
+    async function submitPhase2Answers() {
+        showLoader("Analyzing behavioral patterns...");
         try {
-            const res = await fetch("/assessment/api/chat", {
+            const res = await fetch("/assessment/api/phase2/submit", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message: msg })
+                body: JSON.stringify({ answers: phase2Answers })
             });
             const data = await res.json();
-            document.getElementById("bottom-status").innerHTML = `<span class="h-2 w-2 rounded-full bg-cyan-400 animate-ping"></span> Sync Ready`;
-            
             if (data.status === "success") {
-                if (data.phase_complete) {
-                    await refreshState();
-                } else {
-                    const box = document.getElementById("chat-messages-box");
-                    const aiBubble = document.createElement("div");
-                    aiBubble.className = "chat-bubble mentor";
-                    aiBubble.innerText = data.message;
-                    box.appendChild(aiBubble);
-                    box.scrollTop = box.scrollHeight;
+                await refreshState();
+            } else {
+                hideLoader();
+                alert("Failed to submit Phase 2 assessment.");
+            }
+        } catch(e) {
+            console.error(e);
+            hideLoader();
+            alert("Network error.");
+        }
+    }
+
+    function renderPhase3Selection() {
+        const body = document.getElementById("phase-body");
+        body.innerHTML = `
+            <div class="text-center py-10 flex flex-col items-center justify-center stagger-in">
+                <div class="mb-8">
+                    <span class="cyber-badge mb-2">Phase 3: Deep Dive</span>
+                    <h2 class="text-3xl font-extrabold text-slate-900 mt-2">Meet Your Career Buddy</h2>
+                    <p class="text-slate-500 max-w-md mx-auto mt-3 text-sm leading-relaxed">
+                        We're ready to dive deeper into your choices. How would you like to interact with your Career Mentor?
+                    </p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-2xl">
+                    <!-- Voice Mode -->
+                    <button onclick="window.location.href='/assessment/phase3?mode=voice'" class="group flex flex-col items-center p-8 bg-white border-2 border-slate-100 rounded-3xl hover:border-teal-500 hover:shadow-xl hover:shadow-teal-500/10 transition-all duration-300 transform hover:-translate-y-1">
+                        <div class="w-16 h-16 rounded-full bg-teal-50 text-teal-600 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 group-hover:bg-teal-500 group-hover:text-white transition-all duration-300">
+                            <i class="fas fa-microphone"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-900 mb-2">Voice Call</h3>
+                        <p class="text-slate-500 text-xs leading-relaxed">
+                            Have a natural, spoken conversation with your AI mentor. Best for an immersive experience.
+                        </p>
+                    </button>
                     
-                    const speech = new SpeechSynthesisUtterance(data.message);
-                    const voices = speechSynth.getVoices();
-                    const preferredVoice = voices.find(v => v.lang.startsWith("en-IN")) || voices.find(v => v.lang.startsWith("en"));
-                    if (preferredVoice) speech.voice = preferredVoice;
-                    speechSynth.speak(speech);
-
-                    if (input) input.disabled = false;
-                    if (btn) btn.disabled = false;
-                    if (input) input.focus();
-                }
-            }
-        } catch (e) {
-            console.error(e);
-            document.getElementById("bottom-status").innerHTML = `Connection Error`;
-            if (input) input.disabled = false;
-            if (btn) btn.disabled = false;
-        }
-    }
-
-    // --- PHASE 3: ENVIRONMENTAL FIT PROXIES (BOTH) ---
-    let proxyAnswersLog = [];
-    let activeProxyIdx = 0;
-
-    function renderProxyPhase() {
-        proxyAnswersLog = [];
-        activeProxyIdx = 0;
-        showProxyQuestion();
-    }
-
-    function showProxyQuestion() {
-        const total = activePhaseData.proxy_questions.length;
-        if (activeProxyIdx >= total) {
-            submitProxyAnswers();
-            return;
-        }
-
-        const q = activePhaseData.proxy_questions[activeProxyIdx];
-        const body = document.getElementById("phase-body");
-        body.innerHTML = `
-            <div class="text-center mb-6 stagger-in">
-                <span class="cyber-badge mb-2">Phase ${assessmentState.student_type === "12th" ? '4' : '3'}: Socio-Demo Context</span>
-                <h2 class="text-2xl font-bold mt-2 text-slate-900 leading-relaxed font-outfit">${q.question || q.question_text || q.text || ''}</h2>
-                <p class="text-slate-500 text-sm mt-1">This evaluates external socioeconomic, digital infrastructure, and geographical limits.</p>
-            </div>
-
-            <div class="grid grid-cols-1 gap-3 max-w-md mx-auto stagger-in" style="animation-delay: 0.1s;">
-                ${(q.options || []).map(opt => `
-                    <button onclick="handleProxySelection('${q.question_id || q.id}', '${opt.option_text || opt.text || ''}', ${opt.multiplier})" class="premium-option-btn w-full flex items-center justify-between group">
-                        <span class="font-semibold text-slate-700 group-hover:text-teal-600">${opt.option_text || opt.text || ''}</span>
-                        <svg class="w-5 h-5 text-slate-400 group-hover:text-teal-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    <!-- Chat Mode -->
+                    <button onclick="window.location.href='/assessment/phase3?mode=chat'" class="group flex flex-col items-center p-8 bg-white border-2 border-slate-100 rounded-3xl hover:border-indigo-500 hover:shadow-xl hover:shadow-indigo-500/10 transition-all duration-300 transform hover:-translate-y-1">
+                        <div class="w-16 h-16 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 group-hover:bg-indigo-500 group-hover:text-white transition-all duration-300">
+                            <i class="fas fa-keyboard"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-900 mb-2">Text Chat</h3>
+                        <p class="text-slate-500 text-xs leading-relaxed">
+                            Type your answers at your own pace in a familiar messaging interface.
+                        </p>
                     </button>
-                `).join('')}
-            </div>
-
-            <div class="text-center mt-6 stagger-in">
-                <span class="text-xs font-semibold text-slate-500">${activeProxyIdx} / ${total} Environmental Nodes Checked</span>
+                </div>
             </div>
         `;
     }
 
-    function handleProxySelection(qId, val, mult) {
-        proxyAnswersLog.push({
-            question_id: qId,
-            answer: val,
-            multiplier: mult
-        });
-        activeProxyIdx++;
-        showProxyQuestion();
-    }
-
-    async function submitProxyAnswers() {
-        showLoader("Configuring environment arrays...");
-        try {
-            const res = await fetch("/assessment/api/proxy", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ answers: proxyAnswersLog })
-            });
-            const data = await res.json();
-            if (data.status === "success") {
-                await refreshState();
-            }
-        } catch (e) {
-            console.error(e);
-            hideLoader();
-        }
-    }
-
-    // --- PHASE 4: IDENTITY DILEMMA SCENARIOS (BOTH) ---
-    let scenarioAnswersLog = [];
-    let activeScenarioIdx = 0;
-
-    function renderScenariosPhase() {
-        scenarioAnswersLog = [];
-        activeScenarioIdx = 0;
-        showScenarioQuestion();
-    }
-
-    function showScenarioQuestion() {
-        const total = activePhaseData.scenarios.length;
-        if (activeScenarioIdx >= total) {
-            submitScenarioAnswers();
-            return;
-        }
-
-        const sc = activePhaseData.scenarios[activeScenarioIdx];
-        const body = document.getElementById("phase-body");
-        body.innerHTML = `
-            <div class="text-center mb-6 stagger-in">
-                <span class="cyber-badge mb-2">Phase ${assessmentState.student_type === "12th" ? '5' : '4'}: Strategic Alignment</span>
-                <h2 class="text-xl font-bold mt-2 text-slate-900 leading-relaxed font-outfit">${sc.scenario}</h2>
-                <p class="text-slate-500 text-sm mt-1">Pick the response coordinate that aligns with your real values and behavior.</p>
-            </div>
-
-            <div class="grid grid-cols-1 gap-3 max-w-md mx-auto stagger-in" style="animation-delay: 0.15s;">
-                ${(sc.options || sc.choices || []).map(choice => `
-                    <button onclick="handleScenarioSelection('${sc.id}', '${choice.label || choice.tag}')" class="premium-option-btn w-full flex items-center justify-between group">
-                        <span class="font-medium text-slate-700 group-hover:text-teal-600">${choice.text || choice.value || ''}</span>
-                        <svg class="w-5 h-5 text-slate-400 group-hover:text-teal-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                    </button>
-                `).join('')}
-            </div>
-
-            <div class="text-center mt-6 stagger-in">
-                <span class="text-xs font-semibold text-slate-500">${activeScenarioIdx} / ${total} Dilemmas Resolved</span>
-            </div>
-        `;
-    }
-
-    function handleScenarioSelection(scId, tag) {
-        scenarioAnswersLog.push({
-            scenario_id: scId,
-            selected_tag: tag
-        });
-        activeScenarioIdx++;
-        showScenarioQuestion();
-    }
-
-    async function submitScenarioAnswers() {
-        showLoader("Synthesizing ego metrics...");
-        try {
-            const res = await fetch("/assessment/api/scenarios", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ answers: scenarioAnswersLog })
-            });
-            const data = await res.json();
-            if (data.status === "success") {
-                await refreshState();
-            }
-        } catch (e) {
-            console.error(e);
-            hideLoader();
-        }
-    }
-
-    // --- PHASE 5: COMPILING RESULTS AND REDIRECT (BOTH) ---
-    function renderCompilePhase() {
+    // --- PHASE 2: COMPILING RESULTS ---
+function renderCompilePhase() {
         const body = document.getElementById("phase-body");
         body.innerHTML = `
             <div class="text-center py-10 flex flex-col items-center justify-center stagger-in">
@@ -1183,5 +1070,6 @@
             if (ind) ind.classList.add("hidden");
         }
     }
+
 </script>
 {% endblock %}

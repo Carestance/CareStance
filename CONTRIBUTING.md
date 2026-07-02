@@ -4,7 +4,7 @@ Thank you for helping improve CareStance! This document gives a simple, clear wo
 
 ## Workflow
 
-1. Fork the repository and clone your fork.
+1. Fork the repository and clone your fork
 2. Create a feature branch from `main`:
 
 ```bash

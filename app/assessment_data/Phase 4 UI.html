@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Sequence Planner Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Sora', sans-serif;
+        }
+        
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 700;
+        }
+        
+        /* Modern gradient background */
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            min-height: 100vh;
+        }
+        
+        /* Glassmorphism workspace grid */
+        .workspace-grid {
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(30, 41, 59, 0.95) 100%);
+            backdrop-filter: blur(12px);
+            background-image: 
+                radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.15) 0%, transparent 50%),
+                radial-gradient(rgba(148, 163, 184, 0.05) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 32px 32px;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); border-radius: 8px; }
+        ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #3b82f6, #8b5cf6); border-radius: 8px; }
+        ::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, #60a5fa, #a78bfa); }
+        
+        /* Animations */
+        @keyframes popIn {
+            0% { opacity: 0; transform: scale(0.9) translateY(15px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        
+        @keyframes dash-flow {
+            to { stroke-dashoffset: -20; }
+        }
+
+        .animated-connection {
+            stroke-dasharray: 6, 6;
+            animation: dash-flow 0.5s linear infinite;
+        }
+        
+        .animate-pop { animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+        
+        /* Node styles */
+        .workspace-node {
+            background: linear-gradient(145deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-top: 1px solid rgba(96, 165, 250, 0.5);
+            border-radius: 16px;
+            backdrop-filter: blur(12px);
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+            cursor: grab;
+            position: absolute;
+            min-width: 240px;
+            z-index: 100;
+            user-select: none;
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+        }
+        
+        .workspace-node.dragging {
+            cursor: grabbing;
+            opacity: 0.95;
+            z-index: 1000;
+            transform: scale(1.02);
+            box-shadow: 0 20px 40px -10px rgba(59, 130, 246, 0.2);
+            border-color: rgba(59, 130, 246, 0.8);
+        }
+        
+        .workspace-node:hover {
+            border-color: rgba(96, 165, 250, 0.6);
+            box-shadow: 0 12px 35px -10px rgba(59, 130, 246, 0.25);
+            transform: translateY(-2px);
+        }
+        
+        .workspace-node.selected {
+            border-color: rgba(139, 92, 246, 0.8);
+            box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.3), 0 15px 40px -10px rgba(139, 92, 246, 0.3);
+        }
+        
+        /* Palette items */
+        .palette-item {
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: 12px;
+            transition: all 0.2s ease;
+            cursor: grab;
+        }
+        
+        .palette-item:hover {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: rgba(96, 165, 250, 0.4);
+            transform: translateX(6px);
+            box-shadow: 0 8px 24px -5px rgba(59, 130, 246, 0.2);
+        }
+        
+        /* Gradient buttons */
+        .btn-gradient {
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 15px -3px rgba(59, 130, 246, 0.4);
+        }
+        
+        .btn-gradient:hover {
+            box-shadow: 0 8px 25px -5px rgba(59, 130, 246, 0.6);
+            transform: translateY(-1px);
+            filter: brightness(1.1);
+        }
+        
+        /* Modal styles */
+        .modal-backdrop {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+        }
+        
+        .modal-content {
+            background: linear-gradient(145deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98));
+            border: 1px solid rgba(96, 165, 250, 0.2);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(59, 130, 246, 0.1);
+        }
+        
+        /* Connection lines */
+        #connections-svg {
+            filter: drop-shadow(0 0 4px rgba(59, 130, 246, 0.4));
+            pointer-events: none;
+        }
+
+        .connection-path {
+            transition: stroke 0.3s ease, stroke-width 0.3s ease;
+        }
+        
+        /* Input styles */
+        input, textarea {
+            background: rgba(15, 23, 42, 0.5) !important;
+            border: 1px solid rgba(148, 163, 184, 0.2) !important;
+            color: #f8fafc !important;
+            transition: all 0.2s ease;
+        }
+        
+        input:focus, textarea:focus {
+            background: rgba(15, 23, 42, 0.8) !important;
+            border-color: rgba(96, 165, 250, 0.5) !important;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+        }
+
+        .node-button {
+            cursor: pointer;
+            pointer-events: all;
+            font-weight: 600;
+        }
+
+        .node-button:hover {
+            transform: translateY(-1px);
+        }
+        
+        .node-button:active {
+            transform: scale(0.95) translateY(0);
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden bg-slate-950 text-slate-100 antialiased">
+
+    <header class="px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0 z-20 border-b border-slate-800 bg-slate-900/80 backdrop-blur-md">
+        <div class="flex-1">
+            <div class="flex items-center gap-3 mb-1">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-sm font-bold text-white shadow-lg shadow-blue-500/20">
+                    ✦
+                </div>
+                <span class="text-[11px] font-bold uppercase tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">Sequence Planner Pro</span>
+            </div>
+            <input 
+                type="text" 
+                id="situation-input" 
+                value="Architect an AI-driven distraction-free educational platform" 
+                class="block w-full text-lg md:text-xl font-bold border-b border-transparent hover:border-slate-700 focus:border-blue-500 focus:outline-none transition-all py-1 bg-transparent text-slate-100 placeholder-slate-600"
+                placeholder="Define your goal or mission..."
+            />
+        </div>
+        <div class="flex items-center gap-3">
+            <div id="session-timer" class="text-xs font-mono font-semibold text-blue-400 bg-blue-950/50 px-4 py-2 rounded-lg border border-blue-500/20">⏱ 00:00:00</div>
+            
+            <span id="linking-indicator" class="hidden animate-pulse bg-purple-500/10 text-purple-300 border border-purple-500/30 text-xs px-4 py-2 rounded-lg font-medium">
+                🔗 Link Mode Active
+                <button onclick="cancelLinking()" class="ml-2 font-bold text-purple-200 hover:text-rose-400 transition-colors">✕</button>
+            </span>
+            
+            <button onclick="clearCanvas()" class="px-4 py-2 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg text-sm font-semibold transition duration-150 border border-slate-800 hover:border-rose-500/30">
+                🗑 Clear
+            </button>
+            
+            <button onclick="completeProject()" class="btn-gradient px-6 py-2 text-white rounded-lg text-sm font-semibold flex items-center gap-2">
+                <span>📊 Export</span>
+                <span>→</span>
+            </button>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden relative">
+        
+        <aside class="w-[320px] flex flex-col shrink-0 overflow-y-auto z-10 border-right border-slate-800 bg-slate-900/60 backdrop-blur-xl">
+            <div class="p-5 border-b border-slate-800/80 bg-slate-800/30 shrink-0 sticky top-0 z-10 backdrop-blur-md">
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="text-base">🎨</span>
+                    <h2 class="text-xs font-bold text-slate-300 uppercase tracking-widest">Resource Palette</h2>
+                </div>
+                <p class="text-[11px] text-slate-500 leading-relaxed">Drag items onto the canvas.</p>
+            </div>
+
+            <div class="flex flex-col gap-2 p-4 pb-12 overflow-y-auto">
+                <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1 mt-2 mb-1 flex items-center gap-2">
+                    <span>⚙️</span> Architecture & Tech
+                </div>
+                
+                <div class="palette-item group flex items-center gap-3 p-2.5" draggable="true" data-type="database" data-label="Cloud Database" data-icon="🗄️">
+                    <span class="flex items-center justify-center w-9 h-9 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-lg text-base group-hover:scale-110 transition-transform">🗄️</span>
+                    <div>
+                        <div class="text-sm font-semibold text-slate-200">Database</div>
+                        <div class="text-[10px] text-slate-500">Data storage</div>
+                    </div>
+                </div>
+
+                <div class="palette-item group flex items-center gap-3 p-2.5" draggable="true" data-type="ai_model" data-label="AI / ML Model" data-icon="🧠">
+                    <span class="flex items-center justify-center w-9 h-9 bg-purple-500/10 border border-purple-500/20 text-purple-400 rounded-lg text-base group-hover:scale-110 transition-transform">🧠</span>
+                    <div>
+                        <div class="text-sm font-semibold text-slate-200">AI Model</div>
+                        <div class="text-[10px] text-slate-500">Core algorithms</div>
+                    </div>
+                </div>
+
+                <div class="palette-item group flex items-center gap-3 p-2.5" draggable="true" data-type="frontend" data-label="Frontend UI" data-icon="💻">
+                    <span class="flex items-center justify-center w-9 h-9 bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 rounded-lg text-base group-hover:scale-110 transition-transform">💻</span>
+                    <div>
+                        <div class="text-sm font-semibold text-slate-200">Frontend UI</div>
+                        <div class="text-[10px] text-slate-500">User interface</div>
+                    </div>
+                </div>
+
+                <div class="palette-item group flex items-center gap-3 p-2.5" draggable="true" data-type="api" data-label="API Gateway" data-icon="🔌">
+                    <span class="flex items-center justify-center w-9 h-9 bg-green-500/10 border border-green-500/20 text-green-400 rounded-lg text-base group-hover:scale-110 transition-transform">🔌</span>
+                    <div>
+                        <div class="text-sm font-semibold text-slate-200">API Gateway</div>
+                        <div class="text-[10px] text-slate-500">Backend services</div>
+                    </div>
+                </div>
+
+                <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1 mt-4 mb-1 flex items-center gap-2">
+                    <span>📈</span> Business & Strategy
+                </div>
+
+                <div class="palette-item group flex items-center gap-3 p-2.5" draggable="true" data-type="strategy" data-label="GTM Strategy" data-icon="🎯">
+                    <span class="flex items-center justify-center w-9 h-9 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-lg text-base group-hover:scale-110 transition-transform">🎯</span>
+                    <div>
+                        <div class="text-sm font-semibold text-slate-200">GTM Strategy</div>
+                        <div class="text-[10px] text-slate-500">Positioning</div>
+                    </div>
+                </div>
+
+                <div class="palette-item group flex items-center gap-3 p-2.5" draggable="true" data-type="budget" data-label="Budget & Funding" data-icon="💰">
+                    <span class="flex items-center justify-center w-9 h-9 bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 rounded-lg text-base group-hover:scale-110 transition-transform">💰</span>
+                    <div>
+                        <div class="text-sm font-semibold text-slate-200">Budget & Funding</div>
+                        <div class="text-[10px] text-slate-500">Financial planning</div>
+                    </div>
+                </div>
+
+                <div class="palette-item group flex items-center gap-3 p-2.5" draggable="true" data-type="analytics" data-label="Analytics & Metrics" data-icon="📊">
+                    <span class="flex items-center justify-center w-9 h-9 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-lg text-base group-hover:scale-110 transition-transform">📊</span>
+                    <div>
+                        <div class="text-sm font-semibold text-slate-200">Analytics</div>
+                        <div class="text-[10px] text-slate-500">KPIs & metrics</div>
+                    </div>
+                </div>
+
+                <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1 mt-4 mb-1 flex items-center gap-2">
+                    <span>👥</span> Team & People
+                </div>
+
+                <div class="palette-item group flex items-center gap-3 p-2.5" draggable="true" data-type="team" data-label="Core Team" data-icon="👥">
+                    <span class="flex items-center justify-center w-9 h-9 bg-pink-500/10 border border-pink-500/20 text-pink-400 rounded-lg text-base group-hover:scale-110 transition-transform">👥</span>
+                    <div>
+                        <div class="text-sm font-semibold text-slate-200">Core Team</div>
+                        <div class="text-[10px] text-slate-500">Founders & leads</div>
+                    </div>
+                </div>
+
+                <div class="palette-item group flex items-center gap-3 p-2.5" draggable="true" data-type="employees" data-label="Employees" data-icon="👔">
+                    <span class="flex items-center justify-center w-9 h-9 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-lg text-base group-hover:scale-110 transition-transform">👔</span>
+                    <div>
+                        <div class="text-sm font-semibold text-slate-200">Employees</div>
+                        <div class="text-[10px] text-slate-500">Staff & resources</div>
+                    </div>
+                </div>
+
+                <div class="palette-item group flex items-center gap-3 p-2.5" draggable="true" data-type="partners" data-label="Partners" data-icon="🤝">
+                    <span class="flex items-center justify-center w-9 h-9 bg-teal-500/10 border border-teal-500/20 text-teal-400 rounded-lg text-base group-hover:scale-110 transition-transform">🤝</span>
+                    <div>
+                        <div class="text-sm font-semibold text-slate-200">Partners</div>
+                        <div class="text-[10px] text-slate-500">External partners</div>
+                    </div>
+                </div>
+
+                <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1 mt-4 mb-1 flex items-center gap-2">
+                    <span>🚀</span> Marketing & Brand
+                </div>
+
+                <div class="palette-item group flex items-center gap-3 p-2.5" draggable="true" data-type="logo" data-label="Logo & Branding" data-icon="🎨">
+                    <span class="flex items-center justify-center w-9 h-9 bg-violet-500/10 border border-violet-500/20 text-violet-400 rounded-lg text-base group-hover:scale-110 transition-transform">🎨</span>
+                    <div>
+                        <div class="text-sm font-semibold text-slate-200">Logo & Brand</div>
+                        <div class="text-[10px] text-slate-500">Visual identity</div>
+                    </div>
+                </div>
+
+                <div class="palette-item group flex items-center gap-3 p-2.5" draggable="true" data-type="marketing" data-label="Marketing Campaign" data-icon="📢">
+                    <span class="flex items-center justify-center w-9 h-9 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg text-base group-hover:scale-110 transition-transform">📢</span>
+                    <div>
+                        <div class="text-sm font-semibold text-slate-200">Marketing</div>
+                        <div class="text-[10px] text-slate-500">Campaigns & growth</div>
+                    </div>
+                </div>
+
+                <div class="palette-item group flex items-center gap-3 p-2.5" draggable="true" data-type="ppt" data-label="Presentation (PPT)" data-icon="📊">
+                    <span class="flex items-center justify-center w-9 h-9 bg-orange-500/10 border border-orange-500/20 text-orange-400 rounded-lg text-base group-hover:scale-110 transition-transform">📊</span>
+                    <div>
+                        <div class="text-sm font-semibold text-slate-200">Presentation</div>
+                        <div class="text-[10px] text-slate-500">Pitch decks & slides</div>
+                    </div>
+                </div>
+
+                <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1 mt-4 mb-1 flex items-center gap-2">
+                    <span>🏗️</span> Operations & Infrastructure
+                </div>
+
+                <div class="palette-item group flex items-center gap-3 p-2.5" draggable="true" data-type="land" data-label="Land & Facilities" data-icon="🏢">
+                    <span class="flex items-center justify-center w-9 h-9 bg-lime-500/10 border border-lime-500/20 text-lime-400 rounded-lg text-base group-hover:scale-110 transition-transform">🏢</span>
+                    <div>
+                        <div class="text-sm font-semibold text-slate-200">Land & Facilities</div>
+                        <div class="text-[10px] text-slate-500">Office & infrastructure</div>
+                    </div>
+                </div>
+
+                <div class="palette-item group flex items-center gap-3 p-2.5" draggable="true" data-type="timeline" data-label="Timeline & Milestones" data-icon="📅">
+                    <span class="flex items-center justify-center w-9 h-9 bg-sky-500/10 border border-sky-500/20 text-sky-400 rounded-lg text-base group-hover:scale-110 transition-transform">📅</span>
+                    <div>
+                        <div class="text-sm font-semibold text-slate-200">Timeline</div>
+                        <div class="text-[10px] text-slate-500">Milestones & dates</div>
+                    </div>
+                </div>
+
+                <div class="palette-item group flex items-center gap-3 p-2.5" draggable="true" data-type="security" data-label="Security & Compliance" data-icon="🔒">
+                    <span class="flex items-center justify-center w-9 h-9 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-base group-hover:scale-110 transition-transform">🔒</span>
+                    <div>
+                        <div class="text-sm font-semibold text-slate-200">Security</div>
+                        <div class="text-[10px] text-slate-500">Compliance & safety</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="flex-1 relative overflow-auto workspace-grid" id="canvas-container">
+            <svg id="connections-svg" class="absolute inset-0 pointer-events-none w-[4000px] h-[4000px] z-0">
+                <defs>
+                    <marker id="arrow" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+                        <path d="M 0 2 L 10 6 L 0 10 L 3 6 z" fill="#60a5fa" stroke="#3b82f6" stroke-width="1" stroke-linejoin="round"/>
+                    </marker>
+                </defs>
+            </svg>
+
+            <div id="canvas" class="absolute inset-0 w-[4000px] h-[4000px] z-10">
+                <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center text-slate-400 pointer-events-none h-[calc(100vh-80px)] w-[calc(100vw-360px)]">
+                    <div class="w-20 h-20 bg-slate-800/50 rounded-full shadow-2xl flex items-center justify-center text-4xl mb-4 border border-slate-700/50">📥</div>
+                    <h3 class="text-xl font-bold text-slate-300 mb-2">Build Your Sequence</h3>
+                    <p class="text-xs text-slate-500 max-w-xs text-center">Drag elements from the palette onto the canvas to begin routing your architecture.</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="details-modal" class="fixed inset-0 modal-backdrop flex items-center justify-center hidden z-50 transition-all opacity-0 duration-200">
+        <div class="modal-content rounded-2xl w-full max-w-md mx-4 overflow-hidden transform scale-95 transition-transform duration-200" id="modal-content">
+            <div class="px-6 py-4 border-b border-slate-800/80 bg-slate-800/40 flex justify-between items-center">
+                <div>
+                    <h3 id="modal-title" class="text-base font-bold text-slate-100 flex items-center gap-2">Configure Element</h3>
+                </div>
+                <div id="edit-timer" class="text-[10px] font-mono text-blue-400 bg-blue-900/40 px-2.5 py-1 rounded border border-blue-500/20">0s</div>
+            </div>
+            
+            <div class="p-6">
+                <div class="mb-4">
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Element Name</label>
+                    <input type="text" id="modal-label-input" class="w-full rounded-lg px-4 py-2.5 text-sm font-medium focus:outline-none" placeholder="Enter element name..." />
+                </div>
+
+                <div class="mb-2">
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Specifications</label>
+                    <textarea id="modal-desc-input" rows="4" class="w-full rounded-lg px-4 py-2.5 text-sm resize-none focus:outline-none" placeholder="Add responsibilities, properties, or steps..."></textarea>
+                </div>
+            </div>
+
+            <div class="px-6 py-4 bg-slate-900/80 border-t border-slate-800 flex justify-end gap-3">
+                <button onclick="closeModal()" class="px-5 py-2 text-sm font-semibold text-slate-300 hover:text-white transition">Cancel</button>
+                <button onclick="saveModalDetails()" class="btn-gradient px-6 py-2 text-white rounded-lg text-sm font-semibold">Save Node</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="success-modal" class="fixed inset-0 modal-backdrop flex items-center justify-center hidden z-50">
+        <div class="modal-content rounded-2xl p-8 text-center max-w-sm mx-4">
+            <div class="w-16 h-16 bg-emerald-500/10 text-emerald-400 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 border border-emerald-500/20">✓</div>
+            <h2 class="text-xl font-bold text-slate-100 mb-2">Sequence Exported</h2>
+            <p class="text-xs text-slate-400 mb-6">Your workflow JSON has been generated successfully.</p>
+            <button onclick="document.getElementById('success-modal').classList.add('hidden')" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-sm font-semibold transition">Close</button>
+        </div>
+    </div>
+
+    <script>
+        let workspaceItems = [];
+        let connections = []; 
+        let nextId = 1;
+        let activeModalItem = null; 
+        let linkingSourceId = null;
+        let pendingNodeData = null;
+        let draggedNodeId = null;
+        let dragOffsetX = 0;
+        let dragOffsetY = 0;
+
+        const sessionStartTime = Date.now();
+        let modalOpenTime = 0;
+        let activeEditInterval = null;
+
+        setInterval(() => {
+            const elapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
+            const hours = Math.floor(elapsed / 3600);
+            const minutes = Math.floor((elapsed % 3600) / 60);
+            const seconds = elapsed % 60;
+            document.getElementById('session-timer').textContent = `⏱ ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }, 1000);
+
+        document.addEventListener('dragstart', (e) => {
+            const item = e.target.closest('.palette-item');
+            if (item) {
+                e.dataTransfer.effectAllowed = 'copy';
+                e.dataTransfer.setData('type', item.dataset.type);
+                e.dataTransfer.setData('label', item.dataset.label);
+                e.dataTransfer.setData('icon', item.dataset.icon);
+            }
+        });
+
+        document.getElementById('canvas-container').addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+        });
+
+        document.getElementById('canvas-container').addEventListener('drop', (e) => {
+            e.preventDefault();
+            const type = e.dataTransfer.getData('type');
+            const label = e.dataTransfer.getData('label');
+            const icon = e.dataTransfer.getData('icon');
+            
+            if (type) {
+                const rect = document.getElementById('canvas-container').getBoundingClientRect();
+                const x = e.clientX - rect.left + document.getElementById('canvas-container').scrollLeft;
+                const y = e.clientY - rect.top + document.getElementById('canvas-container').scrollTop;
+                
+                pendingNodeData = { type, label, icon, x, y };
+                openNewNodeModal(label, icon);
+            }
+        });
+
+        function openNewNodeModal(label, icon) {
+            activeModalItem = null;
+            document.getElementById('modal-label-input').value = label;
+            document.getElementById('modal-desc-input').value = '';
+            document.getElementById('modal-title').innerHTML = `<span class="text-xl">${icon}</span> ${label}`;
+            
+            modalOpenTime = Date.now();
+            document.getElementById('details-modal').classList.remove('hidden');
+            setTimeout(() => {
+                document.getElementById('details-modal').classList.remove('opacity-0');
+                document.getElementById('modal-content').classList.remove('scale-95');
+            }, 10);
+            
+            activeEditInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - modalOpenTime) / 1000);
+                document.getElementById('edit-timer').textContent = elapsed + 's';
+            }, 100);
+
+            setTimeout(() => document.getElementById('modal-label-input').focus(), 100);
+        }
+
+        function renderWorkspace() {
+            const canvas = document.getElementById('canvas');
+            canvas.querySelectorAll('.workspace-node').forEach(node => node.remove());
+
+            const emptyState = document.getElementById('empty-state');
+            emptyState.style.display = workspaceItems.length > 0 ? 'none' : 'flex';
+
+            workspaceItems.forEach((item) => {
+                const node = document.createElement('div');
+                node.className = `workspace-node animate-pop`;
+                node.dataset.itemId = item.id;
+                node.style.left = item.x + 'px';
+                node.style.top = item.y + 'px';
+                
+                node.innerHTML = `
+                    <div class="p-4">
+                        <div class="flex items-center gap-3 mb-3 pb-2 border-b border-slate-700/50">
+                            <span class="flex items-center justify-center w-10 h-10 bg-slate-800/80 rounded-lg text-xl border border-slate-700/80 shadow-inner">${item.icon}</span>
+                            <div>
+                                <span class="text-sm font-bold text-slate-100 block tracking-wide">${item.label}</span>
+                                <span class="text-[10px] text-slate-400 uppercase tracking-widest">${item.type}</span>
+                            </div>
+                        </div>
+                        <div class="text-xs text-slate-300 mb-4 bg-slate-900/60 p-2.5 rounded-lg border border-slate-800/80 line-clamp-2 h-10 leading-relaxed">${item.description || '<em class="text-slate-600">No description provided</em>'}</div>
+                        <div class="flex gap-2">
+                            <button class="node-button flex-1 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 text-xs rounded-md border border-blue-500/20 transition-all" onclick="editItem(${item.id})">✏️ Edit</button>
+                            <button class="node-button flex-1 py-1.5 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 text-xs rounded-md border border-purple-500/20 transition-all" onclick="startLinking(${item.id})">🔗 Link</button>
+                            <button class="node-button px-2.5 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs rounded-md border border-rose-500/20 transition-all" onclick="deleteItem(${item.id})">✕</button>
+                        </div>
+                    </div>
+                `;
+                
+                node.addEventListener('mousedown', (e) => {
+                    if (e.target.closest('.node-button')) return;
+                    startDragNode(e, item.id);
+                });
+                
+                node.addEventListener('click', (e) => {
+                    if (e.target.closest('.node-button')) return;
+                    canvas.querySelectorAll('.workspace-node').forEach(n => n.classList.remove('selected'));
+                    node.classList.add('selected');
+                });
+                
+                canvas.appendChild(node);
+            });
+
+            renderConnections();
+        }
+
+        function startDragNode(e, itemId) {
+            draggedNodeId = itemId;
+            const rect = e.target.closest('.workspace-node').getBoundingClientRect();
+            dragOffsetX = e.clientX - rect.left;
+            dragOffsetY = e.clientY - rect.top;
+
+            document.addEventListener('mousemove', dragNode);
+            document.addEventListener('mouseup', stopDragNode);
+        }
+
+        function dragNode(e) {
+            if (!draggedNodeId) return;
+            const item = workspaceItems.find(i => i.id === draggedNodeId);
+            if (!item) return;
+
+            const containerRect = document.getElementById('canvas-container').getBoundingClientRect();
+            const scrollLeft = document.getElementById('canvas-container').scrollLeft;
+            const scrollTop = document.getElementById('canvas-container').scrollTop;
+            
+            item.x = Math.max(0, e.clientX - containerRect.left + scrollLeft - dragOffsetX);
+            item.y = Math.max(0, e.clientY - containerRect.top + scrollTop - dragOffsetY);
+
+            const node = document.querySelector(`[data-item-id="${draggedNodeId}"]`);
+            if (node) {
+                node.style.left = item.x + 'px';
+                node.style.top = item.y + 'px';
+                node.classList.add('dragging');
+                renderConnections();
+            }
+        }
+
+        function stopDragNode() {
+            const node = document.querySelector(`[data-item-id="${draggedNodeId}"]`);
+            if (node) node.classList.remove('dragging');
+            draggedNodeId = null;
+            document.removeEventListener('mousemove', dragNode);
+            document.removeEventListener('mouseup', stopDragNode);
+        }
+
+        function renderConnections() {
+    const svg = document.getElementById('connections-svg');
+    svg.querySelectorAll('path[data-connection]').forEach(path => path.remove());
+
+    const nodeWidth = 240;
+    const nodeHeight = 120; // Approx height
+
+    connections.forEach(conn => {
+        const fromItem = workspaceItems.find(i => i.id === conn.from);
+        const toItem = workspaceItems.find(i => i.id === conn.to);
+        
+        if (fromItem && toItem) {
+            // Get centers
+            const x1 = fromItem.x + nodeWidth / 2;
+            const y1 = fromItem.y + nodeHeight / 2;
+            const x2 = toItem.x + nodeWidth / 2;
+            const y2 = toItem.y + nodeHeight / 2;
+
+            // Determine relative direction
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+
+            // Anchor points (if node is to the right, exit right / enter left)
+            let startX, startY, endX, endY;
+
+            if (Math.abs(dx) > Math.abs(dy)) {
+                // Horizontal priority
+                startX = dx > 0 ? fromItem.x + nodeWidth : fromItem.x;
+                startY = fromItem.y + nodeHeight / 2;
+                endX = dx > 0 ? toItem.x : toItem.x + nodeWidth;
+                endY = toItem.y + nodeHeight / 2;
+            } else {
+                // Vertical priority
+                startX = fromItem.x + nodeWidth / 2;
+                startY = dy > 0 ? fromItem.y + nodeHeight : fromItem.y;
+                endX = toItem.x + nodeWidth / 2;
+                endY = dy > 0 ? toItem.y : toItem.y + nodeHeight;
+            }
+
+            // Create path with dynamic curvature
+            const tension = Math.min(Math.abs(dx) * 0.5, 100);
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            
+            // Draw S-curve
+            const d = `M ${startX} ${startY} C ${startX + (dx * 0.3)} ${startY + (dy * 0.1)}, ${endX - (dx * 0.3)} ${endY - (dy * 0.1)}, ${endX} ${endY}`;
+            
+            path.setAttribute('d', d);
+            path.setAttribute('stroke', '#60a5fa');
+            path.setAttribute('stroke-width', '3');
+            path.setAttribute('fill', 'none');
+            path.setAttribute('marker-end', 'url(#arrow)');
+            path.setAttribute('data-connection', 'true');
+            path.setAttribute('class', 'connection-path animated-connection');
+            path.setAttribute('stroke-linecap', 'round');
+            
+            svg.appendChild(path);
+        }
+    });
+}
+
+        function startLinking(id) {
+            linkingSourceId = id;
+            document.getElementById('linking-indicator').classList.remove('hidden');
+        }
+
+        function cancelLinking() {
+            linkingSourceId = null;
+            document.getElementById('linking-indicator').classList.add('hidden');
+        }
+
+        function editItem(id) {
+            activeModalItem = workspaceItems.find(i => i.id === id);
+            if (!activeModalItem) return;
+            
+            document.getElementById('modal-label-input').value = activeModalItem.label;
+            document.getElementById('modal-desc-input').value = activeModalItem.description;
+            document.getElementById('modal-title').innerHTML = `<span class="text-xl">${activeModalItem.icon}</span> Edit Node`;
+            
+            modalOpenTime = Date.now();
+            document.getElementById('details-modal').classList.remove('hidden');
+            setTimeout(() => {
+                document.getElementById('details-modal').classList.remove('opacity-0');
+                document.getElementById('modal-content').classList.remove('scale-95');
+            }, 10);
+            
+            activeEditInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - modalOpenTime) / 1000);
+                document.getElementById('edit-timer').textContent = elapsed + 's';
+            }, 100);
+        }
+
+        function closeModal() {
+            document.getElementById('details-modal').classList.add('opacity-0');
+            document.getElementById('modal-content').classList.add('scale-95');
+            setTimeout(() => document.getElementById('details-modal').classList.add('hidden'), 200);
+            if (activeEditInterval) clearInterval(activeEditInterval);
+            pendingNodeData = null;
+        }
+
+        function saveModalDetails() {
+            const labelVal = document.getElementById('modal-label-input').value.trim();
+            const descVal = document.getElementById('modal-desc-input').value.trim();
+            const sessionEditTime = (Date.now() - modalOpenTime) / 1000;
+
+            if (!labelVal) return alert('Please enter an element name');
+
+            if (activeModalItem) {
+                activeModalItem.label = labelVal;
+                activeModalItem.description = descVal;
+                activeModalItem.timeSpentEditing += sessionEditTime;
+            } else if (pendingNodeData) {
+                const item = {
+                    id: nextId++,
+                    type: pendingNodeData.type,
+                    label: labelVal,
+                    icon: pendingNodeData.icon,
+                    x: pendingNodeData.x,
+                    y: pendingNodeData.y,
+                    description: descVal,
+                    createdAt: Date.now(),
+                    timeSpentEditing: sessionEditTime
+                };
+                workspaceItems.push(item);
+            }
+
+            closeModal();
+            renderWorkspace();
+        }
+
+        function deleteItem(id) {
+            workspaceItems = workspaceItems.filter(item => item.id !== id);
+            connections = connections.filter(conn => conn.from !== id && conn.to !== id);
+            renderWorkspace();
+        }
+
+        function clearCanvas() {
+            if (confirm('Clear all elements from the canvas?')) {
+                workspaceItems = [];
+                connections = [];
+                renderWorkspace();
+            }
+        }
+
+        function completeProject() {
+            if (workspaceItems.length === 0) return alert('Add elements before exporting');
+            // Mock logic for export UI
+            document.getElementById('success-modal').classList.remove('hidden');
+        }
+
+        window.addEventListener('resize', renderConnections);
+
+        document.addEventListener('click', (e) => {
+            if (linkingSourceId && e.target.closest('.workspace-node')) {
+                const targetNode = e.target.closest('.workspace-node');
+                const targetId = parseInt(targetNode.dataset.itemId);
+                
+                if (targetId && targetId !== linkingSourceId) {
+                    if (!connections.some(c => c.from === linkingSourceId && c.to === targetId)) {
+                        connections.push({ from: linkingSourceId, to: targetId });
+                    }
+                    cancelLinking();
+                    renderWorkspace();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

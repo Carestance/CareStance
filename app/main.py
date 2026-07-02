@@ -9,7 +9,7 @@ import warnings
 from functools import lru_cache
 from types import SimpleNamespace
 from . import email_utils
-from .appwrite_client import databases, account, storage, DB_ID, COLLECTIONS
+from .appwrite_client import databases, tables_db, account, storage, DB_ID, COLLECTIONS
 from .appwrite_helper import get_user_by_id, get_user_by_email, update_assessment_simulation, sync_assessment_to_appwrite
 from dotenv import load_dotenv
 from starlette.middleware.sessions import SessionMiddleware
@@ -25,6 +25,10 @@ from sqlalchemy.orm import selectinload, joinedload
 from sqlalchemy import select, and_, or_, func
 from .database import AsyncSessionLocal, engine, get_db, Base, SQLALCHEMY_DATABASE_URL
 import re
+
+def sync_assessment_to_appwrite(user_id, result):
+    pass  # Appwrite sync disabled — local DB only
+
 from urllib.parse import urlparse
 from . import models
 from .email_utils import (
@@ -39,10 +43,17 @@ from .data.career_keywords import career_keywords
 from .utils.resource_aggregator import ResourceAggregator
 from .services import simulation_service
 from .services import assessment_engine
+
+try:
+    from app.pipeline.feature_extractor import FeatureExtractor
+    extractor_tool = FeatureExtractor()
+except Exception as e:
+    print(f"FeatureExtractor Load Error: {e}")
+    extractor_tool = None
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-RUN_MIGRATIONS_ON_STARTUP = os.getenv("RUN_MIGRATIONS_ON_STARTUP", "false").strip().lower() in ("1", "true", "yes")
+RUN_MIGRATIONS_ON_STARTUP = os.getenv("RUN_MIGRATIONS_ON_STARTUP", "true").strip().lower() in ("1", "true", "yes")
 ENABLE_CLEANUP_TASK = os.getenv("ENABLE_CLEANUP_TASK", "false").strip().lower() in ("1", "true", "yes")
 
 @lru_cache(maxsize=4)
@@ -96,7 +107,7 @@ from .utils.cache_utils import user_cache
 
 async def generate_content_with_fallback(prompt):
     """
-    Attempts to generate content using Gemini (Async) with high-tier fallback to Groq.
+    Attempts to generate content using Groq primarily, with fallback to Gemini.
     Uses Redis caching to avoid repetitive API calls.
     """
     # Check Cache
@@ -106,49 +117,71 @@ async def generate_content_with_fallback(prompt):
         return cached_response
 
     print("AI CACHE MISS")
-    try:
-        # Using 1.5 Flash latest for stability
-        model = get_gemini_model("gemini-1.5-flash-latest")
-        response = await model.generate_content_async(prompt)
-        text = response.text
-    except Exception as e:
-        print(f"DEBUG: Gemini API Error Type: {type(e)}")
-        print(f"Gemini Error (Switching to Groq): {e}")
-        gclient = get_groq_client()
-        if not gclient:
-            raise e
-
+    
+    # Try Groq first as requested
+    gclient = get_groq_client()
+    text = None
+    groq_err = None
+    if gclient:
         try:
-            # Fallback to high-reasoning Llama model
             chat_completion = await gclient.chat.completions.create(
                 messages=[{"role": "user", "content": prompt}],
                 model="llama-3.3-70b-versatile",
             )
             text = chat_completion.choices[0].message.content
-        except Exception as groq_e:
-            raise Exception(f"Dual API Failure. Gemini: {e}, Groq: {groq_e}")
+        except Exception as e:
+            groq_err = e
+            print(f"Groq Error (Switching to Gemini): {e}")
+    else:
+        print("Groq client not available. Falling back to Gemini.")
 
-    # Enhanced JSON Extraction Logic
+    if not text:
+        # Fallback to Gemini
+        try:
+            model = get_gemini_model("gemini-2.5-flash")
+            response = await model.generate_content_async(prompt)
+            text = response.text
+        except Exception as gemini_e:
+            raise Exception(f"Dual API Failure. Groq: {groq_err}, Gemini: {gemini_e}")
+
+    # --- Robust Multi-Layer JSON Repair ---
+    # Layer 1: Try json_repair (handles most LLM malformed JSON automatically)
     try:
-        # Remove potential markdown wrappers
-        text = re.sub(r'```json\s*|\s*```', '', text).strip()
-        # Find the first { and the last }
-        start_idx = text.find('{')
-        end_idx = text.rfind('}')
+        from json_repair import repair_json
+        # Strip markdown fences first
+        cleaned = re.sub(r'```json\s*|\s*```', '', text).strip()
+        # Extract the outermost JSON object
+        start_idx = cleaned.find('{')
+        end_idx = cleaned.rfind('}')
         if start_idx != -1 and end_idx != -1:
-            text = text[start_idx:end_idx + 1]
-        
-        # Clean trailing commas before closing braces/brackets
-        text = re.sub(r",\s*([\]}])", r"\1", text)
-        
-        # Save to Cache
-        ai_cache.set(prompt, text)
-        
-        return text
+            cleaned = cleaned[start_idx:end_idx + 1]
+        repaired = repair_json(cleaned, return_objects=False)
+        # Validate it round-trips as valid JSON
+        json.loads(repaired)
+        ai_cache.set(prompt, repaired)
+        return repaired
+    except Exception as repair_err:
+        print(f"json_repair failed, falling back to regex cleanup: {repair_err}")
+
+    # Layer 2: Regex-based cleanup (trailing commas, whitespace issues)
+    try:
+        cleaned = re.sub(r'```json\s*|\s*```', '', text).strip()
+        start_idx = cleaned.find('{')
+        end_idx = cleaned.rfind('}')
+        if start_idx != -1 and end_idx != -1:
+            cleaned = cleaned[start_idx:end_idx + 1]
+        # Remove trailing commas before } or ]
+        cleaned = re.sub(r",\s*([\]}])", r"\1", cleaned)
+        # Validate
+        json.loads(cleaned)
+        ai_cache.set(prompt, cleaned)
+        return cleaned
     except Exception:
-        # Still cache raw text if extraction fails partially
-        ai_cache.set(prompt, text)
-        return text
+        pass
+
+    # Layer 3: Return raw text as last resort (let caller handle it)
+    ai_cache.set(prompt, text)
+    return text
 
 async def check_content_moderation(text_content: str):
     """
@@ -173,9 +206,9 @@ async def check_content_moderation(text_content: str):
         print(f"Moderation Error: {e}")
         return False, "None"
 
-from data.questions_data import questions
-from data.questions_12th import questions_12th
-from data.questions_above_12th import questions_above_12th
+from .data.questions_data import questions
+from .data.questions_12th import questions_12th
+from .data.questions_above_12th import questions_above_12th
 
 # Auto-migrate: add missing columns to existing tables
 async def run_migrations():
@@ -197,7 +230,9 @@ async def run_migrations():
 
             # 1. Users table
             u_cols = get_columns('users')
-        if u_cols:
+            print(f"DEBUG MIGRATION: Found columns for 'users': {u_cols}", flush=True)
+            
+            # Always attempt to check/add these columns
             if 'profile_photo' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN profile_photo VARCHAR")
             if 'bio' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN bio TEXT")
             if 'is_suspended' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN is_suspended BOOLEAN DEFAULT FALSE")
@@ -208,109 +243,131 @@ async def run_migrations():
             if 'simulations_completed' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN simulations_completed INTEGER DEFAULT 0")
             if 'simulation_paid' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN simulation_paid BOOLEAN DEFAULT FALSE")
             if 'simulation_credits' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN simulation_credits INTEGER DEFAULT 0")
+            if 'created_at' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN created_at TIMESTAMP")
+            if 'last_login' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN last_login TIMESTAMP")
             migrations.append("CREATE INDEX IF NOT EXISTS ix_users_full_name ON users (full_name)")
             migrations.append("CREATE INDEX IF NOT EXISTS ix_users_onboarded ON users (onboarded)")
 
-        # 2. Counsellor Profiles
-        cp_cols = get_columns('counsellor_profiles')
-        if cp_cols:
-            checklist = [
-                ('tnc_accepted', "BOOLEAN DEFAULT FALSE"), ('tnc_accepted_at', "TIMESTAMP"),
-                ('is_blocked', "BOOLEAN DEFAULT FALSE"), ('block_reason', "VARCHAR"),
-                ('certificates', "TEXT"), ('experience', "TEXT"),
-                ('is_verified', "BOOLEAN DEFAULT FALSE"), ('verification_status', "VARCHAR DEFAULT 'pending'"),
-                ('fee_locked', "BOOLEAN DEFAULT FALSE"), ('razorpay_account_id', "VARCHAR"),
-                ('onboarding_status', "VARCHAR DEFAULT 'not_started'"), ('razorpay_contact_id', "VARCHAR"),
-                ('razorpay_fund_account_id', "VARCHAR"), ('average_rating', "FLOAT DEFAULT 5.0"),
-                ('rating_count', "INTEGER DEFAULT 0"), ('is_founding_counsellor', "BOOLEAN DEFAULT FALSE"),
-                ('founding_badge_awarded_at', "TIMESTAMP"), ('commission_free_until', "TIMESTAMP")
-            ]
-            for col, ty in checklist:
-                if col not in cp_cols: migrations.append(f"ALTER TABLE counsellor_profiles ADD COLUMN {col} {ty}")
+            # 2. Counsellor Profiles
+            cp_cols = get_columns('counsellor_profiles')
+            if cp_cols:
+                checklist = [
+                    ('tnc_accepted', "BOOLEAN DEFAULT FALSE"), ('tnc_accepted_at', "TIMESTAMP"),
+                    ('is_blocked', "BOOLEAN DEFAULT FALSE"), ('block_reason', "VARCHAR"),
+                    ('certificates', "TEXT"), ('experience', "TEXT"),
+                    ('is_verified', "BOOLEAN DEFAULT FALSE"), ('verification_status', "VARCHAR DEFAULT 'pending'"),
+                    ('fee_locked', "BOOLEAN DEFAULT FALSE"), ('razorpay_account_id', "VARCHAR"),
+                    ('onboarding_status', "VARCHAR DEFAULT 'not_started'"), ('razorpay_contact_id', "VARCHAR"),
+                    ('razorpay_fund_account_id', "VARCHAR"), ('average_rating', "FLOAT DEFAULT 5.0"),
+                    ('rating_count', "INTEGER DEFAULT 0"), ('is_founding_counsellor', "BOOLEAN DEFAULT FALSE"),
+                    ('founding_badge_awarded_at', "TIMESTAMP"), ('commission_free_until', "TIMESTAMP")
+                ]
+                for col, ty in checklist:
+                    if col not in cp_cols: migrations.append(f"ALTER TABLE counsellor_profiles ADD COLUMN {col} {ty}")
 
-        # 3. Appointments
-        ap_cols = get_columns('appointments')
-        if ap_cols:
-            for col, ty in [('counsellor_joined', 'BOOLEAN DEFAULT FALSE'), ('joined_at', 'TIMESTAMP'), 
-                           ('student_joined', 'BOOLEAN DEFAULT FALSE'), ('student_joined_at', 'TIMESTAMP'),
-                           ('actual_overlap_minutes', 'INTEGER DEFAULT 0'),
-                           ('cancelled_by', 'VARCHAR'), ('cancelled_by_role', 'VARCHAR')]:
-                if col not in ap_cols: migrations.append(f"ALTER TABLE appointments ADD COLUMN {col} {ty}")
-            migrations.append("CREATE INDEX IF NOT EXISTS ix_appointments_appointment_time ON appointments (appointment_time)")
-            migrations.append("CREATE INDEX IF NOT EXISTS ix_appointments_payment_status ON appointments (payment_status)")
-            migrations.append("CREATE INDEX IF NOT EXISTS ix_appointments_cancelled_by ON appointments (cancelled_by)")
-            migrations.append("CREATE INDEX IF NOT EXISTS ix_appointments_cancelled_by_role ON appointments (cancelled_by_role)")
-            migrations.append("CREATE INDEX IF NOT EXISTS ix_chat_messages_timestamp ON chat_messages (timestamp)")
-            migrations.append("CREATE INDEX IF NOT EXISTS ix_chat_messages_sender ON chat_messages (sender)")
-            migrations.append("CREATE INDEX IF NOT EXISTS ix_feedbacks_user_id ON feedbacks (user_id)")
+            # 3. Appointments
+            ap_cols = get_columns('appointments')
+            if ap_cols:
+                for col, ty in [('counsellor_joined', 'BOOLEAN DEFAULT FALSE'), ('joined_at', 'TIMESTAMP'), 
+                               ('student_joined', 'BOOLEAN DEFAULT FALSE'), ('student_joined_at', 'TIMESTAMP'),
+                               ('actual_overlap_minutes', 'INTEGER DEFAULT 0'),
+                               ('cancelled_by', 'VARCHAR'), ('cancelled_by_role', 'VARCHAR')]:
+                    if col not in ap_cols: migrations.append(f"ALTER TABLE appointments ADD COLUMN {col} {ty}")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_appointments_appointment_time ON appointments (appointment_time)")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_appointments_payment_status ON appointments (payment_status)")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_appointments_cancelled_by ON appointments (cancelled_by)")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_appointments_cancelled_by_role ON appointments (cancelled_by_role)")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_chat_messages_timestamp ON chat_messages (timestamp)")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_chat_messages_sender ON chat_messages (sender)")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_feedbacks_user_id ON feedbacks (user_id)")
 
-        # 4. Student Messages
-        sm_cols = get_columns('student_messages')
-        if sm_cols:
-            if 'attachment_path' not in sm_cols: migrations.append("ALTER TABLE student_messages ADD COLUMN attachment_path VARCHAR")
-            if 'attachment_type' not in sm_cols: migrations.append("ALTER TABLE student_messages ADD COLUMN attachment_type VARCHAR")
-            migrations.append("CREATE INDEX IF NOT EXISTS ix_student_messages_timestamp ON student_messages (timestamp)")
-            migrations.append("CREATE INDEX IF NOT EXISTS ix_student_messages_is_read ON student_messages (is_read)")
-            migrations.append("CREATE INDEX IF NOT EXISTS ix_career_paths_career_title ON career_paths (career_title)")
-            migrations.append("CREATE INDEX IF NOT EXISTS ix_college_recommendations_career_title ON college_recommendations (career_title)")
-            migrations.append("CREATE INDEX IF NOT EXISTS ix_counsellor_ratings_rating ON counsellor_ratings (rating)")
+            # 4. Student Messages
+            sm_cols = get_columns('student_messages')
+            if sm_cols:
+                if 'attachment_path' not in sm_cols: migrations.append("ALTER TABLE student_messages ADD COLUMN attachment_path VARCHAR")
+                if 'attachment_type' not in sm_cols: migrations.append("ALTER TABLE student_messages ADD COLUMN attachment_type VARCHAR")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_student_messages_timestamp ON student_messages (timestamp)")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_student_messages_is_read ON student_messages (is_read)")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_career_paths_career_title ON career_paths (career_title)")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_college_recommendations_career_title ON college_recommendations (career_title)")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_counsellor_ratings_rating ON counsellor_ratings (rating)")
 
-        # 5. Assessment Results
-        ar_cols = get_columns('assessment_results')
-        if ar_cols:
-            for col, ty in [('selected_class', 'VARCHAR'), ('phase3_result', 'VARCHAR'), 
-                           ('phase3_answers', 'JSON'), ('phase3_analysis', 'TEXT'),
-                           ('final_answers', 'JSON'), ('stream_scores', 'JSON'),
-                           ('recommended_stream', 'VARCHAR'), ('final_analysis', 'TEXT'),
-                           ('stream_pros', 'JSON'), ('stream_cons', 'JSON'),
-                           ('simulation_career', 'VARCHAR'), ('simulation_questions', 'JSON'),
-                           ('simulation_answers', 'JSON'), ('simulation_evaluation', 'JSON'),
-                           ('simulations_completed', 'INTEGER DEFAULT 0'), ('simulation_paid', 'BOOLEAN DEFAULT FALSE'),
-                           ('simulation_credits', 'INTEGER DEFAULT 0'),
-                           ('student_type', "VARCHAR DEFAULT '10th'"), ('current_phase', 'INTEGER DEFAULT 1'),
-                           ('intake_turn', 'INTEGER DEFAULT 1'), ('intake_name', 'VARCHAR'),
-                           ('intake_grade', 'INTEGER'), ('intake_stream', 'VARCHAR'),
-                           ('telemetry_logs', 'JSON'),
-                           ('chat_messages', 'JSON'), ('chat_turn', 'INTEGER DEFAULT 0'),
-                           ('proxy_answers', 'JSON'), ('scenario_answers', 'JSON'),
-                           ('assessment_report', 'JSON')]:
-                if col not in ar_cols: migrations.append(f"ALTER TABLE assessment_results ADD COLUMN {col} {ty}")
-            migrations.append("CREATE INDEX IF NOT EXISTS ix_assessment_results_recommended_stream ON assessment_results (recommended_stream)")
-            migrations.append("CREATE INDEX IF NOT EXISTS ix_assessment_results_phase_2_category ON assessment_results (phase_2_category)")
-            migrations.append("CREATE INDEX IF NOT EXISTS ix_assessment_results_personality ON assessment_results (personality)")
-            migrations.append("CREATE INDEX IF NOT EXISTS ix_assessment_results_selected_class ON assessment_results (selected_class)")
-            
-        # 6. Notifications
-        n_cols = get_columns('notifications')
-        if n_cols:
-            migrations.append("CREATE INDEX IF NOT EXISTS ix_notifications_created_at ON notifications (created_at)")
-            migrations.append("CREATE INDEX IF NOT EXISTS ix_notifications_is_read ON notifications (is_read)")
+            # 5. Assessment Results
+            ar_cols = get_columns('assessment_results')
+            if ar_cols:
+                for col, ty in [('selected_class', 'VARCHAR'), ('phase3_result', 'VARCHAR'), 
+                               ('phase3_answers', 'JSON'), ('phase3_analysis', 'TEXT'),
+                               ('final_answers', 'JSON'), ('stream_scores', 'JSON'),
+                               ('recommended_stream', 'VARCHAR'), ('final_analysis', 'TEXT'),
+                               ('stream_pros', 'JSON'), ('stream_cons', 'JSON'),
+                               ('simulation_career', 'VARCHAR'), ('simulation_questions', 'JSON'),
+                               ('simulation_answers', 'JSON'), ('simulation_evaluation', 'JSON'),
+                               ('simulations_completed', 'INTEGER DEFAULT 0'), ('simulation_paid', 'BOOLEAN DEFAULT FALSE'),
+                               ('simulation_credits', 'INTEGER DEFAULT 0'),
+                               ('student_type', "VARCHAR DEFAULT '10th'"), ('current_phase', 'INTEGER DEFAULT 1'),
+                               ('intake_turn', 'INTEGER DEFAULT 1'), ('intake_name', 'VARCHAR'),
+                               ('intake_grade', 'INTEGER'), ('intake_stream', 'VARCHAR'),
+                               ('telemetry_logs', 'JSON'),
+                               ('chat_messages', 'JSON'), ('chat_turn', 'INTEGER DEFAULT 0'),
+                               ('proxy_answers', 'JSON'), ('scenario_answers', 'JSON'),
+                               ('assessment_report', 'JSON')]:
+                    if col not in ar_cols: migrations.append(f"ALTER TABLE assessment_results ADD COLUMN {col} {ty}")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_assessment_results_recommended_stream ON assessment_results (recommended_stream)")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_assessment_results_phase_2_category ON assessment_results (phase_2_category)")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_assessment_results_personality ON assessment_results (personality)")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_assessment_results_selected_class ON assessment_results (selected_class)")
+                
+            # 6. Notifications
+            n_cols = get_columns('notifications')
+            if n_cols:
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_notifications_created_at ON notifications (created_at)")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_notifications_is_read ON notifications (is_read)")
 
-        # 7. Simulation Payments
-        sp_cols = get_columns('simulation_payments')
-        if sp_cols is None:
-            migrations.append("""
-            CREATE TABLE simulation_payments (
-                id SERIAL PRIMARY KEY,
-                user_id INTEGER REFERENCES users(id),
-                razorpay_order_id VARCHAR,
-                razorpay_payment_id VARCHAR,
-                amount FLOAT,
-                career VARCHAR,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-            """)
+            # 7. Simulation Payments
+            sp_cols = get_columns('simulation_payments')
+            if sp_cols is None:
+                migrations.append("""
+                CREATE TABLE simulation_payments (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER REFERENCES users(id),
+                    razorpay_order_id VARCHAR,
+                    razorpay_payment_id VARCHAR,
+                    amount FLOAT,
+                    career VARCHAR,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+                """)
+
+            # 8. Moderation Flags
+            mf_cols = get_columns('moderation_flags')
+            if mf_cols:
+                for col, ty in [('flag_type', 'VARCHAR'), ('severity', 'VARCHAR'), ('admin_note', 'TEXT')]:
+                    if col not in mf_cols: migrations.append(f"ALTER TABLE moderation_flags ADD COLUMN {col} {ty}")
+
+            # 9. Tickets
+            t_cols = get_columns('tickets')
+            if t_cols:
+                if 'updated_at' not in t_cols: migrations.append("ALTER TABLE tickets ADD COLUMN updated_at TIMESTAMP")
+
+            # 10. Simulation Payments
+            sp_cols2 = get_columns('simulation_payments')
+            if sp_cols2:
+                if 'status' not in sp_cols2: migrations.append("ALTER TABLE simulation_payments ADD COLUMN status VARCHAR DEFAULT 'success'")
+
+            # 11. Counsellor Profiles
+            if cp_cols:
+                if 'verification_remarks' not in cp_cols: migrations.append("ALTER TABLE counsellor_profiles ADD COLUMN verification_remarks TEXT")
 
         if migrations:
             print(f"DEBUG: Found {len(migrations)} pending migrations.", flush=True)
-            with engine.connect() as conn:
+            async with engine.begin() as conn:
                 for sql in migrations:
                     try:
-                        conn.execute(text(sql))
+                        from sqlalchemy import text
+                        await conn.execute(text(sql))
                         print(f"DATABASE MIGRATION SUCCESS: {sql}", flush=True)
                     except Exception as me:
                         print(f"DATABASE MIGRATION SKIP/ERROR: {sql} -> {me}", flush=True)
-                conn.commit()
             print(f"DATABASE: Finished running {len(migrations)} migration queries.", flush=True)
         else:
             print("DATABASE: No new migrations detected.", flush=True)
@@ -318,6 +375,7 @@ async def run_migrations():
         print(f"DATABASE FATAL ERROR during migration check: {e}", flush=True)
         import traceback
         traceback.print_exc()
+
 
 app = FastAPI(title="CareStance")
 
@@ -337,6 +395,51 @@ async def _health():
 async def startup_event():
     """Run migrations on startup for local development and when explicitly enabled."""
     try:
+        # EMERGENCY FIX: Force add missing columns to 'users' table in ONE batch
+        async with engine.begin() as conn:
+            from sqlalchemy import text
+            try:
+                # Grouping into one command is much faster and prevents startup timeouts
+                # Note: IF NOT EXISTS is used for each column for safety
+                sql = """
+                ALTER TABLE users 
+                ADD COLUMN IF NOT EXISTS profile_photo VARCHAR,
+                ADD COLUMN IF NOT EXISTS bio TEXT,
+                ADD COLUMN IF NOT EXISTS is_suspended BOOLEAN DEFAULT FALSE,
+                ADD COLUMN IF NOT EXISTS contact_number VARCHAR,
+                ADD COLUMN IF NOT EXISTS full_name VARCHAR,
+                ADD COLUMN IF NOT EXISTS role VARCHAR,
+                ADD COLUMN IF NOT EXISTS onboarded BOOLEAN DEFAULT FALSE,
+                ADD COLUMN IF NOT EXISTS simulations_completed INTEGER DEFAULT 0,
+                ADD COLUMN IF NOT EXISTS simulation_paid BOOLEAN DEFAULT FALSE,
+                ADD COLUMN IF NOT EXISTS simulation_credits INTEGER DEFAULT 0,
+                ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW(),
+                ADD COLUMN IF NOT EXISTS last_login TIMESTAMP;
+                """
+                await conn.execute(text(sql))
+                print("DEBUG: Emergency batch migration for 'users' table completed.", flush=True)
+                # 2. Counsellor Profiles table
+                sql_cp = """
+                ALTER TABLE counsellor_profiles 
+                ADD COLUMN IF NOT EXISTS is_blocked BOOLEAN DEFAULT FALSE,
+                ADD COLUMN IF NOT EXISTS block_reason VARCHAR,
+                ADD COLUMN IF NOT EXISTS verification_remarks TEXT,
+                ADD COLUMN IF NOT EXISTS fee_locked BOOLEAN DEFAULT FALSE,
+                ADD COLUMN IF NOT EXISTS razorpay_account_id VARCHAR,
+                ADD COLUMN IF NOT EXISTS onboarding_status VARCHAR DEFAULT 'not_started',
+                ADD COLUMN IF NOT EXISTS razorpay_contact_id VARCHAR,
+                ADD COLUMN IF NOT EXISTS razorpay_fund_account_id VARCHAR,
+                ADD COLUMN IF NOT EXISTS is_founding_counsellor BOOLEAN DEFAULT FALSE,
+                ADD COLUMN IF NOT EXISTS founding_badge_awarded_at TIMESTAMP,
+                ADD COLUMN IF NOT EXISTS commission_free_until TIMESTAMP,
+                ADD COLUMN IF NOT EXISTS tnc_accepted BOOLEAN DEFAULT FALSE,
+                ADD COLUMN IF NOT EXISTS tnc_accepted_at TIMESTAMP;
+                """
+                await conn.execute(text(sql_cp))
+                print("DEBUG: Emergency batch migration for 'counsellor_profiles' table completed.", flush=True)
+            except Exception as e:
+                print(f"DEBUG: Emergency batch migration failed (likely already patched): {e}", flush=True)
+
         if RUN_MIGRATIONS_ON_STARTUP or SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
             # Create all tables asynchronously and run any schema migrations
             async with engine.begin() as conn:
@@ -412,6 +515,9 @@ async def shutdown_event():
 # ─── Include Split Payments Router (Razorpay Route) ───────────────────────────
 from .routes.payments import router as payments_router
 app.include_router(payments_router)
+
+from .routes import admin
+app.include_router(admin.router)
 
 # Global Exception Handler for better debugging
 @app.exception_handler(Exception)
@@ -525,8 +631,13 @@ app.add_middleware(
 async def add_cache_control_header(request: Request, call_next):
     response = await call_next(request)
     if request.url.path.startswith("/static"):
-        # Cache static assets for 1 year (Standard practice for immutable assets)
-        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        # Reduced cache to 1 hour to ensure updates propagate more reliably
+        response.headers["Cache-Control"] = "public, max-age=3600"
+    else:
+        # Prevent caching of dynamic HTML/API content to ensure users always see latest push
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
     return response
 
 
@@ -630,6 +741,15 @@ async def ads_txt():
         return FileResponse(ads_path)
     return Response(content="File not found", status_code=404)
 
+@app.get("/BingSiteAuth.xml")
+async def bing_site_auth():
+    # Bing verification file in the project root
+    bing_path = os.path.join(ROOT_DIR, "BingSiteAuth.xml")
+    if os.path.exists(bing_path):
+        from fastapi.responses import FileResponse
+        return FileResponse(bing_path)
+    return Response(content="File not found", status_code=404)
+
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
@@ -673,22 +793,26 @@ async def articles_page(request: Request, db: AsyncSession = Depends(get_db)):
         return HTMLResponse(content=f"Template Error: {e}<br><pre>{traceback.format_exc()}</pre>", status_code=500)
 
 @app.get("/robots.txt")
-async def robots_txt():
-    content = "User-agent: *\nAllow: /\nSitemap: https://carestance.me/sitemap.xml"
+async def robots_txt(request: Request):
+    host = request.url.hostname or "carestance.in"
+    content = f"User-agent: *\nAllow: /\nSitemap: https://{host}/sitemap.xml"
     return Response(content=content, media_type="text/plain")
 
 @app.get("/sitemap.xml")
-async def sitemap_xml():
+async def sitemap_xml(request: Request):
     # Simple static sitemap for now
-    content = """<?xml version="1.0" encoding="UTF-8"?>
+    host = request.url.hostname or "carestance.in"
+    scheme = request.url.scheme or "https"
+    base_url = f"{scheme}://{host}"
+    content = f"""<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://carestance.me/</loc><priority>1.0</priority></url>
-  <url><loc>https://carestance.me/signup</loc><priority>0.8</priority></url>
-  <url><loc>https://carestance.me/login</loc><priority>0.8</priority></url>
-  <url><loc>https://carestance.me/founders</loc><priority>0.7</priority></url>
-  <url><loc>https://carestance.me/articles</loc><priority>0.9</priority></url>
-  <url><loc>https://carestance.me/privacy</loc><priority>0.5</priority></url>
-  <url><loc>https://carestance.me/terms</loc><priority>0.5</priority></url>
+  <url><loc>{base_url}/</loc><priority>1.0</priority></url>
+  <url><loc>{base_url}/signup</loc><priority>0.8</priority></url>
+  <url><loc>{base_url}/login</loc><priority>0.8</priority></url>
+  <url><loc>{base_url}/founders</loc><priority>0.7</priority></url>
+  <url><loc>{base_url}/articles</loc><priority>0.9</priority></url>
+  <url><loc>{base_url}/privacy</loc><priority>0.5</priority></url>
+  <url><loc>{base_url}/terms</loc><priority>0.5</priority></url>
 </urlset>"""
     return Response(content=content, media_type="application/xml")
 
@@ -761,10 +885,10 @@ async def signup(
         
         # 4. Create User Metadata in Appwrite DB
         try:
-            databases.create_document(
+            tables_db.create_row(
                 database_id=DB_ID,
-                collection_id=COLLECTIONS["users"],
-                document_id=user_id,
+                table_id=COLLECTIONS["users"],
+                row_id=user_id,
                 data={
                     "email": email,
                     "full_name": full_name,
@@ -1011,17 +1135,12 @@ async def auth_callback(request: Request, db: AsyncSession = Depends(get_db)):
     try:
         try:
             redirect_uri = get_oauth_redirect_uri(request)
-            try:
-                # Try calling without explicit redirect_uri to let Authlib load it from session state
-                token = await oauth.google.authorize_access_token(request)
-            except Exception as inner_e:
-                print(f"DEBUG: Authlib direct authorize_access_token failed: {inner_e}. Retrying with explicit redirect_uri.")
-                token = await oauth.google.authorize_access_token(request, redirect_uri=redirect_uri)
+            token = await oauth.google.authorize_access_token(request)
         except Exception as e:
             import traceback
-            print(f"OAuth Token Exchange Error: {e}")
+            print(f"OAuth Token Exchange Fatal Error: {e}")
             traceback.print_exc()
-            error_msg = str(e).replace(" ", "+")[:200]
+            error_msg = f"Token+Exchange+Failed:+{str(e).replace(' ', '+')}"[:200]
             return RedirectResponse(url=f'/login?error={error_msg}', status_code=status.HTTP_302_FOUND)
         
         user_info = token.get('userinfo')
@@ -1241,7 +1360,13 @@ async def assessment_page(request: Request, db: AsyncSession = Depends(get_db)):
     if not result:
         return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
         
-    return templates.TemplateResponse(request=request, name="assessment.html", context={"user": user, "result": result})
+    phase1_inputs = {}
+    phase1_path = os.path.join(os.path.dirname(__file__), "assessment_data", "phase1_inputs.json")
+    if os.path.exists(phase1_path):
+        with open(phase1_path, "r", encoding="utf-8") as f:
+            phase1_inputs = json.load(f)
+            
+    return templates.TemplateResponse(request=request, name="assessment.html", context={"user": user, "result": result, "phase1_inputs": phase1_inputs})
 
 # --- Assessment API Router for Multi-Phase Flow ---
 
@@ -1280,12 +1405,13 @@ async def assessment_api_intake(request: Request, payload: dict, db: AsyncSessio
     if "name" in payload and "pursuing" in payload and "interests" in payload:
         name = payload.get("name", "").strip()
         pursuing = payload.get("pursuing", "").strip()
-        interests = payload.get("interests", "").strip()
-        try:
-            parent_income = float(payload.get("parent_income", 0))
-        except (ValueError, TypeError):
-            raise HTTPException(status_code=400, detail="Invalid parent income type")
-        parent_occupation = payload.get("parent_occupation", "").strip()
+        interests = payload.get("interests", "")
+        if isinstance(interests, list):
+            interests = ", ".join(interests)
+        salary_priority = payload.get("salary_priority", "").strip()
+        family_income = payload.get("family_income", "").strip()
+        father_occupation = payload.get("father_occupation", "").strip()
+        mother_occupation = payload.get("mother_occupation", "").strip()
         
         # Validations
         if not name or len(name) < 2:
@@ -1294,10 +1420,12 @@ async def assessment_api_intake(request: Request, payload: dict, db: AsyncSessio
             raise HTTPException(status_code=400, detail="Invalid pursuing status")
         if not interests or len(interests) < 2:
             raise HTTPException(status_code=400, detail="Invalid interests")
-        if parent_income <= 0:
-            raise HTTPException(status_code=400, detail="Invalid parent income value")
-        if not parent_occupation or len(parent_occupation) < 2:
-            raise HTTPException(status_code=400, detail="Invalid parent occupation")
+        if not family_income:
+            raise HTTPException(status_code=400, detail="Invalid family income")
+        if not father_occupation or not mother_occupation:
+            raise HTTPException(status_code=400, detail="Invalid parent occupations")
+        if not salary_priority or salary_priority not in ["high_salary", "balanced", "meaningful_work", "unsure"]:
+            raise HTTPException(status_code=400, detail="Invalid salary priority")
             
         result.intake_name = name
         result.intake_grade = 12
@@ -1306,8 +1434,10 @@ async def assessment_api_intake(request: Request, payload: dict, db: AsyncSessio
             "name": name,
             "pursuing": pursuing,
             "interests": interests,
-            "parent_income": parent_income,
-            "parent_occupation": parent_occupation
+            "family_income": family_income,
+            "father_occupation": father_occupation,
+            "mother_occupation": mother_occupation,
+            "salary_priority": salary_priority
         }
         result.intake_turn = 3
         result.current_phase = 1
@@ -1381,38 +1511,99 @@ async def assessment_api_intake(request: Request, payload: dict, db: AsyncSessio
     sync_assessment_to_appwrite(user.id, result)
     return {"status": "success", "content": response_text, "is_complete": is_complete, "payload": validation_payload}
 
+@app.post("/assessment/api/archetype_confirm")
+async def assessment_api_archetype_confirm(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user: raise HTTPException(status_code=401)
+    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+    if not result: raise HTTPException(status_code=404)
+    
+    result.current_phase = 3
+    await db.commit()
+    return {"status": "success", "next_phase": 3}
+
+@app.post("/assessment/api/phase4_complete")
+async def assessment_api_phase4_complete(request: Request, payload: dict, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user: raise HTTPException(status_code=401)
+    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+    if not result: raise HTTPException(status_code=404)
+    
+    # Payload contains text/workflow from sequence planner
+    result.raw_answers["phase4_planner"] = payload
+    
+    # Process text for vector multipliers
+    if extractor_tool and "workflow" in payload:
+        descriptions = [item.get("description", "") for item in payload.get("workflow", [])]
+        combined_text = " ".join(descriptions)
+        
+        if combined_text.strip():
+            extracted_scores = extractor_tool.extract(combined_text)
+            
+            # Blend with existing vector
+            current_vector = {}
+            if result.personality:
+                try:
+                    current_vector = json.loads(result.personality)
+                except:
+                    current_vector = {}
+            
+            # Update vector (Blending 70-30 for new text insights)
+            for feature, score in extracted_scores.items():
+                old_val = current_vector.get(feature, 0.5)
+                current_vector[feature] = round((old_val * 0.7) + (score * 0.3), 4)
+            
+            result.personality = json.dumps(current_vector)
+
+    result.current_phase = 5 # Compile Phase
+    await db.commit()
+    return {"status": "success", "next_phase": 5}
+
 @app.get("/assessment/api/questions")
 async def assessment_api_questions(request: Request, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
-        
-    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
-    if not result:
-        raise HTTPException(status_code=404, detail="Assessment not found")
-        
-    student_type = result.student_type or "10th"
-    phase = result.current_phase or 0
-    
-    data = assessment_engine.load_grade_data(student_type)
     
     if phase == 0 and student_type == "12th":
         return {"message": "Hello! I'm Alex, your career mentor. Let's start with your name. What's your name?"}
+
     elif phase == 1:
-        import random
-        cards = data.get("cards", [])
+        # Phase 2 (User Term): Swipe Cards
+        from .pipeline.vector_utils import load_cards
+        cards = load_cards(student_type)
         shuffled = list(cards)
+        import random
         random.seed(result.id or 42)
         random.shuffle(shuffled)
-        return {"cards": shuffled[:10]}
+        return {"cards": shuffled[:12]} # Increased to 12
+
     elif phase == 2:
-        return {"chat_messages": result.chat_messages or [], "chat_turn": result.chat_turn or 0}
+        # Archetype Display State
+        from .pipeline.vector_utils import classify_archetype
+        archetype = classify_archetype(vector)
+        return {
+            "archetype": archetype,
+            "vector": vector,
+            "message": "Based on your reflexes, we've identified your primary cognitive archetype."
+        }
+
     elif phase == 3:
-        return {"proxy_questions": data.get("proxy_questions", [])}
+        # Phase 3 (User Term): Personalized MCQs
+        from .pipeline.vector_utils import load_json, select_top_questions
+        all_mcqs = load_json("phase3_mcqs.json")
+        top_qs = select_top_questions(vector, all_mcqs, limit=8)
+        return {"proxy_questions": top_qs}
+
     elif phase == 4:
-        return {"scenarios": data.get("scenarios", [])}
+        # Phase 4 (User Term): Enhanced Sequence Planner
+        from .pipeline.vector_utils import classify_archetype, select_phase4_task
+        archetype = classify_archetype(vector)
+        task_data = select_phase4_task(student_type, archetype)
+        return {"task": task_data}
     else:
         return {"status": "phase_not_applicable"}
+      
 
 @app.post("/assessment/api/swipe")
 async def assessment_api_swipe(request: Request, payload: dict, db: AsyncSession = Depends(get_db)):
@@ -1420,9 +1611,8 @@ async def assessment_api_swipe(request: Request, payload: dict, db: AsyncSession
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
         
-    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
-    if not result:
-        raise HTTPException(status_code=404, detail="Assessment not found")
+    if len(mcqs) > 12:
+        mcqs = random.sample(mcqs, 12)
         
     swipes = payload.get("swipes", [])
     result.telemetry_logs = swipes
@@ -1434,9 +1624,12 @@ async def assessment_api_swipe(request: Request, payload: dict, db: AsyncSession
     
     result.current_phase = 2
     await db.commit()
-    sync_assessment_to_appwrite(user.id, result)
+    # Archetype calculate for logs
+    from .pipeline.vector_utils import classify_archetype
+    arch = classify_archetype(metrics.get("latent_profile", {}))
     
-    return {"status": "success", "next_phase": 2}
+    sync_assessment_to_appwrite(user.id, result)
+    return {"status": "success", "next_phase": 2, "archetype": arch}
 
 @app.post("/assessment/api/chat")
 async def assessment_api_chat(request: Request, payload: dict, db: AsyncSession = Depends(get_db)):
@@ -1492,37 +1685,52 @@ async def assessment_api_chat(request: Request, payload: dict, db: AsyncSession 
         
         return {"status": "success", "message": next_q, "chat_turn": next_turn, "phase_complete": False}
 
-@app.post("/assessment/api/proxy")
-async def assessment_api_proxy(request: Request, payload: dict, db: AsyncSession = Depends(get_db)):
-    user = await get_current_user(request, db)
-    if not user:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-        
-    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
-    if not result:
-        raise HTTPException(status_code=404, detail="Assessment not found")
-        
-    answers = payload.get("answers", [])
-    result.proxy_answers = answers
-    
-    result.current_phase = 4
-    await db.commit()
-    sync_assessment_to_appwrite(user.id, result)
-    return {"status": "success", "next_phase": 4}
 
-@app.post("/assessment/api/scenarios")
-async def assessment_api_scenarios(request: Request, payload: dict, db: AsyncSession = Depends(get_db)):
+@app.get("/assessment/api/phase2_mcqs")
+async def get_phase2_mcqs(request: Request, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
-        
+    
+    import json
+    import os
+    mcqs_path = os.path.join(os.path.dirname(__file__), "assessment_data", "phase2_mcqs.json")
+    if os.path.exists(mcqs_path):
+        with open(mcqs_path, "r", encoding="utf-8") as f:
+            mcqs = json.load(f)
+        return {"status": "success", "mcqs": mcqs}
+    return {"status": "error", "detail": "Questions not found"}
+
+@app.post("/assessment/api/phase2/submit")
+async def submit_phase2_mcqs(request: Request, payload: dict, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    
     result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
     if not result:
-        raise HTTPException(status_code=404, detail="Assessment not found")
-        
+        raise HTTPException(status_code=404, detail="Not found")
+    
     answers = payload.get("answers", [])
-    result.scenario_answers = answers
-    result.current_phase = 5
+    if not isinstance(result.raw_answers, dict):
+        result.raw_answers = {}
+        
+    # Create a new dict to ensure SQLAlchemy detects the change
+    raw = dict(result.raw_answers)
+    raw["phase2"] = answers
+    result.raw_answers = raw
+    
+    # Calculate Phase 2 scores using new logic
+    try:
+        from app.pipeline.archetype_scoring import calculate_phase2_scores, get_archetype_label
+        phase2_scores = calculate_phase2_scores(answers)
+        if phase2_scores:
+            top_arc = max(phase2_scores.items(), key=lambda x: x[1])[0]
+            result.phase_2_category = get_archetype_label(top_arc)
+    except Exception as e:
+        print(f"Failed to calculate phase 2 score: {e}")
+        
+    result.current_phase = 2
     await db.commit()
     sync_assessment_to_appwrite(user.id, result)
     
@@ -1533,156 +1741,165 @@ async def assessment_api_compile(request: Request, db: AsyncSession = Depends(ge
     user = await get_current_user(request, db)
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
-        
+
     result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
     if not result:
         raise HTTPException(status_code=404, detail="Assessment not found")
-        
+
     student_type = result.student_type or "10th"
-    
+
     try:
-        # Retrieve logs and calculate telemetry metrics
-        swipes = result.telemetry_logs or []
-        telemetry_metrics = assessment_engine.calculate_telemetry_metrics(swipes, student_type)
-        latent_profile = telemetry_metrics.get("latent_profile", {})
-        
-        # Retrieve messages to compute RIASEC vector
-        chat_history = result.chat_messages or []
-        riasec = assessment_engine.extract_riasec_vector(chat_history)
-        
-        # Retrieve proxies and build feasibility
-        proxies = result.proxy_answers or []
-        feasibility = {}
-        grade_data = assessment_engine.load_grade_data(student_type)
-        q_map = {q["id"]: q for q in grade_data.get("proxy_questions", [])}
-        
-        for p in proxies:
-            qid = p.get("question_id") or p.get("id")
-            if not qid: continue
-            
-            if "multiplier" in p:
-                mult = p["multiplier"]
-            else:
-                answer_text = p.get("answer")
-                mult = 1.0
-                if qid in q_map:
-                    for opt in q_map[qid].get("options", []):
-                        if opt.get("text") == answer_text or opt.get("option_text") == answer_text:
-                            mult = opt.get("multiplier", 1.0)
-                            break
-            
-            target = q_map.get(qid, {}).get("proxy_target", "Geographic_Mobility")
-            feasibility[target] = mult
-            
-        # Retrieve scenarios and compute identity
-        scenarios = result.scenario_answers or []
-        s_map = {s["id"]: s for s in grade_data.get("scenarios", [])}
-        x_scores = []
-        y_scores = []
-        for ans in scenarios:
-            sid = ans.get("scenario_id") or ans.get("id")
-            if not sid: continue
-            
-            if "x_score" in ans:
-                x_scores.append(ans["x_score"])
-                y_scores.append(ans["y_score"])
-            else:
-                selected_tag = ans.get("selected_tag") or ans.get("selected_label")
-                selected_idx = ans.get("selected_option_index")
-                if sid in s_map:
-                    opts = s_map[sid].get("options", [])
-                    chosen_opt = None
-                    if selected_idx is not None and 0 <= selected_idx < len(opts):
-                        chosen_opt = opts[selected_idx]
-                    elif selected_tag:
-                        for opt in opts:
-                            if opt.get("label") == selected_tag or opt.get("text") == selected_tag:
-                                chosen_opt = opt
-                                break
-                    if chosen_opt:
-                        mapping = chosen_opt.get("mapping", {})
-                        x_scores.append(mapping.get("x", 0.5))
-                        y_scores.append(mapping.get("y", 0.5))
-                        
-        identity = {
-            "x": sum(x_scores)/len(x_scores) if x_scores else 0.5,
-            "y": sum(y_scores)/len(y_scores) if y_scores else 0.5
+        from app.pipeline import run_full_pipeline
+
+        # ── STEP 1: Phase 1 input (abhi ke liye intake se jo mila wahi use kia) ──
+        phase1_input = {
+            "mobile": "0000000000",
+            "name": result.intake_name or user.full_name or "Student",
+            "grade": str(result.intake_grade or (10 if student_type == "10th" else 12)),
+            "current_course": result.intake_stream or "Science",
+            "selected_interests": ["Science"],
+            "mother_occupation": "Professional",
+            "father_occupation": "Professional",
+            "family_income": "5_10lpa",
         }
-        
-        # Calculate career predictions (fallback)
-        top_10 = assessment_engine.generate_career_predictions(
-            latent_profile,
-            riasec,
-            identity,
-            feasibility
+
+        # ── STEP 2: Phase 2 swipes — REAL card IDs jo UI se aaye (A001, C101, etc.) ──
+        swipes = result.telemetry_logs or []
+        phase2_swipe_data = [
+            {
+                "card_id": s.get("card_id"),
+                "direction": s.get("direction"),
+                "dwell_ms": s.get("dwell_ms", 1000),
+            }
+            for s in swipes
+        ]
+
+        # ── STEP 3: Phase 3 MCQ answers — REAL proxy question IDs (P011, etc.) ──
+        proxy_answers = result.proxy_answers or []
+        phase3_mcq_data = [
+            {
+                "question_id": p.get("question_id") or p.get("id"),
+                "answer": p.get("answer"),
+                "multiplier": p.get("multiplier"),
+            }
+            for p in proxy_answers
+        ]
+
+        # ── STEP 4: Phase 4 placeholder (creativity score abhi default) ──
+        phase4_data = {
+            "objects_shown": [],
+            "relationships": [],
+            "time_taken_seconds": 180,
+            "total_objects": 10,
+        }
+
+        # ── STEP 5: NAYA PIPELINE CHALAO (cosine similarity occupation matrix se) ──
+        pipeline_result = run_full_pipeline(
+            phase1_input=phase1_input,
+            phase2_swipes=phase2_swipe_data,
+            phase3_responses=phase3_mcq_data,
+            phase4_data=phase4_data,
+            top_n=10,
         )
-        
-        # Reconcile predictions
-        final_matches = assessment_engine.reconcile_results(
-            top_10,
-            feasibility,
-            identity,
-            latent_profile=latent_profile,
-            riasec=riasec
-        )
-        
+
+        student_profile = pipeline_result["student_profile"]
+        top_careers     = pipeline_result["top_careers"]
+        dashboard       = pipeline_result["dashboard"]
+
+        # ── STEP 6: Stream recommendation (10th ke liye) ───────────────────────
         stream_rec = None
         if student_type == "10th":
-            stream_rec = assessment_engine.recommend_10th_stream(latent_profile, riasec, identity)
-            result.recommended_stream = stream_rec.get("recommended_stream")
-            result.stream_scores = {
-                "Science": round(latent_profile.get("LOG", 0.5)*40 + latent_profile.get("TEC", 0.5)*30 + riasec.get("riasec_vector", {}).get("I", 5)*3),
-                "Commerce": round(latent_profile.get("FIN", 0.5)*40 + latent_profile.get("DET", 0.5)*30 + riasec.get("riasec_vector", {}).get("C", 5)*3),
-                "Humanities": round(latent_profile.get("ALT", 0.5)*40 + latent_profile.get("AES", 0.5)*30 + riasec.get("riasec_vector", {}).get("S", 5)*3)
+            interests = student_profile.get("vector", {})
+            science_score    = interests.get("IT_Investigative", 0.5) * 40 + interests.get("IT_Realistic", 0.5) * 35
+            commerce_score   = interests.get("IT_Conventional", 0.5) * 40 + interests.get("IT_Enterprising", 0.5) * 35
+            humanities_score = interests.get("IT_Social", 0.5) * 40 + interests.get("IT_Artistic", 0.5) * 35
+
+            scores_map = {
+                "Science":    round(science_score),
+                "Commerce":   round(commerce_score),
+                "Humanities": round(humanities_score),
             }
-            tot_score = sum(result.stream_scores.values()) or 1
-            result.stream_scores = {k: min(99, max(10, int(v * 100 / tot_score))) for k, v in result.stream_scores.items()}
-            
-            details = stream_rec.get("stream_details", {})
-            result.final_analysis = details.get("justification")
-            result.stream_pros = details.get("subjects", [])
-            result.stream_cons = details.get("skills", [])
-            
+            total = sum(scores_map.values()) or 1
+            normalized = {k: min(99, max(10, int(v * 100 / total))) for k, v in scores_map.items()}
+            winner = max(normalized, key=normalized.get)
+
+            stream_details = {
+                "Science": {
+                    "justification": "Your strong Investigative and Realistic traits suggest you enjoy solving problems, understanding how things work, and analytical thinking — perfect for Science stream.",
+                    "subjects": ["Physics", "Chemistry", "Mathematics", "Biology / Computer Science"],
+                    "skills": ["Analytical Reasoning", "Problem Solving", "Technical Aptitude"],
+                },
+                "Commerce": {
+                    "justification": "Your high Conventional and Enterprising scores show you are goal-oriented, organized, and business-minded — Commerce will be your strongest path.",
+                    "subjects": ["Accountancy", "Business Studies", "Economics", "Applied Math"],
+                    "skills": ["Numerical Proficiency", "Strategic Planning", "Organizational Efficiency"],
+                },
+                "Humanities": {
+                    "justification": "Your Social and Artistic traits indicate deep interest in human behavior, culture, and creative expression — Humanities will let you thrive.",
+                    "subjects": ["Psychology", "Sociology", "Political Science", "History / Literature"],
+                    "skills": ["Empathetic Communication", "Critical Theory", "Creative Expression"],
+                },
+            }
+
+
+            stream_rec = {"recommended_stream": winner, "stream_details": stream_details[winner]}
+
+            result.recommended_stream = winner
+            result.stream_scores      = normalized
+            result.final_analysis     = stream_details[winner]["justification"]
+            result.stream_pros        = stream_details[winner]["subjects"]
+            result.stream_cons        = stream_details[winner]["skills"]
         else:
-            result.recommended_stream = None
-            result.stream_scores = None
-            result.final_analysis = riasec.get("narrative_summary")
-            result.stream_pros = []
-            result.stream_cons = []
-            
-        # Standardize report structure
-        report = {
-            "student_type": student_type,
-            "phase_1_summary": telemetry_metrics,
-            "phase_4_coordinates": identity,
-            "riasec_analysis": riasec,
-            "stream_recommendation": stream_rec,
-            "final_recommendations": final_matches.get("refined_matches", [])
-        }
-        
-        result.assessment_report = report
-        result.confidence = telemetry_metrics.get("consistency_index", 0.88)
-        
-        # Populate key columns for dashboard/counselor integrations
-        result.personality = riasec.get("dominant_trait", "Realistic")
-        result.goal_status = "Assessment compiled."
-        result.reasoning = riasec.get("narrative_summary", "")
-        
-        if student_type == "12th":
+            result.recommended_stream = dashboard.get("dominant_riasec", "")
+            result.stream_scores      = None
+            result.final_analysis     = f"Based on your profile, your dominant trait is {dashboard.get('dominant_riasec', 'Investigative')}. Your top career matches were identified using vector similarity across 1000+ real occupations."
             result.stream_pros = [
-                {"title": r["career"], "reason": r["pivot_notes"], "status": r["feasibility_status"], "confidence": r["confidence_score"]}
-                for r in final_matches.get("refined_matches", [])
+                {
+                    "title":      c["title"],
+                    "reason":     f"Match: {c['match_percent']}% based on your interests, behavior, and abilities.",
+                    "status":     "Optimal Fit",
+                    "confidence": c["match_score"],
+                }
+                for c in top_careers[:3]
             ]
-            
+            result.stream_cons = []
+
+        # ── STEP 7: Final report save karo ──────────────────────────────────────
+        report = {
+            "student_type":          student_type,
+            "pipeline_version":      "v2_vector_real_data",
+            "top_careers":           top_careers,
+            "dashboard":             dashboard,
+            "stream_recommendation": stream_rec,
+            "personality_archetype": dashboard.get("personality_archetype", ""),
+            "final_recommendations": [
+                {
+                    "career":             c["title"],
+                    "confidence_score":   c["match_score"],
+                    "feasibility_status": "Optimal Fit",
+                    "pivot_notes":        f"{c['match_percent']}% match based on your interests, behavior, and abilities.",
+                }
+                for c in top_careers[:3]
+            ],
+        }
+
+        result.assessment_report = report
+        result.confidence  = min(0.98, max(0.82, top_careers[0]["match_score"] if top_careers else 0.88))
+        result.personality = dashboard.get("dominant_riasec", "Realistic")
+        result.goal_status = "Assessment compiled via vector pipeline."
+        result.reasoning   = result.final_analysis or ""
+
         await db.commit()
         sync_assessment_to_appwrite(user.id, result)
         return {"status": "success", "redirect": "/assessment/result"}
-        
+
     except Exception as e:
-        print(f"Compilation error: {e}")
+        import traceback
+        traceback.print_exc()
+        print(f"Pipeline compilation error: {e}")
         await db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to compile report: {str(e)}")
-
+    
 @app.get("/assessment/result", response_class=HTMLResponse)
 async def assessment_result(request: Request, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
@@ -1712,7 +1929,15 @@ async def share_report(result_id: int, request: Request, mode: str = "full", db:
         raise HTTPException(status_code=404, detail="Report not found")
     
     owner = (await db.execute(select(models.User).where(models.User.id == result.user_id))).scalars().first()
-    current_user = await get_current_user(request, db)
+    # current_user = await get_current_user(request, db)
+    user_id_cookie = request.cookies.get("user_id")
+    uid = int(user_id_cookie)
+    result_cu = await db.execute(
+        select(models.User)
+        .options(selectinload(models.User.assessment))
+        .where(models.User.id == uid)
+    )
+    current_user = result_cu.scalars().first()
     
     # Ensure a stable high confidence (82-98%) is saved and displayed
     if not result.confidence or result.confidence < 0.81:
@@ -1896,167 +2121,172 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
         import traceback
         return HTMLResponse(content=f"Template Error: {e}<br><pre>{traceback.format_exc()}</pre>", status_code=500)
 
-@app.get("/admin", response_class=HTMLResponse)
-async def admin_dashboard(
-    request: Request, 
-    db: AsyncSession = Depends(get_db),
-    user_page: int = 1,
-    feedback_page: int = 1,
-    ticket_page: int = 1,
-    page_size: int = 20,
-    user_search: str = "",
-    counsellor_search: str = ""
-):
-    try:
-        current_user = await get_current_user(request, db)
-        if not current_user:
-             return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+# @app.get("/admin", response_class=HTMLResponse)
+# async def admin_dashboard(
+#     request: Request, 
+#     db: AsyncSession = Depends(get_db),
+#     user_page: int = 1,
+#     feedback_page: int = 1,@app.post("/admin/users/{user_id}/suspend")
+# @app.post("/admin/users/{user_id}/unsuspend")
+# @app.post("/admin/flags/{flag_id}/action")
+# @app.post("/admin/verify-counsellor/{counsellor_id}")
+# @app.post("/admin/block-counsellor/{counsellor_id}")
+# @app.post("/admin/unblock-counsellor/{counsellor_id}")
+#     ticket_page: int = 1,
+#     page_size: int = 20,
+#     user_search: str = "",
+#     counsellor_search: str = ""
+# ):
+#     try:
+#         current_user = await get_current_user(request, db)
+        # if not current_user:
+        #      return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
         
-        admin_email = os.getenv("ADMIN_EMAIL")
-        if current_user.role != "admin" and (not admin_email or current_user.email != admin_email):
-            print(f"DEBUG: Admin access denied for {current_user.email}")
-            return RedirectResponse(url="/dashboard?error=Admin access denied", status_code=status.HTTP_302_FOUND)
+        # admin_email = os.getenv("ADMIN_EMAIL")
+        # if current_user.role != "admin" and (not admin_email or current_user.email != admin_email):
+        #     print(f"DEBUG: Admin access denied for {current_user.email}")
+        #     return RedirectResponse(url="/dashboard?error=Admin access denied", status_code=status.HTTP_302_FOUND)
 
-        # ─── Paginated Data ──────────────────────────────────────────────
-        user_search = user_search.strip()
-        if user_search:
-            # Search across the entire database by name or email
-            search_filter = models.User.full_name.ilike(f"%{user_search}%") | models.User.email.ilike(f"%{user_search}%")
-            all_users = (await db.execute(select(models.User).where(search_filter).order_by(models.User.id.desc()))).scalars().all()
-            total_users = len(all_users)
-        else:
-            all_users = (await db.execute(select(models.User).order_by(models.User.id.desc()).offset((user_page - 1) * page_size).limit(page_size))).scalars().all()
-            total_users = (await db.execute(select(func.count()).select_from(models.User))).scalar()
+        # # ─── Paginated Data ──────────────────────────────────────────────
+        # user_search = user_search.strip()
+        # if user_search:
+        #     # Search across the entire database by name or email
+        #     search_filter = models.User.full_name.ilike(f"%{user_search}%") | models.User.email.ilike(f"%{user_search}%")
+        #     all_users = (await db.execute(select(models.User).where(search_filter).order_by(models.User.id.desc()))).scalars().all()
+        #     total_users = len(all_users)
+        # else:
+        #     all_users = (await db.execute(select(models.User).order_by(models.User.id.desc()).offset((user_page - 1) * page_size).limit(page_size))).scalars().all()
+        #     total_users = (await db.execute(select(func.count()).select_from(models.User))).scalar()
 
-        all_feedback = (await db.execute(select(models.Feedback).order_by(models.Feedback.timestamp.desc()).offset((feedback_page - 1) * page_size).limit(page_size))).scalars().all()
-        total_feedback = (await db.execute(select(func.count()).select_from(models.Feedback))).scalar()
+        # all_feedback = (await db.execute(select(models.Feedback).order_by(models.Feedback.timestamp.desc()).offset((feedback_page - 1) * page_size).limit(page_size))).scalars().all()
+        # total_feedback = (await db.execute(select(func.count()).select_from(models.Feedback))).scalar()
 
-        all_tickets = (await db.execute(select(models.Ticket).order_by(models.Ticket.timestamp.desc()).offset((ticket_page - 1) * page_size).limit(page_size))).scalars().all()
-        total_tickets = (await db.execute(select(func.count()).select_from(models.Ticket))).scalar()
+        # all_tickets = (await db.execute(select(models.Ticket).order_by(models.Ticket.timestamp.desc()).offset((ticket_page - 1) * page_size).limit(page_size))).scalars().all()
+        # total_tickets = (await db.execute(select(func.count()).select_from(models.Ticket))).scalar()
 
-        pending_counsellors = (await db.execute(select(models.CounsellorProfile).where(models.CounsellorProfile.verification_status == "pending"))).scalars().all()
+        # pending_counsellors = (await db.execute(select(models.CounsellorProfile).where(models.CounsellorProfile.verification_status == "pending"))).scalars().all()
         
-        # ─── Optimized Counsellor Stats (Single Query) ───────────────────
+        # # ─── Optimized Counsellor Stats (Single Query) ───────────────────
 
         
-        # Get all completed sessions count per counsellor
-        _completed_rows = (await db.execute(
-            select(models.Appointment.counsellor_id, func.count(models.Appointment.id).label("count"))
-            .where(models.Appointment.status == "completed")
-            .group_by(models.Appointment.counsellor_id)
-        )).all()
-        completed_map = {row.counsellor_id: row.count for row in _completed_rows}
+        # # Get all completed sessions count per counsellor
+        # _completed_rows = (await db.execute(
+        #     select(models.Appointment.counsellor_id, func.count(models.Appointment.id).label("count"))
+        #     .where(models.Appointment.status == "completed")
+        #     .group_by(models.Appointment.counsellor_id)
+        # )).all()
+        # completed_map = {row.counsellor_id: row.count for row in _completed_rows}
 
-        # Get total sessions count per counsellor
-        _total_rows = (await db.execute(
-            select(models.Appointment.counsellor_id, func.count(models.Appointment.id).label("count"))
-            .group_by(models.Appointment.counsellor_id)
-        )).all()
-        total_map = {row.counsellor_id: row.count for row in _total_rows}
+        # # Get total sessions count per counsellor
+        # _total_rows = (await db.execute(
+        #     select(models.Appointment.counsellor_id, func.count(models.Appointment.id).label("count"))
+        #     .group_by(models.Appointment.counsellor_id)
+        # )).all()
+        # total_map = {row.counsellor_id: row.count for row in _total_rows}
 
-        counsellor_search = counsellor_search.strip()
-        if counsellor_search:
-            # Search across all counsellors by name or email
-            search_filter = models.User.full_name.ilike(f"%{counsellor_search}%") | models.User.email.ilike(f"%{counsellor_search}%")
-            all_counsellors = (await db.execute(
-                select(models.CounsellorProfile).join(models.User).where(search_filter)
-            )).scalars().all()
-        else:
-            all_counsellors = (await db.execute(select(models.CounsellorProfile))).scalars().all()
-        for cp in all_counsellors:
-            cp.session_count = completed_map.get(cp.user_id, 0)
-            cp.total_sessions = total_map.get(cp.user_id, 0)
+        # counsellor_search = counsellor_search.strip()
+        # if counsellor_search:
+        #     # Search across all counsellors by name or email
+        #     search_filter = models.User.full_name.ilike(f"%{counsellor_search}%") | models.User.email.ilike(f"%{counsellor_search}%")
+        #     all_counsellors = (await db.execute(
+        #         select(models.CounsellorProfile).join(models.User).where(search_filter)
+        #     )).scalars().all()
+        # else:
+        #     all_counsellors = (await db.execute(select(models.CounsellorProfile))).scalars().all()
+        # for cp in all_counsellors:
+        #     cp.session_count = completed_map.get(cp.user_id, 0)
+        #     cp.total_sessions = total_map.get(cp.user_id, 0)
 
-        # ─── Payment Split Analytics ──────────────────────────────────────
-        try:
-            all_payments = (await db.execute(select(models.Payment).order_by(models.Payment.created_at.desc()).limit(20))).scalars().all()
+        # # ─── Payment Split Analytics ──────────────────────────────────────
+        # try:
+        #     all_payments = (await db.execute(select(models.Payment).order_by(models.Payment.created_at.desc()).limit(20))).scalars().all()
             
             # Using scalars directly for performance
-            session_revenue = (await db.execute(
-                select(func.sum(models.Payment.amount)).where(models.Payment.status == "captured")
-            )).scalar() or 0.0
+        #     session_revenue = (await db.execute(
+        #         select(func.sum(models.Payment.amount)).where(models.Payment.status == "captured")
+        #     )).scalar() or 0.0
 
-            sim_revenue = (await db.execute(
-                select(func.sum(models.SimulationPayment.amount))
-            )).scalar() or 0.0
+        #     sim_revenue = (await db.execute(
+        #         select(func.sum(models.SimulationPayment.amount))
+        #     )).scalar() or 0.0
             
-            total_revenue = session_revenue + sim_revenue
+        #     total_revenue = session_revenue + sim_revenue
 
-            total_counselor_payouts = (await db.execute(
-                select(func.sum(models.Transfer.amount)).where(models.Transfer.status == "processed")
-            )).scalar() or 0.0
+        #     total_counselor_payouts = (await db.execute(
+        #         select(func.sum(models.Transfer.amount)).where(models.Transfer.status == "processed")
+        #     )).scalar() or 0.0
 
-            platform_commission = session_revenue - total_counselor_payouts + sim_revenue
+        #     platform_commission = session_revenue - total_counselor_payouts + sim_revenue
 
-            pending_transfers = (await db.execute(select(func.count()).select_from(models.Transfer).where(models.Transfer.status == "pending"))).scalar()
-            failed_transfers = (await db.execute(select(func.count()).select_from(models.Transfer).where(models.Transfer.status == "failed"))).scalar()
-            captured_payments_count = (await db.execute(select(func.count()).select_from(models.Payment).where(models.Payment.status == "captured"))).scalar()
-            sim_payments_count = (await db.execute(select(func.count()).select_from(models.SimulationPayment))).scalar()
-        except Exception as pe:
-            print(f"Payment analytics error: {pe}")
-            all_payments, total_revenue, total_counselor_payouts, platform_commission = [], 0.0, 0.0, 0.0
-            session_revenue, sim_revenue, sim_payments_count = 0.0, 0.0, 0
-            pending_transfers, failed_transfers, captured_payments_count = 0, 0, 0
+        #     pending_transfers = (await db.execute(select(func.count()).select_from(models.Transfer).where(models.Transfer.status == "pending"))).scalar()
+        #     failed_transfers = (await db.execute(select(func.count()).select_from(models.Transfer).where(models.Transfer.status == "failed"))).scalar()
+        #     captured_payments_count = (await db.execute(select(func.count()).select_from(models.Payment).where(models.Payment.status == "captured"))).scalar()
+        #     sim_payments_count = (await db.execute(select(func.count()).select_from(models.SimulationPayment))).scalar()
+        # except Exception as pe:
+        #     print(f"Payment analytics error: {pe}")
+        #     all_payments, total_revenue, total_counselor_payouts, platform_commission = [], 0.0, 0.0, 0.0
+        #     session_revenue, sim_revenue, sim_payments_count = 0.0, 0.0, 0
+        #     pending_transfers, failed_transfers, captured_payments_count = 0, 0, 0
         
-        # Fetch Moderation Flags (Limited for performance)
-        moderation_flags = (await db.execute(select(models.ModerationFlag).order_by(models.ModerationFlag.timestamp.desc()).limit(50))).scalars().all()
+        # # Fetch Moderation Flags (Limited for performance)
+        # moderation_flags = (await db.execute(select(models.ModerationFlag).order_by(models.ModerationFlag.timestamp.desc()).limit(50))).scalars().all()
 
-        # Fetch all appointments for admin Session Management table
-        all_appointments = (await db.execute(
-            select(models.Appointment).options(
-                joinedload(models.Appointment.student),
-                joinedload(models.Appointment.counsellor)
-            ).order_by(models.Appointment.appointment_time.desc()).limit(50)
-        )).scalars().all()
+        # # Fetch all appointments for admin Session Management table
+        # all_appointments = (await db.execute(
+        #     select(models.Appointment).options(
+        #         joinedload(models.Appointment.student),
+        #         joinedload(models.Appointment.counsellor)
+        #     ).order_by(models.Appointment.appointment_time.desc()).limit(50)
+        # )).scalars().all()
 
-        # Fetch simulation payments
-        simulation_payments = (await db.execute(
-            select(models.SimulationPayment).options(
-                joinedload(models.SimulationPayment.user)
-            ).order_by(models.SimulationPayment.id.desc()).limit(50)
-        )).scalars().all()
+        # # Fetch simulation payments
+        # simulation_payments = (await db.execute(
+        #     select(models.SimulationPayment).options(
+        #         joinedload(models.SimulationPayment.user)
+        #     ).order_by(models.SimulationPayment.id.desc()).limit(50)
+        # )).scalars().all()
 
-        try:
-            template = templates.get_template("admin_dashboard.html")
-            content = template.render({
-                "request": request, 
-                "user": current_user, 
-                "users": all_users,
-                "total_users": total_users,
-                "user_page": user_page,
-                "feedbacks": all_feedback,
-                "total_feedback": total_feedback,
-                "feedback_page": feedback_page,
-                "tickets": all_tickets,
-                "total_tickets": total_tickets,
-                "ticket_page": ticket_page,
-                "page_size": page_size,
-                "pending_counsellors": pending_counsellors,
-                "all_counsellors": all_counsellors,
-                "all_payments": all_payments,
-                "total_revenue": total_revenue,
-                "session_revenue": session_revenue,
-                "sim_revenue": sim_revenue,
-                "total_counselor_payouts": total_counselor_payouts,
-                "platform_commission": platform_commission,
-                "pending_transfers": pending_transfers,
-                "failed_transfers": failed_transfers,
-                "captured_payments_count": captured_payments_count,
-                "sim_payments_count": sim_payments_count,
-                "moderation_flags": moderation_flags,
-                "all_appointments": all_appointments,
-                "simulation_payments": simulation_payments,
-                "user_search": user_search,
-                "counsellor_search": counsellor_search
-            })
-            return HTMLResponse(content=content)
-        except Exception as e:
-            import traceback
-            return HTMLResponse(content=f"Template Error: {e}<br><pre>{traceback.format_exc()}</pre>", status_code=500)
-    except Exception as e:
-        import traceback
-        print(f"ADMIN DASHBOARD ERROR: {traceback.format_exc()}")
-        return RedirectResponse(url=f"/dashboard?error=Admin+Error:+{str(e)[:100]}", status_code=status.HTTP_302_FOUND)
+        # try:
+        #     template = templates.get_template("admin_dashboard.html")
+        #     content = template.render({
+        #         "request": request, 
+        #         "user": current_user, 
+        #         "users": all_users,
+        #         "total_users": total_users,
+        #         "user_page": user_page,
+        #         "feedbacks": all_feedback,
+        #         "total_feedback": total_feedback,
+        #         "feedback_page": feedback_page,
+        #         "tickets": all_tickets,
+        #         "total_tickets": total_tickets,
+        #         "ticket_page": ticket_page,
+        #         "page_size": page_size,
+        #         "pending_counsellors": pending_counsellors,
+        #         "all_counsellors": all_counsellors,
+        #         "all_payments": all_payments,
+        #         "total_revenue": total_revenue,
+        #         "session_revenue": session_revenue,
+        #         "sim_revenue": sim_revenue,
+        #         "total_counselor_payouts": total_counselor_payouts,
+        #         "platform_commission": platform_commission,
+        #         "pending_transfers": pending_transfers,
+        #         "failed_transfers": failed_transfers,
+        #         "captured_payments_count": captured_payments_count,
+        #         "sim_payments_count": sim_payments_count,
+        #         "moderation_flags": moderation_flags,
+        #         "all_appointments": all_appointments,
+        #         "simulation_payments": simulation_payments,
+        #         "user_search": user_search,
+        #         "counsellor_search": counsellor_search
+    #         })
+    #         return HTMLResponse(content=content)
+    #     except Exception as e:
+    #         import traceback
+    #         return HTMLResponse(content=f"Template Error: {e}<br><pre>{traceback.format_exc()}</pre>", status_code=500)
+    # except Exception as e:
+    #     import traceback
+    #     print(f"ADMIN DASHBOARD ERROR: {traceback.format_exc()}")
+    #     return RedirectResponse(url=f"/dashboard?error=Admin+Error:+{str(e)[:100]}", status_code=status.HTTP_302_FOUND)
 
 @app.post("/admin/send-completion-reminders")
 async def send_completion_reminders(request: Request, db: AsyncSession = Depends(get_db)):
@@ -2111,21 +2341,22 @@ async def send_completion_reminders(request: Request, db: AsyncSession = Depends
 
 @app.post("/admin/users/{user_id}/delete")
 async def delete_user(user_id: int, request: Request, db: AsyncSession = Depends(get_db)):
-    # 1. Check admin auth
     current_user = await get_current_user(request, db)
-    if not current_user or current_user.role != "admin":
+    admin_email = os.getenv("ADMIN_EMAIL")
+    if not current_user or (current_user.role != "admin" and current_user.email != admin_email):
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
-    
-    # 2. Get User
+
     user_to_delete = (await db.execute(select(models.User).where(models.User.id == user_id))).scalars().first()
     if not user_to_delete:
-         raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="User not found")
 
-    # 3. Delete Assessment Result first (ForeignKey)
-    if user_to_delete.assessment:
-        await db.delete(user_to_delete.assessment)
-    
-    # 4. Delete User
+    # Assessment alag query se delete karo — lazy load mat karo
+    assessment = (await db.execute(
+        select(models.AssessmentResult).where(models.AssessmentResult.user_id == user_id)
+    )).scalars().first()
+    if assessment:
+        await db.delete(assessment)
+
     await db.delete(user_to_delete)
     await db.commit()
     
@@ -2134,7 +2365,8 @@ async def delete_user(user_id: int, request: Request, db: AsyncSession = Depends
 @app.post("/admin/users/{user_id}/suspend")
 async def suspend_user(user_id: int, request: Request, db: AsyncSession = Depends(get_db)):
     current_user = await get_current_user(request, db)
-    if not current_user or current_user.role != "admin":
+    admin_email = os.getenv("ADMIN_EMAIL")
+    if not current_user or (current_user.role != "admin" and current_user.email != admin_email):
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     
     user = (await db.execute(select(models.User).where(models.User.id == user_id))).scalars().first()
@@ -2147,7 +2379,8 @@ async def suspend_user(user_id: int, request: Request, db: AsyncSession = Depend
 @app.post("/admin/users/{user_id}/unsuspend")
 async def unsuspend_user(user_id: int, request: Request, db: AsyncSession = Depends(get_db)):
     current_user = await get_current_user(request, db)
-    if not current_user or current_user.role != "admin":
+    admin_email = os.getenv("ADMIN_EMAIL")
+    if not current_user or (current_user.role != "admin" and current_user.email != admin_email):
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     
     user = (await db.execute(select(models.User).where(models.User.id == user_id))).scalars().first()
@@ -2160,7 +2393,8 @@ async def unsuspend_user(user_id: int, request: Request, db: AsyncSession = Depe
 @app.post("/admin/flags/{flag_id}/action")
 async def handle_flag(flag_id: int, request: Request, action: str = Form(...), db: AsyncSession = Depends(get_db)):
     current_user = await get_current_user(request, db)
-    if not current_user or current_user.role != "admin":
+    admin_email = os.getenv("ADMIN_EMAIL")
+    if not current_user or (current_user.role != "admin" and current_user.email != admin_email):
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     
     flag = (await db.execute(select(models.ModerationFlag).where(models.ModerationFlag.id == flag_id))).scalars().first()
@@ -2300,37 +2534,51 @@ async def upload_certificates(
             db.add(profile)
             await db.flush()
         
-        existing_certs = profile.certificates if profile.certificates else []
-        new_certs = list(existing_certs)
-        
-        # Ensure directory exists
-        upload_dir = os.path.join(STATIC_DIR, "uploads", "certificates")
-        os.makedirs(upload_dir, exist_ok=True)
-
+        email_attachments = []
         if files:
             for file in files:
                 if file.filename and file.filename.strip() != "":
-                    file_extension = os.path.splitext(file.filename)[1]
-                    filename = f"cert_{user.id}_{uuid.uuid4().hex}{file_extension}"
-                    file_path = os.path.join(upload_dir, filename)
-                    
-                    contents = await file.read()
-                    with open(file_path, "wb") as buffer:
-                        buffer.write(contents)
-                    
-                    new_certs.append(f"/static/uploads/certificates/{filename}")
+                    content = await file.read()
+                    email_attachments.append((file.filename, content, file.content_type))
         
-        profile.certificates = new_certs
-        if experience:
-            profile.experience = experience
-        profile.verification_status = "pending"
-        await db.commit()
+        # Prepare Email to admin
+        admin_email = "contact@carestance.me"
+        subject = f"Verification Documents: {user.full_name} (ID: {user.id})"
+        
+        body_html = f"""
+        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+            <h2 style="color: #4f46e5;">New Counsellor Verification Request</h2>
+            <p><strong>Counsellor Name:</strong> {user.full_name}</p>
+            <p><strong>Counsellor Email:</strong> {user.email}</p>
+            <p><strong>Counsellor ID:</strong> {user.id}</p>
+            <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+            <p><strong>Professional Experience/Expertise:</strong></p>
+            <div style="background: #f9fafb; padding: 15px; border-radius: 8px; border-left: 4px solid #4f46e5;">
+                {experience if experience else 'No experience text provided.'}
+            </div>
+            <p style="margin-top: 20px; font-size: 12px; color: #666;">
+                The documents are attached to this email. No documents have been stored on the server.
+            </p>
+        </div>
+        """
+        
+        # Send email (directly, not in background to ensure counselor knows it's being sent)
+        email_sent = send_email(admin_email, subject, body_html, attachments=email_attachments)
+        
+        if email_sent:
+            profile.verification_status = "pending"
+            # We explicitly do NOT store experience or certificate paths as per request
+            await db.commit()
+            return RedirectResponse(url="/dashboard?msg=Verification documents sent successfully to Admin.", status_code=status.HTTP_302_FOUND)
+        else:
+            raise Exception("Failed to send verification email.")
+
     except Exception as e:
-        print(f"CERTIFICATE UPLOAD ERROR: {e}")
+        print(f"VERIFICATION SUBMISSION ERROR: {e}")
+        import traceback
+        traceback.print_exc()
         await db.rollback()
-        return RedirectResponse(url="/dashboard?error=Upload failed. Please try again.", status_code=status.HTTP_302_FOUND)
-    
-    return RedirectResponse(url="/dashboard?msg=Certificates uploaded successfully", status_code=status.HTTP_302_FOUND)
+        return RedirectResponse(url="/dashboard?error=Submission failed. Please try again or contact support.", status_code=status.HTTP_302_FOUND)
 
 @app.post("/admin/verify-counsellor/{counsellor_id}")
 async def verify_counsellor(
@@ -2340,11 +2588,9 @@ async def verify_counsellor(
     db: AsyncSession = Depends(get_db)
 ):
     current_user = await get_current_user(request, db)
-    if not current_user or current_user.role != "admin":
-         # Safety Check: Allow access if user email matches ADMIN_EMAIL env var
-        admin_email = os.getenv("ADMIN_EMAIL")
-        if not admin_email or current_user.email != admin_email:
-            return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
+    admin_email = os.getenv("ADMIN_EMAIL")
+    if not current_user or (current_user.role != "admin" and current_user.email != admin_email):
+        return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
             
     try:
         profile = (await db.execute(select(models.CounsellorProfile).where(models.CounsellorProfile.user_id == counsellor_id))).scalars().first()
@@ -2376,16 +2622,15 @@ async def block_counsellor(
     db: AsyncSession = Depends(get_db)
 ):
     current_user = await get_current_user(request, db)
-    if not current_user or current_user.role != "admin":
-        admin_email = os.getenv("ADMIN_EMAIL")
-        if not admin_email or current_user.email != admin_email:
-            return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
+    admin_email = os.getenv("ADMIN_EMAIL")
+    if not current_user or (current_user.role != "admin" and current_user.email != admin_email):
+        return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
     
     profile = (await db.execute(select(models.CounsellorProfile).where(models.CounsellorProfile.user_id == counsellor_id))).scalars().first()
     if profile:
         profile.is_blocked = True
         profile.block_reason = block_reason
-        profile.is_verified = False  # Remove from public listing
+        profile.is_verified = False
         await db.commit()
     
     return RedirectResponse(url="/admin", status_code=status.HTTP_302_FOUND)
@@ -2397,10 +2642,9 @@ async def unblock_counsellor(
     db: AsyncSession = Depends(get_db)
 ):
     current_user = await get_current_user(request, db)
-    if not current_user or current_user.role != "admin":
-        admin_email = os.getenv("ADMIN_EMAIL")
-        if not admin_email or current_user.email != admin_email:
-            return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
+    admin_email = os.getenv("ADMIN_EMAIL")
+    if not current_user or (current_user.role != "admin" and current_user.email != admin_email):
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     
     profile = (await db.execute(select(models.CounsellorProfile).where(models.CounsellorProfile.user_id == counsellor_id))).scalars().first()
     if profile:
@@ -2417,10 +2661,9 @@ async def give_founding_badge(
     db: AsyncSession = Depends(get_db)
 ):
     current_user = await get_current_user(request, db)
-    if not current_user or current_user.role != "admin":
-        admin_email = os.getenv("ADMIN_EMAIL")
-        if not admin_email or current_user.email != admin_email:
-            return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
+    admin_email = os.getenv("ADMIN_EMAIL")
+    if not current_user or (current_user.role != "admin" and current_user.email != admin_email):
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     
     # Check if limit of 100 is reached
     founding_count = (await db.execute(select(func.count()).select_from(models.CounsellorProfile).where(models.CounsellorProfile.is_founding_counsellor == True))).scalar()
@@ -2452,10 +2695,9 @@ async def take_founding_badge(
     db: AsyncSession = Depends(get_db)
 ):
     current_user = await get_current_user(request, db)
-    if not current_user or current_user.role != "admin":
-        admin_email = os.getenv("ADMIN_EMAIL")
-        if not admin_email or current_user.email != admin_email:
-            return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
+    admin_email = os.getenv("ADMIN_EMAIL")
+    if not current_user or (current_user.role != "admin" and current_user.email != admin_email):
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     
     profile = (await db.execute(select(models.CounsellorProfile).where(models.CounsellorProfile.user_id == counsellor_id))).scalars().first()
     if profile:
@@ -2481,11 +2723,9 @@ async def admin_update_counsellor_fee(
     db: AsyncSession = Depends(get_db)
 ):
     current_user = await get_current_user(request, db)
-    if not current_user or current_user.role != "admin":
-        admin_email = os.getenv("ADMIN_EMAIL")
-        if not admin_email or current_user.email != admin_email:
-            return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
-
+    admin_email = os.getenv("ADMIN_EMAIL")
+    if not current_user or (current_user.role != "admin" and current_user.email != admin_email):
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     profile = (await db.execute(select(models.CounsellorProfile).where(models.CounsellorProfile.user_id == counsellor_id))).scalars().first()
     if profile:
         old_fee = profile.fee or 0.0
@@ -3280,11 +3520,19 @@ async def delete_roadmap(path_id: int, request: Request, db: AsyncSession = Depe
 
 # --- Phase 3 Routes ---
 
-from data.questions_phase3 import CATEGORY_SCENARIOS_MAP
+from .data.questions_phase3 import CATEGORY_SCENARIOS_MAP
 
 @app.get("/assessment/phase3", response_class=HTMLResponse)
-async def assessment_phase3(request: Request, db: AsyncSession = Depends(get_db)):
-    return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
+async def assessment_phase3(request: Request, mode: str = "voice", db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+        
+    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+    if not result:
+        return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
+        
+    return templates.TemplateResponse(request=request, name="assessment_phase3_v2.html", context={"user": user, "result": result, "mode": mode})
 
 @app.post("/assessment/phase3/submit")
 async def assessment_phase3_submit(
@@ -3438,27 +3686,40 @@ Present the scenario story first, then clearly list Option A and Option B on sep
         new_idx = current_idx
         done = False
 
-    # Call Gemini (with Groq fallback)
+    # Call Groq (with Gemini fallback)
     try:
-        if GEMINI_API_KEY:
+        gclient = get_groq_client()
+        if gclient:
             try:
-                model_ai = get_gemini_model("gemini-2.0-flash")
-                response = await model_ai.generate_content_async(prompt)
-                ai_text = response.text
-            except Exception:
-                model_ai = get_gemini_model("gemini-1.5-flash")
-                response = await model_ai.generate_content_async(prompt)
-                ai_text = response.text
-        else:
-            gclient = get_groq_client()
-            if gclient:
                 completion = await gclient.chat.completions.create(
                     messages=[{"role": "user", "content": prompt}],
                     model="llama-3.3-70b-versatile",
                 )
                 ai_text = completion.choices[0].message.content
-            else:
-                ai_text = f"[Demo Mode] {scenario_text}"
+            except Exception as groq_err:
+                print(f"Groq error: {groq_err}. Falling back to Gemini.")
+                if GEMINI_API_KEY:
+                    try:
+                        model_ai = get_gemini_model("gemini-2.0-flash")
+                        response = await model_ai.generate_content_async(prompt)
+                        ai_text = response.text
+                    except Exception:
+                        model_ai = get_gemini_model("gemini-2.5-flash")
+                        response = await model_ai.generate_content_async(prompt)
+                        ai_text = response.text
+                else:
+                    raise groq_err
+        elif GEMINI_API_KEY:
+            try:
+                model_ai = get_gemini_model("gemini-2.0-flash")
+                response = await model_ai.generate_content_async(prompt)
+                ai_text = response.text
+            except Exception:
+                model_ai = get_gemini_model("gemini-2.5-flash")
+                response = await model_ai.generate_content_async(prompt)
+                ai_text = response.text
+        else:
+            ai_text = f"[Demo Mode] {scenario_text}"
     except Exception as e:
         ai_text = f"I'm having a moment of reflection. ({str(e)}) Please try again."
 
@@ -3472,36 +3733,7 @@ Present the scenario story first, then clearly list Option A and Option B on sep
 
 # --- Phase 3 v2: Voice-Only Deep-Dive Conversation (Groq-Powered) ---
 
-PHASE3_V2_SYSTEM_PROMPT = """You are a warm, insightful, and professional AI Career Mentor named CareerBuddy.
-You are conducting a deep-dive voice conversation with a student. This is a 10-minute session designed to FULLY ANALYZE the student — their interests, thinking ability, problem-solving approach, confidence, values, and personality.
-
-CRITICAL RULES:
-- Speak in English only.
-- Keep every response concise (2-4 sentences max) since this is a SPOKEN conversation. Short and punchy responses keep the flow going.
-- Be encouraging, warm, and intellectually stimulating.
-- NEVER break character or mention that you are an AI.
-- Do NOT use markdown formatting (no **, no #, no bullet points, no numbered lists). Speak naturally as if talking face-to-face.
-- NEVER suggest career options, career paths, or job roles during the conversation. Your ONLY job is to deeply understand the student. Career suggestions happen AFTER the session ends.
-- Ask only ONE question at a time. Wait for the student's response before moving on.
-- Vary your question types — mix open-ended, hypothetical, opinion-based, and scenario-based questions.
-- React genuinely to what the student says. Show you are listening. Reference their previous answers when relevant.
-- Response should be short and easily understandable donot use any fancy words.
-CONVERSATION STRUCTURE (adapt naturally, do not announce steps):
-
-OPENING (first message when user message is empty):
-Introduce yourself warmly and set the tone.Also Welcome user in deepdive phase .Also give a warning in light tone to provide honest response for bette analysis . Ask what field or area excites them most right now. Keep it casual, like two people having coffee.
-
-INTEREST EXPLORATION (messages 1-3):
-Dig deeper into their stated interest. Share a thought-provoking real-world fact about that field. Ask leading open-ended questions that test critical thinking. Examples: "If you could change one thing about how [their field] works today, what would it be?", "What do you think most people misunderstand about [their field]?"
-
-THINKING & PROBLEM-SOLVING (messages 4-6):
-Present hypothetical scenarios related to their interest. Probe their reasoning depth. Examples: "Imagine you are given a team of 5 people and 6 months to solve a real problem in [field]. What problem would you pick and how would you start?", "If your first approach fails completely, what would your backup plan look like?"
-
-CONFIDENCE & VALUES (messages 7-9):
-Ask about their personal values and decision-making style. Explore what drives them beyond surface interests. Examples: "What is more important to you, financial stability or doing something you are passionate about? Why?", "Tell me about a time you had to make a tough decision. How did you approach it?", "When you picture yourself 5 years from now, what does a good day look like?"
-
-WRAP-UP (after ~10 exchanges or when timer runs out):
-Thank them warmly for the conversation. Tell them you have gathered great insights and they should now click the Finish button to see their personalized career recommendations based on everything you discussed."""
+from app.pipeline.prompts_phase3 import LIVE_CHAT_PROMPT
 
 class Phase3V2ChatRequest(BaseModel):
     message: str = ""
@@ -3516,18 +3748,50 @@ async def phase3_chat_v2(request: Request, chat_req: Phase3V2ChatRequest, db: As
     from fastapi.responses import JSONResponse
 
     result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
-    phase2_category = result.phase_2_category if result else "Unknown"
-    phase2_personality = result.personality if result else "Unknown"
+    
+    # Determine if conversation should wrap up (after ~10 exchanges)
+    user_msg_count = sum(1 for m in chat_req.answers if m.get("role") == "user")
+    if chat_req.message.strip():
+        user_msg_count += 1
+        
+    phase1 = result.raw_answers if result and result.raw_answers else {}
+    
+    student_context = {
+        "student_name": phase1.get("name", "Student"),
+        "age_group": result.student_type if result else "Unknown",
+        "education_level": phase1.get("pursuing", "Unknown"),
+        "current_course": phase1.get("pursuing", "Unknown"),
+        "selected_interests": phase1.get("interests", []),
+        "salary_priority": phase1.get("salary_priority", "Unknown"),
+        "family_context": {
+            "parent_occupation_category": f"{phase1.get('father_occupation', '')}, {phase1.get('mother_occupation', '')}",
+            "family_income_category": phase1.get("family_income", "Unknown")
+        },
+        "phase_2_summary": {
+            "strongest_work_style": result.phase_2_category if result else "Unknown",
+            "learning_style": "Assessed via archetype",
+            "problem_solving_style": "Assessed via archetype",
+            "response_to_change": "Assessed via archetype",
+            "leadership_and_team_style": "Assessed via archetype",
+            "communication_style": "Assessed via archetype"
+        },
+        "conversation_turn": user_msg_count,
+        "student_previous_answers_summary": "N/A"
+    }
+
+    all_interests = ", ".join(student_context["selected_interests"]) if student_context["selected_interests"] else "your fields of interest"
+    parents_occupation = student_context["family_context"]["parent_occupation_category"] or "various fields"
+
+    sys_prompt = LIVE_CHAT_PROMPT.format(
+        context_json=json.dumps(student_context, indent=2),
+        student_name=student_context["student_name"],
+        all_interests=all_interests,
+        parents_occupation=parents_occupation
+    )
 
     # Build conversation history as messages for Groq
     messages = [
-        {"role": "system", "content": PHASE3_V2_SYSTEM_PROMPT + f"""
-
-STUDENT PROFILE (from Phase 2 Assessment):
-- Personality Archetype: {phase2_category}
-- Personality Trait: {phase2_personality}
-
-Use this profile to tailor your questions. For example, if they are a "Focused Specialist", probe their depth of focus. If they are an "Adaptive Explorer", probe their breadth of curiosity."""}
+        {"role": "system", "content": sys_prompt}
     ]
 
     # Add conversation history
@@ -3542,10 +3806,14 @@ Use this profile to tailor your questions. For example, if they are a "Focused S
     if chat_req.message.strip():
         messages.append({"role": "user", "content": chat_req.message})
 
-    # Determine if conversation should wrap up (after ~10 exchanges)
-    user_msg_count = sum(1 for m in chat_req.answers if m.get("role") == "user")
-    if chat_req.message.strip():
-        user_msg_count += 1
+    # Immediately persist the user's message to the database before waiting for AI
+    full_history = chat_req.answers.copy() if chat_req.answers else []
+    if chat_req.message and chat_req.message.strip():
+        full_history.append({"role": "user", "content": chat_req.message})
+    
+    if result:
+        result.chat_messages = full_history.copy()
+        await db.commit()
 
     # Use Groq API directly
     try:
@@ -3567,6 +3835,12 @@ Use this profile to tailor your questions. For example, if they are a "Focused S
     except Exception as e:
         print(f"Phase 3 Chat Error: {e}")
         ai_text = "I appreciate your patience. Could you tell me a bit more about that? I want to make sure I really understand your perspective."
+
+    # Update conversation history in database with AI response
+    full_history.append({"role": "assistant", "content": ai_text})
+    if result:
+        result.chat_messages = full_history.copy()
+        await db.commit()
 
     return JSONResponse({
         "response": ai_text,
@@ -3599,110 +3873,93 @@ async def phase3_finalize(request: Request, finalize_req: Phase3FinalizeRequest,
 
     phase2_category = result.phase_2_category or "Unknown"
 
-    # Generate analysis + career suggestions from the full conversation using Groq
-    # We now skip Phase 4 and generate the final verdict directly here.
+    phase2_category = result.phase_2_category or "Unknown"
+
+    from app.pipeline.prompts_phase3 import FINALIZE_PROMPT
+    phase1 = result.raw_answers if result and result.raw_answers else {}
     
-    selected_class = result.selected_class or "10th"
-    
-    if selected_class == '10th':
-        analysis_prompt = f"""You are an expert Career Analyst for 10th-grade students.
-        Analyze this full 10-minute voice conversation and the student's personality archetype to determine their alignment with three core thinking styles.
-        
-        Archetype (Phase 2): {phase2_category}
-        
-        FULL CONVERSATION TRANSCRIPT:
-        {transcript}
-        
-        🔬 Logical Thinking (Science): Problem-solving, "how things work", structured reasoning.
-        💼 Financial Thinking (Commerce): Decision-making based on outcomes, money, risk/reward.
-        🎨 Creative & Social Thinking (Arts): Storytelling, empathy, open-ended thinking.
-        
-        TASK:
-        Provide a final career recommendation for a 10th-grade student focusing on their thinking pattern.
-        
-        RETURN ONLY A JSON OBJECT with these keys:
-        - "fit_scores": {{"Science": XX, "Commerce": XX, "Arts": XX}} (Provide highly specific, non-rounded scores 0-100, e.g., 84, 93, 77)
-        - "recommended_stream": "The primary recommended stream (e.g., Science (PCM))"
-        - "explanation": "A 2-3 line explanation of why this fits their thinking style."
-        - "strength_insight": "1 key strength observed in their responses."
-        - "growth_suggestion": "1 simple action to explore this stream further."
-        - "phase3_analysis": "A concise summary of their interests Revealed in the interview."
-        """
-    else:
-        # 12th or Above
-        analysis_prompt = f"""You are an expert Career Analyst for {'college students' if selected_class == 'Above 12th' else 'high school seniors'}.
-        Analyze this full 10-minute voice conversation and the student's personality archetype.
-        
-        Archetype (Phase 2): {phase2_category}
-        
-        FULL CONVERSATION TRANSCRIPT:
-        {transcript}
-        
-        TASK:
-        Provide 3 specific professional career paths or university majors.
-        
-        RETURN ONLY A JSON OBJECT with these keys:
-        - "recommended_stream": "The broad primary field (e.g., Technology & Innovation)"
-        - "final_analysis": "A summary of their professional outlook based on the conversation."
-        - "phase3_analysis": "An analytical summary of their interests Revealed in the interview."
-        - "stream_pros": [
-            {{
-                "title": "Specific Career/Major 1",
-                "reason": "Why it fits...",
-                "pros": ["Pro 1", "Pro 2"],
-                "cons": ["Con 1", "Con 2"]
-            }},
-            {{
-                "title": "Specific Career/Major 2",
-                "reason": "Why it fits...",
-                "pros": ["Pro 1", "Pro 2"],
-                "cons": ["Con 1", "Con 2"]
-            }},
-            {{
-                "title": "Specific Career/Major 3",
-                "reason": "Why it fits...",
-                "pros": ["Pro 1", "Pro 2"],
-                "cons": ["Con 1", "Con 2"]
-            }}
-        ]
-        """
+    student_context = {
+        "student_name": phase1.get("name", "Student"),
+        "age_group": result.student_type if result else "Unknown",
+        "education_level": phase1.get("pursuing", "Unknown"),
+        "current_course": phase1.get("pursuing", "Unknown"),
+        "selected_interests": phase1.get("interests", []),
+        "salary_priority": phase1.get("salary_priority", "Unknown"),
+        "family_context": {
+            "parent_occupation_category": f"{phase1.get('father_occupation', '')}, {phase1.get('mother_occupation', '')}",
+            "family_income_category": phase1.get("family_income", "Unknown")
+        },
+        "phase_2_summary": {
+            "strongest_work_style": result.phase_2_category if result else "Unknown",
+            "learning_style": "Assessed via archetype",
+            "problem_solving_style": "Assessed via archetype",
+            "response_to_change": "Assessed via archetype",
+            "leadership_and_team_style": "Assessed via archetype",
+            "communication_style": "Assessed via archetype"
+        },
+        "conversation_turn": "Finalized",
+        "student_previous_answers_summary": "N/A"
+    }
+
+    import json
+    analysis_prompt = FINALIZE_PROMPT.replace(
+        "{context_json}", json.dumps(student_context, indent=2)
+    ).replace(
+        "{transcript}", transcript
+    )
 
     try:
-        import json
         raw_text = ""
         gclient = get_groq_client()
         if gclient:
             completion = await gclient.chat.completions.create(
-                messages=[{"role": "system", "content": "Return ONLY valid JSON."}, {"role": "user", "content": analysis_prompt}],
+                messages=[{"role": "user", "content": analysis_prompt}],
                 model="llama-3.3-70b-versatile",
                 temperature=0.4,
-                max_tokens=1000,
+                max_tokens=2500,
                 response_format={"type": "json_object"}
             )
             raw_text = completion.choices[0].message.content
         else:
-            raw_text = await generate_content_with_fallback(analysis_prompt + "\nIMPORTANT: Return ONLY valid JSON.")
+            raw_text = await generate_content_with_fallback(analysis_prompt + "\nIMPORTANT: Return ONLY valid JSON without markdown formatting.")
 
         # Parse JSON
         data = json.loads(raw_text)
         
-        # Broad fields common to all
-        result.phase3_analysis = data.get("phase3_analysis", "Detailed conversation analysis complete.")
-        if selected_class == '10th':
-            result.recommended_stream = data.get("recommended_stream")
-            result.stream_scores = data.get("fit_scores", {})
-            result.final_analysis = data.get("explanation", "")
-            result.stream_pros = [
-                f"**Key Strength:** {data.get('strength_insight', '')}",
-                f"**Growth Step:** {data.get('growth_suggestion', '')}"
-            ]
-            result.phase3_result = json.dumps(data)
-        else:
-            result.recommended_stream = data.get("recommended_stream")
-            result.stream_scores = data.get("stream_scores", {}) # Just in case
-            result.final_analysis = data.get("final_analysis", "")
-            result.stream_pros = data.get("stream_pros", [])
-            result.phase3_result = json.dumps(data.get("stream_pros", []))
+        # Safe Mapping to existing DB model so result.html doesn't break
+        result.recommended_stream = "Personalized Career Matches"
+        result.final_analysis = data.get("overall_summary", "Detailed conversation analysis complete.")
+        result.phase3_analysis = f"Confidence: {data.get('confidence_level', 'High').title()} | {data.get('important_note', '')}"
+        
+        transformed_pros = []
+        recommendations = data.get("career_recommendations") or []
+        for rec in recommendations:
+            why_suitable = rec.get("why_suitable") or []
+            supporting_evidence = rec.get("supporting_evidence_from_conversation") or []
+            likely_challenges = rec.get("likely_challenges") or []
+            key_strengths = rec.get("key_strengths_to_build") or []
+            
+            fit_level = (rec.get('fit_level') or '').replace('_', ' ').title()
+            next_step = rec.get('practical_next_step') or ''
+            
+            transformed_pros.append({
+                "title": rec.get("profession", "Unknown Profession"),
+                "reason": f"Match Level: {fit_level}. {next_step}",
+                "pros": why_suitable + supporting_evidence,
+                "cons": likely_challenges + key_strengths
+            })
+        
+        result.stream_pros = transformed_pros
+        result.stream_scores = {}
+        result.phase3_result = json.dumps(data)
+        
+        # Save intake summary
+        if result.raw_answers:
+            updated_answers = result.raw_answers.copy()
+            updated_answers["groq_summary"] = data.get("initial_intake_summary", "Intake profile analyzed successfully.")
+            result.raw_answers = updated_answers
+            from sqlalchemy.orm.attributes import flag_modified
+            flag_modified(result, "raw_answers")
 
         result.final_answers = {"skipped": True, "flow": "simplified"}
 
@@ -3986,9 +4243,9 @@ async def share_simulation_result(result_id: int, request: Request, db: AsyncSes
 
 # --- Phase 4 Routes (Final Stream Assessment) ---
 
-from data.questions_final import all_questions, section_a_questions, section_b_questions, section_c_questions, section_d_questions
-from data.questions_12th import questions_12th
-from data.questions_above_12th import questions_above_12th
+from .data.questions_final import all_questions, section_a_questions, section_b_questions, section_c_questions, section_d_questions
+from .data.questions_12th import questions_12th
+from .data.questions_above_12th import questions_above_12th
 
 @app.get("/assessment/final", response_class=HTMLResponse)
 async def assessment_final(request: Request, db: AsyncSession = Depends(get_db)):
@@ -4411,27 +4668,40 @@ Welcome the student warmly (1 sentence), then present this first question:
         new_idx = current_idx
         done = False
 
-    # Call Gemini with Groq fallback
+    # Call Groq with Gemini fallback
     try:
-        if GEMINI_API_KEY:
+        gclient = get_groq_client()
+        if gclient:
             try:
-                model_ai = get_gemini_model("gemini-2.0-flash")
-                response = await model_ai.generate_content_async(prompt)
-                ai_text = response.text
-            except Exception:
-                model_ai = get_gemini_model("gemini-1.5-flash")
-                response = await model_ai.generate_content_async(prompt)
-                ai_text = response.text
-        else:
-            gclient = get_groq_client()
-            if gclient:
                 completion = await gclient.chat.completions.create(
                     messages=[{"role": "user", "content": prompt}],
                     model="llama-3.3-70b-versatile",
                 )
                 ai_text = completion.choices[0].message.content
-            else:
-                ai_text = f"[Demo Mode] {current_q_text}"
+            except Exception as groq_err:
+                print(f"Groq error: {groq_err}. Falling back to Gemini.")
+                if GEMINI_API_KEY:
+                    try:
+                        model_ai = get_gemini_model("gemini-2.0-flash")
+                        response = await model_ai.generate_content_async(prompt)
+                        ai_text = response.text
+                    except Exception:
+                        model_ai = get_gemini_model("gemini-2.5-flash")
+                        response = await model_ai.generate_content_async(prompt)
+                        ai_text = response.text
+                else:
+                    raise groq_err
+        elif GEMINI_API_KEY:
+            try:
+                model_ai = get_gemini_model("gemini-2.0-flash")
+                response = await model_ai.generate_content_async(prompt)
+                ai_text = response.text
+            except Exception:
+                model_ai = get_gemini_model("gemini-2.5-flash")
+                response = await model_ai.generate_content_async(prompt)
+                ai_text = response.text
+        else:
+            ai_text = f"[Demo Mode] {current_q_text}"
     except Exception as e:
         ai_text = f"I seem to be in deep thought right now. ({str(e)}) Please try again."
 
@@ -4614,11 +4884,41 @@ Response (Concise, Markdown formatted):
         from .database import AsyncSessionLocal
         async with AsyncSessionLocal() as local_db:
             try:
-                # TRY GEMINI FIRST
-                if GEMINI_API_KEY:
+                # TRY GROQ FIRST
+                gclient = get_groq_client()
+                if gclient:
+                    try:
+                        print(f"AI Chat for User {user_id}: Trying Groq...")
+                        stream = await gclient.chat.completions.create(
+                            messages=[{"role": "user", "content": prompt}],
+                            model="llama-3.3-70b-versatile",
+                            stream=True,
+                        )
+                        async for chunk in stream:
+                            if chunk.choices[0].delta.content:
+                                text_chunk = chunk.choices[0].delta.content
+                                full_response_text += text_chunk
+                                yield text_chunk
+                    except Exception as groq_e:
+                        print(f"Chatbot Groq Error: {groq_e}. Trying Gemini fallback.")
+                        if GEMINI_API_KEY:
+                            try:
+                                model = get_gemini_model("gemini-2.5-flash")
+                                response = await model.generate_content_async(prompt, stream=True)
+                                async for chunk in response:
+                                    if chunk.text:
+                                        text_chunk = chunk.text
+                                        full_response_text += text_chunk
+                                        yield text_chunk
+                            except Exception as gemini_e:
+                                print(f"Chatbot Gemini Error: {gemini_e}")
+                                yield f"I'm sorry, both AI services are currently unavailable. (Groq: {str(groq_e)}, Gemini: {str(gemini_e)})"
+                        else:
+                            yield f"AI Service error: {str(groq_e)}"
+                elif GEMINI_API_KEY:
                     try:
                         print(f"AI Chat for User {user_id}: Trying Gemini...")
-                        model = get_gemini_model("gemini-1.5-flash")
+                        model = get_gemini_model("gemini-2.5-flash")
                         response = await model.generate_content_async(prompt, stream=True)
                         async for chunk in response:
                             if chunk.text:
@@ -4626,29 +4926,10 @@ Response (Concise, Markdown formatted):
                                 full_response_text += text_chunk
                                 yield text_chunk
                     except Exception as gemini_e:
-                        print(f"Chatbot Gemini Error: {gemini_e}. Trying Groq fallback.")
-                        # FALLBACK TO GROQ
-                        gclient = get_groq_client()
-                        if gclient:
-                            try:
-                                stream = await gclient.chat.completions.create(
-                                    messages=[{"role": "user", "content": prompt}],
-                                    model="llama-3.3-70b-versatile",
-                                    stream=True,
-                                )
-                                async for chunk in stream:
-                                    if chunk.choices[0].delta.content:
-                                        text_chunk = chunk.choices[0].delta.content
-                                        full_response_text += text_chunk
-                                        yield text_chunk
-                            except Exception as groq_e:
-                                print(f"Chatbot Groq Error: {groq_e}")
-                                yield f"I'm sorry, both AI services are currently unavailable. (Gemini: {str(gemini_e)}, Groq: {str(groq_e)})"
-                        else:
-                            yield f"AI Service error: {str(gemini_e)}"
+                        yield f"AI Service error: {str(gemini_e)}"
                 else:
                      # Demo Mode Simulation
-                     fake_response = "I'm in demo mode (No API Key). Based on your profile, I'd suggest exploring based on your interests! (Please set GEMINI_API_KEY to get real AI responses)"
+                     fake_response = "I'm in demo mode (No API Key). Based on your profile, I'd suggest exploring based on your interests! (Please set GEMINI_API_KEY or GROQ_API_KEY to get real AI responses)"
                      for word in fake_response.split():
                          text_chunk = word + " "
                          full_response_text += text_chunk
@@ -4770,84 +5051,327 @@ async def generate_career_path(request: Request, path_req: CareerPathRequest, db
     final_insight = result.final_analysis or ""
 
     prompt = f"""
-    You are an expert 'Student Success Architect' and Career Mentor.
-    
-    Student Profile:
-    - Current Stage: {current_class} (Handle this as the starting point)
-    - Archetype: {archetype} (Influences the learning style and interaction)
-    - Personality: {personality} (Determines the type of environment suggested)
-    - Goal Career: {path_req.career_title}
-    - Deep Analysis Context: {phase3_insight[:400]}
-    - Recommendation Engine Notes: {final_insight[:400]}
+You are CareStance's Elite Career Architect, Industry Mentor, and Student Success Strategist.
 
-    TASK:
-    Create a "Zero-to-Hero" Career Roadmap. The journey MUST start from absolute BASICS (Phase 1-2) and evolve into PROFESSIONAL/PRO level (Phase 5-6).
-    
-    Tone: 
-    - Student-friendly, encouraging, and visionary. 
-    - Use "We" and "You" to make it feel like a partnership. 
-    - Avoid dry corporate jargon where simple, inspiring words work better.
+Student Profile:
+- Current Stage: {current_class}
+- Archetype: {archetype}
+- Personality: {personality}
+- Goal Career: {path_req.career_title}
+- Deep Analysis Context: {phase3_insight[:600]}
+- Recommendation Engine Notes: {final_insight[:600]}
 
-    Provide exactly 6 Milestone Steps:
-    - Step 1-2: Foundations (The "Basics" - Learning, early exploration, building mindset). 
-    - Step 3-4: Intermediate (Core skill building, first real projects, networking).
-    - Step 5-6: Professional (Specialization, portfolio polishing, high-level internships, job readiness).
+TASK:
 
-    For EACH step, include:
-    1. Action Name (Catchy & motivating)
-    2. Description (Explain WHY this step matters for their specific profile - 3 sentences)
-    3. Skills to acquire (3 specific skills relevant to {path_req.career_title})
-    4. Resources (MUST provide 2 specific, HIGHLY ACCURATE resources. EACH resource MUST be an object with a "name" and a functional "url". PRIORITIZE DIRECT LINKS to the **most viewed/popular** YouTube videos or verified courses (Coursera, Udemy, Official Docs). Use HIGHLY SPECIFIC search queries ONLY as a secondary fallback if a direct video link is absolutely unavailable for the specific topic. Plain text without URLs is FORBIDDEN.)
-    5. Student Project (1 "Masterpiece" project. MUST include: A catchy Name, a precise Description, specific **Tools to use** (libraries/software), and key **Parameters/Challenges** to think about for a professional finish. Format it clearly.)
-    6. Detailed Task (A precise, actionable, and detailed task for the student to complete for this specific step)
-    7. Timeline (Realistic estimate, e.g., "Months 1-3")
+Create a highly personalized "Zero-to-Hero Career Journey" for this student.
 
-    Additional Career Insights:
-    - Internships: 2 specific "Dream Internships" or types of roles to hunt for.
-    - Career Outlook:
-        - Salary Journey: Entry-level to Senior potential (in INR or USD as appropriate).
-        - Top 3 Companies: Famous places that hire this role.
-        - Hiring Trends: A detailed paragraph on current hiring demand, specific roles being filled, and what recruiters look for in {path_req.career_title}.
-        - Future Scope: Why this career is a "Safe Bet" or "High Growth" path for the next decade.
+IMPORTANT:
 
-    OUTPUT FORMAT (VALID JSON ONLY):
+DO NOT generate a fixed number of roadmap steps.
+
+First analyze:
+
+1. Complexity of {path_req.career_title}
+2. Required education level
+3. Skill depth required
+4. Certification requirements
+5. Industry expectations
+6. Portfolio requirements
+7. Experience requirements
+8. Time required to become job-ready
+
+Based on this analysis dynamically determine the roadmap size.
+
+Roadmap Guidelines:
+
+- Simple Careers → 6-8 milestones
+- Moderate Careers → 8-10 milestones
+- Advanced Careers → 10-14 milestones
+- Highly Specialized Careers → 14-20 milestones
+
+Examples:
+
+Data Analyst → 8 Milestones
+Software Engineer → 10 Milestones
+AI/ML Engineer → 12 Milestones
+Cybersecurity Engineer → 12 Milestones
+Doctor → 18 Milestones
+Research Scientist → 16 Milestones
+Lawyer → 15 Milestones
+Chartered Accountant → 14 Milestones
+
+The roadmap must feel like a complete progression journey.
+
+Every roadmap should include these phases:
+
+Phase 1:
+Discovery & Career Awareness
+
+Phase 2:
+Foundations & Mindset Building
+
+Phase 3:
+Core Skills Development
+
+Phase 4:
+Applied Learning
+
+Phase 5:
+Projects & Portfolio Building
+
+Phase 6:
+Industry Exposure
+
+Phase 7:
+Professional Readiness
+
+Phase 8:
+Career Launch
+
+Add additional phases if the career requires deeper specialization.
+
+Tone:
+
+- Student-friendly
+- Inspirational
+- Future-focused
+- Motivational
+- Personalized
+
+Use "You" and "We".
+
+Avoid generic career advice.
+
+For EACH roadmap milestone include:
+
+1. Action Name
+   - Catchy
+   - Motivational
+   - Career-specific
+
+2. Stage
+   Example:
+   Foundations
+   Core Skills
+   Portfolio Building
+   Career Launch
+
+3. Description
+   - 3-5 personalized sentences
+   - Explain WHY this milestone matters
+   - Connect it to student's personality and archetype
+   - Explain how it moves them closer to becoming a {path_req.career_title}
+
+4. Skills To Acquire
+   - 4 to 6 highly relevant skills
+
+5. Resources
+
+MUST provide exactly 3 resources.
+
+Each resource MUST be:
+
+{{
+"name": "...",
+"url": "...",
+"type": "youtube/course/documentation/article",
+"difficulty": "Beginner/Intermediate/Advanced"
+}}
+
+Rules:
+
+- Prefer Official Documentation
+- Coursera
+- DeepLearning.AI
+- MIT OpenCourseWare
+- Stanford Online
+- Harvard Online
+- Google Learning
+- Microsoft Learn
+- IBM SkillsBuild
+- Udemy Best Sellers
+
+Never generate fake URLs.
+
+6. Student Project
+
+Must contain:
+
+{{
+"name": "...",
+"description": "...",
+"tools": ["...", "..."],
+"parameters": ["...", "..."],
+"difficulty": "...",
+"portfolio_value": "..."
+}}
+
+Project Requirements:
+
+- Step 1 projects should be beginner-friendly
+- Difficulty must progressively increase
+- Final projects should be industry-level
+- Projects should be portfolio-worthy
+
+7. Detailed Task
+
+Provide a precise action plan.
+
+Bad Example:
+"Learn Python"
+
+Good Example:
+"Complete Python fundamentals including loops, functions, OOP, exception handling and build three mini projects."
+
+8. Timeline
+
+Examples:
+
+"Weeks 1-2"
+"Months 1-3"
+"Months 4-6"
+
+Provide realistic estimates.
+
+9. Gamification
+
+Provide:
+
+{{
+"xp_points": 100,
+"achievement_badge": "...",
+"unlocks": "..."
+}}
+
+10. CareerBuddy Prompt
+
+Generate a contextual AI mentor prompt:
+
+Example:
+
+"Review my first machine learning project and suggest improvements."
+
+Additional Career Insights:
+
+Internships:
+
+Provide 3 dream internships or entry-level roles.
+
+Format:
+
+{{
+"title": "...",
+"why_it_matters": "..."
+}}
+
+Career Outlook:
+
+Provide:
+
+- Salary Journey
+- Entry Level Salary
+- Mid Level Salary
+- Senior Level Salary
+- Leadership Level Salary
+- Top 5 Companies
+- Hiring Trends
+- Future Scope
+- Automation Risk
+- Global Opportunities
+
+Hiring Trends:
+
+Provide a detailed paragraph explaining:
+
+- Current demand
+- Recruiter expectations
+- Most hired roles
+- Important certifications
+- Emerging skills
+
+Future Scope:
+
+Explain why this field will or will not grow over the next decade.
+
+Success Metrics:
+
+Generate measurable success indicators.
+
+Examples:
+
+- Complete 5 projects
+- Earn AWS Certification
+- Reach 500 GitHub Contributions
+- Publish Portfolio Website
+
+OUTPUT FORMAT (VALID JSON ONLY):
+
+{{
+  "career_title": "{path_req.career_title}",
+  "career_complexity": "...",
+  "estimated_total_duration": "...",
+  "total_milestones": 0,
+
+  "path_steps": [
     {{
-      "career_title": "{path_req.career_title}",
-      "path_steps": [
-        {{ 
-          "step": 1, 
-          "action": "...", 
-          "description": "...", 
-          "skills": ["...", "...", "..."],
-          "courses": [
-            {{ "name": "...", "url": "..." }},
-            {{ "name": "...", "url": "..." }}
-          ],
-          "project": {{
-            "name": "Catchy Project Name",
-            "description": "Short, inspiring project description...",
-            "tools": ["Tool 1", "Tool 2"],
-            "parameters": ["Key Factor 1", "Key Factor 2"]
-          }},
-          "detailed_task": "A precise, step-by-step action for this specific goal...",
-          "timeline": "...",
-          "completed": false
-        }},
-        ... (Total 6)
+      "step": 1,
+      "stage": "...",
+      "action": "...",
+      "description": "...",
+      "skills": ["...", "..."],
+      "courses": [
+        {{
+          "name": "...",
+          "url": "...",
+          "type": "...",
+          "difficulty": "..."
+        }}
       ],
-      "internships": ["...", "..."],
-      "career_outlook": {{
-        "salary_range": "...",
-        "top_companies": ["...", "...", "..."],
-        "hiring_trends": "Detailed hiring trends and recruiter expectations...",
-        "future_scope": "..."
+      "project": {{
+        "name": "...",
+        "description": "...",
+        "tools": [],
+        "parameters": [],
+        "difficulty": "...",
+        "portfolio_value": "..."
       }},
-      "reminders": [
-        {{ "milestone": "...", "reminder": "..." }},
-        ...
-      ]
+      "detailed_task": "...",
+      "timeline": "...",
+      "xp_points": 100,
+      "achievement_badge": "...",
+      "unlocks": "...",
+      "careerbuddy_prompt": "...",
+      "completed": false
     }}
-    """
+  ],
+
+  "internships": [],
+
+  "career_outlook": {{
+    "salary_journey": {{
+      "entry_level": "...",
+      "mid_level": "...",
+      "senior_level": "...",
+      "leadership_level": "..."
+    }},
+    "top_companies": [],
+    "hiring_trends": "...",
+    "future_scope": "...",
+    "automation_risk": "...",
+    "global_opportunities": "..."
+  }},
+
+  "success_metrics": [],
+
+  "motivational_message": "..."
+}}
+
+Return ONLY VALID JSON.
+No markdown.
+No explanations.
+No text outside JSON.
+"""
+
 
     try:
         clean_text = await generate_content_with_fallback(prompt)
@@ -5987,7 +6511,7 @@ async def terms_page(request: Request, db: AsyncSession = Depends(get_db)):
 async def debug_migrate(request: Request, db: AsyncSession = Depends(get_db)):
     """Manually trigger migrations and return status."""
     try:
-        run_migrations()
+        await run_migrations()
         return {"status": "success", "message": "Migrations triggered. Check console/logs for details."}
     except Exception as e:
         import traceback
@@ -5999,6 +6523,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "app.main:app",
         host="0.0.0.0",
-        port=8000,
+        port=int(os.getenv("PORT", "8080")),
         reload=dev_reload,
     )

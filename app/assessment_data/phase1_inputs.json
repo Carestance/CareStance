@@ -1,0 +1,925 @@
+{
+  "current_course_mapping": {
+    "Engineering & Technology": {
+      "IT_Realistic": 0.8,
+      "AB_Deductive Reasoning": 0.7,
+      "WS_Attention to Detail": 0.6
+    },
+    "Computer & IT": {
+      "IT_Investigative": 0.8,
+      "AB_Deductive Reasoning": 0.7,
+      "WS_Attention to Detail": 0.6
+    },
+    "Business & Management": {
+      "IT_Enterprising": 0.8,
+      "WS_Leadership Orientation": 0.7,
+      "AB_Oral Expression": 0.6
+    },
+    "Commerce & Finance": {
+      "IT_Conventional": 0.8,
+      "AB_Number Facility": 0.7,
+      "WS_Attention to Detail": 0.6
+    },
+    "Science": {
+      "IT_Investigative": 0.8,
+      "WS_Intellectual Curiosity": 0.7,
+      "AB_Inductive Reasoning": 0.6
+    },
+    "Medical & Healthcare": {
+      "IT_Social": 0.7,
+      "AB_Problem Sensitivity": 0.8,
+      "WS_Stress Tolerance": 0.6
+    },
+    "Arts & Humanities": {
+      "IT_Artistic": 0.8,
+      "AB_Written Expression": 0.7,
+      "WS_Intellectual Curiosity": 0.6
+    },
+    "Law": {
+      "IT_Investigative": 0.6,
+      "AB_Written Comprehension": 0.8,
+      "AB_Oral Expression": 0.6
+    },
+    "Design & Creative": {
+      "IT_Artistic": 0.8,
+      "AB_Originality": 0.7,
+      "AB_Visualization": 0.8
+    },
+    "Media & Communication": {
+      "IT_Enterprising": 0.6,
+      "AB_Oral Expression": 0.8,
+      "WS_Social Orientation": 0.6
+    },
+    "Hospitality & Tourism": {
+      "IT_Social": 0.7,
+      "WS_Social Orientation": 0.8,
+      "WS_Adaptability": 0.6
+    },
+    "Agriculture": {
+      "IT_Realistic": 0.8,
+      "IT_Investigative": 0.5,
+      "AB_Inductive Reasoning": 0.6
+    },
+    "Education": {
+      "IT_Social": 0.8,
+      "AB_Oral Expression": 0.7,
+      "AB_Oral Comprehension": 0.6
+    },
+    "Defence & Aviation": {
+      "IT_Realistic": 0.7,
+      "WS_Stress Tolerance": 0.8,
+      "WS_Self-Control": 0.6
+    },
+    "Vocational & Professional": {
+      "IT_Realistic": 0.8,
+      "WS_Attention to Detail": 0.7,
+      "AB_Information Ordering": 0.6
+    }
+  },
+  "interest_selection_mapping": {
+    "Artificial Intelligence (AI)": {
+      "IT_Investigative": 0.8,
+      "WS_Intellectual Curiosity": 0.7,
+      "AB_Deductive Reasoning": 0.7
+    },
+    "Machine Learning (ML)": {
+      "IT_Investigative": 0.8,
+      "AB_Mathematical Reasoning": 0.7,
+      "AB_Inductive Reasoning": 0.7
+    },
+    "Data Science": {
+      "IT_Investigative": 0.8,
+      "AB_Mathematical Reasoning": 0.7,
+      "AB_Inductive Reasoning": 0.7
+    },
+    "Software Development": {
+      "IT_Conventional": 0.7,
+      "AB_Deductive Reasoning": 0.8,
+      "WS_Attention to Detail": 0.7
+    },
+    "Web Development": {
+      "IT_Conventional": 0.7,
+      "AB_Visualization": 0.6,
+      "WS_Attention to Detail": 0.7
+    },
+    "Mobile App Development": {
+      "IT_Conventional": 0.7,
+      "WS_Innovation": 0.7,
+      "AB_Category Flexibility": 0.6
+    },
+    "Cybersecurity": {
+      "IT_Investigative": 0.8,
+      "AB_Problem Sensitivity": 0.7,
+      "WS_Attention to Detail": 0.7
+    },
+    "Cloud Computing": {
+      "IT_Conventional": 0.8,
+      "AB_Information Ordering": 0.7,
+      "WS_Attention to Detail": 0.6
+    },
+    "Robotics": {
+      "IT_Realistic": 0.7,
+      "IT_Investigative": 0.7,
+      "AB_Deductive Reasoning": 0.7
+    },
+    "Game Development": {
+      "IT_Artistic": 0.8,
+      "WS_Innovation": 0.7,
+      "AB_Visualization": 0.7
+    },
+    "Blockchain": {
+      "IT_Investigative": 0.8,
+      "AB_Deductive Reasoning": 0.7,
+      "WS_Intellectual Curiosity": 0.7
+    },
+    "Internet of Things (IoT)": {
+      "IT_Realistic": 0.7,
+      "IT_Investigative": 0.7,
+      "AB_Deductive Reasoning": 0.7
+    },
+    "Computer Hardware": {
+      "IT_Realistic": 0.8,
+      "WS_Attention to Detail": 0.7,
+      "AB_Visualization": 0.6
+    },
+    "UI/UX Design": {
+      "IT_Artistic": 0.8,
+      "AB_Visualization": 0.7,
+      "AB_Problem Sensitivity": 0.6
+    },
+    "AR/VR Development": {
+      "IT_Artistic": 0.7,
+      "AB_Visualization": 0.8,
+      "WS_Innovation": 0.7
+    },
+    "Quantum Computing": {
+      "IT_Investigative": 0.9,
+      "AB_Mathematical Reasoning": 0.8,
+      "WS_Intellectual Curiosity": 0.8
+    },
+    "Mechanical Engineering": {
+      "IT_Realistic": 0.8,
+      "AB_Visualization": 0.7,
+      "AB_Deductive Reasoning": 0.7
+    },
+    "Civil Engineering": {
+      "IT_Realistic": 0.8,
+      "AB_Visualization": 0.7,
+      "WS_Attention to Detail": 0.6
+    },
+    "Electrical Engineering": {
+      "IT_Realistic": 0.8,
+      "AB_Deductive Reasoning": 0.7,
+      "WS_Attention to Detail": 0.6
+    },
+    "Electronics": {
+      "IT_Realistic": 0.8,
+      "AB_Deductive Reasoning": 0.7,
+      "WS_Attention to Detail": 0.6
+    },
+    "Aerospace Engineering": {
+      "IT_Realistic": 0.8,
+      "AB_Deductive Reasoning": 0.7,
+      "AB_Mathematical Reasoning": 0.7
+    },
+    "Automobile Engineering": {
+      "IT_Realistic": 0.8,
+      "AB_Visualization": 0.7,
+      "WS_Attention to Detail": 0.6
+    },
+    "Renewable Energy": {
+      "IT_Investigative": 0.7,
+      "WS_Intellectual Curiosity": 0.7,
+      "AB_Problem Sensitivity": 0.6
+    },
+    "Mechatronics": {
+      "IT_Realistic": 0.8,
+      "IT_Investigative": 0.7,
+      "AB_Deductive Reasoning": 0.7
+    },
+    "Industrial Engineering": {
+      "IT_Conventional": 0.7,
+      "AB_Information Ordering": 0.7,
+      "WS_Attention to Detail": 0.6
+    },
+    "Nanotechnology": {
+      "IT_Investigative": 0.8,
+      "WS_Intellectual Curiosity": 0.7,
+      "AB_Deductive Reasoning": 0.7
+    },
+    "Doctor": {
+      "IT_Social": 0.7,
+      "AB_Problem Sensitivity": 0.8,
+      "WS_Stress Tolerance": 0.7
+    },
+    "Surgeon": {
+      "IT_Realistic": 0.7,
+      "AB_Problem Sensitivity": 0.8,
+      "WS_Attention to Detail": 0.7
+    },
+    "Dentist": {
+      "IT_Realistic": 0.7,
+      "WS_Attention to Detail": 0.8,
+      "AB_Problem Sensitivity": 0.6
+    },
+    "Nursing": {
+      "IT_Social": 0.8,
+      "WS_Social Orientation": 0.7,
+      "WS_Stress Tolerance": 0.7
+    },
+    "Physiotherapy": {
+      "IT_Realistic": 0.7,
+      "IT_Social": 0.7,
+      "AB_Problem Sensitivity": 0.7
+    },
+    "Pharmacy": {
+      "IT_Investigative": 0.7,
+      "IT_Conventional": 0.7,
+      "WS_Attention to Detail": 0.6
+    },
+    "Medical Research": {
+      "IT_Investigative": 0.8,
+      "WS_Intellectual Curiosity": 0.8,
+      "AB_Inductive Reasoning": 0.7
+    },
+    "Psychology": {
+      "IT_Social": 0.8,
+      "WS_Intellectual Curiosity": 0.7,
+      "AB_Oral Comprehension": 0.7
+    },
+    "Nutrition & Dietetics": {
+      "IT_Social": 0.7,
+      "IT_Investigative": 0.6,
+      "AB_Problem Sensitivity": 0.7
+    },
+    "Public Health": {
+      "IT_Social": 0.8,
+      "AB_Problem Sensitivity": 0.7,
+      "AB_Written Expression": 0.6
+    },
+    "Veterinary Science": {
+      "IT_Realistic": 0.7,
+      "IT_Social": 0.7,
+      "AB_Problem Sensitivity": 0.7
+    },
+    "Entrepreneurship": {
+      "IT_Enterprising": 0.8,
+      "WS_Initiative": 0.8,
+      "WS_Leadership Orientation": 0.7
+    },
+    "Startups": {
+      "IT_Enterprising": 0.8,
+      "WS_Tolerance for Ambiguity": 0.8,
+      "WS_Initiative": 0.7
+    },
+    "Business Management": {
+      "IT_Enterprising": 0.8,
+      "WS_Leadership Orientation": 0.7,
+      "AB_Oral Expression": 0.6
+    },
+    "Marketing": {
+      "IT_Enterprising": 0.8,
+      "AB_Fluency of Ideas": 0.7,
+      "WS_Innovation": 0.6
+    },
+    "Digital Marketing": {
+      "IT_Enterprising": 0.7,
+      "IT_Conventional": 0.6,
+      "AB_Inductive Reasoning": 0.6
+    },
+    "Sales": {
+      "IT_Enterprising": 0.8,
+      "AB_Oral Expression": 0.7,
+      "WS_Social Orientation": 0.6
+    },
+    "Finance": {
+      "IT_Conventional": 0.8,
+      "AB_Number Facility": 0.7,
+      "WS_Attention to Detail": 0.6
+    },
+    "Investment": {
+      "IT_Enterprising": 0.7,
+      "AB_Mathematical Reasoning": 0.7,
+      "WS_Cautiousness": 0.6
+    },
+    "Stock Market": {
+      "IT_Enterprising": 0.8,
+      "AB_Mathematical Reasoning": 0.7,
+      "WS_Stress Tolerance": 0.6
+    },
+    "Banking": {
+      "IT_Conventional": 0.8,
+      "AB_Number Facility": 0.6,
+      "WS_Attention to Detail": 0.6
+    },
+    "Consulting": {
+      "IT_Enterprising": 0.7,
+      "AB_Deductive Reasoning": 0.7,
+      "AB_Oral Expression": 0.6
+    },
+    "Human Resources": {
+      "IT_Social": 0.8,
+      "WS_Cooperation": 0.7,
+      "AB_Oral Comprehension": 0.6
+    },
+    "Physics": {
+      "IT_Investigative": 0.8,
+      "AB_Mathematical Reasoning": 0.8,
+      "AB_Deductive Reasoning": 0.7
+    },
+    "Chemistry": {
+      "IT_Investigative": 0.8,
+      "AB_Information Ordering": 0.7,
+      "WS_Attention to Detail": 0.6
+    },
+    "Biology": {
+      "IT_Investigative": 0.8,
+      "AB_Category Flexibility": 0.7,
+      "AB_Written Comprehension": 0.6
+    },
+    "Mathematics": {
+      "IT_Investigative": 0.8,
+      "AB_Mathematical Reasoning": 0.8,
+      "AB_Deductive Reasoning": 0.7
+    },
+    "Astronomy": {
+      "IT_Investigative": 0.8,
+      "WS_Intellectual Curiosity": 0.8,
+      "AB_Visualization": 0.7
+    },
+    "Space Science": {
+      "IT_Investigative": 0.8,
+      "WS_Intellectual Curiosity": 0.7,
+      "AB_Deductive Reasoning": 0.7
+    },
+    "Biotechnology": {
+      "IT_Investigative": 0.8,
+      "AB_Inductive Reasoning": 0.7,
+      "WS_Intellectual Curiosity": 0.7
+    },
+    "Environmental Science": {
+      "IT_Investigative": 0.8,
+      "AB_Problem Sensitivity": 0.7,
+      "WS_Intellectual Curiosity": 0.7
+    },
+    "Genetics": {
+      "IT_Investigative": 0.8,
+      "AB_Category Flexibility": 0.7,
+      "WS_Attention to Detail": 0.6
+    },
+    "Scientific Research": {
+      "IT_Investigative": 0.9,
+      "WS_Perseverance": 0.8,
+      "AB_Inductive Reasoning": 0.7
+    },
+    "Lawyer": {
+      "IT_Investigative": 0.7,
+      "AB_Oral Expression": 0.8,
+      "AB_Written Comprehension": 0.7
+    },
+    "Judge": {
+      "IT_Investigative": 0.7,
+      "AB_Deductive Reasoning": 0.8,
+      "WS_Self-Control": 0.7
+    },
+    "Civil Services (UPSC)": {
+      "IT_Social": 0.7,
+      "WS_Leadership Orientation": 0.8,
+      "AB_Written Comprehension": 0.7
+    },
+    "Government Administration": {
+      "IT_Conventional": 0.7,
+      "WS_Leadership Orientation": 0.7,
+      "AB_Information Ordering": 0.6
+    },
+    "Public Policy": {
+      "IT_Investigative": 0.7,
+      "AB_Written Expression": 0.8,
+      "WS_Intellectual Curiosity": 0.7
+    },
+    "International Relations": {
+      "IT_Social": 0.7,
+      "AB_Written Expression": 0.8,
+      "WS_Intellectual Curiosity": 0.7
+    },
+    "Diplomacy": {
+      "IT_Social": 0.7,
+      "WS_Self-Control": 0.8,
+      "AB_Oral Comprehension": 0.7
+    },
+    "Criminology": {
+      "IT_Investigative": 0.8,
+      "AB_Deductive Reasoning": 0.7,
+      "AB_Problem Sensitivity": 0.7
+    },
+    "Graphic Design": {
+      "IT_Artistic": 0.8,
+      "AB_Visualization": 0.8,
+      "AB_Originality": 0.7
+    },
+    "Product Design": {
+      "IT_Artistic": 0.8,
+      "AB_Visualization": 0.7,
+      "WS_Innovation": 0.7
+    },
+    "Fashion Design": {
+      "IT_Artistic": 0.8,
+      "AB_Visualization": 0.7,
+      "AB_Originality": 0.7
+    },
+    "Interior Design": {
+      "IT_Artistic": 0.8,
+      "AB_Visualization": 0.7,
+      "WS_Attention to Detail": 0.6
+    },
+    "Animation": {
+      "IT_Artistic": 0.8,
+      "AB_Visualization": 0.7,
+      "WS_Attention to Detail": 0.6
+    },
+    "3D Modeling": {
+      "IT_Artistic": 0.8,
+      "AB_Visualization": 0.7,
+      "WS_Attention to Detail": 0.6
+    },
+    "Illustration": {
+      "IT_Artistic": 0.8,
+      "AB_Visualization": 0.7,
+      "AB_Originality": 0.7
+    },
+    "Photography": {
+      "IT_Artistic": 0.8,
+      "AB_Visualization": 0.7,
+      "WS_Attention to Detail": 0.6
+    },
+    "Videography": {
+      "IT_Artistic": 0.8,
+      "AB_Visualization": 0.7,
+      "WS_Attention to Detail": 0.6
+    },
+    "YouTuber": {
+      "IT_Enterprising": 0.8,
+      "AB_Oral Expression": 0.7,
+      "WS_Initiative": 0.7
+    },
+    "Influencer": {
+      "IT_Enterprising": 0.8,
+      "WS_Social Orientation": 0.7,
+      "AB_Oral Expression": 0.6
+    },
+    "Content Creator": {
+      "IT_Artistic": 0.8,
+      "AB_Originality": 0.7,
+      "WS_Initiative": 0.7
+    },
+    "Podcasting": {
+      "IT_Social": 0.8,
+      "AB_Oral Expression": 0.7,
+      "AB_Oral Comprehension": 0.7
+    },
+    "Blogging": {
+      "IT_Artistic": 0.8,
+      "AB_Written Expression": 0.7,
+      "WS_Intellectual Curiosity": 0.6
+    },
+    "Journalism": {
+      "IT_Investigative": 0.8,
+      "AB_Written Expression": 0.7,
+      "AB_Problem Sensitivity": 0.6
+    },
+    "News Reporting": {
+      "IT_Social": 0.8,
+      "AB_Oral Expression": 0.7,
+      "WS_Stress Tolerance": 0.6
+    },
+    "Film Making": {
+      "IT_Artistic": 0.8,
+      "WS_Leadership Orientation": 0.7,
+      "AB_Originality": 0.6
+    },
+    "Script Writing": {
+      "IT_Artistic": 0.8,
+      "AB_Written Expression": 0.7,
+      "AB_Originality": 0.6
+    },
+    "Video Editing": {
+      "IT_Artistic": 0.8,
+      "WS_Attention to Detail": 0.7,
+      "AB_Selective Attention": 0.6
+    },
+    "Acting": {
+      "IT_Artistic": 0.8,
+      "AB_Oral Expression": 0.7,
+      "WS_Self-Control": 0.6
+    },
+    "Singing": {
+      "IT_Artistic": 0.8,
+      "AB_Oral Expression": 0.7,
+      "WS_Perseverance": 0.6
+    },
+    "Music Production": {
+      "IT_Artistic": 0.8,
+      "WS_Attention to Detail": 0.7,
+      "AB_Originality": 0.6
+    },
+    "Dance": {
+      "IT_Artistic": 0.8,
+      "WS_Perseverance": 0.7,
+      "WS_Attention to Detail": 0.6
+    },
+    "Theatre": {
+      "IT_Artistic": 0.8,
+      "AB_Oral Expression": 0.7,
+      "WS_Cooperation": 0.6
+    },
+    "Voice Acting": {
+      "IT_Artistic": 0.8,
+      "AB_Oral Expression": 0.7,
+      "AB_Oral Comprehension": 0.6
+    },
+    "Stand-up Comedy": {
+      "IT_Artistic": 0.8,
+      "AB_Oral Expression": 0.7,
+      "AB_Originality": 0.6
+    },
+    "Professional Sports": {
+      "IT_Realistic": 0.8,
+      "WS_Perseverance": 0.8,
+      "WS_Stress Tolerance": 0.7
+    },
+    "Cricket": {
+      "IT_Realistic": 0.8,
+      "WS_Cooperation": 0.7,
+      "WS_Stress Tolerance": 0.6
+    },
+    "Football": {
+      "IT_Realistic": 0.8,
+      "WS_Cooperation": 0.7,
+      "WS_Stress Tolerance": 0.6
+    },
+    "Basketball": {
+      "IT_Realistic": 0.8,
+      "WS_Cooperation": 0.7,
+      "WS_Stress Tolerance": 0.6
+    },
+    "Esports": {
+      "IT_Realistic": 0.8,
+      "AB_Perceptual Speed": 0.7,
+      "AB_Selective Attention": 0.6
+    },
+    "Fitness Training": {
+      "IT_Realistic": 0.8,
+      "IT_Social": 0.7,
+      "AB_Oral Expression": 0.6
+    },
+    "Sports Coaching": {
+      "IT_Social": 0.8,
+      "WS_Leadership Orientation": 0.7,
+      "AB_Oral Expression": 0.6
+    },
+    "Sports Analytics": {
+      "IT_Investigative": 0.8,
+      "AB_Mathematical Reasoning": 0.7,
+      "AB_Inductive Reasoning": 0.7
+    },
+    "Teaching": {
+      "IT_Social": 0.8,
+      "AB_Oral Expression": 0.7,
+      "AB_Oral Comprehension": 0.6
+    },
+    "Academic Research": {
+      "IT_Investigative": 0.8,
+      "WS_Intellectual Curiosity": 0.8,
+      "AB_Inductive Reasoning": 0.7
+    },
+    "Online Tutoring": {
+      "IT_Social": 0.8,
+      "AB_Oral Expression": 0.7,
+      "WS_Self-Control": 0.6
+    },
+    "Educational Content Creation": {
+      "IT_Artistic": 0.8,
+      "AB_Written Expression": 0.7,
+      "AB_Originality": 0.6
+    },
+    "Agriculture": {
+      "IT_Realistic": 0.8,
+      "WS_Perseverance": 0.7,
+      "AB_Problem Sensitivity": 0.6
+    },
+    "Organic Farming": {
+      "IT_Realistic": 0.8,
+      "WS_Intellectual Curiosity": 0.7,
+      "AB_Problem Sensitivity": 0.6
+    },
+    "Agritech": {
+      "IT_Realistic": 0.7,
+      "IT_Investigative": 0.7,
+      "WS_Innovation": 0.6
+    },
+    "Forestry": {
+      "IT_Realistic": 0.8,
+      "IT_Investigative": 0.7,
+      "WS_Intellectual Curiosity": 0.6
+    },
+    "Wildlife Conservation": {
+      "IT_Investigative": 0.7,
+      "IT_Social": 0.7,
+      "AB_Problem Sensitivity": 0.6
+    },
+    "Sustainability": {
+      "IT_Investigative": 0.7,
+      "WS_Intellectual Curiosity": 0.7,
+      "AB_Problem Sensitivity": 0.6
+    },
+    "Indian Army": {
+      "IT_Realistic": 0.8,
+      "WS_Stress Tolerance": 0.8,
+      "WS_Self-Control": 0.7
+    },
+    "Indian Navy": {
+      "IT_Realistic": 0.8,
+      "WS_Stress Tolerance": 0.8,
+      "WS_Self-Control": 0.7
+    },
+    "Indian Air Force": {
+      "IT_Realistic": 0.8,
+      "WS_Stress Tolerance": 0.8,
+      "WS_Self-Control": 0.7
+    },
+    "Intelligence Services": {
+      "IT_Investigative": 0.8,
+      "AB_Deductive Reasoning": 0.7,
+      "WS_Attention to Detail": 0.7
+    },
+    "Police Services": {
+      "IT_Realistic": 0.8,
+      "AB_Problem Sensitivity": 0.7,
+      "WS_Stress Tolerance": 0.7
+    },
+    "Cyber Defence": {
+      "IT_Investigative": 0.8,
+      "AB_Deductive Reasoning": 0.7,
+      "WS_Attention to Detail": 0.7
+    },
+    "Tourism": {
+      "IT_Social": 0.8,
+      "WS_Social Orientation": 0.7,
+      "WS_Adaptability": 0.6
+    },
+    "Hotel Management": {
+      "IT_Conventional": 0.8,
+      "WS_Social Orientation": 0.7,
+      "WS_Stress Tolerance": 0.6
+    },
+    "Event Management": {
+      "IT_Conventional": 0.8,
+      "WS_Initiative": 0.7,
+      "WS_Attention to Detail": 0.6
+    },
+    "Aviation": {
+      "IT_Realistic": 0.8,
+      "WS_Stress Tolerance": 0.8,
+      "WS_Self-Control": 0.7
+    },
+    "Cabin Crew": {
+      "IT_Social": 0.8,
+      "WS_Social Orientation": 0.7,
+      "WS_Self-Control": 0.6
+    },
+    "Travel Blogging": {
+      "IT_Artistic": 0.8,
+      "AB_Written Expression": 0.7,
+      "WS_Initiative": 0.6
+    },
+    "NGOs": {
+      "IT_Social": 0.8,
+      "WS_Social Orientation": 0.7,
+      "AB_Problem Sensitivity": 0.6
+    },
+    "Social Work": {
+      "IT_Social": 0.8,
+      "WS_Social Orientation": 0.7,
+      "AB_Problem Sensitivity": 0.6
+    },
+    "Community Development": {
+      "IT_Social": 0.8,
+      "WS_Cooperation": 0.7,
+      "AB_Problem Sensitivity": 0.6
+    },
+    "Child Welfare": {
+      "IT_Social": 0.8,
+      "AB_Problem Sensitivity": 0.7,
+      "WS_Self-Control": 0.6
+    },
+    "Mental Health Advocacy": {
+      "IT_Social": 0.8,
+      "AB_Oral Expression": 0.7,
+      "AB_Problem Sensitivity": 0.7
+    },
+    "Electrician": {
+      "IT_Realistic": 0.8,
+      "AB_Information Ordering": 0.7,
+      "WS_Attention to Detail": 0.7
+    },
+    "Technician": {
+      "IT_Realistic": 0.8,
+      "AB_Deductive Reasoning": 0.7,
+      "WS_Attention to Detail": 0.7
+    },
+    "Automotive Repair": {
+      "IT_Realistic": 0.8,
+      "AB_Visualization": 0.7,
+      "WS_Attention to Detail": 0.7
+    },
+    "Welding": {
+      "IT_Realistic": 0.8,
+      "WS_Attention to Detail": 0.7,
+      "WS_Self-Control": 0.6
+    },
+    "Construction": {
+      "IT_Realistic": 0.8,
+      "WS_Attention to Detail": 0.7,
+      "AB_Visualization": 0.7
+    },
+    "Manufacturing": {
+      "IT_Realistic": 0.8,
+      "IT_Conventional": 0.7,
+      "WS_Attention to Detail": 0.6
+    },
+    "AI Entrepreneur": {
+      "IT_Enterprising": 0.8,
+      "WS_Innovation": 0.8,
+      "WS_Initiative": 0.7
+    },
+    "Prompt Engineering": {
+      "IT_Investigative": 0.8,
+      "AB_Deductive Reasoning": 0.7,
+      "AB_Fluency of Ideas": 0.7
+    },
+    "Drone Technology": {
+      "IT_Realistic": 0.8,
+      "AB_Visualization": 0.7,
+      "WS_Attention to Detail": 0.6
+    },
+    "Space Technology": {
+      "IT_Investigative": 0.8,
+      "AB_Deductive Reasoning": 0.7,
+      "WS_Intellectual Curiosity": 0.7
+    },
+    "Climate Tech": {
+      "IT_Investigative": 0.8,
+      "AB_Problem Sensitivity": 0.7,
+      "WS_Innovation": 0.7
+    },
+    "Creator Economy": {
+      "IT_Enterprising": 0.8,
+      "AB_Originality": 0.7,
+      "WS_Initiative": 0.7
+    },
+    "Digital Products": {
+      "IT_Enterprising": 0.8,
+      "WS_Innovation": 0.7,
+      "AB_Visualization": 0.7
+    },
+    "SaaS Building": {
+      "IT_Enterprising": 0.8,
+      "WS_Innovation": 0.7,
+      "AB_Deductive Reasoning": 0.7
+    },
+    "No-Code Development": {
+      "IT_Conventional": 0.7,
+      "AB_Category Flexibility": 0.7,
+      "WS_Innovation": 0.6
+    },
+    "Startup Founder": {
+      "IT_Enterprising": 0.8,
+      "WS_Initiative": 0.8,
+      "WS_Tolerance for Ambiguity": 0.7
+    },
+    "CEO": {
+      "IT_Enterprising": 0.8,
+      "WS_Leadership Orientation": 0.8,
+      "WS_Self-Confidence": 0.7
+    },
+    "AI Engineer": {
+      "IT_Investigative": 0.8,
+      "AB_Deductive Reasoning": 0.8,
+      "AB_Mathematical Reasoning": 0.7
+    },
+    "Data Scientist": {
+      "IT_Investigative": 0.8,
+      "AB_Mathematical Reasoning": 0.7,
+      "AB_Inductive Reasoning": 0.7
+    },
+    "Ethical Hacker": {
+      "IT_Investigative": 0.8,
+      "AB_Deductive Reasoning": 0.7,
+      "WS_Attention to Detail": 0.7
+    },
+    "IAS Officer": {
+      "IT_Social": 0.8,
+      "WS_Leadership Orientation": 0.8,
+      "WS_Self-Control": 0.7
+    },
+    "Product Manager": {
+      "IT_Enterprising": 0.8,
+      "WS_Cooperation": 0.7,
+      "WS_Leadership Orientation": 0.7
+    },
+    "Investment Banker": {
+      "IT_Enterprising": 0.8,
+      "AB_Mathematical Reasoning": 0.7,
+      "WS_Attention to Detail": 0.7
+    },
+    "Research Scientist": {
+      "IT_Investigative": 0.8,
+      "WS_Intellectual Curiosity": 0.8,
+      "AB_Inductive Reasoning": 0.7
+    }
+  },
+  "occupation_category_mapping": {
+    "Government Employee": {
+      "IT_Conventional": 0.6,
+      "WS_Cautiousness": 0.5,
+      "AB_Information Ordering": 0.6
+    },
+    "Private Employee": {
+      "IT_Conventional": 0.5,
+      "WS_Adaptability": 0.6,
+      "WS_Achievement Orientation": 0.5
+    },
+    "Business Owner": {
+      "IT_Enterprising": 0.8,
+      "WS_Initiative": 0.7,
+      "WS_Tolerance for Ambiguity": 0.6
+    },
+    "Self-Employed": {
+      "IT_Enterprising": 0.7,
+      "WS_Initiative": 0.8,
+      "WS_Self-Confidence": 0.6
+    },
+    "Professional (Doctor, Lawyer, CA, etc.)": {
+      "IT_Investigative": 0.7,
+      "WS_Attention to Detail": 0.8,
+      "AB_Deductive Reasoning": 0.7
+    },
+    "Teacher/Educator": {
+      "IT_Social": 0.7,
+      "AB_Oral Expression": 0.8,
+      "AB_Oral Comprehension": 0.7
+    },
+    "Farmer": {
+      "IT_Realistic": 0.8,
+      "WS_Perseverance": 0.7,
+      "AB_Problem Sensitivity": 0.6
+    },
+    "Skilled Worker/Technician": {
+      "IT_Realistic": 0.8,
+      "WS_Attention to Detail": 0.7,
+      "AB_Deductive Reasoning": 0.6
+    },
+    "Homemaker": {
+      "IT_Social": 0.6,
+      "WS_Cooperation": 0.7,
+      "WS_Self-Control": 0.6
+    },
+    "Retired": {
+      "IT_Conventional": 0.5,
+      "WS_Cautiousness": 0.6,
+      "AB_Memorization": 0.5
+    },
+    "Unemployed": {
+      "WS_Adaptability": 0.6,
+      "WS_Stress Tolerance": 0.6,
+      "AB_Problem Sensitivity": 0.5
+    },
+    "Other": {
+      "WS_Adaptability": 0.5,
+      "WS_Tolerance for Ambiguity": 0.5,
+      "AB_Category Flexibility": 0.5
+    }
+  },
+  "family_income_mapping": {
+    "Low Income (< 3L INR)": {
+      "WS_Cautiousness": 0.5,
+      "IT_Conventional": 0.4,
+      "WS_Tolerance for Ambiguity": -0.5
+    },
+    "Lower-Middle Income (3L - 8L INR)": {
+      "WS_Cautiousness": 0.2,
+      "IT_Conventional": 0.2,
+      "WS_Tolerance for Ambiguity": -0.1
+    },
+    "Upper-Middle Income (8L - 20L INR)": {
+      "IT_Artistic": 0.2,
+      "WS_Tolerance for Ambiguity": 0.2,
+      "WS_Cautiousness": -0.1
+    },
+    "High Income (> 20L INR)": {
+      "IT_Artistic": 0.5,
+      "WS_Tolerance for Ambiguity": 0.5,
+      "WS_Cautiousness": -0.4
+    }
+  }
+}

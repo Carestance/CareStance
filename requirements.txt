@@ -1,7 +1,10 @@
 fastapi
+uvicorn[standard]
+gunicorn
 jinja2
-sqlalchemy
+sqlalchemy[asyncio]
 asyncpg
+greenlet
 bcrypt
 python-multipart
 python-jose[cryptography]
@@ -14,7 +17,10 @@ httpx
 mangum
 razorpay
 redis
-appwrite==18.0.0
+appwrite==15.3.0
 aiosqlite
 hypercorn
-
+json-repair
+passlib
+numpy
+pandas
