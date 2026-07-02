@@ -1238,52 +1238,153 @@
             <table class="min-w-full divide-y divide-slate-200">
                 <thead class="bg-slate-50">
                     <tr>
-                        <th scope="col"
-                            class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">
-                            User</th>
-                        <th scope="col"
-                            class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">
-                            Rating</th>
-                        <th scope="col"
-                            class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">
-                            Comment</th>
-                        <th scope="col"
-                            class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">
-                            Date</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">S.No</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">User Details</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Class</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Phase 2</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Phase 3 Analysis</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Stream</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-72">Career Recommendations</th>
+                        <th scope="col" class="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                        <th scope="col" class="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-slate-200">
-                    {% for fb in feedbacks %}
+                    {% for user in users %}
+                    {% set ar = assessments.get(user.id) %}
                     <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{{ loop.index }}</td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm font-bold text-slate-900">{{ fb.user.full_name }}</div>
-                            <div class="text-xs text-slate-500">{{ fb.user.email }}</div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="flex text-yellow-400">
-                                {% for i in range(fb.rating or 0) %}
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 fill-current"
-                                    viewBox="0 0 20 20">
-                                    <path
-                                        d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                </svg>
-                                {% endfor %}
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold">{{ user.full_name[:1] }}</div>
+                                <div class="ml-4">
+                                    <div class="text-sm font-bold text-slate-900">{{ user.full_name }}</div>
+                                    <div class="text-xs text-slate-500">{{ user.email }}</div>
+                                </div>
                             </div>
                         </td>
-                        <td class="px-6 py-4 text-sm text-slate-700 leading-relaxed italic">
-                            "{{ fb.content }}"
+
+                        <!-- Phase 1: Class -->
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                            {% if ar and ar.selected_class %}
+                            <span
+                                class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-bold rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                                {{ ar.selected_class }}
+                            </span>
+                            {% else %}
+                            <span class="text-slate-300">-</span>
+                            {% endif %}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-xs text-slate-500">
-                            {{ fb.timestamp.strftime('%b %d, %Y %H:%M') if fb.timestamp else '-' }}
+
+                        <!-- Phase 2 -->
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                            {% if ar and ar.phase_2_category %}
+                            <span
+                                class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-bold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                {{ ar.phase_2_category }}
+                            </span>
+                            {% else %}
+                            <span class="text-slate-300">-</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Phase 3: Remarks -->
+                        <td class="px-6 py-4 text-sm text-slate-500 max-w-xs">
+                            {% if ar and ar.phase3_analysis %}
+                            <div
+                                class="max-h-20 overflow-y-auto pr-2 text-xs leading-relaxed custom-scrollbar">
+                                {{ ar.phase3_analysis }}
+                            </div>
+                            {% else %}
+                            <span class="text-slate-300">-</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Phase 4 / Recommended Stream -->
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                            {% if ar and ar.recommended_stream %}
+                            <span
+                                class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-bold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                {{ ar.recommended_stream }}
+                            </span>
+                            {% else %}
+                            <span class="text-slate-300">-</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- ═══ NEW: Career Recommendations (from the new pipeline's assessment_report) ═══ -->
+                        <td class="px-6 py-4 text-sm text-slate-500">
+                            {% if ar and ar.assessment_report and ar.assessment_report.get('final_recommendations') %}
+                            <div class="space-y-1.5">
+                                {% for rec in ar.assessment_report.final_recommendations[:3] %}
+                                <div class="flex items-center justify-between gap-2 bg-slate-50 rounded-lg px-2.5 py-1.5 border border-slate-100">
+                                    <span class="text-xs font-bold text-slate-800 truncate" title="{{ rec.career }}">{{ rec.career }}</span>
+                                    <div class="flex items-center gap-1.5 flex-shrink-0">
+                                        <span class="text-[10px] font-bold text-emerald-600">
+                                            {{ (rec.confidence_score * 100) | round | int }}%
+                                        </span>
+                                        <span class="px-1.5 py-0.5 rounded-full text-[9px] font-bold
+                                            {% if rec.feasibility_status == 'Optimal Fit' or rec.feasibility_status == 'Optimal' %}bg-emerald-100 text-emerald-700
+                                            {% elif rec.feasibility_status == 'Pivot' %}bg-amber-100 text-amber-700
+                                            {% elif rec.feasibility_status == 'High-Risk' %}bg-orange-100 text-orange-700
+                                            {% elif rec.feasibility_status == 'Infeasible' %}bg-red-100 text-red-700
+                                            {% else %}bg-slate-100 text-slate-600{% endif %}">
+                                            {{ rec.feasibility_status }}
+                                        </span>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                                <div class="text-[9px] text-slate-400 uppercase tracking-wide pt-0.5">
+                                    Pipeline: {{ ar.assessment_report.get('pipeline_version', 'unknown') }}
+                                </div>
+                            </div>
+                            {% else %}
+                            <span class="text-slate-300 italic text-xs">Not yet compiled</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Suspension Status (ORIGINAL — preserved) -->
+                        <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                            {% if user.is_suspended %}
+                            <span
+                                class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-bold rounded-full bg-red-100 text-red-800 border border-red-200">Suspended</span>
+                            {% else %}
+                            <span
+                                class="px-2.5 py-0.5 inline-flex text-xs leading-5 font-bold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">Active</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Actions (ORIGINAL — preserved) -->
+                        <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                            <div class="flex items-center justify-center gap-2">
+                                {% if user.is_suspended %}
+                                <form action="/admin/users/{{ user.id }}/unsuspend" method="POST">
+                                    <button type="submit" title="Lift suspension for {{ user.full_name }}"
+                                        class="text-emerald-600 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-3 py-1 rounded-lg transition-colors font-bold text-xs uppercase tracking-wide">Lift
+                                        Suspension</button>
+                                </form>
+                                {% else %}
+                                <form action="/admin/users/{{ user.id }}/suspend" method="POST"
+                                    onsubmit="return confirm('Suspend this user?');">
+                                    <button type="submit" title="Suspend {{ user.full_name }}"
+                                        class="text-amber-600 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 px-3 py-1 rounded-lg transition-colors font-bold text-xs uppercase tracking-wide">Suspend</button>
+                                </form>
+                                {% endif %}
+                                <form action="/admin/users/{{ user.id }}/delete" method="POST"
+                                    onsubmit="return confirm('Are you sure you want to delete this user and all their data? This cannot be undone.');">
+                                    <button type="submit" title="Delete {{ user.full_name }}"
+                                        class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-3 py-1 rounded-lg transition-colors font-bold text-xs uppercase tracking-wide">Delete</button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="4" class="px-6 py-10 text-center text-slate-400 italic">No feedback received yet.
-                        </td>
+                        <td colspan="9" class="px-6 py-10 text-center text-slate-400 italic">No users found.</td>
                     </tr>
                     {% endfor %}
-                </tbody>
+                </tbody>                      
+
             </table>
         </div>
         <!-- Pagination for Feedback -->

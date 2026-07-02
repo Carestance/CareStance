@@ -14,6 +14,8 @@ from passlib.context import CryptContext
 from app.database import get_db
 from app.models import User
 from app.dependencies.admin_auth import get_current_admin
+from app.models import AssessmentResult
+from sqlalchemy import select
 
 from app.services.admin_user_service import (
     get_all_users,
@@ -67,6 +69,13 @@ async def admin_dashboard(
     try:
         # Parallel-ish fetches (sequential but separated for clarity)
         users_data = await get_all_users(db, page=user_page, page_size=page_size, search=user_search)
+        user_ids_on_page = [u.id for u in users_data["users"]]
+        assessments_map = {}
+        if user_ids_on_page:
+            ar_rows = (await db.execute(
+                select(AssessmentResult).where(AssessmentResult.user_id.in_(user_ids_on_page))
+            )).scalars().all()
+            assessments_map = {ar.user_id: ar for ar in ar_rows}
         feedback_data = await get_feedback_logs(db)
         tickets_data = await get_support_tickets(db)
         pending_counsellors = await get_pending_counsellors(db)
@@ -84,6 +93,7 @@ async def admin_dashboard(
             "request": request,
             "admin": admin,
             "users": users_data["users"],
+            "assessments": assessments_map,
             "users_pagination": {
                 "page": users_data["page"],
                 "page_size": users_data["page_size"],
