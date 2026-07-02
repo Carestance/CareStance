@@ -6,6 +6,7 @@ sqlalchemy[asyncio]
 asyncpg
 greenlet
 bcrypt
+passlib[bcrypt]
 python-multipart
 python-jose[cryptography]
 google-generativeai

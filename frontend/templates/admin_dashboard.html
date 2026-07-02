@@ -1238,6 +1238,52 @@
             <table class="min-w-full divide-y divide-slate-200">
                 <thead class="bg-slate-50">
                     <tr>
+                        <th scope="col" class="w-16 px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">S.No</th>
+                        <th scope="col" class="w-64 px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">User Details</th>
+                        <th scope="col" class="w-28 px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Rating</th>
+                        <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Feedback</th>
+                        <th scope="col" class="w-44 px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Submitted</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-slate-200">
+                    {% for feedback in feedbacks %}
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                            {{ ((feedback_page - 1) * page_size) + loop.index }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold">
+                                    {{ feedback.user.full_name[:1] if feedback.user and feedback.user.full_name else 'U' }}
+                                </div>
+                                <div class="ml-4">
+                                    <div class="text-sm font-bold text-slate-900">{{ feedback.user.full_name if feedback.user else 'Unknown User' }}</div>
+                                    <div class="text-xs text-slate-500">{{ feedback.user.email if feedback.user else '-' }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                            <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-100 text-xs font-black">
+                                <i class="fas fa-star"></i>{{ feedback.rating or 0 }}/5
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-slate-700 leading-relaxed">{{ feedback.content }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-xs text-slate-500">
+                            {{ feedback.timestamp.strftime('%b %d, %Y %H:%M') if feedback.timestamp else '-' }}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-10 text-center text-slate-400 italic">No feedback submitted yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="hidden">
+            <table class="min-w-full divide-y divide-slate-200">
+                <thead class="bg-slate-50">
+                    <tr>
                         <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">S.No</th>
                         <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">User Details</th>
                         <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Class</th>
@@ -1252,6 +1298,7 @@
                 <tbody class="bg-white divide-y divide-slate-200">
                     {% for user in users %}
                     {% set ar = assessments.get(user.id) %}
+                    {% set assessment_summary = assessment_summaries.get(user.id, {}) %}
                     <tr class="hover:bg-slate-50 transition-colors">
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{{ loop.index }}</td>
                         <td class="px-6 py-4 whitespace-nowrap">
@@ -1314,9 +1361,9 @@
 
                         <!-- ═══ NEW: Career Recommendations (from the new pipeline's assessment_report) ═══ -->
                         <td class="px-6 py-4 text-sm text-slate-500">
-                            {% if ar and ar.assessment_report and ar.assessment_report.get('final_recommendations') %}
+                            {% if assessment_summary.get('career_recommendations') %}
                             <div class="space-y-1.5">
-                                {% for rec in ar.assessment_report.final_recommendations[:3] %}
+                                {% for rec in assessment_summary.career_recommendations %}
                                 <div class="flex items-center justify-between gap-2 bg-slate-50 rounded-lg px-2.5 py-1.5 border border-slate-100">
                                     <span class="text-xs font-bold text-slate-800 truncate" title="{{ rec.career }}">{{ rec.career }}</span>
                                     <div class="flex items-center gap-1.5 flex-shrink-0">
@@ -1335,7 +1382,7 @@
                                 </div>
                                 {% endfor %}
                                 <div class="text-[9px] text-slate-400 uppercase tracking-wide pt-0.5">
-                                    Pipeline: {{ ar.assessment_report.get('pipeline_version', 'unknown') }}
+                                    Pipeline: {{ assessment_summary.get('pipeline_version') or 'legacy' }}
                                 </div>
                             </div>
                             {% else %}
