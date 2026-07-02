@@ -2,20 +2,22 @@
 Admin Panel Router
 All routes are protected by the get_current_admin dependency.
 """
+from __future__ import annotations
+
 import logging
 import csv
 import os
-from fastapi import APIRouter, Depends, HTTPException, Request, Query
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, Query
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 from passlib.context import CryptContext
 
 from app.database import get_db
-from app.models import User
+from app.models import CounsellorProfile, ModerationFlag, Payment, SimulationPayment, Ticket, User
 from app.dependencies.admin_auth import get_current_admin
 from app.models import AssessmentResult
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.services.admin_user_service import (
     get_all_users,
@@ -54,6 +56,52 @@ templates = Jinja2Templates(directory="frontend/templates")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
+def _redirect_back(request: Request, default: str = "/admin") -> RedirectResponse:
+    return RedirectResponse(
+        url=request.headers.get("referer") or default,
+        status_code=303,
+    )
+
+
+def _normalize_career_recommendations(assessment: AssessmentResult | None) -> list[dict]:
+    """Return a stable recommendation list for old and new assessment reports."""
+    if not assessment or not assessment.assessment_report:
+        return []
+
+    report = assessment.assessment_report
+    raw_recommendations = report.get("final_recommendations") or report.get("recommendations") or []
+    if not raw_recommendations:
+        raw_recommendations = report.get("top_careers") or []
+
+    normalized = []
+    for item in raw_recommendations[:3]:
+        if not isinstance(item, dict):
+            continue
+        title = item.get("career") or item.get("title") or item.get("career_title") or "Career option"
+        score = (
+            item.get("confidence_score")
+            if item.get("confidence_score") is not None
+            else item.get("match_score", item.get("score"))
+        )
+        try:
+            score_float = float(score)
+        except (TypeError, ValueError):
+            score_float = 0.0
+        if score_float > 1:
+            score_float = score_float / 100
+
+        normalized.append(
+            {
+                "career": title,
+                "confidence_score": max(0.0, min(score_float, 1.0)),
+                "feasibility_status": item.get("feasibility_status") or item.get("fit_status") or "Optimal Fit",
+                "notes": item.get("pivot_notes") or item.get("description") or item.get("summary") or "",
+            }
+        )
+
+    return normalized
+
+
 # ─── Main Dashboard ───────────────────────────────────────────────────────────
 
 @router.get("/", response_class=HTMLResponse)
@@ -64,6 +112,9 @@ async def admin_dashboard(
     user_page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     user_search: str = Query(None),
+    counsellor_search: str = Query(None),
+    feedback_page: int = Query(1, ge=1),
+    ticket_page: int = Query(1, ge=1),
 ):
     """Main admin dashboard — fetches all modules and renders template."""
     try:
@@ -71,20 +122,34 @@ async def admin_dashboard(
         users_data = await get_all_users(db, page=user_page, page_size=page_size, search=user_search)
         user_ids_on_page = [u.id for u in users_data["users"]]
         assessments_map = {}
+        assessment_summaries = {}
         if user_ids_on_page:
             ar_rows = (await db.execute(
                 select(AssessmentResult).where(AssessmentResult.user_id.in_(user_ids_on_page))
             )).scalars().all()
             assessments_map = {ar.user_id: ar for ar in ar_rows}
-        feedback_data = await get_feedback_logs(db)
-        tickets_data = await get_support_tickets(db)
+            assessment_summaries = {
+                ar.user_id: {
+                    "career_recommendations": _normalize_career_recommendations(ar),
+                    "pipeline_version": (ar.assessment_report or {}).get("pipeline_version"),
+                }
+                for ar in ar_rows
+            }
+        feedback_data = await get_feedback_logs(db, page=feedback_page, page_size=page_size)
+        tickets_data = await get_support_tickets(db, page=ticket_page, page_size=page_size)
         pending_counsellors = await get_pending_counsellors(db)
-        counsellors_data = await get_all_counsellors(db)
+        counsellors_data = await get_all_counsellors(db, search=counsellor_search)
         counsellor_analytics = await get_counsellor_session_analytics(db)
         appointments = await get_recent_appointments(db)
         payment_analytics = await get_payment_analytics(db)
         payment_logs = await get_recent_payment_logs(db)
-        mod_flags = await get_moderation_flags(db)        
+        mod_flags = await get_moderation_flags(db)
+        captured_count = (await db.execute(
+            select(func.count(Payment.id)).where(Payment.status == "captured")
+        )).scalar_one()
+        sim_count = (await db.execute(
+            select(func.count(SimulationPayment.id)).where(SimulationPayment.status.in_(["success", "captured"]))
+        )).scalar_one()
       
         return templates.TemplateResponse(
         request=request,
@@ -94,6 +159,7 @@ async def admin_dashboard(
             "admin": admin,
             "users": users_data["users"],
             "assessments": assessments_map,
+            "assessment_summaries": assessment_summaries,
             "users_pagination": {
                 "page": users_data["page"],
                 "page_size": users_data["page_size"],
@@ -124,20 +190,20 @@ async def admin_dashboard(
             "all_payments": payment_logs,
             "all_appointments": appointments,
             "all_counsellors": counsellors_data["counsellors"],
-            "user_search": "",
-            "counsellor_search": "",
-            "user_page": 1,
-            "feedback_page": 1,
-            "ticket_page": 1,
-            "page_size": 20,
+            "user_search": user_search or "",
+            "counsellor_search": counsellor_search or "",
+            "user_page": user_page,
+            "feedback_page": feedback_page,
+            "ticket_page": ticket_page,
+            "page_size": page_size,
             "total_users": users_data["total"],
-            "total_feedback": len(feedback_data["feedback_logs"]),
-            "total_tickets": len(tickets_data["support_tickets"]),
+            "total_feedback": feedback_data["total"],
+            "total_tickets": tickets_data["total"],
             "feedbacks": feedback_data["feedback_logs"],
             "tickets": tickets_data["support_tickets"],
             "simulation_payments": [],
-            "captured_payments_count": 0,
-            "sim_payments_count": 0,
+            "captured_payments_count": captured_count,
+            "sim_payments_count": sim_count,
         }
     )
     except Exception as e:
@@ -170,6 +236,46 @@ async def api_unblock_user(
     if not user:
         raise HTTPException(status_code=404, detail="User not found.")
     return {"message": f"User {user.full_name} unblocked.", "user_id": user_id}
+
+
+@router.post("/users/{user_id}/suspend")
+async def form_suspend_user(
+    user_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+):
+    user = await block_user(db, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found.")
+    return _redirect_back(request)
+
+
+@router.post("/users/{user_id}/unsuspend")
+async def form_unsuspend_user(
+    user_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+):
+    user = await unblock_user(db, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found.")
+    return _redirect_back(request)
+
+
+@router.post("/users/{user_id}/delete")
+async def form_soft_delete_user(
+    user_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+):
+    """Compatibility route: keep admin-panel deletes as a soft suspension."""
+    user = await block_user(db, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found.")
+    return _redirect_back(request)
 
 
 @router.post("/users/{user_id}/reset-password")
@@ -208,6 +314,48 @@ async def api_update_ticket_status(
     return {"message": f"Ticket {ticket_id} updated to '{status}'.", "ticket_id": ticket_id}
 
 
+@router.post("/tickets/{ticket_id}/close")
+async def form_close_ticket(
+    ticket_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+):
+    ticket = await update_ticket_status(db, ticket_id, "Closed")
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found.")
+    return _redirect_back(request)
+
+
+@router.post("/tickets/{ticket_id}/reply")
+async def form_reply_ticket(
+    ticket_id: int,
+    request: Request,
+    reply_content: str = Form(...),
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+):
+    ticket = await update_ticket_status(db, ticket_id, "In Progress", reply_content)
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found.")
+    return _redirect_back(request)
+
+
+@router.post("/tickets/{ticket_id}/delete")
+async def form_delete_ticket(
+    ticket_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+):
+    ticket = (await db.execute(select(Ticket).where(Ticket.id == ticket_id))).scalar_one_or_none()
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found.")
+    await db.delete(ticket)
+    await db.commit()
+    return _redirect_back(request)
+
+
 # ─── Counsellor Management APIs ───────────────────────────────────────────────
 
 @router.post("/counsellors/{profile_id}/approve")
@@ -234,6 +382,30 @@ async def api_reject_counsellor(
     if not profile:
         raise HTTPException(status_code=404, detail="Counsellor profile not found.")
     return {"message": "Counsellor rejected.", "profile_id": profile_id, "remarks": remarks}
+
+
+@router.post("/verify-counsellor/{counsellor_id}")
+async def form_verify_counsellor(
+    counsellor_id: int,
+    request: Request,
+    verification_status: str = Form(...),
+    remarks: str = Form(None),
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+):
+    profile = (await db.execute(
+        select(CounsellorProfile).where(CounsellorProfile.user_id == counsellor_id)
+    )).scalar_one_or_none()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Counsellor profile not found.")
+
+    if verification_status == "approved":
+        await approve_counsellor(db, profile.id, remarks)
+    elif verification_status == "rejected":
+        await reject_counsellor(db, profile.id, remarks)
+    else:
+        raise HTTPException(status_code=400, detail="Invalid verification status.")
+    return _redirect_back(request)
 
 
 @router.post("/counsellors/{profile_id}/block")
@@ -279,6 +451,33 @@ async def api_resolve_flag(
     if not flag:
         raise HTTPException(status_code=404, detail="Moderation flag not found.")
     return {"message": f"Flag {flag_id} marked as '{status}'.", "flag_id": flag_id}
+
+
+@router.post("/flags/{flag_id}/action")
+async def form_handle_flag(
+    flag_id: int,
+    request: Request,
+    action: str = Form(...),
+    admin_note: str = Form(None),
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+):
+    status_map = {
+        "reviewed": "dismissed",
+        "dismiss": "dismissed",
+        "resolved": "action_taken",
+        "action_taken": "action_taken",
+        "pending_review": "pending_review",
+    }
+    flag = await resolve_moderation_flag(
+        db,
+        flag_id,
+        status_map.get(action, "pending_review"),
+        admin_note,
+    )
+    if not flag:
+        raise HTTPException(status_code=404, detail="Moderation flag not found.")
+    return _redirect_back(request)
 
 import csv
 import os

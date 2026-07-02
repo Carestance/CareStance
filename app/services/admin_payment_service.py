@@ -34,7 +34,9 @@ async def get_payment_analytics(db: AsyncSession) -> dict:
 
     # 2. Simulation revenue — successful payments
     sim_rev_result = await db.execute(
-        select(func.coalesce(func.sum(SimulationPayment.amount), 0))
+        select(func.coalesce(func.sum(SimulationPayment.amount), 0)).where(
+            SimulationPayment.status.in_(["success", "captured"])
+        )
     )
     simulation_revenue = float(sim_rev_result.scalar_one())
 
