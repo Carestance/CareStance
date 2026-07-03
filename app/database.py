@@ -56,4 +56,3 @@ async def get_db():
     """Async DB session for FastAPI routes."""
     async with AsyncSessionLocal() as session:
         yield session
-

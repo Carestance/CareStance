@@ -913,8 +913,8 @@
                                 </td>
                                 <!-- Refund -->
                                 <td class="px-4 py-3 text-center">
-                                    {% if appt.status == 'cancelled' and appt.cancelled_by_role == 'counsellor' %}
-                                        {% if appt.payment_status == 'paid' or appt.payment_status == 'captured' %}
+{% if appt.status == 'cancelled' and appt.cancelled_by_role == 'counsellor' %}
+                                        {% if appt.payment_status in ['paid', 'captured', 'authorized'] %}
                                         <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-200">
                                             ⚠️ Refund Needed
                                         </span>
@@ -1184,8 +1184,8 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-slate-200">
                     {% for flag in moderation_flags %}
-                    <tr
-                        class="hover:bg-slate-50 transition-colors {{ 'bg-red-50/30' if flag.status == 'pending_review' }}">
+<tr
+                        class="hover:bg-slate-50 transition-colors {{ 'bg-red-50/30' if (flag.status|string)|lower|replace('_',' ') in ['pending review'] }}">
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm font-bold text-slate-900">{{ flag.user.full_name }}</div>
                             <div class="text-xs text-slate-500">{{ flag.user.email }}</div>
@@ -1210,12 +1210,27 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                             <div class="flex items-center justify-center gap-2">
-                                {% if flag.status == 'pending_review' %}
-                                <form action="/admin/flags/{{ flag.id }}/action" method="POST">
-                                    <input type="hidden" name="action" value="dismiss">
-                                    <button type="submit" title="Dismiss flag for {{ flag.user.full_name }}"
-                                        class="text-slate-600 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 px-3 py-1 rounded-lg transition-colors font-bold text-xs uppercase tracking-wide">Dismiss</button>
-                                </form>
+{% set _st = (flag.status|string)|lower|replace('_',' ') %}
+                                {% if (flag.status|string) == 'pending_review' or (flag.status|string) == 'pending review' or _st == 'pending review' or (flag.status|string)|lower == 'pending_review' %}
+                                <div class="flex flex-col gap-2 items-stretch">
+                                    <!-- Dismiss -->
+                                    <form action="/admin/flags/{{ flag.id }}/action" method="POST" class="w-full">
+                                        <input type="hidden" name="action" value="dismiss">
+                                        <button type="submit" title="Dismiss flag for {{ flag.user.full_name }}"
+                                            class="w-full text-center text-slate-600 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 px-3 py-1 rounded-lg transition-colors font-bold text-xs uppercase tracking-wide">Dismiss</button>
+                                    </form>
+
+                                    <!-- Resolve (mark reviewed + add note) -->
+                                    <form action="/admin/moderation/{{ flag.id }}/resolve" method="POST" class="w-full">
+                                        <input type="hidden" name="status" value="action_taken">
+                                        <textarea name="admin_note" placeholder="Optional admin note..." rows="2"
+                                            class="w-full text-xs px-3 py-2 border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all resize-none shadow-inner"></textarea>
+                                        <button type="submit" title="Resolve/mark reviewed for {{ flag.user.full_name }}"
+                                            class="mt-2 w-full text-center px-3 py-1 rounded-lg transition-colors font-bold text-xs uppercase tracking-wide bg-emerald-600 hover:bg-emerald-800 text-white border-2 border-emerald-800 shadow-[0_0_0_2px_rgba(16,185,129,0.25)]">
+                                            Resolve
+                                        </button>
+                                    </form>
+                                </div>
                                 <form action="/admin/users/{{ flag.user.id }}/suspend" method="POST"
                                     onsubmit="return confirm('Suspend user as a result of this violation?');">
                                     <button type="submit" title="Suspend {{ flag.user.full_name }} due to violation"

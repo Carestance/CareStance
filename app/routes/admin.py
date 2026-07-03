@@ -8,6 +8,7 @@ import logging
 import csv
 import os
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, Query
+
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,6 +27,8 @@ from app.services.admin_user_service import (
     unblock_user,
     reset_user_password,
 )
+
+from app.appwrite_helper import get_user_by_email
 from app.services.admin_feedback_service import (
     get_feedback_logs,
     get_support_tickets,
@@ -181,18 +184,15 @@ async def admin_dashboard(
             "payment_logs": payment_logs,
             "session_revenue": payment_analytics["session_revenue"],
             "simulation_revenue": payment_analytics["simulation_revenue"],
-            "sim_revenue": payment_analytics["simulation_revenue"],
             "total_revenue": payment_analytics["total_revenue"],
             "counsellor_payouts": payment_analytics["counsellor_payouts"],
             "platform_commission": payment_analytics["platform_commission"],
             "pending_payouts": payment_analytics["pending_payouts"],
             "failed_payouts": payment_analytics["failed_payouts"],
             "moderation_flags": mod_flags,
-            "sim_revenue": payment_analytics["simulation_revenue"],
-            "total_counselor_payouts": payment_analytics["counsellor_payouts"],
-            "platform_commission": payment_analytics["platform_commission"],
             "pending_transfers": payment_analytics["pending_payouts"],
             "failed_transfers": payment_analytics["failed_payouts"],
+
             "all_payments": payment_logs,
             "all_appointments": appointments,
             "all_counsellors": counsellors_data["counsellors"],
@@ -278,6 +278,7 @@ async def form_soft_delete_user(
     admin: User = Depends(get_current_admin),
 ):
     """Compatibility route: keep admin-panel deletes as a soft suspension."""
+    # Per spec: do not permanently delete users; suspend instead.
     user = await block_user(db, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found.")
@@ -292,16 +293,106 @@ async def api_reset_user_password(
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(get_current_admin),
 ):
+    """Reset password in BOTH places:
+    1) local DB (User.hashed_password)
+    2) Appwrite account password (so login works when Appwrite is the auth source)
+    """
     if len(new_password) < 8:
         raise HTTPException(status_code=400, detail="Password must be at least 8 characters.")
-    hashed = pwd_context.hash(new_password)
+
+    # bcrypt (via passlib) hard-limits input to 72 bytes.
+    # If password is too long, bcrypt will throw ValueError.
+    # We truncate deterministically for local hashing (Appwrite update uses full password).
+    # bcrypt/passlib enforces 72 BYTES max (not 72 chars). Truncate byte-safe for UTF-8.
+    trunc_bytes = new_password.encode("utf-8")[:72]
+    # Reconstruct strictly; if boundary splits a multibyte char, fall back to ignore *after* truncation.
+    try:
+        new_password_local = trunc_bytes.decode("utf-8", errors="strict")
+    except UnicodeDecodeError:
+        new_password_local = trunc_bytes.decode("utf-8", errors="ignore")
+    hashed = pwd_context.hash(new_password_local)
+
+    # 1) Reset local DB password
     user = await reset_user_password(db, user_id, hashed)
+    # (Do not block Appwrite update on local hashing issues; handled above.)
+
     if not user:
         raise HTTPException(status_code=404, detail="User not found.")
+
+    # 2) Reset Appwrite password
+    # Appwrite SDK password update requires the Appwrite account id.
+    # In this project, signup creates an Appwrite user and stores numeric local_id.
+    # We therefore look up the Appwrite user by email and then try common SDK method signatures.
+    try:
+        appwrite_user = get_user_by_email(user.email)
+        appwrite_account_id = None
+
+        # get_user_by_email returns a SimpleNamespace with either 'id' (local_id) or 'appwrite_id'
+        # doc_to_model sets: data['appwrite_id'] = data['$id']
+        if appwrite_user is not None:
+            appwrite_account_id = getattr(appwrite_user, "appwrite_id", None) or getattr(appwrite_user, "id", None)
+
+        if not appwrite_account_id:
+            logger.warning(
+                "Admin reset password: could not resolve Appwrite account id for local user_id=%s email=%s",
+                user_id,
+                user.email,
+            )
+            raise RuntimeError("Appwrite account id not found")
+
+        # Try common Appwrite SDK password update method names/signatures.
+        # We keep this defensive because the repo currently has no existing password-update usage.
+        from app.appwrite_client import account as appwrite_account
+
+        update_errors: list[str] = []
+        methods_tried: list[str] = []
+
+        # Candidate calls
+        candidates = [
+            ("account.updatePassword(user_id=..., password=...)", lambda: appwrite_account.updatePassword(userId=str(appwrite_account_id), password=new_password)),
+            ("account.updatePassword(user_id, password)", lambda: appwrite_account.updatePassword(str(appwrite_account_id), new_password)),
+            ("account.updateEmailPassword(user_id=..., password=...)", lambda: appwrite_account.updateEmailPassword(userId=str(appwrite_account_id), password=new_password)),
+            ("account.updateEmailPassword(user_id, password)", lambda: appwrite_account.updateEmailPassword(str(appwrite_account_id), new_password)),
+        ]
+
+        last_exc: Exception | None = None
+        for label, fn in candidates:
+            methods_tried.append(label)
+            try:
+                maybe_res = fn()
+                # Some SDK calls might be synchronous; if it returns a coroutine, await it.
+                if hasattr(maybe_res, "__await__"):
+                    import asyncio
+                    await maybe_res
+                break
+            except Exception as e:
+                last_exc = e
+                update_errors.append(f"{label}: {e}")
+        else:
+            # none succeeded
+            raise RuntimeError(
+                "Appwrite password update failed. "
+                + "\n".join(update_errors)
+            ) from last_exc
+
+    except Exception as e:
+        # If Appwrite update fails, the local password is already updated.
+        # But since login prefers Appwrite, we surface the error so admin knows it isn't fully applied.
+        logger.error(
+            "Admin reset password: Appwrite update failed for user_id=%s email=%s err=%s",
+            user_id,
+            user.email,
+            str(e),
+            exc_info=True,
+        )
+        raise HTTPException(
+            status_code=500,
+            detail=f"Local password reset succeeded, but Appwrite password update failed: {str(e)}",
+        )
+
     if "text/html" in request.headers.get("accept", ""):
         return _redirect_back(request)
-    return {"message": f"Password reset for user {user.full_name}.", "user_id": user_id}
-
+    return {"message": f"Password reset for user {user.full_name} (local + Appwrite).", "user_id": user_id}
 
 # ─── Ticket Management APIs ───────────────────────────────────────────────────
 
@@ -464,8 +555,8 @@ async def api_unblock_counsellor(
 @router.post("/moderation/{flag_id}/resolve")
 async def api_resolve_flag(
     flag_id: int,
-    status: str,
-    admin_note: str = None,
+    status: str = Form(...),
+    admin_note: str = Form(None),
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(get_current_admin),
 ):

@@ -44,6 +44,15 @@ async def get_current_admin(
             detail="Login required.",
         )
 
+    # Deny suspended/blocked users (module requirement)
+    if getattr(user, "is_suspended", False):
+        logger.warning("Suspended user blocked from admin access: user_id=%s email=%s", user.id, user.email)
+        raise HTTPException(
+            status_code=status.HTTP_302_FOUND,
+            headers={"Location": "/suspended"},
+            detail="Account suspended.",
+        )
+
     admin_email = os.getenv("ADMIN_EMAIL", "")
     is_admin = user.role == "admin" or (bool(admin_email) and user.email == admin_email)
     if not is_admin:
