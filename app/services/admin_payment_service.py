@@ -91,3 +91,14 @@ async def get_recent_payment_logs(db: AsyncSession, limit: int = 20) -> list:
         .limit(limit)
     )
     return result.scalars().all()
+
+
+async def get_recent_simulation_payments(db: AsyncSession, limit: int = 50) -> list:
+    """Latest simulation payment records with user info."""
+    result = await db.execute(
+        select(SimulationPayment)
+        .options(selectinload(SimulationPayment.user))
+        .order_by(SimulationPayment.created_at.desc())
+        .limit(limit)
+    )
+    return result.scalars().all()
