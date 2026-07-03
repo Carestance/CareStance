@@ -339,13 +339,12 @@
 
                                 <!-- Sessions -->
                                 <td class="px-5 py-4 text-center">
-                                    <div class="flex flex-col items-center">
-                                        <span class="text-lg font-extrabold text-slate-800">{{ cp.session_count
-                                            }}</span>
-                                        <span
-                                            class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">completed</span>
-                                        <span class="text-[10px] text-slate-300 mt-0.5">{{ cp.total_sessions }}
-                                            total</span>
+                                    {% set stats = counsellor_session_analytics_map.get(cp.user_id, {}) %}
+                                    <div class="grid grid-cols-2 gap-1 text-[10px] font-bold text-slate-600 min-w-28">
+                                        <span class="rounded-lg bg-slate-50 px-2 py-1 border border-slate-100">Total {{ stats.get('total', 0) }}</span>
+                                        <span class="rounded-lg bg-emerald-50 px-2 py-1 border border-emerald-100 text-emerald-700">Done {{ stats.get('completed', 0) }}</span>
+                                        <span class="rounded-lg bg-blue-50 px-2 py-1 border border-blue-100 text-blue-700">Next {{ stats.get('upcoming', 0) }}</span>
+                                        <span class="rounded-lg bg-rose-50 px-2 py-1 border border-rose-100 text-rose-700">Cancel {{ stats.get('cancelled', 0) }}</span>
                                     </div>
                                 </td>
 
@@ -722,7 +721,7 @@
                                     {{ sim_pay.career }}
                                 </td>
                                 <td class="px-5 py-4 whitespace-nowrap text-center text-sm font-extrabold text-slate-800">
-                                    {{ sim_pay.assessment.simulations_completed if sim_pay.assessment else '0' }}
+                                    {{ sim_pay.user.simulations_completed if sim_pay.user else '0' }}
                                 </td>
                                 <td class="px-5 py-4 whitespace-nowrap text-sm text-slate-500">
                                     {{ sim_pay.created_at.strftime('%Y-%m-%d %H:%M') if sim_pay.created_at else '' }}
@@ -1007,15 +1006,20 @@
                                     </th>
                                     <th scope="col"
                                         class="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                        Status
+                                    </th>
+                                    <th scope="col"
+                                        class="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">
                                         Actions
                                     </th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-slate-200">
                                 {% for user in users %}
+                                {% set assessment = assessments.get(user.id) %}
                                 <tr class="hover:bg-slate-50 transition-colors">
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                                        {{ loop.index }}
+                                        {{ ((user_page - 1) * page_size) + loop.index }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="flex items-center">
@@ -1091,7 +1095,7 @@
 
                                     <!-- Actions -->
                                     <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                                        <div class="flex items-center justify-center gap-2">
+                                        <div class="flex flex-wrap items-center justify-center gap-2">
                                             {% if user.is_suspended %}
                                             <form action="/admin/users/{{ user.id }}/unsuspend" method="POST">
                                                 <button type="submit" title="Lift suspension for {{ user.full_name }}"
@@ -1105,10 +1109,19 @@
                                                     class="text-amber-600 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 px-3 py-1 rounded-lg transition-colors font-bold text-xs uppercase tracking-wide">Suspend</button>
                                             </form>
                                             {% endif %}
+                                            <form action="/admin/users/{{ user.id }}/reset-password" method="POST"
+                                                class="flex items-center gap-1"
+                                                onsubmit="return confirm('Reset password for {{ user.full_name }}?');">
+                                                <input type="password" name="new_password" minlength="8" required
+                                                    placeholder="New password"
+                                                    class="w-28 px-2 py-1 rounded-lg border border-slate-200 text-xs focus:ring-2 focus:ring-blue-500/20 outline-none">
+                                                <button type="submit" title="Reset password"
+                                                    class="text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-lg transition-colors font-bold text-xs uppercase tracking-wide">Reset</button>
+                                            </form>
                                             <form action="/admin/users/{{ user.id }}/delete" method="POST"
-                                                onsubmit="return confirm('Are you sure you want to delete this user and all their data? This cannot be undone.');">
+                                                onsubmit="return confirm('Soft-block this user? Users are not permanently deleted from admin.');">
                                                 <button type="submit" title="Delete {{ user.full_name }}"
-                                                    class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-3 py-1 rounded-lg transition-colors font-bold text-xs uppercase tracking-wide">Delete</button>
+                                                    class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-3 py-1 rounded-lg transition-colors font-bold text-xs uppercase tracking-wide">Block</button>
                                             </form>
                                         </div>
                                     </td>

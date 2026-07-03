@@ -43,6 +43,7 @@ from app.services.admin_counsellor_service import (
 from app.services.admin_payment_service import (
     get_payment_analytics,
     get_recent_payment_logs,
+    get_recent_simulation_payments,
 )
 from app.services.admin_analytics_service import (
     get_recent_appointments,
@@ -140,9 +141,13 @@ async def admin_dashboard(
         pending_counsellors = await get_pending_counsellors(db)
         counsellors_data = await get_all_counsellors(db, search=counsellor_search)
         counsellor_analytics = await get_counsellor_session_analytics(db)
+        counsellor_analytics_map = {
+            row["counsellor_id"]: row for row in counsellor_analytics
+        }
         appointments = await get_recent_appointments(db)
         payment_analytics = await get_payment_analytics(db)
         payment_logs = await get_recent_payment_logs(db)
+        simulation_payments = await get_recent_simulation_payments(db)
         mod_flags = await get_moderation_flags(db)
         captured_count = (await db.execute(
             select(func.count(Payment.id)).where(Payment.status == "captured")
@@ -171,6 +176,7 @@ async def admin_dashboard(
             "pending_counsellors": pending_counsellors,
             "counsellors": counsellors_data["counsellors"],
             "counsellor_session_analytics": counsellor_analytics,
+            "counsellor_session_analytics_map": counsellor_analytics_map,
             "appointments": appointments,
             "payment_logs": payment_logs,
             "session_revenue": payment_analytics["session_revenue"],
@@ -201,7 +207,7 @@ async def admin_dashboard(
             "total_tickets": tickets_data["total"],
             "feedbacks": feedback_data["feedback_logs"],
             "tickets": tickets_data["support_tickets"],
-            "simulation_payments": [],
+            "simulation_payments": simulation_payments,
             "captured_payments_count": captured_count,
             "sim_payments_count": sim_count,
         }
@@ -281,7 +287,8 @@ async def form_soft_delete_user(
 @router.post("/users/{user_id}/reset-password")
 async def api_reset_user_password(
     user_id: int,
-    new_password: str,
+    request: Request,
+    new_password: str = Form(...),
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(get_current_admin),
 ):
@@ -291,6 +298,8 @@ async def api_reset_user_password(
     user = await reset_user_password(db, user_id, hashed)
     if not user:
         raise HTTPException(status_code=404, detail="User not found.")
+    if "text/html" in request.headers.get("accept", ""):
+        return _redirect_back(request)
     return {"message": f"Password reset for user {user.full_name}.", "user_id": user_id}
 
 
@@ -322,6 +331,23 @@ async def form_close_ticket(
     admin: User = Depends(get_current_admin),
 ):
     ticket = await update_ticket_status(db, ticket_id, "Closed")
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found.")
+    return _redirect_back(request)
+
+
+@router.post("/tickets/{ticket_id}/set-status")
+async def form_set_ticket_status(
+    ticket_id: int,
+    request: Request,
+    status: str = Form(...),
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+):
+    try:
+        ticket = await update_ticket_status(db, ticket_id, status)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found.")
     return _redirect_back(request)
