@@ -148,6 +148,14 @@
 {% block content %}
 <div class="db-page space-y-8">
 
+    {# Admin denied / generic error message banner (used by admin_auth redirects) #}
+    {% if request.query_params.get('error') %}
+    <div class="mt-4 p-4 bg-rose-50 border border-rose-100 text-rose-700 rounded-xl text-sm font-medium flex items-center gap-3">
+        <i class="fas fa-exclamation-circle"></i>
+        {{ request.query_params.get('error') }}
+    </div>
+    {% endif %}
+
     <!-- STATE 1: WELCOME INTRO FLOW (No Assessment or Assessment in Progress) -->
     {% if not assessment or not assessment.assessment_report %}
     <div x-data="{
