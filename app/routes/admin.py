@@ -160,9 +160,9 @@ async def admin_dashboard(
         )).scalar_one()
       
         return templates.TemplateResponse(
-        request=request,
-        name="admin_dashboard.html",
-        context={
+            request=request,
+            name="admin_dashboard.html",
+            context={
             "request": request,
             "admin": admin,
             "users": users_data["users"],
@@ -184,14 +184,17 @@ async def admin_dashboard(
             "payment_logs": payment_logs,
             "session_revenue": payment_analytics["session_revenue"],
             "simulation_revenue": payment_analytics["simulation_revenue"],
+            "sim_revenue": payment_analytics["simulation_revenue"],
             "total_revenue": payment_analytics["total_revenue"],
             "counsellor_payouts": payment_analytics["counsellor_payouts"],
+            "total_counselor_payouts": payment_analytics["counsellor_payouts"],
             "platform_commission": payment_analytics["platform_commission"],
             "pending_payouts": payment_analytics["pending_payouts"],
             "failed_payouts": payment_analytics["failed_payouts"],
             "moderation_flags": mod_flags,
             "pending_transfers": payment_analytics["pending_payouts"],
             "failed_transfers": payment_analytics["failed_payouts"],
+
 
             "all_payments": payment_logs,
             "all_appointments": appointments,
@@ -285,6 +288,40 @@ async def form_soft_delete_user(
     return _redirect_back(request)
 
 
+@router.get("/users/{user_id}/reset-password")
+async def get_reset_user_password_form(
+    user_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+):
+    """Render a simple HTML form so the endpoint works with GET."""
+    try:
+        user = await get_user_by_id(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+    except Exception:
+        raise
+
+    # Avoid adding a new template file: return a minimal HTML page.
+    return HTMLResponse(
+        content=f"""
+<!doctype html>
+<html>
+  <head><meta charset='utf-8'><title>Reset password</title></head>
+  <body>
+    <h2>Reset password for {user.full_name} ({user.email})</h2>
+    <form method='POST' action='/admin/users/{user_id}/reset-password'>
+      <label>New password: <input type='password' name='new_password' required minlength='8'></label>
+      <button type='submit'>Reset</button>
+    </form>
+    <p><a href='/admin'>Back to admin</a></p>
+  </body>
+</html>
+        """,
+        status_code=200,
+    )
+
 @router.post("/users/{user_id}/reset-password")
 async def api_reset_user_password(
     user_id: int,
@@ -297,6 +334,7 @@ async def api_reset_user_password(
     1) local DB (User.hashed_password)
     2) Appwrite account password (so login works when Appwrite is the auth source)
     """
+
     if len(new_password) < 8:
         raise HTTPException(status_code=400, detail="Password must be at least 8 characters.")
 
@@ -305,12 +343,25 @@ async def api_reset_user_password(
     # We truncate deterministically for local hashing (Appwrite update uses full password).
     # bcrypt/passlib enforces 72 BYTES max (not 72 chars). Truncate byte-safe for UTF-8.
     trunc_bytes = new_password.encode("utf-8")[:72]
-    # Reconstruct strictly; if boundary splits a multibyte char, fall back to ignore *after* truncation.
-    try:
-        new_password_local = trunc_bytes.decode("utf-8", errors="strict")
-    except UnicodeDecodeError:
-        new_password_local = trunc_bytes.decode("utf-8", errors="ignore")
+    # Ensure the VALUE we hash is also <=72 BYTES for bcrypt.
+    # Decode with replacement (keeps length predictable) then re-encode.
+    new_password_local = trunc_bytes.decode("utf-8", errors="replace")
+    if len(new_password_local.encode("utf-8")) > 72:
+        # Absolute guarantee: byte-safe truncation.
+        new_password_local = new_password_local.encode("utf-8")[:72].decode("utf-8", errors="ignore")
+
+    # Defensive: bcrypt will refuse >72 bytes. Some environments may still raise,
+    # so re-verify byte-length right before hashing.
+    pw_bytes = new_password_local.encode("utf-8")
+    if len(pw_bytes) > 72:
+        pw_bytes = pw_bytes[:72]
+        new_password_local = pw_bytes.decode("utf-8", errors="ignore")
+
+    # Hash only after guaranteed byte-length.
     hashed = pwd_context.hash(new_password_local)
+
+
+
 
     # 1) Reset local DB password
     user = await reset_user_password(db, user_id, hashed)
@@ -332,9 +383,10 @@ async def api_reset_user_password(
         if appwrite_user is not None:
             appwrite_account_id = getattr(appwrite_user, "appwrite_id", None) or getattr(appwrite_user, "id", None)
 
-        if not appwrite_account_id:
+
+        if not getattr(appwrite_user, "appwrite_id", None) and not appwrite_account_id:
             logger.warning(
-                "Admin reset password: could not resolve Appwrite account id for local user_id=%s email=%s",
+                "Admin reset password: Appwrite account id not found for local user_id=%s email=%s",
                 user_id,
                 user.email,
             )
