@@ -710,9 +710,14 @@ def verify_password(plain_password, hashed_password):
         hashed_password = hashed_password.encode('utf-8')
     return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password)
 
-def get_password_hash(password):
+def get_password_hash(password: str) -> str:
     bcrypt = _get_bcrypt()
-    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    # bcrypt has a hard limit of 72 BYTES on UTF-8 encoded passwords.
+    # Truncate safely by bytes then decode with errors='ignore'.
+    pwd_bytes = password.encode('utf-8')[:72]
+    pwd_trunc = pwd_bytes.decode('utf-8', errors='ignore')
+    return bcrypt.hashpw(pwd_trunc.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
 
 async def get_current_user(request: Request, db: AsyncSession = Depends(get_db)):
     user_id = request.cookies.get("user_id")
