@@ -1401,10 +1401,11 @@ async def assessment_api_intake(request: Request, payload: dict, db: AsyncSessio
     user = await get_current_user(request, db)
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
-        
+
     result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
-    if not result or result.student_type != "12th":
-        raise HTTPException(status_code=404, detail="Assessment not found or invalid type")
+    if not result:
+        raise HTTPException(status_code=404, detail="Assessment not found")
+
         
     # Check if payload is from the new form submission
     if "name" in payload and "pursuing" in payload and "interests" in payload:
@@ -1445,6 +1446,7 @@ async def assessment_api_intake(request: Request, payload: dict, db: AsyncSessio
             "salary_priority": salary_priority
         }
         result.intake_turn = 3
+        # Always force Phase 1 (swipe cards / behavioral assessment) after intake form completion.
         result.current_phase = 1
         
         await db.commit()
