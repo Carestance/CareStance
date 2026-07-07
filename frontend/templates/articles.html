@@ -3,6 +3,97 @@
 {% block title %}Career Guidance Articles | CareStance{% endblock %}
 
 {% block content %}
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+  /* ── Bubble / wave background, matching landing.html ── */
+  .site-bg {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: -1;
+    overflow: hidden;
+    background: linear-gradient(160deg, #d7f3f1 0%, #bfe9e6 28%, #9ddcd9 55%, #6fc4c2 78%, #4fb0ae 100%);
+  }
+  .site-bg-bubble { position: absolute; border-radius: 50%; background: radial-gradient(circle at 32% 28%, rgba(255,255,255,0.85) 0%, rgba(102,158,167,0.25) 35%, rgba(103,211,210,0.383) 70%, transparent 100%); filter: blur(0.5px); will-change: transform; }
+  .site-bg-bubble.b1 { width: 380px; height: 380px; top: -6%; right: 4%; animation: bubbleFloat1 24s ease-in-out infinite; }
+  .site-bg-bubble.b2 { width: 220px; height: 220px; top: 18%; right: 22%; background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.9) 0%, rgba(56,189,248,0.55) 40%, rgba(13,148,136,0.2) 75%, transparent 100%); animation: bubbleFloat2 19s ease-in-out infinite; }
+  .site-bg-bubble.b3 { width: 120px; height: 120px; top: 38%; right: 6%; background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.95) 0%, rgba(45,212,191,0.6) 45%, transparent 100%); animation: bubbleFloat3 16s ease-in-out infinite; }
+  .site-bg-bubble.b4 { width: 150px; height: 150px; top: 58%; left: 4%; animation: bubbleFloat2 21s ease-in-out infinite reverse; }
+  .site-bg-bubble.b5 { width: 90px; height: 90px; top: 80%; left: 18%; background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.9) 0%, rgba(56,189,248,0.5) 45%, transparent 100%); animation: bubbleFloat1 17s ease-in-out infinite reverse; }
+  .site-bg-bubble.b6 { width: 260px; height: 260px; bottom: -8%; right: 12%; animation: bubbleFloat3 27s ease-in-out infinite; }
+  .site-bg-bubble.b7 { width: 140px; height: 140px; top: 4%; left: 8%; background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.9) 0%, rgba(20,184,166,0.4) 45%, transparent 100%); animation: bubbleFloat2 22s ease-in-out infinite; }
+
+  @keyframes bubbleFloat1 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-18px,22px); } }
+  @keyframes bubbleFloat2 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(16px,-20px); } }
+  @keyframes bubbleFloat3 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-14px,-16px); } }
+
+  @media (max-width: 768px) {
+    .site-bg-bubble.b1 { width: 220px; height: 220px; }
+    .site-bg-bubble.b2 { width: 130px; height: 130px; }
+    .site-bg-bubble.b6 { width: 160px; height: 160px; }
+  }
+
+  /* ── Glassy article cards ── */
+  .art-card {
+    background: rgba(255,255,255,0.78);
+    backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+    border: 1px solid rgba(255,255,255,0.6);
+    box-shadow: 0 20px 45px rgba(15,23,42,0.10), inset 0 1px 0 rgba(255,255,255,0.8);
+    transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.35s ease, border-color 0.35s ease;
+  }
+  .art-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 28px 60px rgba(13,148,136,0.22), inset 0 1px 0 rgba(255,255,255,0.9);
+    border-color: rgba(13,148,136,0.35);
+  }
+
+  .art-long-section {
+    background: rgba(255,255,255,0.72);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.6);
+    border-radius: 1.75rem;
+    box-shadow: 0 20px 45px rgba(15,23,42,0.08);
+  }
+
+  /* ── Footer, matching landing.html ── */
+  .f-footer { background-color: var(--navy); color: #fff; padding: 5.5rem 0 3rem 0; font-family: 'Space Grotesk', var(--font-sans); position: relative; z-index: 1; }
+  .f-footer h3, .f-footer h4, .f-footer div { color: #fff; }
+  .footer-grid { display: grid; grid-template-columns: 1.2fr repeat(3, 0.6fr); gap: 3rem; margin-bottom: 3.5rem; }
+  .footer-logo { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.1rem; transition: transform 0.3s ease; }
+  .footer-logo:hover { transform: scale(1.04); }
+  .footer-logo-text { font-family: 'Space Grotesk', var(--font-sans); font-weight: 700; font-size: 1.6rem; letter-spacing: 0.01em; }
+  .social-btn-f { display: inline-flex; align-items: center; justify-content: center; width: 2.5rem; height: 2.5rem; border-radius: 50%; background: rgba(255,255,255,0.08); margin-right: 0.6rem; color: #fff; font-size: 1rem; transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s ease, background 0.3s ease; }
+  .social-btn-f:hover { background: var(--teal); color: #fff; transform: scale(1.18) translateY(-3px); box-shadow: 0 0 0 6px rgba(13,148,136,0.25), 0 0 24px rgba(13,148,136,0.7); }
+  .footer-col-title { font-family: 'Space Grotesk', var(--font-sans); font-weight: 700; font-size: 1.05rem; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 1.4rem; }
+  .f-footer ul { list-style: none; padding: 0; }
+  .f-footer ul li { margin-bottom: 0.9rem; }
+  .f-footer ul a { display: inline-block; font-family: 'Space Grotesk', var(--font-sans); font-size: 1.02rem; font-weight: 500; color: #94a3b8; transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), color 0.25s ease, text-shadow 0.25s ease; }
+  .f-footer ul a:hover { color: var(--teal-light); transform: scale(1.08) translateX(3px); text-shadow: 0 0 14px rgba(20,184,166,0.65); }
+  .footer-divider { border-top: 1px solid rgba(255,255,255,0.08); padding-top: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+  .footer-copy { font-family: 'Space Grotesk', var(--font-sans); font-size: 0.98rem; color: #94a3b8; }
+  .footer-contact-link { display: inline-block; transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), color 0.25s ease, text-shadow 0.25s ease; }
+  .footer-contact-link:hover { color: var(--teal-light) !important; transform: scale(1.06); text-shadow: 0 0 14px rgba(20,184,166,0.6); }
+
+  @media (max-width: 768px) {
+    .footer-grid { grid-template-columns: 1fr 1fr; gap: 2rem; }
+  }
+  @media (max-width: 480px) {
+    .footer-grid { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="site-bg" aria-hidden="true">
+  <div class="site-bg-bubble b1"></div>
+  <div class="site-bg-bubble b2"></div>
+  <div class="site-bg-bubble b3"></div>
+  <div class="site-bg-bubble b4"></div>
+  <div class="site-bg-bubble b5"></div>
+  <div class="site-bg-bubble b6"></div>
+  <div class="site-bg-bubble b7"></div>
+</div>
+
 <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
     <div class="text-center mb-16" data-aos="fade-up">
         <h1 class="text-4xl md:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[var(--navy)] to-[var(--teal)] mb-4">Insights for Your Future</h1>
@@ -11,7 +102,7 @@
 
     <div class="grid md:grid-cols-3 gap-8">
         <!-- Article 1 -->
-        <article class="bg-white rounded-3xl overflow-hidden shadow-lg border border-slate-100 flex flex-col group hover:shadow-2xl transition duration-500" data-aos="fade-up">
+        <article class="art-card rounded-3xl overflow-hidden flex flex-col group" data-aos="fade-up">
             <div class="h-48 overflow-hidden">
                 <img src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=80&w=800" class="w-full h-full object-cover group-hover:scale-110 transition duration-500" alt="Career Planning">
             </div>
@@ -26,7 +117,7 @@
         </article>
 
         <!-- Article 2 -->
-        <article class="bg-white rounded-3xl overflow-hidden shadow-lg border border-slate-100 flex flex-col group hover:shadow-2xl transition duration-500" data-aos="fade-up" data-aos-delay="100">
+        <article class="art-card rounded-3xl overflow-hidden flex flex-col group" data-aos="fade-up" data-aos-delay="100">
             <div class="h-48 overflow-hidden">
                 <img src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=800" class="w-full h-full object-cover group-hover:scale-110 transition duration-500" alt="AI in Education">
             </div>
@@ -35,13 +126,13 @@
                     <span class="px-3 py-1 bg-[var(--teal-soft)] text-[var(--navy)] rounded-full text-xs font-bold uppercase tracking-widest">Technology</span>
                 </div>
                 <h2 class="text-2xl font-bold text-slate-800 mb-4 group-hover:text-[var(--navy)] transition">The Role of AI in Modern Career Counselling</h2>
-                <p class="text-slate-600 leading-relaxed mb-6">Artificial Intelligence is revolucionizing how we understand professional potential. Explore how CareStance uses large language models to map complex data to career paths...</p>
+                <p class="text-slate-600 leading-relaxed mb-6">Artificial Intelligence is revolutionizing how we understand professional potential. Explore how CareStance uses large language models to map complex data to career paths...</p>
                 <a href="#" class="text-[var(--navy)] font-bold flex items-center gap-2 group-hover:gap-3 transition-all underline">Explore AI Insights <i class="fas fa-arrow-right"></i></a>
             </div>
         </article>
 
         <!-- Article 3 -->
-        <article class="bg-white rounded-3xl overflow-hidden shadow-lg border border-slate-100 flex flex-col group hover:shadow-2xl transition duration-500" data-aos="fade-up" data-aos-delay="200">
+        <article class="art-card rounded-3xl overflow-hidden flex flex-col group" data-aos="fade-up" data-aos-delay="200">
             <div class="h-48 overflow-hidden">
                 <img src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=800" class="w-full h-full object-cover group-hover:scale-110 transition duration-500" alt="Networking">
             </div>
@@ -58,10 +149,10 @@
 
     <!-- Long Form Content Block (For AdSense Value) -->
     <div class="mt-24 space-y-16 max-w-4xl mx-auto">
-        <section class="prose prose-slate lg:prose-xl mx-auto" data-aos="fade-up">
+        <section class="art-long-section prose prose-slate lg:prose-xl mx-auto p-8 md:p-12" data-aos="fade-up">
             <h2 class="text-3xl font-bold text-slate-900 border-b-4 border-[var(--teal-light)] inline-block pb-1 mb-8">Comprehensive Guide to Career Clarity</h2>
             <p>Our goal at CareStance is to bridge the gap between inherent potential and professional reality. The journey toward career clarity begins with deep self-reflection, often assisted by psychometric tools that explore personality, aptitude, and interests. In this detailed guide, we explore the methodology behind our platform and how you can maximize the insights from our AI engine.</p>
-            
+
             <h3 class="text-xl font-bold mt-8">Phase 1: Self-Assessment</h3>
             <p>Understanding your social battery, problem-solving style, and learning preferences is the foundation. Our first level of assessment identifies whether you are a specialist, a generalist, or a visionary leader. This allows our counsellors to tailor their advice based on how you actually engage with work.</p>
 
@@ -73,5 +164,6 @@
         </section>
     </div>
 </div>
-{% endblock %}
 
+
+{% endblock %}

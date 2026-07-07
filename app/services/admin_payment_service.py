@@ -34,7 +34,9 @@ async def get_payment_analytics(db: AsyncSession) -> dict:
 
     # 2. Simulation revenue — successful payments
     sim_rev_result = await db.execute(
-        select(func.coalesce(func.sum(SimulationPayment.amount), 0))
+        select(func.coalesce(func.sum(SimulationPayment.amount), 0)).where(
+            SimulationPayment.status.in_(["success", "captured"])
+        )
     )
     simulation_revenue = float(sim_rev_result.scalar_one())
 
@@ -86,6 +88,17 @@ async def get_recent_payment_logs(db: AsyncSession, limit: int = 20) -> list:
             selectinload(Payment.transfers),
         )
         .order_by(Payment.created_at.desc())
+        .limit(limit)
+    )
+    return result.scalars().all()
+
+
+async def get_recent_simulation_payments(db: AsyncSession, limit: int = 50) -> list:
+    """Latest simulation payment records with user info."""
+    result = await db.execute(
+        select(SimulationPayment)
+        .options(selectinload(SimulationPayment.user))
+        .order_by(SimulationPayment.created_at.desc())
         .limit(limit)
     )
     return result.scalars().all()
