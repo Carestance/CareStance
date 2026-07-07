@@ -2014,7 +2014,9 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
         profile = (await db.execute(select(models.CounsellorProfile).where(models.CounsellorProfile.user_id == user.id))).scalars().first()
         # Show active/scheduled, requested, accepted, and completed appointments on dashboard
         appointments = (await db.execute(
-            select(models.Appointment).where(
+            select(models.Appointment).options(
+                selectinload(models.Appointment.student).selectinload(models.User.assessment)
+            ).where(
                 models.Appointment.counsellor_id == user.id,
                 models.Appointment.status.in_(["scheduled", "requested", "accepted", "completed"])
             ).order_by(models.Appointment.appointment_time.desc())
@@ -2083,7 +2085,9 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
 
         # Fetch recent reviews
         recent_reviews = (await db.execute(
-            select(models.CounselorRating).where(
+            select(models.CounselorRating).options(
+                selectinload(models.CounselorRating.student)
+            ).where(
                 models.CounselorRating.counsellor_id == user.id
             ).order_by(models.CounselorRating.timestamp.desc()).limit(5)
         )).scalars().all()
