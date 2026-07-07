@@ -218,7 +218,7 @@
                         {% else %}
                         <form action="/connect/{{ sd.user.id }}" method="POST">
                             <button type="submit"
-                                class="connect-btn inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[var(--navy)] to-[var(--teal)] text-white rounded-xl text-xs font-bold w-full justify-center hover:from-[var(--navy)] hover:to-[var(--navy)] shadow-lg shadow-[var(--teal-soft)]">
+                                class="connect-btn inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-slate-900 to-teal-600 text-white rounded-xl text-xs font-bold w-full justify-center hover:from-slate-800 hover:to-slate-800 shadow-lg shadow-teal-500/20">
                                 <i class="fas fa-user-plus"></i> Connect
                             </button>
                         </form>
@@ -236,7 +236,7 @@
     <div>
         <div class="flex items-center gap-3 mb-6 mt-4">
             <div
-                class="h-10 w-10 rounded-xl bg-gradient-to-br from-[var(--teal)] to-[var(--teal)] flex items-center justify-center text-white shadow-lg font-bold">
+                class="h-10 w-10 rounded-xl bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white shadow-lg font-bold">
                 {{ archetype[0] | upper }}
             </div>
             <div>
@@ -251,7 +251,7 @@
             <div class="student-card animate-card bg-white/80 backdrop-blur-xl rounded-2xl border border-white/50 shadow-lg overflow-hidden"
                 data-delay="{{ loop.index0 * 0.08 }}" data-name="{{ sd.user.full_name|lower }}">
 
-                <div class="h-20 bg-gradient-to-br from-[var(--teal)] via-[var(--teal)] to-[var(--teal)] relative">
+                <div class="h-20 bg-gradient-to-br from-teal-400 via-teal-500 to-teal-600 relative">
                     <div class="absolute -bottom-8 left-1/2 -translate-x-1/2">
                         <img src="{{ sd.user.profile_photo if sd.user.profile_photo else 'https://ui-avatars.com/api/?name=' ~ (sd.user.full_name or 'User') ~ '&background=random&size=128' }}"
                             alt="{{ sd.user.full_name }}"
@@ -314,7 +314,7 @@
                         {% else %}
                         <form action="/connect/{{ sd.user.id }}" method="POST">
                             <button type="submit"
-                                class="connect-btn inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[var(--navy)] to-[var(--teal)] text-white rounded-xl text-xs font-bold w-full justify-center hover:from-[var(--navy)] hover:to-[var(--navy)] shadow-lg shadow-[var(--teal-soft)]">
+                                class="connect-btn inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-slate-900 to-teal-600 text-white rounded-xl text-xs font-bold w-full justify-center hover:from-slate-800 hover:to-slate-800 shadow-lg shadow-teal-500/20">
                                 <i class="fas fa-user-plus"></i> Connect
                             </button>
                         </form>
@@ -337,7 +337,7 @@
         <p class="text-slate-500 max-w-md mx-auto">Be one of the first students to complete your assessment and start
             building your career network!</p>
         <a href="/dashboard"
-            class="inline-block mt-6 px-6 py-3 bg-gradient-to-r from-[var(--navy)] to-[var(--teal)] text-white rounded-xl font-bold hover:from-[var(--navy)] hover:to-[var(--navy)] shadow-lg shadow-[var(--teal-soft)] transition-all">
+            class="inline-block mt-6 px-6 py-3 bg-gradient-to-r from-slate-900 to-teal-600 text-white rounded-xl font-bold hover:from-slate-800 hover:to-slate-800 shadow-lg shadow-teal-500/20 transition-all">
             Go to Dashboard
         </a>
     </div>
