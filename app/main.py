@@ -867,6 +867,10 @@ async def signup(
     user = result.scalars().first()
     if user:
         return templates.TemplateResponse(request=request, name="signup.html", context={"error": "Email already exists"})
+        
+    # Phone number validation: must start with +, have 1-3 digit country code, optional space, and 10 digits
+    if not re.match(r'^\+\d{1,3}\s?\d{10}$', contact_number.strip()):
+        return templates.TemplateResponse(request=request, name="signup.html", context={"error": "Invalid phone number. It must include a country code (e.g., +91) followed by a 10-digit number."})
     
     try:
         # 2. Create User in Appwrite Auth
@@ -1218,6 +1222,12 @@ async def select_role(
     try:
         if role not in ("student", "counsellor"):
             return RedirectResponse(url="/select-role", status_code=status.HTTP_302_FOUND)
+            
+        if not re.match(r'^\+\d{1,3}\s?\d{10}$', contact_number.strip()):
+            return templates.TemplateResponse(request=request, name="select_role.html", context={
+                "error": "Invalid phone number. It must include a country code (e.g., +91) followed by a 10-digit number.",
+                "user": user
+            })
             
         user.role = role
         user.contact_number = contact_number
