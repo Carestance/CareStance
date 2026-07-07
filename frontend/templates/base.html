@@ -807,7 +807,6 @@
                 <a href="/admin" class="{% if request.url.path == '/admin' %}nav-active{% endif %}" style="font-weight:700;"><i class="fa-solid fa-shield-halved"
                        ></i>Admin</a>
                 {% endif %}
-                {% if user.full_name and user.full_name != 'None' %}<span class="nav-user-name">| {{ user.full_name }}</span>{% endif %}
                 <a href="/logout" class="nav-logout">Logout</a>
                 {% else %}
                 <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i class="fa-solid fa-house"></i>Home</a>
