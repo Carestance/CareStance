@@ -1208,6 +1208,7 @@ async def select_role_page(request: Request, db: AsyncSession = Depends(get_db))
 async def select_role(
     request: Request,
     role: str = Form(...),
+    contact_number: str = Form(...),
     db: AsyncSession = Depends(get_db)
 ):
     user = await get_current_user(request, db)
@@ -1219,6 +1220,7 @@ async def select_role(
             return RedirectResponse(url="/select-role", status_code=status.HTTP_302_FOUND)
             
         user.role = role
+        user.contact_number = contact_number
         db.add(user)
         
         # Create counsellor profile if needed
@@ -1230,11 +1232,44 @@ async def select_role(
         
         await db.commit()
         user_cache.invalidate_user(user.id)
+
+        # Save User Metadata in Appwrite DB
+        try:
+            from appwrite.query import Query
+            res = tables_db.list_rows(DB_ID, COLLECTIONS["users"], [Query.equal('email', user.email)])
+            documents = res.get('documents', []) if isinstance(res, dict) else getattr(res, 'documents', [])
+            
+            if documents:
+                doc = documents[0]
+                doc_id = doc.get('$id') if isinstance(doc, dict) else getattr(doc, '$id', getattr(doc, 'id', None))
+                if doc_id:
+                    tables_db.update_row(DB_ID, COLLECTIONS["users"], doc_id, {
+                        "contact_number": contact_number,
+                        "role": role
+                    })
+            else:
+                new_user_id = str(uuid.uuid4())[:20]
+                tables_db.create_row(
+                    database_id=DB_ID,
+                    table_id=COLLECTIONS["users"],
+                    row_id=new_user_id,
+                    data={
+                        "email": user.email,
+                        "full_name": user.full_name,
+                        "contact_number": contact_number,
+                        "role": role,
+                        "local_id": user.id
+                    }
+                )
+        except Exception as de:
+            print(f"Appwrite DB Error in select_role: {de}")
+
     except Exception as e:
         print(f"Role selection error: {e}")
         await db.rollback()
         return templates.TemplateResponse(request=request, name="select_role.html", context={
-            "error": "An error occurred while saving your role. Please try again."
+            "error": "An error occurred while saving your role. Please try again.",
+            "user": user
         })
     
     return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
