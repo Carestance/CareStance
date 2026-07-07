@@ -269,8 +269,9 @@
                     </form>
                 </div>
                 <div>
-                    <h3 class="text-xl leading-6 font-bold text-slate-900">{{ user.full_name }}</h3>
-                    <p class="mt-1 text-sm text-slate-500">Expert Guide & Life Coach</p>
+<h3 class="text-xl leading-6 font-bold text-slate-900">{{ user.full_name }}</h3>
+<p class="mt-1 text-sm text-slate-500">Expert Guide & Life Coach</p>
+<p class="text-xs text-slate-400 mt-1">{{ user.email }}{% if user.contact_number %} &middot; {{ user.contact_number }}{% endif %}</p>
                     <div class="flex flex-wrap gap-2 mt-2">
                         {% if profile.verification_status == 'approved' %}
                         <span

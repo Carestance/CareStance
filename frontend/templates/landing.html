@@ -945,6 +945,8 @@
 
     }
 
+    
+
     .peek-message {
 
       position: absolute;
@@ -2706,6 +2708,402 @@
         gap: 2rem;
       }
     }
+
+    /* ═══════════════════════════════════════════════════════════════
+       MID-SCREEN FIXES — 581px to 768px
+       Fixes the overflow/mascot issues that shift up when mobile
+       fixes push them out of the small-screen range.
+       NOTHING above this block is touched.
+    ═══════════════════════════════════════════════════════════════ */
+    @media (min-width: 581px) and (max-width: 768px) {
+
+      /* Kill horizontal scroll */
+      html, body {
+        overflow-x: hidden;
+        max-width: 100vw;
+      }
+
+      /* Nav: anchor to viewport edges so it never bleeds */
+      #f-main-nav {
+        width: calc(100vw - 32px) !important;
+        left: 16px !important;
+        right: 16px !important;
+        transform: none !important;
+        max-width: calc(100vw - 32px) !important;
+      }
+
+      .container {
+        overflow-x: hidden;
+      }
+
+      /* Peek-frame mascot: convert from a fixed right-bleeding element
+         into an inline card at the bottom of the hero section.
+         The mascot image is hidden; only the speech bubble shows
+         as a friendly full-width message card. */
+      .peek-frame {
+        position: relative !important;
+        right: auto !important;
+        top: auto !important;
+        transform: none !important;
+        width: 100% !important;
+        height: auto !important;
+        overflow: visible !important;
+        margin-top: 1.5rem;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+      }
+
+      /* Hide the mascot image — too big, causes overflow */
+      .peek-mascot {
+        display: none !important;
+        animation: none !important;
+      }
+
+      /* Bubble becomes a full-width friendly card */
+      .peek-message {
+        position: relative !important;
+        top: auto !important;
+        left: auto !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        opacity: 1 !important;
+        animation: none !important;
+        border-radius: 1rem !important;
+        padding: 1rem 1.25rem !important;
+        font-size: 0.95rem !important;
+        background: white;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.10);
+        text-align: center;
+      }
+
+      /* Keep hero grid single-column */
+      .hero-grid {
+        grid-template-columns: 1fr !important;
+      }
+
+      .hero-visual {
+        order: 2;
+        height: auto !important;
+      }
+
+      /* Prevent arch-road from bleeding */
+      .arch-road-wrapper {
+        overflow: hidden;
+        max-width: 100vw;
+      }
+
+      .final-cta-marquee {
+        overflow: hidden;
+        max-width: 100vw;
+      }
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       MOBILE FIXES — max-width: 580px
+       Covers the 480–580px dead-zone AND smaller phones.
+       NOTHING above this block is touched.
+    ═══════════════════════════════════════════════════════════════ */
+    @media (max-width: 580px) {
+
+      /* ── 1. Kill horizontal scroll / blank right panel ── */
+      html, body {
+        overflow-x: hidden;
+        max-width: 100vw;
+      }
+
+      /* Kill peekCycle animation before display:none takes effect */
+      .peek-mascot {
+        animation: none !important;
+        transform: translateX(9999px) !important;
+      }
+
+      /* Nav pill: swap from centered-percent to viewport-anchored */
+      #f-main-nav {
+        width: calc(100vw - 24px) !important;
+        left: 12px !important;
+        right: 12px !important;
+        transform: none !important;
+        max-width: calc(100vw - 24px) !important;
+      }
+
+      .nav-inner {
+        min-height: 58px;
+        padding-left: 4.5rem;
+        padding-right: 1rem;
+      }
+
+      .container {
+        padding: 0 1rem;
+        max-width: 100%;
+        overflow-x: hidden;
+      }
+
+      /* Any element that could bleed sideways */
+      .arch-road-wrapper,
+      .final-cta-marquee {
+        max-width: 100vw;
+        overflow: hidden;
+      }
+
+      /* ── 2. Hero peek-frame mascot: hide it — it's position:fixed and
+              lingers over every section while scrolling ── */
+      .peek-frame {
+        display: none !important;
+      }
+
+      .hero-visual {
+        display: none !important;
+      }
+
+      .hero-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1.5rem;
+      }
+
+      /* Hero text adjustments */
+      .hero {
+        padding: 8rem 0 4rem;
+      }
+
+      .hero-title,
+      .section-title {
+        font-size: 1.85rem;
+      }
+
+      .section-desc {
+        font-size: 1rem;
+      }
+
+      .hero-desc {
+        font-size: 1rem;
+      }
+
+      .hero-actions {
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+
+      .btn-primary,
+      .btn-secondary {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .hero-stats {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+      }
+
+      .stat-chip {
+        padding-right: 1rem;
+        min-width: unset;
+      }
+
+      /* ── 3. Sim stack cards — scale down for narrow screens ── */
+      .sim-layout {
+        flex-direction: column;
+        gap: 2rem;
+      }
+
+      .sim-text {
+        min-width: unset;
+        max-width: 100%;
+      }
+
+      .sim-stack-col {
+        min-width: unset;
+        max-width: 100%;
+        width: 100%;
+      }
+
+      .sim-stack {
+        height: 270px;
+      }
+
+      .sim-stack-card {
+        padding: 1rem 1rem;
+        border-radius: 1rem;
+      }
+
+      .sim-tag {
+        font-size: 0.65rem;
+      }
+
+      .sim-title {
+        font-size: 0.92rem;
+        margin-bottom: 0.45rem;
+      }
+
+      .sim-scenario {
+        font-size: 0.74rem;
+        padding: 0.55rem 0.7rem;
+        margin-bottom: 0.65rem;
+      }
+
+      .sim-choice {
+        font-size: 0.72rem;
+        padding: 0.4rem 0.65rem;
+        margin-bottom: 0.3rem;
+      }
+
+      /* Tighten the card fan so back card doesn't overflow */
+      .pos-back  { transform: rotate(-10deg) translate(-52px, 20px) scale(0.93); }
+      .pos-mid   { transform: rotate(-4deg)  translate(-22px, 9px)  scale(0.96); }
+      .pos-front { transform: rotate(3deg)   translate(10px,  -6px) scale(1);    }
+
+      /* ── 4. Trust cards — force white background (Safe Communication etc.) ── */
+      .trust-card {
+        background: var(--bg-white) !important;
+        border: 1px solid var(--border) !important;
+        border-radius: 1.5rem !important;
+      }
+
+      .trust-v-layout {
+        grid-template-columns: 1fr !important;
+        gap: 1.25rem;
+      }
+
+      .trust-v-center {
+        order: -1;
+        margin-bottom: 0;
+      }
+
+      .trust-v-mascot-wrap {
+        max-width: 180px;
+        margin: 0 auto 1rem auto;
+      }
+
+      /* ── Roadmap section ── */
+      .roadmap-layout {
+        grid-template-columns: 1fr !important;
+      }
+
+      .roadmap-mascot-col {
+        order: -1;
+      }
+
+      .roadmap-mascot-wrap {
+        max-width: 170px;
+      }
+
+      .roadmap-timeline {
+        padding-left: 3rem;
+        max-width: 100%;
+      }
+
+      .roadmap-timeline::before,
+      .roadmap-progress {
+        left: 1rem;
+      }
+
+      .roadmap-node {
+        left: -2.4rem;
+        width: 2.4rem;
+        height: 2.4rem;
+        font-size: 0.9rem;
+      }
+
+      .step-digit {
+        font-size: 2rem;
+      }
+
+      .step-card {
+        padding: 1rem 1.2rem;
+      }
+
+      /* ── Pipeline grid (AI Discovery) ── */
+      .pipeline-grid {
+        grid-template-columns: 1fr !important;
+      }
+
+      /* ── Discovery header stacks ── */
+      .discovery-header {
+        grid-template-columns: 1fr !important;
+        gap: 1.5rem;
+      }
+
+      #career-discovery .section-mascot-wrap {
+        max-width: 220px;
+        margin: 0 auto;
+        justify-self: center;
+      }
+
+      .discovery-text {
+        text-align: center !important;
+      }
+
+      #career-discovery .section-title {
+        font-size: 1.85rem;
+      }
+
+      #career-discovery .section-desc {
+        text-align: center !important;
+        margin: 0 auto;
+      }
+
+      /* ── Archetypes section header ── */
+      .archetype-section > .container > .reveal {
+        flex-direction: column !important;
+        gap: 1.5rem !important;
+        text-align: center !important;
+      }
+
+      .archetype-section .section-title {
+        font-size: 1.85rem !important;
+        text-align: center !important;
+      }
+
+      .archetype-section .section-desc {
+        text-align: center !important;
+      }
+
+      /* ── Chat section ── */
+      .chat-layout {
+        grid-template-columns: 1fr !important;
+        gap: 2rem;
+      }
+
+      /* ── Counsellor grid ── */
+      .counsel-grid {
+        grid-template-columns: 1fr !important;
+      }
+
+      .counsel-title {
+        font-size: 1.85rem !important;
+      }
+
+      .counsel-desc {
+        white-space: normal !important;
+      }
+
+      /* ── Section mascot wraps across all sections ── */
+      .section-mascot-wrap {
+        max-width: 200px;
+        margin-bottom: 1rem;
+      }
+
+      /* ── Story bubbles: keep them inline on mobile ── */
+      .story-bubble {
+        position: static;
+        margin: 0.75rem auto 0;
+        transform: none;
+        opacity: 1 !important;
+      }
+
+      /* ── Final CTA marquee ── */
+      .final-cta-marquee-track span {
+        font-size: 1.1rem;
+      }
+
+      /* ── Footer ── */
+      .footer-divider {
+        flex-direction: column;
+        text-align: center;
+        gap: 0.75rem;
+      }
+
+    }
+    /* ═══ END MOBILE FIXES ═══ */
   </style>
 </head>
 

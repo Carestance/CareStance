@@ -1,6 +1,7 @@
 """
 Admin Feedback & Support Ticket Service
 """
+from __future__ import annotations
 
 import logging
 from sqlalchemy.ext.asyncio import AsyncSession

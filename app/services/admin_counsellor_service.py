@@ -80,7 +80,7 @@ async def approve_counsellor(
     profile.verification_status = "approved"
     profile.is_verified = True
     if remarks:
-        profile.block_reason = remarks  # reusing field; rename to remarks if you add column
+        profile.verification_remarks = remarks
     await db.commit()
     await db.refresh(profile)
     logger.info(f"Counsellor profile {profile_id} approved")
@@ -100,7 +100,7 @@ async def reject_counsellor(
     profile.verification_status = "rejected"
     profile.is_verified = False
     if remarks:
-        profile.block_reason = remarks
+        profile.verification_remarks = remarks
     await db.commit()
     await db.refresh(profile)
     logger.info(f"Counsellor profile {profile_id} rejected. Remarks: {remarks}")
