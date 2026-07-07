@@ -788,11 +788,9 @@
     <nav id="base-nav">
         <div class="nav-inner">
             <a href="/" class="nav-logo">
-                <picture>
-                    <source srcset="/static/images/image.webp?v=101" type="image/webp">
-                    <img src="/static/images/image.png?v=101" alt="CareStance Logo" width="38" height="38">
-                </picture>
-                <span class="nav-logo-text">CareStance</span>
+                <span class="nav-logo-badge">
+                    <img src="/static/images/logo.png" alt="CareStance" width="42" height="42">
+                </span>
             </a>
 
             <div class="nav-links">
@@ -850,6 +848,16 @@
             {% endif %}
         </div>
     </nav>
+    <script>
+      window.addEventListener('scroll', () => {
+        const nav = document.getElementById('base-nav');
+        if (window.scrollY > 20) {
+          nav.classList.add('scrolled');
+        } else {
+          nav.classList.remove('scrolled');
+        }
+      });
+    </script>
     {% endblock %}
 
     <!-- ── Page Content ── -->

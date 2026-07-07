@@ -585,6 +585,7 @@
                 <div>
                     <h4 class="font-extrabold text-slate-900 text-lg leading-tight">{{ user.full_name }}</h4>
                     <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mt-0.5">{{ user.role or 'Student' }}</p>
+<p class="text-xs text-slate-400 mt-1">{{ user.email }}{% if user.contact_number %} &middot; {{ user.contact_number }}{% endif %}</p>
                 </div>
             </div>
 
