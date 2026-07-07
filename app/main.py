@@ -2121,172 +2121,167 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
         import traceback
         return HTMLResponse(content=f"Template Error: {e}<br><pre>{traceback.format_exc()}</pre>", status_code=500)
 
-# @app.get("/admin", response_class=HTMLResponse)
-# async def admin_dashboard(
-#     request: Request, 
-#     db: AsyncSession = Depends(get_db),
-#     user_page: int = 1,
-#     feedback_page: int = 1,@app.post("/admin/users/{user_id}/suspend")
-# @app.post("/admin/users/{user_id}/unsuspend")
-# @app.post("/admin/flags/{flag_id}/action")
-# @app.post("/admin/verify-counsellor/{counsellor_id}")
-# @app.post("/admin/block-counsellor/{counsellor_id}")
-# @app.post("/admin/unblock-counsellor/{counsellor_id}")
-#     ticket_page: int = 1,
-#     page_size: int = 20,
-#     user_search: str = "",
-#     counsellor_search: str = ""
-# ):
-#     try:
-#         current_user = await get_current_user(request, db)
-        # if not current_user:
-        #      return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+@app.get("/admin", response_class=HTMLResponse)
+async def admin_dashboard(
+    request: Request, 
+    db: AsyncSession = Depends(get_db),
+    user_page: int = 1,
+    feedback_page: int = 1,
+    ticket_page: int = 1,
+    page_size: int = 20,
+    user_search: str = "",
+    counsellor_search: str = ""
+):
+    try:
+        current_user = await get_current_user(request, db)
+        if not current_user:
+             return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
         
-        # admin_email = os.getenv("ADMIN_EMAIL")
-        # if current_user.role != "admin" and (not admin_email or current_user.email != admin_email):
-        #     print(f"DEBUG: Admin access denied for {current_user.email}")
-        #     return RedirectResponse(url="/dashboard?error=Admin access denied", status_code=status.HTTP_302_FOUND)
+        admin_email = os.getenv("ADMIN_EMAIL")
+        if current_user.role != "admin" and (not admin_email or current_user.email != admin_email):
+            print(f"DEBUG: Admin access denied for {current_user.email}")
+            return RedirectResponse(url="/dashboard?error=Admin access denied", status_code=status.HTTP_302_FOUND)
 
-        # # ─── Paginated Data ──────────────────────────────────────────────
-        # user_search = user_search.strip()
-        # if user_search:
-        #     # Search across the entire database by name or email
-        #     search_filter = models.User.full_name.ilike(f"%{user_search}%") | models.User.email.ilike(f"%{user_search}%")
-        #     all_users = (await db.execute(select(models.User).where(search_filter).order_by(models.User.id.desc()))).scalars().all()
-        #     total_users = len(all_users)
-        # else:
-        #     all_users = (await db.execute(select(models.User).order_by(models.User.id.desc()).offset((user_page - 1) * page_size).limit(page_size))).scalars().all()
-        #     total_users = (await db.execute(select(func.count()).select_from(models.User))).scalar()
+        # ─── Paginated Data ──────────────────────────────────────────────
+        user_search = user_search.strip()
+        if user_search:
+            # Search across the entire database by name or email
+            search_filter = models.User.full_name.ilike(f"%{user_search}%") | models.User.email.ilike(f"%{user_search}%")
+            all_users = (await db.execute(select(models.User).where(search_filter).order_by(models.User.id.desc()))).scalars().all()
+            total_users = len(all_users)
+        else:
+            all_users = (await db.execute(select(models.User).order_by(models.User.id.desc()).offset((user_page - 1) * page_size).limit(page_size))).scalars().all()
+            total_users = (await db.execute(select(func.count()).select_from(models.User))).scalar()
 
-        # all_feedback = (await db.execute(select(models.Feedback).order_by(models.Feedback.timestamp.desc()).offset((feedback_page - 1) * page_size).limit(page_size))).scalars().all()
-        # total_feedback = (await db.execute(select(func.count()).select_from(models.Feedback))).scalar()
+        all_feedback = (await db.execute(select(models.Feedback).order_by(models.Feedback.timestamp.desc()).offset((feedback_page - 1) * page_size).limit(page_size))).scalars().all()
+        total_feedback = (await db.execute(select(func.count()).select_from(models.Feedback))).scalar()
 
-        # all_tickets = (await db.execute(select(models.Ticket).order_by(models.Ticket.timestamp.desc()).offset((ticket_page - 1) * page_size).limit(page_size))).scalars().all()
-        # total_tickets = (await db.execute(select(func.count()).select_from(models.Ticket))).scalar()
+        all_tickets = (await db.execute(select(models.Ticket).order_by(models.Ticket.timestamp.desc()).offset((ticket_page - 1) * page_size).limit(page_size))).scalars().all()
+        total_tickets = (await db.execute(select(func.count()).select_from(models.Ticket))).scalar()
 
-        # pending_counsellors = (await db.execute(select(models.CounsellorProfile).where(models.CounsellorProfile.verification_status == "pending"))).scalars().all()
+        pending_counsellors = (await db.execute(select(models.CounsellorProfile).where(models.CounsellorProfile.verification_status == "pending"))).scalars().all()
         
-        # # ─── Optimized Counsellor Stats (Single Query) ───────────────────
+        # ─── Optimized Counsellor Stats (Single Query) ───────────────────
 
         
-        # # Get all completed sessions count per counsellor
-        # _completed_rows = (await db.execute(
-        #     select(models.Appointment.counsellor_id, func.count(models.Appointment.id).label("count"))
-        #     .where(models.Appointment.status == "completed")
-        #     .group_by(models.Appointment.counsellor_id)
-        # )).all()
-        # completed_map = {row.counsellor_id: row.count for row in _completed_rows}
+        # Get all completed sessions count per counsellor
+        _completed_rows = (await db.execute(
+            select(models.Appointment.counsellor_id, func.count(models.Appointment.id).label("count"))
+            .where(models.Appointment.status == "completed")
+            .group_by(models.Appointment.counsellor_id)
+        )).all()
+        completed_map = {row.counsellor_id: row.count for row in _completed_rows}
 
-        # # Get total sessions count per counsellor
-        # _total_rows = (await db.execute(
-        #     select(models.Appointment.counsellor_id, func.count(models.Appointment.id).label("count"))
-        #     .group_by(models.Appointment.counsellor_id)
-        # )).all()
-        # total_map = {row.counsellor_id: row.count for row in _total_rows}
+        # Get total sessions count per counsellor
+        _total_rows = (await db.execute(
+            select(models.Appointment.counsellor_id, func.count(models.Appointment.id).label("count"))
+            .group_by(models.Appointment.counsellor_id)
+        )).all()
+        total_map = {row.counsellor_id: row.count for row in _total_rows}
 
-        # counsellor_search = counsellor_search.strip()
-        # if counsellor_search:
-        #     # Search across all counsellors by name or email
-        #     search_filter = models.User.full_name.ilike(f"%{counsellor_search}%") | models.User.email.ilike(f"%{counsellor_search}%")
-        #     all_counsellors = (await db.execute(
-        #         select(models.CounsellorProfile).join(models.User).where(search_filter)
-        #     )).scalars().all()
-        # else:
-        #     all_counsellors = (await db.execute(select(models.CounsellorProfile))).scalars().all()
-        # for cp in all_counsellors:
-        #     cp.session_count = completed_map.get(cp.user_id, 0)
-        #     cp.total_sessions = total_map.get(cp.user_id, 0)
+        counsellor_search = counsellor_search.strip()
+        if counsellor_search:
+            # Search across all counsellors by name or email
+            search_filter = models.User.full_name.ilike(f"%{counsellor_search}%") | models.User.email.ilike(f"%{counsellor_search}%")
+            all_counsellors = (await db.execute(
+                select(models.CounsellorProfile).join(models.User).where(search_filter)
+            )).scalars().all()
+        else:
+            all_counsellors = (await db.execute(select(models.CounsellorProfile))).scalars().all()
+        for cp in all_counsellors:
+            cp.session_count = completed_map.get(cp.user_id, 0)
+            cp.total_sessions = total_map.get(cp.user_id, 0)
 
-        # # ─── Payment Split Analytics ──────────────────────────────────────
-        # try:
-        #     all_payments = (await db.execute(select(models.Payment).order_by(models.Payment.created_at.desc()).limit(20))).scalars().all()
+        # ─── Payment Split Analytics ──────────────────────────────────────
+        try:
+            all_payments = (await db.execute(select(models.Payment).order_by(models.Payment.created_at.desc()).limit(20))).scalars().all()
             
             # Using scalars directly for performance
-        #     session_revenue = (await db.execute(
-        #         select(func.sum(models.Payment.amount)).where(models.Payment.status == "captured")
-        #     )).scalar() or 0.0
+            session_revenue = (await db.execute(
+                select(func.sum(models.Payment.amount)).where(models.Payment.status == "captured")
+            )).scalar() or 0.0
 
-        #     sim_revenue = (await db.execute(
-        #         select(func.sum(models.SimulationPayment.amount))
-        #     )).scalar() or 0.0
+            sim_revenue = (await db.execute(
+                select(func.sum(models.SimulationPayment.amount))
+            )).scalar() or 0.0
             
-        #     total_revenue = session_revenue + sim_revenue
+            total_revenue = session_revenue + sim_revenue
 
-        #     total_counselor_payouts = (await db.execute(
-        #         select(func.sum(models.Transfer.amount)).where(models.Transfer.status == "processed")
-        #     )).scalar() or 0.0
+            total_counselor_payouts = (await db.execute(
+                select(func.sum(models.Transfer.amount)).where(models.Transfer.status == "processed")
+            )).scalar() or 0.0
 
-        #     platform_commission = session_revenue - total_counselor_payouts + sim_revenue
+            platform_commission = session_revenue - total_counselor_payouts + sim_revenue
 
-        #     pending_transfers = (await db.execute(select(func.count()).select_from(models.Transfer).where(models.Transfer.status == "pending"))).scalar()
-        #     failed_transfers = (await db.execute(select(func.count()).select_from(models.Transfer).where(models.Transfer.status == "failed"))).scalar()
-        #     captured_payments_count = (await db.execute(select(func.count()).select_from(models.Payment).where(models.Payment.status == "captured"))).scalar()
-        #     sim_payments_count = (await db.execute(select(func.count()).select_from(models.SimulationPayment))).scalar()
-        # except Exception as pe:
-        #     print(f"Payment analytics error: {pe}")
-        #     all_payments, total_revenue, total_counselor_payouts, platform_commission = [], 0.0, 0.0, 0.0
-        #     session_revenue, sim_revenue, sim_payments_count = 0.0, 0.0, 0
-        #     pending_transfers, failed_transfers, captured_payments_count = 0, 0, 0
+            pending_transfers = (await db.execute(select(func.count()).select_from(models.Transfer).where(models.Transfer.status == "pending"))).scalar()
+            failed_transfers = (await db.execute(select(func.count()).select_from(models.Transfer).where(models.Transfer.status == "failed"))).scalar()
+            captured_payments_count = (await db.execute(select(func.count()).select_from(models.Payment).where(models.Payment.status == "captured"))).scalar()
+            sim_payments_count = (await db.execute(select(func.count()).select_from(models.SimulationPayment))).scalar()
+        except Exception as pe:
+            print(f"Payment analytics error: {pe}")
+            all_payments, total_revenue, total_counselor_payouts, platform_commission = [], 0.0, 0.0, 0.0
+            session_revenue, sim_revenue, sim_payments_count = 0.0, 0.0, 0
+            pending_transfers, failed_transfers, captured_payments_count = 0, 0, 0
         
-        # # Fetch Moderation Flags (Limited for performance)
-        # moderation_flags = (await db.execute(select(models.ModerationFlag).order_by(models.ModerationFlag.timestamp.desc()).limit(50))).scalars().all()
+        # Fetch Moderation Flags (Limited for performance)
+        moderation_flags = (await db.execute(select(models.ModerationFlag).order_by(models.ModerationFlag.timestamp.desc()).limit(50))).scalars().all()
 
-        # # Fetch all appointments for admin Session Management table
-        # all_appointments = (await db.execute(
-        #     select(models.Appointment).options(
-        #         joinedload(models.Appointment.student),
-        #         joinedload(models.Appointment.counsellor)
-        #     ).order_by(models.Appointment.appointment_time.desc()).limit(50)
-        # )).scalars().all()
+        # Fetch all appointments for admin Session Management table
+        all_appointments = (await db.execute(
+            select(models.Appointment).options(
+                joinedload(models.Appointment.student),
+                joinedload(models.Appointment.counsellor)
+            ).order_by(models.Appointment.appointment_time.desc()).limit(50)
+        )).scalars().all()
 
-        # # Fetch simulation payments
-        # simulation_payments = (await db.execute(
-        #     select(models.SimulationPayment).options(
-        #         joinedload(models.SimulationPayment.user)
-        #     ).order_by(models.SimulationPayment.id.desc()).limit(50)
-        # )).scalars().all()
+        # Fetch simulation payments
+        simulation_payments = (await db.execute(
+            select(models.SimulationPayment).options(
+                joinedload(models.SimulationPayment.user)
+            ).order_by(models.SimulationPayment.id.desc()).limit(50)
+        )).scalars().all()
 
-        # try:
-        #     template = templates.get_template("admin_dashboard.html")
-        #     content = template.render({
-        #         "request": request, 
-        #         "user": current_user, 
-        #         "users": all_users,
-        #         "total_users": total_users,
-        #         "user_page": user_page,
-        #         "feedbacks": all_feedback,
-        #         "total_feedback": total_feedback,
-        #         "feedback_page": feedback_page,
-        #         "tickets": all_tickets,
-        #         "total_tickets": total_tickets,
-        #         "ticket_page": ticket_page,
-        #         "page_size": page_size,
-        #         "pending_counsellors": pending_counsellors,
-        #         "all_counsellors": all_counsellors,
-        #         "all_payments": all_payments,
-        #         "total_revenue": total_revenue,
-        #         "session_revenue": session_revenue,
-        #         "sim_revenue": sim_revenue,
-        #         "total_counselor_payouts": total_counselor_payouts,
-        #         "platform_commission": platform_commission,
-        #         "pending_transfers": pending_transfers,
-        #         "failed_transfers": failed_transfers,
-        #         "captured_payments_count": captured_payments_count,
-        #         "sim_payments_count": sim_payments_count,
-        #         "moderation_flags": moderation_flags,
-        #         "all_appointments": all_appointments,
-        #         "simulation_payments": simulation_payments,
-        #         "user_search": user_search,
-        #         "counsellor_search": counsellor_search
-    #         })
-    #         return HTMLResponse(content=content)
-    #     except Exception as e:
-    #         import traceback
-    #         return HTMLResponse(content=f"Template Error: {e}<br><pre>{traceback.format_exc()}</pre>", status_code=500)
-    # except Exception as e:
-    #     import traceback
-    #     print(f"ADMIN DASHBOARD ERROR: {traceback.format_exc()}")
-    #     return RedirectResponse(url=f"/dashboard?error=Admin+Error:+{str(e)[:100]}", status_code=status.HTTP_302_FOUND)
+        try:
+            template = templates.get_template("admin_dashboard.html")
+            content = template.render({
+                "request": request, 
+                "user": current_user, 
+                "users": all_users,
+                "total_users": total_users,
+                "user_page": user_page,
+                "feedbacks": all_feedback,
+                "total_feedback": total_feedback,
+                "feedback_page": feedback_page,
+                "tickets": all_tickets,
+                "total_tickets": total_tickets,
+                "ticket_page": ticket_page,
+                "page_size": page_size,
+                "pending_counsellors": pending_counsellors,
+                "all_counsellors": all_counsellors,
+                "all_payments": all_payments,
+                "total_revenue": total_revenue,
+                "session_revenue": session_revenue,
+                "sim_revenue": sim_revenue,
+                "total_counselor_payouts": total_counselor_payouts,
+                "platform_commission": platform_commission,
+                "pending_transfers": pending_transfers,
+                "failed_transfers": failed_transfers,
+                "captured_payments_count": captured_payments_count,
+                "sim_payments_count": sim_payments_count,
+                "moderation_flags": moderation_flags,
+                "all_appointments": all_appointments,
+                "simulation_payments": simulation_payments,
+                "user_search": user_search,
+                "counsellor_search": counsellor_search
+            })
+            return HTMLResponse(content=content)
+        except Exception as e:
+            import traceback
+            return HTMLResponse(content=f"Template Error: {e}<br><pre>{traceback.format_exc()}</pre>", status_code=500)
+    except Exception as e:
+        import traceback
+        print(f"ADMIN DASHBOARD ERROR: {traceback.format_exc()}")
+        return RedirectResponse(url=f"/dashboard?error=Admin+Error:+{str(e)[:100]}", status_code=status.HTTP_302_FOUND)
 
 @app.post("/admin/send-completion-reminders")
 async def send_completion_reminders(request: Request, db: AsyncSession = Depends(get_db)):

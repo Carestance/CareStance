@@ -301,3 +301,59 @@
     <div class="w-full flex-grow" style="min-height: 60px;"></div>
 </div>
 {% endblock %}
+
+{% block footer %}
+<!-- ── FOOTER ── -->
+  <footer class="f-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-logo">
+            <img src="/static/images/image.webp" alt="CareStance" height="32">
+            <span class="footer-logo-text">CareStance</span>
+          </div>
+          <p
+            style="font-family:'Space Grotesk',var(--font-sans); font-size:1rem; color: #94a3b8; margin-bottom: 1.5rem;">
+            Authentic educational and structural
+            counseling designed for students.</p>
+          <div>
+            <a href="https://www.instagram.com/carestance.in/" target="_blank" rel="noopener" class="social-btn-f"><i
+                class="fab fa-instagram"></i></a>
+            <a href="https://www.linkedin.com/company/carestance" target="_blank" rel="noopener" class="social-btn-f"><i
+                class="fab fa-linkedin-in"></i></a>
+          </div>
+        </div>
+        <div>
+          <div class="footer-col-title">Platform</div>
+          <ul>
+            <li><a href="#career-discovery">Discovery</a></li>
+            <li><a href="#archetypes">Archetypes</a></li>
+            <li><a href="#simulations">Simulations</a></li>
+            <li><a href="https://forms.gle/yEpw1tBG97sSnNaF7" target="_blank" rel="noopener">Internships</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="footer-col-title">Company</div>
+          <ul>
+            <li><a href="/founders">Founders</a></li>
+            <li><a href="/articles">Articles</a></li>
+            <li><a href="mailto:contact@carestance.me">Contact</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="footer-col-title">Legal</div>
+          <ul>
+            <li><a href="/privacy">Privacy Policy</a></li>
+            <li><a href="/terms">Terms of Service</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-divider">
+        <p class="footer-copy">© 2026 CareStance AI. All rights reserved.</p>
+        <span class="footer-contact-link"
+          style="font-family:'Space Grotesk',var(--font-sans);font-size:.98rem;color:#94a3b8"><i class="fas fa-envelope"
+            style="margin-right:.4rem;color:var(--teal)"></i>contact@carestance.me</span>
+      </div>
+    </div>
+  </footer>
+{% endblock %}
