@@ -156,8 +156,20 @@
         let timerInterval;
         let conversationDone = false;
         let isProcessing = false;
+        let isSpeaking = false;
         let voiceUnlocked = false;
         let currentAudio = null;
+
+        function stopSpeakingAnim() {
+            isSpeaking = false;
+            const orb = document.getElementById('talking-buddy-orb');
+            const rings = document.querySelectorAll('.pulse-ring');
+            const emoji = document.getElementById('buddy-emoji');
+            if (orb) orb.classList.remove('scale-110', 'shadow-[0_0_40px_rgba(139,92,246,0.6)]');
+            rings.forEach(r => r.classList.remove('animate-pulse-slow'));
+            if (emoji) emoji.classList.remove('scale-125');
+            setMentorStatus('Listening...');
+        }
 
         // Ensure voices are loaded
         window.speechSynthesis.getVoices();
@@ -176,6 +188,7 @@
             const emoji = document.getElementById('buddy-emoji');
 
             const startAnim = () => {
+                isSpeaking = true;
                 if (orb) orb.classList.add('scale-110', 'shadow-[0_0_40px_rgba(139,92,246,0.6)]');
                 rings.forEach(r => r.classList.add('animate-pulse-slow'));
                 if (emoji) emoji.classList.add('scale-125');
@@ -183,10 +196,7 @@
             };
 
             const stopAnim = () => {
-                if (orb) orb.classList.remove('scale-110', 'shadow-[0_0_40px_rgba(139,92,246,0.6)]');
-                rings.forEach(r => r.classList.remove('animate-pulse-slow'));
-                if (emoji) emoji.classList.remove('scale-125');
-                setMentorStatus('Listening...');
+                stopSpeakingAnim();
             };
 
             try {
@@ -384,7 +394,7 @@
 
             if (micBtn) {
                 micBtn.onclick = () => {
-                    if (conversationDone || isProcessing) return;
+                    if (conversationDone || isProcessing || isSpeaking) return;
                     try { recognition.start(); } catch (e) { recognition.stop(); }
                 };
             }
@@ -400,7 +410,7 @@
                     currentAudio.pause();
                     currentAudio = null;
                 }
-                stopAnim();
+                stopSpeakingAnim();
                 isProcessing = false;
             } catch (e) {
                 console.error("Error stopping AI:", e);

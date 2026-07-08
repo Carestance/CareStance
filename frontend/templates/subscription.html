@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Subscription Plans | CareStance{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-slate-50 py-10 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-5xl mx-auto space-y-8">
+        <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+            <div>
+                <p class="text-xs font-black uppercase tracking-widest text-teal-600">Monthly plans</p>
+                <h1 class="text-3xl md:text-4xl font-black text-slate-950 mt-2">Choose Your Guidance Plan</h1>
+                <p class="text-slate-500 mt-2 max-w-2xl">Upgrade your assessment into a guided monthly plan with reports, roadmap, resources, tracking, and recommendations.</p>
+            </div>
+            {% if subscription_state and subscription_state.active %}
+            <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4">
+                <p class="text-[10px] font-black uppercase tracking-widest text-emerald-700">Active Plan</p>
+                <p class="text-sm font-bold text-emerald-900">{{ plans[subscription_state.plan].name if subscription_state.plan in plans else subscription_state.plan }}</p>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if not razorpay_configured %}
+        <div class="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800">
+            Payment gateway is not configured. Add <strong>RAZORPAY_KEY_ID</strong> and <strong>RAZORPAY_KEY_SECRET</strong> to <code>.env</code> before testing paid subscriptions.
+        </div>
+        {% endif %}
+
+        {% if request.query_params.get('reason') == 'assessment_retake' %}
+        <div class="rounded-2xl border border-teal-200 bg-teal-50 px-5 py-4 text-sm text-teal-800">
+            Your first assessment is free. A Guidance Plan is required to reset and take another full assessment.
+        </div>
+        {% endif %}
+
+        <div id="subscription-error" class="hidden rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700"></div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {% for key, plan in plans.items() %}
+            <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col">
+                <div class="flex items-start justify-between gap-4">
+                    <div>
+                        <h2 class="text-2xl font-black text-slate-950">{{ plan.name }}</h2>
+                        <p class="text-sm text-slate-500 mt-1">{{ plan.tagline }}</p>
+                    </div>
+                    {% if key == 'customised' %}
+                    <span class="text-[10px] font-black uppercase tracking-widest text-teal-700 bg-teal-50 border border-teal-100 rounded-full px-3 py-1">Popular</span>
+                    {% endif %}
+                </div>
+
+                <div class="mt-6">
+                    <span class="text-4xl font-black text-slate-950">Rs. {{ plan.amount }}</span>
+                    <span class="text-sm text-slate-500">/ month</span>
+                </div>
+
+                <ul class="mt-6 space-y-3 flex-1">
+                    {% for feature in plan.features %}
+                    <li class="flex gap-3 text-sm text-slate-700">
+                        <i class="fas fa-check-circle text-teal-600 mt-0.5"></i>
+                        <span>{{ feature }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+
+                <button
+                    onclick="subscribe('{{ key }}')"
+                    class="mt-8 w-full rounded-xl px-5 py-3 font-black text-sm transition {% if key == 'customised' %}bg-teal-600 hover:bg-teal-700 text-white{% else %}bg-slate-900 hover:bg-slate-800 text-white{% endif %}">
+                    {% if subscription_state and subscription_state.active and subscription_state.plan == key %}
+                        Current Plan
+                    {% else %}
+                        Start {{ plan.name }}
+                    {% endif %}
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+const plans = {{ plans | tojson }};
+const razorpayConfigured = {{ razorpay_configured | tojson }};
+
+function showSubscriptionError(message) {
+    const box = document.getElementById('subscription-error');
+    box.textContent = message;
+    box.classList.remove('hidden');
+}
+
+async function subscribe(plan) {
+    if (!razorpayConfigured) {
+        showSubscriptionError('Payment gateway is not configured yet.');
+        return;
+    }
+
+    try {
+        const response = await fetch('/subscription/create-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ plan })
+        });
+        const order = await response.json();
+        if (!response.ok) {
+            showSubscriptionError(order.detail || 'Could not create subscription order.');
+            return;
+        }
+
+        const planData = plans[plan];
+        const options = {
+            key: '{{ RAZORPAY_KEY_ID }}',
+            amount: order.amount,
+            currency: order.currency,
+            name: 'CareStance',
+            description: `${planData.name} Monthly Subscription`,
+            order_id: order.id,
+            handler: async function (paymentResponse) {
+                const verifyRes = await fetch('/subscription/verify-payment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...paymentResponse, plan })
+                });
+                const verified = await verifyRes.json();
+                if (verifyRes.ok && verified.status === 'ok') {
+                    window.location.href = '/dashboard';
+                } else {
+                    showSubscriptionError(verified.detail || 'Payment verification failed.');
+                }
+            },
+            theme: { color: '#0d9488' }
+        };
+        new Razorpay(options).open();
+    } catch (error) {
+        showSubscriptionError('Payment could not be started. Please try again.');
+    }
+}
+</script>
+{% endblock %}

@@ -356,6 +356,90 @@
             </div>
 
         </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-10">
+            <a href="/assessment/start?class_level=12th" class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:border-[var(--teal)] hover:-translate-y-0.5 transition-all">
+                <div class="w-11 h-11 bg-[var(--teal-soft)] text-[var(--teal)] rounded-xl flex items-center justify-center mb-3">
+                    <i class="fas fa-clipboard-check"></i>
+                </div>
+                <h4 class="font-black text-slate-900 text-sm">{{ 'Retake Assessment' if user.assessments_completed and user.assessments_completed > 0 else 'Start Assessment' }}</h4>
+                <p class="text-xs text-slate-500 mt-1">{{ 'Requires an active Guidance Plan.' if user.assessments_completed and user.assessments_completed > 0 else 'Get your first career direction.' }}</p>
+            </a>
+            <a href="/counsellors" class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:border-[var(--teal)] hover:-translate-y-0.5 transition-all">
+                <div class="w-11 h-11 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-3">
+                    <i class="fas fa-user-tie"></i>
+                </div>
+                <h4 class="font-black text-slate-900 text-sm">Talk to Expert</h4>
+                <p class="text-xs text-slate-500 mt-1">Book guidance when you need it.</p>
+            </a>
+            <a href="/chatbot" class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:border-[var(--teal)] hover:-translate-y-0.5 transition-all">
+                <div class="w-11 h-11 bg-slate-100 text-slate-700 rounded-xl flex items-center justify-center mb-3">
+                    <i class="fas fa-comments"></i>
+                </div>
+                <h4 class="font-black text-slate-900 text-sm">CareerBuddy</h4>
+                <p class="text-xs text-slate-500 mt-1">Ask a quick career question.</p>
+            </a>
+            <a href="/subscription" class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:border-amber-300 hover:-translate-y-0.5 transition-all">
+                <div class="w-11 h-11 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center mb-3">
+                    <i class="fas fa-crown"></i>
+                </div>
+                <h4 class="font-black text-slate-900 text-sm">Guidance Plans</h4>
+                <p class="text-xs text-slate-500 mt-1">Reports, roadmap, resources.</p>
+            </a>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
+            <div class="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 lg:col-span-2">
+                <div class="flex flex-col sm:flex-row gap-5 sm:items-center">
+                    <img src="{{ user.profile_photo if user.profile_photo else 'https://ui-avatars.com/api/?name=' ~ (user.full_name or 'User') ~ '&background=0d9488&color=fff' }}"
+                         alt="Profile photo"
+                         class="w-20 h-20 rounded-2xl object-cover border border-slate-100">
+                    <div class="flex-1 min-w-0">
+                        <p class="text-[10px] font-black uppercase tracking-widest text-teal-600 mb-1">Student Profile</p>
+                        <h3 class="text-xl font-black text-slate-900 truncate">{{ user.full_name or 'Student' }}</h3>
+                        <div class="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
+                            <span class="inline-flex items-center gap-1.5 bg-slate-50 rounded-full px-3 py-1">
+                                <i class="fas fa-envelope"></i>{{ user.email }}
+                            </span>
+                            <span class="inline-flex items-center gap-1.5 bg-slate-50 rounded-full px-3 py-1">
+                                <i class="fas fa-phone"></i>{{ user.contact_number or 'Phone not added' }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-5 pt-5 border-t border-slate-100">
+                    <div class="flex items-center justify-between gap-3 mb-2">
+                        <h4 class="font-black text-sm text-slate-900">Bio</h4>
+                        <button type="button" onclick="document.getElementById('empty-bio-form').classList.toggle('hidden')" class="text-xs font-bold text-teal-700 hover:text-teal-800">
+                            {{ 'Edit Bio' if user.bio else 'Add Bio' }}
+                        </button>
+                    </div>
+                    <p class="text-sm text-slate-600 leading-relaxed {% if not user.bio %}italic text-slate-400{% endif %}">
+                        {{ user.bio if user.bio else 'Add a short bio so your profile does not feel empty.' }}
+                    </p>
+                    <form id="empty-bio-form" action="/profile/update-bio" method="POST" class="hidden mt-4 space-y-3">
+                        <textarea name="bio" rows="3" maxlength="500" class="w-full rounded-xl border border-slate-200 p-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[var(--teal)] focus:border-transparent resize-none" placeholder="Tell other students about yourself...">{{ user.bio or '' }}</textarea>
+                        <button type="submit" class="px-4 py-2 rounded-xl bg-teal-600 text-white text-xs font-black">Save Bio</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
+                <p class="text-[10px] font-black uppercase tracking-widest text-amber-600 mb-2">Assessment Access</p>
+                <h3 class="text-lg font-black text-slate-900">Free assessment status</h3>
+                <p class="text-sm text-slate-500 mt-2">
+                    {% if user.assessments_completed and user.assessments_completed > 0 %}
+                        Your free full assessment has been used. A Guidance Plan unlocks retakes.
+                    {% else %}
+                        Your first full assessment is available for free.
+                    {% endif %}
+                </p>
+                <a href="/subscription" class="inline-flex mt-5 items-center gap-2 px-4 py-2 rounded-xl bg-amber-50 text-amber-700 border border-amber-100 text-xs font-black hover:bg-amber-100 transition">
+                    <i class="fas fa-crown"></i> View Guidance Plans
+                </a>
+            </div>
+        </div>
+
     </div>
 
 
@@ -384,8 +468,8 @@
                 
                 <div class="flex-1 text-center md:text-left">
                     <h2 class="text-2xl font-bold mb-2" style="color: var(--text-main);">Top Recommendation: <span
-                            style="color: var(--primary);">{{ assessment.phase_2_category }}</span></h2>
-                    <p class="text-slate-500 mb-6">Based on your personality type ({{ assessment.personality }}),
+                            style="color: var(--primary);">{{ assessment.phase_2_category or display_archetype }}</span></h2>
+                    <p class="text-slate-500 mb-6">Based on your assessment profile ({{ display_archetype }}),
                         goal status, and <strong>{{ ((assessment.confidence or 0.85) * 100) | int }}% AI match
                             confidence</strong>.</p>
                     
@@ -710,6 +794,12 @@
                         <i class="fas fa-vr-cardboard"></i>
                     </div>
                     <span class="text-xs font-bold text-slate-700 block">Simulation</span>
+                </a>
+                <a href="/subscription" class="bg-white p-4 rounded-2xl border border-amber-100 shadow-sm hover:border-amber-300 hover:-translate-y-0.5 transition-all text-center">
+                    <div class="w-10 h-10 mx-auto bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mb-2">
+                        <i class="fas fa-crown"></i>
+                    </div>
+                    <span class="text-xs font-bold text-slate-700 block">Plans</span>
                 </a>
             </div>
 

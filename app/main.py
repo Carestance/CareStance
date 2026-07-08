@@ -97,12 +97,111 @@ RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID", "rzp_test_your_key_id")
 RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET", "your_key_secret")
 razorpay_client = None
 
+def is_razorpay_configured():
+    return (
+        RAZORPAY_KEY_ID.startswith("rzp_")
+        and RAZORPAY_KEY_ID != "rzp_test_your_key_id"
+        and RAZORPAY_KEY_SECRET
+        and RAZORPAY_KEY_SECRET != "your_key_secret"
+    )
+
 def get_razorpay_client():
+    if not is_razorpay_configured():
+        raise RuntimeError("Razorpay is not configured. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET.")
     global razorpay_client
     if razorpay_client is None:
         import razorpay
         razorpay_client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
     return razorpay_client
+
+SUBSCRIPTION_PLANS = {
+    "critical": {
+        "name": "Critical",
+        "amount": 200,
+        "tagline": "Monthly report and roadmap plan",
+        "features": [
+            "10-15 page detailed assessment report",
+            "Personalized roadmap",
+            "Curated learning resources",
+            "Progress tracking",
+            "College recommendation",
+        ],
+    },
+    "customised": {
+        "name": "Customised",
+        "amount": 250,
+        "tagline": "Monthly plan with weekly AI follow-up",
+        "features": [
+            "Everything in Critical",
+            "Weekly AI conversation",
+            "AI progress tracking",
+            "College recommendation",
+            "More personalized next-step support",
+        ],
+    },
+}
+
+def get_assessment_display_archetype(result) -> str:
+    if not result:
+        return "Explorer"
+    if result.phase_2_category:
+        return result.phase_2_category
+    if result.recommended_stream:
+        return result.recommended_stream
+    if result.assessment_report:
+        trait = result.assessment_report.get("riasec_analysis", {}).get("dominant_trait")
+        if trait:
+            return trait
+    raw = result.personality
+    if not raw:
+        return "Explorer"
+    if isinstance(raw, str):
+        stripped = raw.strip()
+        if stripped.startswith("{") or stripped.startswith("["):
+            try:
+                parsed = json.loads(stripped)
+                if isinstance(parsed, dict) and parsed:
+                    best_key = max(parsed, key=lambda key: parsed.get(key) or 0)
+                    return str(best_key).replace("_", " ").title()
+            except Exception:
+                return "Explorer"
+        return stripped
+    return "Explorer"
+
+def get_subscription_state(user) -> dict:
+    now = datetime.datetime.utcnow()
+    expires_at = getattr(user, "subscription_expires_at", None)
+    is_active = (
+        getattr(user, "subscription_status", None) == "active"
+        and expires_at is not None
+        and expires_at > now
+    )
+    return {
+        "active": is_active,
+        "plan": getattr(user, "subscription_plan", None) if is_active else None,
+        "expires_at": expires_at if is_active else None,
+    }
+
+def has_completed_assessment(result) -> bool:
+    return bool(
+        result
+        and (
+            result.assessment_report
+            or result.recommended_stream
+            or result.final_analysis
+            or result.phase_2_category
+        )
+    )
+
+async def mark_assessment_completed_once(user, result, db: AsyncSession):
+    if not user or not result:
+        return
+    raw_answers = dict(result.raw_answers or {})
+    if raw_answers.get("assessment_counted"):
+        return
+    user.assessments_completed = max(user.assessments_completed or 0, 1)
+    raw_answers["assessment_counted"] = True
+    result.raw_answers = raw_answers
 
 from .utils.redis_cache import ai_cache
 from .utils.cache_utils import user_cache
@@ -219,14 +318,18 @@ async def run_migrations():
     
     try:
         async with engine.begin() as conn:
-            inspector = await conn.run_sync(inspect)
+            def inspect_schema(sync_conn):
+                inspector = inspect(sync_conn)
+                schema = {}
+                for table_name in inspector.get_table_names():
+                    schema[table_name] = [col["name"] for col in inspector.get_columns(table_name)]
+                return schema
 
-            # Get existing columns for each table
+            schema = await conn.run_sync(inspect_schema)
+
+            # Get existing columns for each table. None means table missing; [] means table exists with no inspected columns.
             def get_columns(table_name):
-                try:
-                    return [col['name'] for col in inspector.get_columns(table_name)]
-                except Exception:
-                    return []
+                return schema.get(table_name)
 
             migrations = []
 
@@ -235,20 +338,28 @@ async def run_migrations():
             print(f"DEBUG MIGRATION: Found columns for 'users': {u_cols}", flush=True)
             
             # Always attempt to check/add these columns
-            if 'profile_photo' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN profile_photo VARCHAR")
-            if 'bio' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN bio TEXT")
-            if 'is_suspended' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN is_suspended BOOLEAN DEFAULT FALSE")
-            if 'contact_number' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN contact_number VARCHAR")
-            if 'full_name' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN full_name VARCHAR")
-            if 'role' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN role VARCHAR")
-            if 'onboarded' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN onboarded BOOLEAN DEFAULT FALSE")
-            if 'simulations_completed' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN simulations_completed INTEGER DEFAULT 0")
-            if 'simulation_paid' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN simulation_paid BOOLEAN DEFAULT FALSE")
-            if 'simulation_credits' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN simulation_credits INTEGER DEFAULT 0")
-            if 'created_at' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN created_at TIMESTAMP")
-            if 'last_login' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN last_login TIMESTAMP")
-            migrations.append("CREATE INDEX IF NOT EXISTS ix_users_full_name ON users (full_name)")
-            migrations.append("CREATE INDEX IF NOT EXISTS ix_users_onboarded ON users (onboarded)")
+            if u_cols is not None:
+                if 'profile_photo' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN profile_photo VARCHAR")
+                if 'bio' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN bio TEXT")
+                if 'is_suspended' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN is_suspended BOOLEAN DEFAULT FALSE")
+                if 'contact_number' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN contact_number VARCHAR")
+                if 'full_name' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN full_name VARCHAR")
+                if 'role' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN role VARCHAR")
+                if 'onboarded' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN onboarded BOOLEAN DEFAULT FALSE")
+                if 'assessments_completed' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN assessments_completed INTEGER DEFAULT 0")
+                if 'simulations_completed' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN simulations_completed INTEGER DEFAULT 0")
+                if 'simulation_paid' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN simulation_paid BOOLEAN DEFAULT FALSE")
+                if 'simulation_credits' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN simulation_credits INTEGER DEFAULT 0")
+                if 'subscription_plan' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN subscription_plan VARCHAR")
+                if 'subscription_status' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN subscription_status VARCHAR")
+                if 'subscription_started_at' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN subscription_started_at TIMESTAMP")
+                if 'subscription_expires_at' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN subscription_expires_at TIMESTAMP")
+                if 'created_at' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN created_at TIMESTAMP")
+                if 'last_login' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN last_login TIMESTAMP")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_users_full_name ON users (full_name)")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_users_onboarded ON users (onboarded)")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_users_subscription_plan ON users (subscription_plan)")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_users_subscription_status ON users (subscription_status)")
 
             # 2. Counsellor Profiles
             cp_cols = get_columns('counsellor_profiles')
@@ -336,6 +447,7 @@ async def run_migrations():
                     razorpay_payment_id VARCHAR,
                     amount FLOAT,
                     career VARCHAR,
+                    status VARCHAR DEFAULT 'success',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
                 """)
@@ -356,7 +468,27 @@ async def run_migrations():
             if sp_cols2:
                 if 'status' not in sp_cols2: migrations.append("ALTER TABLE simulation_payments ADD COLUMN status VARCHAR DEFAULT 'success'")
 
-            # 11. Counsellor Profiles
+            # 11. Subscription Payments
+            sub_cols = get_columns('subscription_payments')
+            if sub_cols is None:
+                migrations.append("""
+                CREATE TABLE subscription_payments (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER REFERENCES users(id),
+                    plan VARCHAR,
+                    razorpay_order_id VARCHAR,
+                    razorpay_payment_id VARCHAR,
+                    amount FLOAT,
+                    status VARCHAR DEFAULT 'success',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    expires_at TIMESTAMP
+                )
+                """)
+            elif sub_cols:
+                if 'expires_at' not in sub_cols: migrations.append("ALTER TABLE subscription_payments ADD COLUMN expires_at TIMESTAMP")
+                if 'status' not in sub_cols: migrations.append("ALTER TABLE subscription_payments ADD COLUMN status VARCHAR DEFAULT 'success'")
+
+            # 12. Counsellor Profiles
             if cp_cols:
                 if 'verification_remarks' not in cp_cols: migrations.append("ALTER TABLE counsellor_profiles ADD COLUMN verification_remarks TEXT")
 
@@ -397,50 +529,49 @@ async def _health():
 async def startup_event():
     """Run migrations on startup for local development and when explicitly enabled."""
     try:
-        # EMERGENCY FIX: Force add missing columns to 'users' table in ONE batch
-        async with engine.begin() as conn:
-            from sqlalchemy import text
-            try:
-                # Grouping into one command is much faster and prevents startup timeouts
-                # Note: IF NOT EXISTS is used for each column for safety
-                sql = """
-                ALTER TABLE users 
-                ADD COLUMN IF NOT EXISTS profile_photo VARCHAR,
-                ADD COLUMN IF NOT EXISTS bio TEXT,
-                ADD COLUMN IF NOT EXISTS is_suspended BOOLEAN DEFAULT FALSE,
-                ADD COLUMN IF NOT EXISTS contact_number VARCHAR,
-                ADD COLUMN IF NOT EXISTS full_name VARCHAR,
-                ADD COLUMN IF NOT EXISTS role VARCHAR,
-                ADD COLUMN IF NOT EXISTS onboarded BOOLEAN DEFAULT FALSE,
-                ADD COLUMN IF NOT EXISTS simulations_completed INTEGER DEFAULT 0,
-                ADD COLUMN IF NOT EXISTS simulation_paid BOOLEAN DEFAULT FALSE,
-                ADD COLUMN IF NOT EXISTS simulation_credits INTEGER DEFAULT 0,
-                ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW(),
-                ADD COLUMN IF NOT EXISTS last_login TIMESTAMP;
-                """
-                await conn.execute(text(sql))
-                print("DEBUG: Emergency batch migration for 'users' table completed.", flush=True)
-                # 2. Counsellor Profiles table
-                sql_cp = """
-                ALTER TABLE counsellor_profiles 
-                ADD COLUMN IF NOT EXISTS is_blocked BOOLEAN DEFAULT FALSE,
-                ADD COLUMN IF NOT EXISTS block_reason VARCHAR,
-                ADD COLUMN IF NOT EXISTS verification_remarks TEXT,
-                ADD COLUMN IF NOT EXISTS fee_locked BOOLEAN DEFAULT FALSE,
-                ADD COLUMN IF NOT EXISTS razorpay_account_id VARCHAR,
-                ADD COLUMN IF NOT EXISTS onboarding_status VARCHAR DEFAULT 'not_started',
-                ADD COLUMN IF NOT EXISTS razorpay_contact_id VARCHAR,
-                ADD COLUMN IF NOT EXISTS razorpay_fund_account_id VARCHAR,
-                ADD COLUMN IF NOT EXISTS is_founding_counsellor BOOLEAN DEFAULT FALSE,
-                ADD COLUMN IF NOT EXISTS founding_badge_awarded_at TIMESTAMP,
-                ADD COLUMN IF NOT EXISTS commission_free_until TIMESTAMP,
-                ADD COLUMN IF NOT EXISTS tnc_accepted BOOLEAN DEFAULT FALSE,
-                ADD COLUMN IF NOT EXISTS tnc_accepted_at TIMESTAMP;
-                """
-                await conn.execute(text(sql_cp))
-                print("DEBUG: Emergency batch migration for 'counsellor_profiles' table completed.", flush=True)
-            except Exception as e:
-                print(f"DEBUG: Emergency batch migration failed (likely already patched): {e}", flush=True)
+        if not SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
+            # EMERGENCY FIX: Force add missing columns to core tables in ONE PostgreSQL batch.
+            async with engine.begin() as conn:
+                from sqlalchemy import text
+                try:
+                    sql = """
+                    ALTER TABLE users 
+                    ADD COLUMN IF NOT EXISTS profile_photo VARCHAR,
+                    ADD COLUMN IF NOT EXISTS bio TEXT,
+                    ADD COLUMN IF NOT EXISTS is_suspended BOOLEAN DEFAULT FALSE,
+                    ADD COLUMN IF NOT EXISTS contact_number VARCHAR,
+                    ADD COLUMN IF NOT EXISTS full_name VARCHAR,
+                    ADD COLUMN IF NOT EXISTS role VARCHAR,
+                    ADD COLUMN IF NOT EXISTS onboarded BOOLEAN DEFAULT FALSE,
+                    ADD COLUMN IF NOT EXISTS assessments_completed INTEGER DEFAULT 0,
+                    ADD COLUMN IF NOT EXISTS simulations_completed INTEGER DEFAULT 0,
+                    ADD COLUMN IF NOT EXISTS simulation_paid BOOLEAN DEFAULT FALSE,
+                    ADD COLUMN IF NOT EXISTS simulation_credits INTEGER DEFAULT 0,
+                    ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW(),
+                    ADD COLUMN IF NOT EXISTS last_login TIMESTAMP;
+                    """
+                    await conn.execute(text(sql))
+                    print("DEBUG: Emergency batch migration for 'users' table completed.", flush=True)
+                    sql_cp = """
+                    ALTER TABLE counsellor_profiles 
+                    ADD COLUMN IF NOT EXISTS is_blocked BOOLEAN DEFAULT FALSE,
+                    ADD COLUMN IF NOT EXISTS block_reason VARCHAR,
+                    ADD COLUMN IF NOT EXISTS verification_remarks TEXT,
+                    ADD COLUMN IF NOT EXISTS fee_locked BOOLEAN DEFAULT FALSE,
+                    ADD COLUMN IF NOT EXISTS razorpay_account_id VARCHAR,
+                    ADD COLUMN IF NOT EXISTS onboarding_status VARCHAR DEFAULT 'not_started',
+                    ADD COLUMN IF NOT EXISTS razorpay_contact_id VARCHAR,
+                    ADD COLUMN IF NOT EXISTS razorpay_fund_account_id VARCHAR,
+                    ADD COLUMN IF NOT EXISTS is_founding_counsellor BOOLEAN DEFAULT FALSE,
+                    ADD COLUMN IF NOT EXISTS founding_badge_awarded_at TIMESTAMP,
+                    ADD COLUMN IF NOT EXISTS commission_free_until TIMESTAMP,
+                    ADD COLUMN IF NOT EXISTS tnc_accepted BOOLEAN DEFAULT FALSE,
+                    ADD COLUMN IF NOT EXISTS tnc_accepted_at TIMESTAMP;
+                    """
+                    await conn.execute(text(sql_cp))
+                    print("DEBUG: Emergency batch migration for 'counsellor_profiles' table completed.", flush=True)
+                except Exception as e:
+                    print(f"DEBUG: Emergency batch migration failed (likely already patched): {e}", flush=True)
 
         if RUN_MIGRATIONS_ON_STARTUP or SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
             # Create all tables asynchronously and run any schema migrations
@@ -1302,6 +1433,16 @@ async def assessment_start(
     try:
         # Check/Create Result
         result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+
+        used_free_assessment = (user.assessments_completed or 0) >= 1 or has_completed_assessment(result)
+        if used_free_assessment and not get_subscription_state(user)["active"]:
+            if (user.assessments_completed or 0) < 1:
+                user.assessments_completed = 1
+                await db.commit()
+            return RedirectResponse(
+                url="/subscription?reason=assessment_retake",
+                status_code=status.HTTP_302_FOUND
+            )
         
         # Grade 12 starts at current_phase=0 (Intake Chat), Grade 10 starts at current_phase=1 (Swipe)
         start_phase = 0 if student_type == "12th" else 1
@@ -1351,6 +1492,8 @@ async def assessment_start(
                 chat_turn=0
             )
             db.add(result)
+
+        user.assessments_completed = max(user.assessments_completed or 0, 1)
         
         await db.commit()
         sync_assessment_to_appwrite(user.id, result)
@@ -1370,6 +1513,16 @@ async def assessment_reset(request: Request, db: AsyncSession = Depends(get_db))
     
     result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
     if result:
+        used_free_assessment = (user.assessments_completed or 0) >= 1 or has_completed_assessment(result)
+        if used_free_assessment and not get_subscription_state(user)["active"]:
+            if (user.assessments_completed or 0) < 1:
+                user.assessments_completed = 1
+                await db.commit()
+            return RedirectResponse(
+                url="/subscription?reason=assessment_retake",
+                status_code=status.HTTP_302_FOUND
+            )
+
         start_phase = 0 if result.student_type == "12th" else 1
         result.current_phase = start_phase
         result.intake_turn = 1
@@ -1583,7 +1736,9 @@ async def assessment_api_phase4_complete(request: Request, payload: dict, db: As
     if not result: raise HTTPException(status_code=404)
     
     # Payload contains text/workflow from sequence planner
-    result.raw_answers["phase4_planner"] = payload
+    raw_answers = dict(result.raw_answers or {})
+    raw_answers["phase4_planner"] = payload
+    result.raw_answers = raw_answers
     
     # Process text for vector multipliers
     if extractor_tool and "workflow" in payload:
@@ -1610,6 +1765,49 @@ async def assessment_api_phase4_complete(request: Request, payload: dict, db: As
 
     result.current_phase = 5 # Compile Phase
     await db.commit()
+    return {"status": "success", "next_phase": 5}
+
+@app.post("/assessment/api/proxy")
+async def assessment_api_proxy(request: Request, payload: dict, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+    if not result:
+        raise HTTPException(status_code=404, detail="Assessment not found")
+
+    answers = payload.get("answers", [])
+    result.proxy_answers = answers
+
+    try:
+        from .pipeline.vector_utils import init_student_vector, update_vector_from_mcq
+        current_vector = json.loads(result.personality) if result.personality else init_student_vector()
+        if not isinstance(current_vector, dict) or not current_vector:
+            current_vector = init_student_vector()
+        result.personality = json.dumps(update_vector_from_mcq(current_vector, answers))
+    except Exception as e:
+        print(f"Proxy vector update failed: {e}")
+
+    result.current_phase = 4
+    await db.commit()
+    sync_assessment_to_appwrite(user.id, result)
+    return {"status": "success", "next_phase": 4}
+
+@app.post("/assessment/api/scenarios")
+async def assessment_api_scenarios(request: Request, payload: dict, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+    if not result:
+        raise HTTPException(status_code=404, detail="Assessment not found")
+
+    result.scenario_answers = payload.get("answers", [])
+    result.current_phase = 5
+    await db.commit()
+    sync_assessment_to_appwrite(user.id, result)
     return {"status": "success", "next_phase": 5}
 
 @app.get("/assessment/api/questions")
@@ -1657,7 +1855,16 @@ async def assessment_api_questions(request: Request, db: AsyncSession = Depends(
         from .pipeline.vector_utils import classify_archetype, select_phase4_task
         archetype = classify_archetype(vector)
         task_data = select_phase4_task(student_type, archetype)
-        return {"task": task_data}
+        scenario = {
+            "id": f"phase4_{task_data.get('class', student_type)}_{task_data.get('nature', 'general')}",
+            "scenario": task_data.get("task", "Complete a realistic planning task."),
+            "task": task_data,
+            "options": [
+                {"label": tool, "description": f"Use {tool} as part of your solution."}
+                for tool in (task_data.get("tools_required") or [])[:5]
+            ],
+        }
+        return {"task": task_data, "scenarios": [scenario]}
     else:
         return {"status": "phase_not_applicable"}
       
@@ -1675,7 +1882,7 @@ async def assessment_api_swipe(request: Request, payload: dict, db: AsyncSession
     swipes = payload.get("swipes", [])
     result.telemetry_logs = swipes
     
-    # Standard 13-parameter calculations
+    # Swipe calculations use the real card files and multipliers used by the pipeline.
     metrics = assessment_engine.calculate_telemetry_metrics(swipes, result.student_type)
     result.personality = json.dumps(metrics.get("latent_profile", {}))
     result.confidence = metrics.get("consistency_index", 0.85)
@@ -1946,6 +2153,7 @@ async def assessment_api_compile(request: Request, db: AsyncSession = Depends(ge
         result.personality = dashboard.get("dominant_riasec", "Realistic")
         result.goal_status = "Assessment compiled via vector pipeline."
         result.reasoning   = result.final_analysis or ""
+        await mark_assessment_completed_once(user, result, db)
 
         await db.commit()
         sync_assessment_to_appwrite(user.id, result)
@@ -1976,8 +2184,25 @@ async def assessment_result(request: Request, db: AsyncSession = Depends(get_db)
         except:
             await db.rollback()
     
+    sims_completed = max(result.simulations_completed or 0, user.simulations_completed or 0)
+    simulation_credits = max(result.simulation_credits or 0, user.simulation_credits or 0)
+    simulation_access = {
+        "is_free": sims_completed < 1,
+        "credits": simulation_credits,
+        "completed": sims_completed,
+        "requires_payment": sims_completed >= 1 and simulation_credits <= 0,
+    }
+    display_archetype = get_assessment_display_archetype(result)
+
     display_confidence = result.confidence
-    return templates.TemplateResponse(request=request, name="result.html", context={"user": user, "result": result, "display_confidence": display_confidence})
+    return templates.TemplateResponse(request=request, name="result.html", context={
+        "user": user,
+        "result": result,
+        "display_confidence": display_confidence,
+        "simulation_access": simulation_access,
+        "display_archetype": display_archetype,
+        "subscription_state": get_subscription_state(user),
+    })
 
 @app.get("/share/report/{result_id}", response_class=HTMLResponse)
 async def share_report(result_id: int, request: Request, mode: str = "full", db: AsyncSession = Depends(get_db)):
@@ -2013,7 +2238,9 @@ async def share_report(result_id: int, request: Request, mode: str = "full", db:
         "result": result,
         "is_public_share": True,
         "mode": mode,
-        "display_confidence": display_confidence
+        "display_confidence": display_confidence,
+        "display_archetype": get_assessment_display_archetype(result),
+        "subscription_state": get_subscription_state(current_user) if current_user else {"active": False},
     })
 
 @app.get("/dashboard", response_class=HTMLResponse)
@@ -2174,6 +2401,8 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
             "request": request, 
             "user": user, 
             "assessment": assessment,
+            "display_archetype": get_assessment_display_archetype(assessment),
+            "subscription_state": get_subscription_state(user),
             "appointments": appointments,
             "tickets": tickets,
             "pending_conn_count": pending_conn_count
@@ -3851,7 +4080,7 @@ async def phase3_chat_v2(request: Request, chat_req: Phase3V2ChatRequest, db: As
         {"role": "system", "content": sys_prompt}
     ]
 
-    # Add conversation history
+    # Add conversation history (already includes the current user message from client)
     if chat_req.answers:
         for msg in chat_req.answers:
             role = msg.get("role", "user")
@@ -3859,15 +4088,11 @@ async def phase3_chat_v2(request: Request, chat_req: Phase3V2ChatRequest, db: As
             if role in ["user", "assistant"]:
                 messages.append({"role": role, "content": content})
 
-    # Add current user message (if any)
-    if chat_req.message.strip():
-        messages.append({"role": "user", "content": chat_req.message})
-
     # Immediately persist the user's message to the database before waiting for AI
+    # Note: chat_req.answers already contains the user message (appended client-side),
+    # so we do NOT append chat_req.message again to avoid duplication.
     full_history = chat_req.answers.copy() if chat_req.answers else []
-    if chat_req.message and chat_req.message.strip():
-        full_history.append({"role": "user", "content": chat_req.message})
-    
+
     if result:
         result.chat_messages = full_history.copy()
         await db.commit()
@@ -4025,12 +4250,107 @@ async def phase3_finalize(request: Request, finalize_req: Phase3FinalizeRequest,
         # Soft fallback
         result.phase3_analysis = "We've captured your insights and mapped them to your potential."
         
+    await mark_assessment_completed_once(user, result, db)
     await db.commit()
 
     return JSONResponse({"redirect": "/assessment/result"})
 
 
 # --- Simulation Phase Routes ---
+
+@app.get("/subscription", response_class=HTMLResponse)
+async def subscription_page(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+
+    return templates.TemplateResponse(request=request, name="subscription.html", context={
+        "user": user,
+        "plans": SUBSCRIPTION_PLANS,
+        "subscription_state": get_subscription_state(user),
+        "RAZORPAY_KEY_ID": RAZORPAY_KEY_ID,
+        "razorpay_configured": is_razorpay_configured(),
+    })
+
+@app.post("/subscription/create-order")
+async def subscription_create_order(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401)
+    if not is_razorpay_configured():
+        raise HTTPException(
+            status_code=503,
+            detail="Payment gateway is not configured. Add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to .env."
+        )
+
+    data = await request.json()
+    plan = data.get("plan", "critical")
+    plan_data = SUBSCRIPTION_PLANS.get(plan)
+    if not plan_data:
+        raise HTTPException(status_code=400, detail="Invalid subscription plan")
+
+    order_data = {
+        "amount": plan_data["amount"] * 100,
+        "currency": "INR",
+        "receipt": f"receipt_sub_{uuid.uuid4().hex[:10]}",
+        "payment_capture": 1,
+        "notes": {"plan": plan, "user_id": str(user.id)}
+    }
+    try:
+        return get_razorpay_client().order.create(data=order_data)
+    except Exception as e:
+        print(f"Razorpay Subscription Order Create Error: {e}")
+        raise HTTPException(status_code=502, detail=f"Could not create subscription order: {str(e)}")
+
+@app.post("/subscription/verify-payment")
+async def subscription_verify_payment(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401)
+    if not is_razorpay_configured():
+        raise HTTPException(
+            status_code=503,
+            detail="Payment gateway is not configured. Add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to .env."
+        )
+
+    data = await request.json()
+    plan = data.get("plan", "critical")
+    plan_data = SUBSCRIPTION_PLANS.get(plan)
+    if not plan_data:
+        raise HTTPException(status_code=400, detail="Invalid subscription plan")
+
+    params_dict = {
+        "razorpay_order_id": data.get("razorpay_order_id"),
+        "razorpay_payment_id": data.get("razorpay_payment_id"),
+        "razorpay_signature": data.get("razorpay_signature")
+    }
+    try:
+        get_razorpay_client().utility.verify_payment_signature(params_dict)
+    except Exception as e:
+        print(f"Subscription Payment Verification Failed: {e}")
+        raise HTTPException(status_code=400, detail="Signature verification failed")
+
+    now = datetime.datetime.utcnow()
+    expires_at = now + datetime.timedelta(days=30)
+    db_user = (await db.execute(select(models.User).where(models.User.id == user.id))).scalars().first()
+    if db_user:
+        db_user.subscription_plan = plan
+        db_user.subscription_status = "active"
+        db_user.subscription_started_at = now
+        db_user.subscription_expires_at = expires_at
+
+    payment = models.SubscriptionPayment(
+        user_id=user.id,
+        plan=plan,
+        razorpay_order_id=data.get("razorpay_order_id"),
+        razorpay_payment_id=data.get("razorpay_payment_id"),
+        amount=float(plan_data["amount"]),
+        status="success",
+        expires_at=expires_at,
+    )
+    db.add(payment)
+    await db.commit()
+    return {"status": "ok", "plan": plan, "expires_at": expires_at.isoformat()}
 
 @app.get("/assessment/simulation/pay/{category}/{career_title}", response_class=HTMLResponse)
 async def simulation_pay_with_category(category: str, career_title: str, request: Request, db: AsyncSession = Depends(get_db)):
@@ -4047,7 +4367,8 @@ async def simulation_pay(career_title: str, request: Request, db: AsyncSession =
     return templates.TemplateResponse(request=request, name="simulation_payment.html", context={
         "user": user,
         "career_title": career_title,
-        "RAZORPAY_KEY_ID": RAZORPAY_KEY_ID
+        "RAZORPAY_KEY_ID": RAZORPAY_KEY_ID,
+        "razorpay_configured": is_razorpay_configured()
     })
 
 @app.post("/assessment/simulation/create-order")
@@ -4057,7 +4378,15 @@ async def simulation_create_order(request: Request, db: AsyncSession = Depends(g
         raise HTTPException(status_code=401)
         
     req_data = await request.json()
+    if not is_razorpay_configured():
+        raise HTTPException(
+            status_code=503,
+            detail="Payment gateway is not configured. Add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to .env."
+        )
+
     package = req_data.get("package", "single") # "single" or "bundle"
+    if package not in ("single", "bundle"):
+        raise HTTPException(status_code=400, detail="Invalid simulation package")
     amount_in_inr = 35 if package == "bundle" else 15
     
     data = {
@@ -4072,7 +4401,7 @@ async def simulation_create_order(request: Request, db: AsyncSession = Depends(g
         return order
     except Exception as e:
         print(f"Razorpay Simulation Order Create Error: {e}")
-        raise HTTPException(status_code=500, detail="Could not create payment order")
+        raise HTTPException(status_code=502, detail=f"Could not create payment order: {str(e)}")
 
 @app.post("/assessment/simulation/verify-payment")
 async def simulation_verify_payment(request: Request, db: AsyncSession = Depends(get_db)):
@@ -4081,6 +4410,11 @@ async def simulation_verify_payment(request: Request, db: AsyncSession = Depends
         raise HTTPException(status_code=401)
         
     data = await request.json()
+    if not is_razorpay_configured():
+        raise HTTPException(
+            status_code=503,
+            detail="Payment gateway is not configured. Add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to .env."
+        )
     razorpay_payment_id = data.get("razorpay_payment_id")
     razorpay_order_id = data.get("razorpay_order_id")
     razorpay_signature = data.get("razorpay_signature")
@@ -4719,6 +5053,7 @@ async def assessment_final_submit(request: Request, db: AsyncSession = Depends(g
         else:
              result.final_analysis = "AI Analysis Unavailable (API Key missing)."
 
+        await mark_assessment_completed_once(user, result, db)
         await db.commit()
 
     return RedirectResponse(url="/assessment/result", status_code=status.HTTP_302_FOUND)

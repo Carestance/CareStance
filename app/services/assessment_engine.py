@@ -183,60 +183,30 @@ def calculate_telemetry_metrics_g12(logs: List[Dict], cards_data: List[Dict]) ->
 
 def calculate_telemetry_metrics(logs: List[Dict], student_type: str = "10th") -> Dict:
     """
-    Processes interaction logs using card weights and telemetry.
-    Produces a normalized preference vector for Grade 10.
+    Processes interaction logs using the real card multipliers and telemetry.
+    Produces the same feature vector shape consumed by the pipeline.
     """
     if not logs:
+        from app.pipeline.vector_utils import init_student_vector
         return {
-            "latent_profile": {},
+            "latent_profile": init_student_vector(),
             "friction_score": 0.0,
             "consistency_index": 1.0
         }
 
-    # Load Grade 10 cards data
     try:
-        folder = "grade_10" if student_type == "10th" else "grade_12"
-        path = os.path.join(DATA_DIR, folder, "cards.json")
-        cards_data = {card["id"]: card for card in get_cached_json(path)}
-    except Exception:
-        cards_data = {}
+        from app.pipeline.vector_utils import init_student_vector, update_vector_from_swipe
+        normalized_profile = update_vector_from_swipe(init_student_vector(), logs, student_type)
+    except Exception as e:
+        print(f"Telemetry vector update failed: {e}")
+        normalized_profile = {}
 
-    param_names = ["INT", "TEC", "EST", "RSK", "ALT", "AES", "LOG", "LDR", "PHY", "AMB", "DET", "FIN", "AUT"]
-    profile = {name: 0.0 for name in param_names}
-    
-    total_dwell = 0
-    total_hesitation = 0
-    deltas = []
-    
-    for log in logs:
-        card_id = log.get("card_id")
-        direction = log.get("direction")
-        reaction = log.get("reaction_ms", 0)
-        dwell = log.get("dwell_ms", 0)
-        hesitation = log.get("hesitation_ms", 0)
-        
-        total_dwell += dwell
-        total_hesitation += hesitation
-        delta = max(0, dwell - reaction)
-        deltas.append(delta)
-        
-        card = cards_data.get(card_id)
-        if not card:
-            continue
-            
-        weights = card.get("weights", {})
-        multiplier = 1.0 if direction == "right" else -1.0
-        dampening = 1.0 / (1.0 + (delta / 1000.0)) 
-        
-        for p in param_names:
-            profile[p] += weights.get(p, 0) * multiplier * dampening
-
-    normalized_profile = {}
-    for p, val in profile.items():
-        try:
-            normalized_profile[p] = round(1 / (1 + math.exp(-val)), 2)
-        except OverflowError:
-            normalized_profile[p] = 1.0 if val > 0 else 0.0
+    total_dwell = sum(log.get("dwell_ms", 0) for log in logs)
+    total_hesitation = sum(log.get("hesitation_ms", 0) for log in logs)
+    deltas = [
+        max(0, log.get("dwell_ms", 0) - log.get("reaction_ms", 0))
+        for log in logs
+    ]
 
     friction_score = min(1.0, total_hesitation / (total_dwell + 1))
     avg_delta = sum(deltas) / len(deltas) if deltas else 0
