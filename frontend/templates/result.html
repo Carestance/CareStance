@@ -9,7 +9,7 @@
 <!-- Open Graph / Facebook -->
 <meta property="og:type" content="website">
 <meta property="og:url" content="{{ request.base_url }}share/report/{{ result.id }}">
-<meta property="og:title" content="Career Blueprint: {{ result.recommended_stream if result.recommended_stream else result.personality }}">
+<meta property="og:title" content="Career Blueprint: {{ result.recommended_stream if result.recommended_stream else display_archetype }}">
 <meta property="og:description" content="🚀 I just created my Career Blueprint on CareerStance!">
 <meta property="og:image" content="{{ request.base_url }}static/images/image.png">
 
@@ -63,7 +63,7 @@
     <div class="max-w-5xl mx-auto space-y-8 relative z-10">
 
         {# Data Extraction & Normalization #}
-        {% set dominant_trait = result.assessment_report.get('riasec_analysis', {}).get('dominant_trait', result.personality) if result.assessment_report else result.personality %}
+        {% set dominant_trait = display_archetype %}
         {% set final_recs = result.assessment_report.get('final_recommendations', []) if result.assessment_report else [] %}
 
         {% if not final_recs and result.stream_pros and result.stream_pros[0] is mapping %}
@@ -93,6 +93,42 @@
                 <p class="text-slate-500 max-w-2xl mx-auto text-lg leading-relaxed">
                     Based on your deep dive and behavioral analysis, you naturally align with this archetype. This reflects your core strengths, problem-solving approach, and ideal work environment.
                 </p>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if mode != 'minimal' %}
+        {% set primary_simulation_career = result.recommended_stream or result.phase_2_category or dominant_trait or 'Career Exploration' %}
+        <div class="glass-card mt-8 p-6 md:p-8 border border-amber-100 bg-amber-50/40">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                        <i class="fas fa-vr-cardboard"></i>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-black uppercase tracking-widest text-amber-700 mb-1">Assessment Simulation</p>
+                        <h2 class="text-xl font-black text-slate-900 font-outfit">Test your fit in a real scenario</h2>
+                        <p class="text-sm text-slate-600 mt-1 max-w-2xl">
+                            Your first simulation is free. After that, unlock another attempt for Rs. 15 or get 3 attempts for Rs. 35.
+                        </p>
+                    </div>
+                </div>
+                <div class="flex flex-wrap items-center gap-3">
+                    {% if simulation_access %}
+                        {% if simulation_access.is_free %}
+                            <span class="px-3 py-2 rounded-xl bg-white text-emerald-700 border border-emerald-200 text-[10px] font-black uppercase tracking-wider">First attempt free</span>
+                        {% elif simulation_access.credits > 0 %}
+                            <span class="px-3 py-2 rounded-xl bg-white text-emerald-700 border border-emerald-200 text-[10px] font-black uppercase tracking-wider">{{ simulation_access.credits }} credit{{ 's' if simulation_access.credits != 1 else '' }} left</span>
+                        {% else %}
+                            <span class="px-3 py-2 rounded-xl bg-white text-amber-700 border border-amber-200 text-[10px] font-black uppercase tracking-wider">Paid attempt required</span>
+                        {% endif %}
+                    {% endif %}
+                    <a href="/assessment/simulation/start/{{ primary_simulation_career | urlencode }}"
+                       class="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-amber-600 text-white hover:bg-amber-700 text-xs font-black uppercase tracking-wider transition">
+                        <i class="fas fa-play"></i>
+                        Start Simulation
+                    </a>
+                </div>
             </div>
         </div>
         {% endif %}
@@ -178,8 +214,10 @@
                             <span class="text-slate-600 text-xs leading-relaxed block overflow-hidden line-clamp-4">{{ result.final_analysis or 'Deep dive insights captured.' }}</span>
                         </div>
                         <div>
-                            <span class="block text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1">System Confidence</span>
-                            <span class="text-slate-700 font-medium text-sm">{{ result.phase3_analysis or 'Calibrated' }}</span>
+                            <span class="block text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1">Readiness Signal</span>
+                            <span class="text-slate-700 font-medium text-sm">
+                                {{ ((display_confidence or result.confidence or 0.85) * 100) | int }}% profile clarity based on your assessment responses.
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -241,8 +279,26 @@
                             <div class="no-print flex flex-wrap gap-3 shrink-0">
                                 <a href="/assessment/simulation/start/{{ career_title }}" 
                                    class="px-4 py-2 rounded-xl bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 text-xs font-bold transition flex items-center gap-2">
-                                    <i class="fas fa-terminal"></i> Sandbox
+                                    <i class="fas fa-terminal"></i>
+                                    {% if simulation_access and simulation_access.is_free %}
+                                        Start Free Simulation
+                                    {% elif simulation_access and simulation_access.credits > 0 %}
+                                        Use Simulation Credit
+                                    {% else %}
+                                        Unlock Simulation
+                                    {% endif %}
                                 </a>
+                                {% if simulation_access %}
+                                    <span class="px-3 py-2 rounded-xl bg-slate-50 text-slate-500 border border-slate-200 text-[10px] font-black uppercase tracking-wider flex items-center gap-2">
+                                        {% if simulation_access.is_free %}
+                                            First attempt free
+                                        {% elif simulation_access.credits > 0 %}
+                                            {{ simulation_access.credits }} paid credit{{ 's' if simulation_access.credits != 1 else '' }} left
+                                        {% else %}
+                                            Next: Rs. 15 / 3 for Rs. 35
+                                        {% endif %}
+                                    </span>
+                                {% endif %}
                                 <button onclick="generateCollegeRecs('{{ career_title }}')"
                                         class="px-4 py-2 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 text-xs font-bold transition flex items-center gap-2">
                                     <i class="fas fa-university"></i> Institutes
