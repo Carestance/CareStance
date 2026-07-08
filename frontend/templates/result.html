@@ -63,7 +63,6 @@
     <div class="max-w-5xl mx-auto space-y-8 relative z-10">
 
         {# Data Extraction & Normalization #}
-        {% set dominant_trait = result.assessment_report.get('riasec_analysis', {}).get('dominant_trait', result.personality) if result.assessment_report else result.personality %}
         {% set final_recs = result.assessment_report.get('final_recommendations', []) if result.assessment_report else [] %}
 
         {% if not final_recs and result.stream_pros and result.stream_pros[0] is mapping %}

@@ -25,6 +25,7 @@ from sqlalchemy.orm import selectinload, joinedload
 from sqlalchemy import select, and_, or_, func
 from .database import AsyncSessionLocal, engine, get_db, Base, SQLALCHEMY_DATABASE_URL
 import re
+from app.pipeline.vector_utils import classify_archetype
 
 def sync_assessment_to_appwrite(user_id, result):
     pass  # Appwrite sync disabled — local DB only
@@ -1977,7 +1978,26 @@ async def assessment_result(request: Request, db: AsyncSession = Depends(get_db)
             await db.rollback()
     
     display_confidence = result.confidence
-    return templates.TemplateResponse(request=request, name="result.html", context={"user": user, "result": result, "display_confidence": display_confidence})
+
+    # --- Start of new logic ---
+    dominant_trait = result.personality
+    if dominant_trait and isinstance(dominant_trait, str):
+        try:
+            # If the string is a JSON dict, this will parse it
+            parsed_trait = json.loads(dominant_trait)
+            if isinstance(parsed_trait, dict):
+                # If it's a dict, classify it to get the name
+                dominant_trait = classify_archetype(parsed_trait)
+        except (json.JSONDecodeError, TypeError):
+            # If it's not JSON, it's a normal string like "Realistic". Use as is.
+            pass
+    
+    # Final safety net
+    if not dominant_trait or not isinstance(dominant_trait, str):
+        dominant_trait = "Realistic"
+    # --- End of new logic ---
+
+    return templates.TemplateResponse(request=request, name="result.html", context={"user": user, "result": result, "display_confidence": display_confidence, "dominant_trait": dominant_trait})
 
 @app.get("/share/report/{result_id}", response_class=HTMLResponse)
 async def share_report(result_id: int, request: Request, mode: str = "full", db: AsyncSession = Depends(get_db)):
@@ -2007,13 +2027,32 @@ async def share_report(result_id: int, request: Request, mode: str = "full", db:
             
     display_confidence = result.confidence
 
+    # --- Start of new logic ---
+    dominant_trait = result.personality
+    if dominant_trait and isinstance(dominant_trait, str):
+        try:
+            # If the string is a JSON dict, this will parse it
+            parsed_trait = json.loads(dominant_trait)
+            if isinstance(parsed_trait, dict):
+                # If it's a dict, classify it to get the name
+                dominant_trait = classify_archetype(parsed_trait)
+        except (json.JSONDecodeError, TypeError):
+            # If it's not JSON, it's a normal string like "Realistic". Use as is.
+            pass
+            
+    # Final safety net
+    if not dominant_trait or not isinstance(dominant_trait, str):
+        dominant_trait = "Realistic"
+    # --- End of new logic ---
+
     return templates.TemplateResponse(request=request, name="result.html", context={
         "user": current_user, 
         "owner": owner,
         "result": result,
         "is_public_share": True,
         "mode": mode,
-        "display_confidence": display_confidence
+        "display_confidence": display_confidence,
+        "dominant_trait": dominant_trait
     })
 
 @app.get("/dashboard", response_class=HTMLResponse)
@@ -3902,7 +3941,7 @@ async def phase3_chat_v2(request: Request, chat_req: Phase3V2ChatRequest, db: As
     return JSONResponse({
         "response": ai_text,
         "done": False,
-        "recommendation_ready": user_msg_count >= 10
+        "recommendation_ready": ("finish" in ai_text.lower() and "click" in ai_text.lower()) or user_msg_count >= 10
     })
 
 
@@ -4289,14 +4328,41 @@ async def simulation_start(career_title: str, request: Request, db: AsyncSession
     sims_completed = max(result.simulations_completed or 0, db_user.simulations_completed or 0 if db_user else 0)
     sim_credits = max(result.simulation_credits or 0, db_user.simulation_credits or 0 if db_user else 0)
 
-    if sims_completed >= 1 and sim_credits <= 0:
-        return RedirectResponse(url=f"/assessment/simulation/pay/{career_title}", status_code=status.HTTP_302_FOUND)
+    # if sims_completed >= 1 and sim_credits <= 0:
+    #     return RedirectResponse(url=f"/assessment/simulation/pay/{career_title}", status_code=status.HTTP_302_FOUND)
     
-    return templates.TemplateResponse(request=request, name="simulation.html", context={
-        "user": user,
-        "career_title": career_title,
-        "difficulty": "Foundation" if result.selected_class == "10th" else "Career",
-    })
+    # Generate questions based on class
+    if result.selected_class == '10th':
+        questions = await simulation_service.generate_academic_simulation_questions(career_title)
+    else:
+        questions = await simulation_service.generate_simulation_questions(career_title)
+
+    if not questions:
+        return RedirectResponse(url="/assessment/result?error=failed_to_generate_simulation", status_code=status.HTTP_302_FOUND)
+    
+    # Appwrite Update
+    update_assessment_simulation(user.id, career=career_title, questions=questions, answers=[], evaluation=None)
+    
+    # SQL Fallback
+    result.simulation_career = career_title
+    result.simulation_questions = questions
+    result.simulation_answers = [] # Reset answers
+    result.simulation_evaluation = None # Reset evaluation
+    
+    # if sims_completed >= 1:
+    #     if result.simulation_credits > 0:
+    #         result.simulation_credits -= 1
+    #     if db_user and db_user.simulation_credits > 0:
+    #         db_user.simulation_credits -= 1
+    #
+    # if result.simulation_paid:
+    #     result.simulation_paid = False
+    # if db_user and db_user.simulation_paid:
+    #     db_user.simulation_paid = False
+        
+    await db.commit()
+    
+    return RedirectResponse(url="/assessment/simulation/question/0", status_code=status.HTTP_302_FOUND)
 
 @app.get("/assessment/simulation/question/{index}", response_class=HTMLResponse)
 async def simulation_question(index: int, request: Request, db: AsyncSession = Depends(get_db)):
