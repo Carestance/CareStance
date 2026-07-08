@@ -4328,8 +4328,8 @@ async def simulation_start(career_title: str, request: Request, db: AsyncSession
     sims_completed = max(result.simulations_completed or 0, db_user.simulations_completed or 0 if db_user else 0)
     sim_credits = max(result.simulation_credits or 0, db_user.simulation_credits or 0 if db_user else 0)
 
-    # if sims_completed >= 1 and sim_credits <= 0:
-    #     return RedirectResponse(url=f"/assessment/simulation/pay/{career_title}", status_code=status.HTTP_302_FOUND)
+    if sims_completed >= 1 and sim_credits <= 0:
+        return RedirectResponse(url=f"/assessment/simulation/pay/{career_title}", status_code=status.HTTP_302_FOUND)
     
     # Generate questions based on class
     if result.selected_class == '10th':
@@ -4349,16 +4349,16 @@ async def simulation_start(career_title: str, request: Request, db: AsyncSession
     result.simulation_answers = [] # Reset answers
     result.simulation_evaluation = None # Reset evaluation
     
-    # if sims_completed >= 1:
-    #     if result.simulation_credits > 0:
-    #         result.simulation_credits -= 1
-    #     if db_user and db_user.simulation_credits > 0:
-    #         db_user.simulation_credits -= 1
-    #
-    # if result.simulation_paid:
-    #     result.simulation_paid = False
-    # if db_user and db_user.simulation_paid:
-    #     db_user.simulation_paid = False
+    if sims_completed >= 1:
+        if result.simulation_credits > 0:
+            result.simulation_credits -= 1
+        if db_user and db_user.simulation_credits > 0:
+            db_user.simulation_credits -= 1
+
+    if result.simulation_paid:
+        result.simulation_paid = False
+    if db_user and db_user.simulation_paid:
+        db_user.simulation_paid = False
         
     await db.commit()
     
