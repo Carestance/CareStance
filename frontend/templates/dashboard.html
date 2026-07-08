@@ -147,6 +147,7 @@
 
 {% block content %}
 <div class="db-page space-y-8">
+    {% set has_dashboard_assessment = assessment and (assessment.assessment_report or assessment.phase_2_category or assessment.recommended_stream or assessment.final_analysis) %}
 
     {# Admin denied / generic error message banner (used by admin_auth redirects) #}
     {% if request.query_params.get('error') %}
@@ -157,7 +158,7 @@
     {% endif %}
 
     <!-- STATE 1: WELCOME INTRO FLOW (No Assessment or Assessment in Progress) -->
-    {% if not assessment or not assessment.assessment_report %}
+    {% if not has_dashboard_assessment %}
     <div x-data="{
         step: 1,
         isReturning: {% if assessment %}true{% else %}false{% endif %},
@@ -279,6 +280,7 @@
 
     <!-- STATE 2: COMPLETED USERS (Dashboard Widgets Panel) -->
     {% else %}
+    {% set dashboard_sim_career = assessment.recommended_stream or assessment.phase_2_category or 'Career Explorer' %}
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         <!-- Left Column: Main Results, Action and Sessions -->
@@ -314,6 +316,10 @@
                         <a href="/chatbot"
                             class="w-full sm:w-auto text-center px-6 py-3.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold hover:bg-slate-50 transition">
                             Ask CareerBuddy (AI)
+                        </a>
+                        <a href="/assessment/simulation/start/{{ dashboard_sim_career | urlencode }}"
+                            class="w-full sm:w-auto text-center px-6 py-3.5 bg-amber-500 text-white rounded-xl font-bold hover:bg-amber-600 transition shadow-lg shadow-amber-100">
+                            Try Career Simulation
                         </a>
                     </div>
                 </div>
@@ -558,6 +564,9 @@
                 <div>
                     <h4 class="font-extrabold text-slate-900 text-lg leading-tight">{{ user.full_name }}</h4>
                     <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mt-0.5">{{ user.role or 'Student' }}</p>
+                    <p class="text-xs text-slate-500 font-semibold mt-1">
+                        <i class="fas fa-phone-alt mr-1"></i>{{ user.contact_number or 'Phone not added' }}
+                    </p>
                 </div>
             </div>
 
@@ -613,6 +622,12 @@
                         <i class="fas fa-comments"></i>
                     </div>
                     <span class="text-xs font-bold text-slate-700 block">CareerBuddy AI</span>
+                </a>
+                <a href="/assessment/simulation/start/{{ dashboard_sim_career | urlencode }}" class="bg-white p-4 rounded-2xl border border-amber-100 shadow-sm hover:border-amber-300 hover:-translate-y-0.5 transition-all text-center">
+                    <div class="w-10 h-10 mx-auto bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mb-2">
+                        <i class="fas fa-vr-cardboard"></i>
+                    </div>
+                    <span class="text-xs font-bold text-slate-700 block">Simulation</span>
                 </a>
             </div>
 
