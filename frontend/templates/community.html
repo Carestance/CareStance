@@ -58,13 +58,13 @@
 
     <!-- Hero Header -->
     <div
-        class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-[var(--navy)] to-[var(--navy)] text-white shadow-2xl">
-        <div class="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 rounded-full bg-[var(--teal)] blur-3xl opacity-15">
+        class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 to-teal-700 text-white shadow-2xl">
+        <div class="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 rounded-full bg-white blur-3xl opacity-10">
         </div>
-        <div class="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 rounded-full bg-[var(--teal)] blur-3xl opacity-15">
+        <div class="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 rounded-full bg-[var(--teal-light)] blur-3xl opacity-20">
         </div>
         <div
-            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-pink-500 blur-3xl opacity-5">
+            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-teal-400 blur-3xl opacity-10">
         </div>
 
         <div class="relative z-10 px-8 py-12 sm:px-12">
@@ -72,12 +72,12 @@
                 <div>
                     <div class="flex items-center gap-3 mb-4">
                         <div
-                            class="h-12 w-12 rounded-2xl bg-gradient-to-br from-[var(--teal)] to-[var(--teal)] flex items-center justify-center shadow-lg">
-                            <i class="fas fa-users text-xl"></i>
+                            class="h-12 w-12 rounded-2xl bg-white/20 flex items-center justify-center shadow-lg backdrop-blur-sm border border-white/30">
+                            <i class="fas fa-users text-xl text-white"></i>
                         </div>
-                        <h1 class="text-3xl font-extrabold tracking-tight">Find Your Tribe</h1>
+                        <h1 class="text-3xl font-extrabold tracking-tight text-white">Find Your Tribe</h1>
                     </div>
-                    <p class="text-[var(--teal-light)] max-w-xl text-lg">
+                    <p class="text-teal-50 max-w-xl text-lg opacity-90">
                         Connect with students who share your archetype and build your career network.
                     </p>
                 </div>
@@ -85,25 +85,25 @@
                 <div class="flex items-center gap-4">
                     {% if my_archetype %}
                     <div
-                        class="flex items-center gap-3 bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/10">
+                        class="flex items-center gap-3 bg-slate-900/40 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/10">
                         <div
-                            class="h-10 w-10 rounded-full bg-gradient-to-br from-[var(--teal)] to-[var(--teal)] flex items-center justify-center text-white font-bold shadow-lg">
+                            class="h-10 w-10 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white font-bold shadow-lg">
                             {{ my_archetype[0] | upper }}
                         </div>
                         <div>
-                            <p class="text-xs text-[var(--teal-light)] font-bold uppercase tracking-wider">Your Archetype</p>
+                            <p class="text-xs text-teal-200 font-bold uppercase tracking-wider">Your Archetype</p>
                             <p class="font-bold text-white">{{ my_archetype }}</p>
                         </div>
                     </div>
                     {% endif %}
 
                     <a href="/my-connections" title="View your connections"
-                        class="relative flex items-center gap-2 bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/10 hover:bg-white/20 transition-all font-bold">
-                        <i class="fas fa-user-friends"></i>
+                        class="relative flex items-center gap-2 bg-white text-slate-900 px-6 py-3.5 rounded-xl font-extrabold shadow-lg hover:shadow-xl hover:bg-slate-50 hover:-translate-y-0.5 transition-all">
+                        <i class="fas fa-user-friends text-teal-600"></i>
                         My Connections
                         {% if pending_count > 0 %}
                         <span
-                            class="absolute -top-2 -right-2 h-6 w-6 bg-rose-500 text-white text-xs rounded-full flex items-center justify-center font-bold animate-pulse shadow-lg">
+                            class="absolute -top-2 -right-2 h-6 w-6 bg-rose-500 text-white text-xs rounded-full flex items-center justify-center font-bold animate-pulse shadow-lg border-2 border-white">
                             {{ pending_count }}
                         </span>
                         {% endif %}
@@ -218,7 +218,7 @@
                         {% else %}
                         <form action="/connect/{{ sd.user.id }}" method="POST">
                             <button type="submit"
-                                class="connect-btn inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[var(--navy)] to-[var(--teal)] text-white rounded-xl text-xs font-bold w-full justify-center hover:from-[var(--navy)] hover:to-[var(--navy)] shadow-lg shadow-[var(--teal-soft)]">
+                                class="connect-btn inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-slate-900 to-teal-600 text-white rounded-xl text-xs font-bold w-full justify-center hover:from-slate-800 hover:to-slate-800 shadow-lg shadow-teal-500/20">
                                 <i class="fas fa-user-plus"></i> Connect
                             </button>
                         </form>
@@ -236,7 +236,7 @@
     <div>
         <div class="flex items-center gap-3 mb-6 mt-4">
             <div
-                class="h-10 w-10 rounded-xl bg-gradient-to-br from-[var(--teal)] to-[var(--teal)] flex items-center justify-center text-white shadow-lg font-bold">
+                class="h-10 w-10 rounded-xl bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white shadow-lg font-bold">
                 {{ archetype[0] | upper }}
             </div>
             <div>
@@ -251,7 +251,7 @@
             <div class="student-card animate-card bg-white/80 backdrop-blur-xl rounded-2xl border border-white/50 shadow-lg overflow-hidden"
                 data-delay="{{ loop.index0 * 0.08 }}" data-name="{{ sd.user.full_name|lower }}">
 
-                <div class="h-20 bg-gradient-to-br from-[var(--teal)] via-[var(--teal)] to-[var(--teal)] relative">
+                <div class="h-20 bg-gradient-to-br from-teal-400 via-teal-500 to-teal-600 relative">
                     <div class="absolute -bottom-8 left-1/2 -translate-x-1/2">
                         <img src="{{ sd.user.profile_photo if sd.user.profile_photo else 'https://ui-avatars.com/api/?name=' ~ (sd.user.full_name or 'User') ~ '&background=random&size=128' }}"
                             alt="{{ sd.user.full_name }}"
@@ -314,7 +314,7 @@
                         {% else %}
                         <form action="/connect/{{ sd.user.id }}" method="POST">
                             <button type="submit"
-                                class="connect-btn inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[var(--navy)] to-[var(--teal)] text-white rounded-xl text-xs font-bold w-full justify-center hover:from-[var(--navy)] hover:to-[var(--navy)] shadow-lg shadow-[var(--teal-soft)]">
+                                class="connect-btn inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-slate-900 to-teal-600 text-white rounded-xl text-xs font-bold w-full justify-center hover:from-slate-800 hover:to-slate-800 shadow-lg shadow-teal-500/20">
                                 <i class="fas fa-user-plus"></i> Connect
                             </button>
                         </form>
@@ -337,7 +337,7 @@
         <p class="text-slate-500 max-w-md mx-auto">Be one of the first students to complete your assessment and start
             building your career network!</p>
         <a href="/dashboard"
-            class="inline-block mt-6 px-6 py-3 bg-gradient-to-r from-[var(--navy)] to-[var(--teal)] text-white rounded-xl font-bold hover:from-[var(--navy)] hover:to-[var(--navy)] shadow-lg shadow-[var(--teal-soft)] transition-all">
+            class="inline-block mt-6 px-6 py-3 bg-gradient-to-r from-slate-900 to-teal-600 text-white rounded-xl font-bold hover:from-slate-800 hover:to-slate-800 shadow-lg shadow-teal-500/20 transition-all">
             Go to Dashboard
         </a>
     </div>

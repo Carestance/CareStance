@@ -142,6 +142,18 @@
     .btn-teal-primary:hover {
         background-color: var(--teal-light) !important;
     }
+    
+    /* CTA card gradient (pre-assessment state) */
+    .cta-card-gradient {
+        background: linear-gradient(135deg, #f0fdfa 0%, #fef9f0 100%);
+        border: 1.5px solid var(--border-light);
+    }
+    .cta-heading { color: var(--text-main); }
+    .btn-gradient-primary {
+        background: var(--gradient-primary);
+        color: #fff;
+    }
+    .btn-gradient-primary:hover { opacity: 0.9; color: #fff; }
 </style>
 {% endblock %}
 
@@ -227,56 +239,126 @@
                         </div>
                     </div>
                 </div>
+                <div class="flex-1 text-center md:text-left">
+                    {% if assessment %}
+                    <span class="inline-block px-3 py-1 bg-amber-100 text-amber-800 text-xs font-bold rounded-full uppercase tracking-wider mb-3">
+                        <i class="fas fa-clock mr-1"></i> Assessment In Progress
+                    </span>
+                    <h2 class="text-2xl font-bold mb-2 cta-heading">Welcome back! Your assessment is waiting.</h2>
+                    <p class="text-slate-500 mb-6 text-sm leading-relaxed">Pick up where you left off — your career blueprint is almost ready.</p>
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <a href="/assessment" class="w-full sm:w-auto text-center px-6 py-3.5 rounded-xl font-bold transition shadow-lg shadow-teal-100 btn-gradient-primary">
+                            <i class="fas fa-play mr-2"></i>Continue Assessment
+                        </a>
+                        <a href="/assessment/reset"
+                           onclick="return confirm('Are you sure you want to start fresh? This will clear your current assessment progress.')"
+                           class="w-full sm:w-auto text-center px-6 py-3.5 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-slate-50 transition text-sm">
+                            Start Fresh
+                        </a>
+                    </div>
+                    {% else %}
+                    <span class="inline-block px-3 py-1 bg-teal-100 text-teal-800 text-xs font-bold rounded-full uppercase tracking-wider mb-3">
+                        <i class="fas fa-rocket mr-1"></i> Get Started
+                    </span>
+                    <h2 class="text-2xl font-bold mb-2 cta-heading">Discover your ideal career path</h2>
+                    <p class="text-slate-500 mb-6 text-sm leading-relaxed">Our AI-powered assessment analyses your personality, skills, and goals to generate a personalised career blueprint.</p>
+                    <a href="/assessment/start?class_level=12th" class="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl font-bold transition shadow-lg shadow-teal-100 btn-gradient-primary">
+                        Start Assessment <i class="fas fa-arrow-right"></i>
+                    </a>
+                    {% endif %}
+                </div>
             </div>
+
+            <!-- Quick Feature Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="db-card p-5 text-center">
+                    <div class="w-12 h-12 mx-auto bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center text-xl mb-3">
+                        <i class="fas fa-brain"></i>
+                    </div>
+                    <h4 class="font-bold text-slate-800 text-sm">AI-Powered Analysis</h4>
+                    <p class="text-slate-400 text-xs mt-1">Multi-phase psychometric assessment</p>
+                </div>
+                <div class="db-card p-5 text-center">
+                    <div class="w-12 h-12 mx-auto bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center text-xl mb-3">
+                        <i class="fas fa-route"></i>
+                    </div>
+                    <h4 class="font-bold text-slate-800 text-sm">Career Roadmaps</h4>
+                    <p class="text-slate-400 text-xs mt-1">Step-by-step personalised guidance</p>
+                </div>
+                <div class="db-card p-5 text-center">
+                    <div class="w-12 h-12 mx-auto bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center text-xl mb-3">
+                        <i class="fas fa-video"></i>
+                    </div>
+                    <h4 class="font-bold text-slate-800 text-sm">Expert Counsellors</h4>
+                    <p class="text-slate-400 text-xs mt-1">Book 1-on-1 guidance sessions</p>
+                </div>
+            </div>
+
         </div>
 
-        <!-- Action Panel (Visible instantly or at step 3) -->
-        <div x-show="step === 3" x-transition:enter="transition ease-out duration-500" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0" class="mt-8">
-            
-            <!-- CASE A: NEW USER (No Assessment started yet) -->
-            <template x-if="!isReturning">
-                <div class="flex flex-col items-center justify-center p-8 bg-white border border-slate-100 rounded-3xl shadow-lg max-w-lg mx-auto text-center gap-6">
-                    <div class="h-16 w-16 bg-[var(--teal-soft)] text-[var(--teal)] rounded-2xl flex items-center justify-center text-3xl">
-                        <i class="fas fa-rocket"></i>
-                    </div>
-                    <div class="space-y-2">
-                        <h4 class="text-2xl font-bold text-slate-900">Start Your Assessment</h4>
-                        <p class="text-slate-500 text-sm leading-relaxed">Discover your ideal career path and strengths. Let's begin the exploration.</p>
-                    </div>
-                    
-                    <div class="w-full">
-                        <a href="/assessment/start?class_level=12th" class="block w-full py-4 bg-[var(--navy)] hover:bg-[var(--teal)] text-white text-center font-bold rounded-2xl shadow-lg shadow-[var(--teal-soft)] transition-all">
-                            Start Assessment <i class="fas fa-arrow-right ml-1.5"></i>
-                        </a>
-                    </div>
-                </div>
-            </template>
+        <!-- Right Column: Profile & Tools -->
+        <div class="space-y-6">
 
-            <!-- CASE B: RETURNING USER (Assessment in progress) -->
-            <template x-if="isReturning">
-                <div class="flex flex-col items-center justify-center p-8 bg-white border border-slate-100 rounded-3xl shadow-lg max-w-lg mx-auto text-center gap-6">
-                    <div class="h-16 w-16 bg-[var(--teal-soft)] text-[var(--teal)] rounded-2xl flex items-center justify-center text-3xl">
-                        <i class="fas fa-play"></i>
-                    </div>
-                    <div class="space-y-2">
-                        <h4 class="text-2xl font-bold text-slate-900">Your Assessment is Waiting</h4>
-                        <p class="text-slate-500 text-sm leading-relaxed">Let's continue where you left off and finish discovering your best-suited careers.</p>
-                    </div>
-                    
-                    <div class="flex flex-col sm:flex-row gap-3 w-full">
-                        <a href="/assessment" class="flex-1 py-4 bg-[var(--navy)] hover:bg-[var(--teal)] text-white text-center font-bold rounded-2xl shadow-lg shadow-[var(--teal-soft)] transition-all">
-                            Continue Assessment <i class="fas fa-arrow-right ml-1"></i>
-                        </a>
-                        <a href="/assessment/reset" onclick="return confirm('Are you sure you want to start fresh? This will clear your current assessment progress.')" class="flex-1 py-4 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 text-center font-bold rounded-2xl transition-all">
-                            Start Fresh / Reset
-                        </a>
-                    </div>
+            <!-- Profile Card -->
+            <div class="db-card p-6 flex items-center gap-4">
+                <div class="relative group flex-shrink-0">
+                    <img src="{{ user.profile_photo if user.profile_photo else 'https://ui-avatars.com/api/?name=' ~ (user.full_name or 'User') ~ '&background=random' }}"
+                        alt="Profile" class="w-16 h-16 rounded-2xl object-cover border-2 border-[var(--primary)] shadow-md">
+                    <button onclick="document.getElementById('photo-upload-pre').click()" title="Change profile photo"
+                        class="absolute -bottom-1 -right-1 text-white p-1.5 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity bg-[var(--navy)] hover:bg-[var(--teal)]">
+                        <i class="fas fa-camera text-[10px]"></i>
+                    </button>
+                    <form id="photo-form-pre" action="/profile/upload-photo" method="POST" enctype="multipart/form-data" class="hidden">
+                        <input type="file" id="photo-upload-pre" name="file" aria-label="Upload profile photo" onchange="handleImageUpload(event, 'photo-form-pre')" accept="image/*">
+                    </form>
                 </div>
-            </template>
-            
+                <div>
+                    <h4 class="font-extrabold text-slate-900 text-lg leading-tight">{{ user.full_name }}</h4>
+                    <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mt-0.5">{{ user.role or 'Student' }}</p>
+                    <span class="inline-block mt-2 px-2 py-0.5 bg-amber-50 text-amber-600 text-[10px] font-bold rounded-full uppercase">Assessment Pending</span>
+                </div>
+            </div>
+
+            <!-- Tools Grid -->
+            <div class="grid grid-cols-2 gap-4">
+                <a href="/career/roadmaps" class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:border-[var(--teal)] hover:-translate-y-0.5 transition-all text-center">
+                    <div class="w-10 h-10 mx-auto bg-[var(--teal-soft)] text-[var(--navy)] rounded-full flex items-center justify-center mb-2">
+                        <i class="fas fa-route"></i>
+                    </div>
+                    <span class="text-xs font-bold text-slate-700 block">My Roadmaps</span>
+                </a>
+                <a href="/career/colleges" class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:border-[var(--teal)] hover:-translate-y-0.5 transition-all text-center">
+                    <div class="w-10 h-10 mx-auto bg-[var(--teal-soft)] text-[var(--navy)] rounded-full flex items-center justify-center mb-2">
+                        <i class="fas fa-university"></i>
+                    </div>
+                    <span class="text-xs font-bold text-slate-700 block">Colleges</span>
+                </a>
+                <a href="/counsellors" class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:border-[var(--teal)] hover:-translate-y-0.5 transition-all text-center">
+                    <div class="w-10 h-10 mx-auto bg-[var(--teal-soft)] text-[var(--teal)] rounded-full flex items-center justify-center mb-2">
+                        <i class="fas fa-video"></i>
+                    </div>
+                    <span class="text-xs font-bold text-slate-700 block">Talk to Expert</span>
+                </a>
+                <a href="/chatbot" class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:border-[var(--teal)] hover:-translate-y-0.5 transition-all text-center">
+                    <div class="w-10 h-10 mx-auto bg-[var(--teal-soft)] text-[var(--teal)] rounded-full flex items-center justify-center mb-2">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    <span class="text-xs font-bold text-slate-700 block">CareerBuddy AI</span>
+                </a>
+            </div>
+
+            <!-- Community Prompt -->
+            <div class="db-card p-5 text-center">
+                <p class="text-xs text-slate-400 mb-2.5">Connect with fellow students</p>
+                <a href="/community" class="inline-flex items-center gap-1.5 px-4 py-2 bg-[var(--teal-soft)] text-[var(--teal)] rounded-xl text-xs font-bold hover:bg-teal-100 transition">
+                    <i class="fas fa-users"></i> Visit Community
+                </a>
+            </div>
+
         </div>
-
     </div>
+
+
 
     <!-- STATE 2: COMPLETED USERS (Dashboard Widgets Panel) -->
     {% else %}
