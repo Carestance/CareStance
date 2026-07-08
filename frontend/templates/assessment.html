@@ -379,7 +379,7 @@
             </div>
         </div>
         <div class="flex flex-col items-end gap-1">
-            <span class="text-xs font-bold uppercase tracking-widest text-slate-500" id="phase-step-label">Phase 1 of 5</span>
+            <span class="text-xs font-bold uppercase tracking-widest text-slate-500" id="phase-step-label">Assessment</span>
             <div class="w-48 cyber-progress-bg mt-1">
                 <div class="cyber-progress-fill" id="global-progress-fill" style="width: 20%;"></div>
             </div>
@@ -487,8 +487,9 @@
         }
         
         let phaseName = "Student Information Intake";
-        if (assessmentState.current_phase === 1) phaseName = "Behavioral Assessment";
-        if (assessmentState.current_phase === 2) phaseName = "Career Matching";
+        if (assessmentState.current_phase === 1) phaseName = "Preference Cards";
+        if (assessmentState.current_phase === 2) phaseName = "Behavioral Questions";
+        if (assessmentState.current_phase === 3) phaseName = "Career Matching";
         
         document.getElementById("phase-step-label").innerText = phaseName;
         
@@ -518,8 +519,10 @@
                 renderIntakePhase();
                 hideLoader();
             } else if (phase === 1) {
-                renderPhase2MCQs();
+                renderSwipeCards();
             } else if (phase === 2) {
+                renderPhase2MCQs();
+            } else if (phase === 3) {
                 renderPhase3Selection();
                 hideLoader();
             } else if (phase === 5) {
@@ -842,8 +845,103 @@
         }
     }
 
-    // --- PHASE 1: REFLEX PREFERENCE CARD SWIPES (BOTH) ---
-    
+    // --- PHASE 1: REFLEX PREFERENCE CARD SWIPES ---
+    async function renderSwipeCards() {
+        showLoader("Loading 5 preference cards...");
+        try {
+            const res = await fetch("/assessment/api/questions");
+            const data = await res.json();
+            swipeCards = data.cards || [];
+            swipeLogs = [];
+            activeSwipeIndex = 0;
+            hideLoader();
+            renderCurrentSwipeCard();
+        } catch (e) {
+            console.error(e);
+            hideLoader();
+            alert("Failed to load card assessment.");
+        }
+    }
+
+    function renderCurrentSwipeCard() {
+        const body = document.getElementById("phase-body");
+        if (activeSwipeIndex >= swipeCards.length) {
+            submitSwipeCards();
+            return;
+        }
+
+        const card = swipeCards[activeSwipeIndex];
+        const remainingCards = swipeCards.slice(activeSwipeIndex, activeSwipeIndex + 3);
+        const cardsHtml = remainingCards.map((c, idx) => `
+            <div class="swipe-card" style="z-index:${10 - idx};">
+                <div>
+                    <span class="cyber-badge">Card ${activeSwipeIndex + idx + 1} of ${swipeCards.length}</span>
+                    <h2 class="text-2xl font-extrabold text-slate-900 leading-tight mt-6">${c.content || c.title || c.text || "Career situation"}</h2>
+                </div>
+                <p class="text-sm text-slate-500 leading-relaxed">Would you enjoy handling this kind of situation?</p>
+            </div>
+        `).join("");
+
+        body.innerHTML = `
+            <div class="max-w-3xl mx-auto stagger-in text-center">
+                <span class="cyber-badge">5 Cards</span>
+                <h2 class="text-3xl font-extrabold text-slate-900 mt-3">Quick Preference Cards</h2>
+                <p class="text-slate-500 mt-2 mb-8 text-sm">Choose honestly. There are exactly 5 cards in this step.</p>
+                <div class="deck-container">${cardsHtml}</div>
+                <div class="grid grid-cols-2 gap-4 max-w-md mx-auto mt-8">
+                    <button onclick="answerSwipeCard('left')" class="px-6 py-4 rounded-2xl border border-indigo-200 bg-indigo-50 text-indigo-700 font-extrabold hover:bg-indigo-100 transition-all">
+                        <i class="fas fa-times mr-2"></i> Not Me
+                    </button>
+                    <button onclick="answerSwipeCard('right')" class="px-6 py-4 rounded-2xl border border-teal-200 bg-teal-50 text-teal-700 font-extrabold hover:bg-teal-100 transition-all">
+                        <i class="fas fa-check mr-2"></i> That's Me
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    window.answerSwipeCard = function(direction) {
+        const card = swipeCards[activeSwipeIndex];
+        const startedAt = Date.now();
+        swipeLogs.push({
+            card_id: card.id,
+            direction,
+            reaction_ms: 650,
+            dwell_ms: Math.max(650, Date.now() - startedAt + 650),
+            hesitation_ms: 0
+        });
+
+        const topCard = document.querySelector(".swipe-card");
+        if (topCard) {
+            topCard.classList.add(direction === "right" ? "swiped-right" : "swiped-left");
+        }
+        setTimeout(() => {
+            activeSwipeIndex++;
+            renderCurrentSwipeCard();
+        }, 280);
+    };
+
+    async function submitSwipeCards() {
+        showLoader("Saving card choices...");
+        try {
+            const res = await fetch("/assessment/api/swipe", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ swipes: swipeLogs })
+            });
+            const data = await res.json();
+            if (data.status === "success") {
+                await refreshState();
+            } else {
+                hideLoader();
+                alert("Failed to save cards.");
+            }
+        } catch (e) {
+            console.error(e);
+            hideLoader();
+            alert("Network error while saving cards.");
+        }
+    }
 
     // --- PHASE 1: BEHAVIORAL MCQs ---
     let phase2Questions = [];

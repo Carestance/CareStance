@@ -2,8 +2,7 @@ import json
 import os
 import re
 from functools import lru_cache
-from typing import List, Dict, Optional
-import httpx
+from typing import List, Dict, Optional, Any
 
 # Get API Keys
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -28,11 +27,214 @@ def get_groq_client():
         return None
     from groq import AsyncGroq
     return AsyncGroq(api_key=GROQ_API_KEY)
-_httpx_client: Optional[httpx.AsyncClient] = None
+_httpx_client: Optional[Any] = None
 
-def get_shared_async_client() -> httpx.AsyncClient:
+CAREER_CONTEXTS = {
+    "software": {
+        "theme": "tech-neon",
+        "metric": "Build Health",
+        "phase1": "A feature you own is due today, but a teammate finds a bug that could affect real users. The product lead wants to ship anyway. What do you do first?",
+        "phase2": "You are in the team workspace after the bug report. Your task is to choose the best next action while keeping the release moving responsibly.",
+        "task": "Stabilize the release plan",
+        "options": [
+            ("Pause the release, reproduce the bug, share impact, and propose a fixed ETA.", "best"),
+            ("Ship now and create a ticket to fix the bug later.", "weak"),
+            ("Ask the teammate to handle it without updating the product lead.", "mixed"),
+            ("Remove the affected feature quietly and continue the release.", "mixed"),
+        ],
+    },
+    "medical": {
+        "theme": "medical-clean",
+        "metric": "Patient Safety",
+        "phase1": "A patient describes symptoms that seem minor, but one detail suggests a possible emergency. The waiting room is full and everyone is rushing. What do you do first?",
+        "phase2": "You are at the care desk with patient notes, a triage checklist, and a senior doctor available. Choose the safest next action.",
+        "task": "Prioritize patient safety",
+        "options": [
+            ("Escalate immediately, document the warning sign, and keep monitoring the patient.", "best"),
+            ("Tell the patient to wait because others arrived earlier.", "weak"),
+            ("Give general advice without checking vitals.", "weak"),
+            ("Ask a colleague for a quick second look while you prepare notes.", "mixed"),
+        ],
+    },
+    "finance": {
+        "theme": "finance-sapphire",
+        "metric": "Risk Exposure",
+        "phase1": "A client wants a high-return option, but the risk profile you collected shows they cannot afford a major loss. How do you respond?",
+        "phase2": "You are reviewing a portfolio workspace with risk score, investment horizon, and client goals. Pick the next recommendation step.",
+        "task": "Balance growth with suitability",
+        "options": [
+            ("Explain the mismatch, show safer alternatives, and document the recommendation.", "best"),
+            ("Approve the high-risk option because the client requested it.", "weak"),
+            ("Avoid the topic and suggest they decide alone.", "weak"),
+            ("Offer a smaller allocation with clear risk warnings and confirmation.", "mixed"),
+        ],
+    },
+    "creative": {
+        "theme": "creative-vibrant",
+        "metric": "Client Alignment",
+        "phase1": "A client rejects your first concept even though it matches the brief. They are upset and the deadline is close. What do you do first?",
+        "phase2": "You are in the project workspace with the brief, feedback notes, and two draft directions. Choose how to move forward.",
+        "task": "Recover the creative direction",
+        "options": [
+            ("Clarify the feedback, restate the goal, and propose a focused revision plan.", "best"),
+            ("Defend the original concept and ask them to reconsider.", "mixed"),
+            ("Start over without confirming what changed.", "weak"),
+            ("Copy a competitor's style to satisfy them quickly.", "weak"),
+        ],
+    },
+    "default": {
+        "theme": "default",
+        "metric": "Decision Quality",
+        "phase1": "You are given an important career task with limited time, unclear information, and people depending on your decision. What do you do first?",
+        "phase2": "You are in a workspace with the task, possible actions, and a short deadline. Choose the most professional next step.",
+        "task": "Make a clear professional decision",
+        "options": [
+            ("Clarify the goal, identify risks, communicate a plan, and act on the highest priority.", "best"),
+            ("Choose quickly without asking questions.", "weak"),
+            ("Wait until someone else decides.", "weak"),
+            ("Do the easiest part first and update people later.", "mixed"),
+        ],
+    },
+}
+
+
+def _career_context(career_title: str) -> Dict:
+    title = (career_title or "").lower()
+    if any(token in title for token in ("software", "developer", "engineer", "data", "ai", "tech")):
+        return CAREER_CONTEXTS["software"]
+    if any(token in title for token in ("doctor", "medical", "nurse", "health", "clinical")):
+        return CAREER_CONTEXTS["medical"]
+    if any(token in title for token in ("finance", "account", "bank", "commerce", "business")):
+        return CAREER_CONTEXTS["finance"]
+    if any(token in title for token in ("design", "artist", "creative", "media", "writer")):
+        return CAREER_CONTEXTS["creative"]
+    return CAREER_CONTEXTS["default"]
+
+
+def build_live_simulation(career_title: str, difficulty: str = "Foundation") -> List[Dict]:
+    """Builds the required two-phase simulation without external AI dependency."""
+    context = _career_context(career_title)
+    return [
+        {
+            "phase": 1,
+            "type": "scenario_answer",
+            "scenario": context["phase1"],
+            "objective": "Respond to the first real-world situation",
+            "theme_hint": context["theme"],
+            "visual_cue": "pulse-green",
+            "emergency_alert": "Phase 1: Read the situation and answer in your own words.",
+            "visual_dashboard": {"metric_name": context["metric"], "value": "45%"},
+            "workspace": None,
+            "options": None,
+        },
+        {
+            "phase": 2,
+            "type": "workspace_choice",
+            "scenario": context["phase2"],
+            "objective": context["task"],
+            "theme_hint": context["theme"],
+            "visual_cue": "shake",
+            "emergency_alert": "Phase 2: Use the workspace task and choose one option.",
+            "visual_dashboard": {"metric_name": context["metric"], "value": "68%"},
+            "workspace": {
+                "task": context["task"],
+                "brief": f"Role: {career_title}. Difficulty: {difficulty}. Review the task and pick the action that best protects quality, ethics, and communication.",
+                "panels": [
+                    {"label": "Task", "value": context["task"]},
+                    {"label": "Constraint", "value": "Limited time and visible consequences"},
+                    {"label": "Expected", "value": "Clear reasoning, ownership, and ethical judgment"},
+                ],
+            },
+            "options": [{"text": text, "quality": quality} for text, quality in context["options"]],
+        },
+    ]
+
+
+def analyze_live_simulation_move(user_input: str, scenario: Dict, response_time: float = 0) -> Dict:
+    """Scores one simulation move locally for reliable product behavior."""
+    text = (user_input or "").strip().lower()
+    words = [w for w in re.split(r"\W+", text) if w]
+    quality = None
+    for option in scenario.get("options") or []:
+        if option.get("text") == user_input:
+            quality = option.get("quality")
+            break
+
+    if quality == "best":
+        clarity = 0.9
+        problem = 0.92
+        eq = 0.18
+        feedback = "Strong move: you balanced action, communication, and responsibility."
+    elif quality == "mixed":
+        clarity = 0.62
+        problem = 0.58
+        eq = 0.04
+        feedback = "Partial move: it shows intent, but needs clearer ownership and risk handling."
+    elif quality == "weak":
+        clarity = 0.32
+        problem = 0.28
+        eq = -0.16
+        feedback = "Risky move: it misses the core responsibility in this situation."
+    else:
+        depth = min(len(words) / 35, 1)
+        responsibility_words = {"explain", "communicate", "ask", "clarify", "document", "help", "check", "review", "priority", "risk", "plan"}
+        responsibility = len(responsibility_words.intersection(words)) / 5
+        clarity = max(0.25, min(0.95, 0.35 + depth * 0.35 + responsibility * 0.2))
+        problem = max(0.25, min(0.95, 0.30 + depth * 0.30 + responsibility * 0.25))
+        eq = max(-0.12, min(0.16, (clarity + problem - 1.0) / 3))
+        feedback = "Good start. Add the exact first action, who you would inform, and how you would reduce risk." if len(words) < 25 else "Thoughtful answer: you gave enough context to show how you reason under pressure."
+
+    if response_time and response_time > 25:
+        clarity = max(0.2, clarity - 0.05)
+        feedback += " Try to decide a little faster in timed situations."
+
+    return {
+        "eq_impact": round(eq, 2),
+        "problem_solving_score": round(problem, 2),
+        "clarity_score": round(clarity, 2),
+        "feedback": feedback,
+    }
+
+
+def finalize_live_simulation(career_title: str, moves: List[Dict]) -> Dict:
+    analyses = [m.get("analysis", {}) for m in moves]
+    if analyses:
+        avg = sum((a.get("problem_solving_score", 0.5) + a.get("clarity_score", 0.5)) / 2 for a in analyses) / len(analyses)
+        eq_score = 0.5 + sum(a.get("eq_impact", 0) for a in analyses)
+        score = max(18, min(98, round(((avg * 0.75) + (eq_score * 0.25)) * 100)))
+    else:
+        score = 35
+
+    strengths = []
+    improvements = []
+    if score >= 75:
+        strengths = ["Responsible decision making", "Clear professional communication", "Good pressure handling"]
+        improvements = ["Add measurable next steps", "Mention how you would follow up"]
+        persona = "Ready Practitioner"
+    elif score >= 50:
+        strengths = ["Engagement with the scenario", "Developing problem-solving instincts"]
+        improvements = ["Be more specific about your first action", "Show how you would communicate risks"]
+        persona = "Developing Explorer"
+    else:
+        strengths = ["Willingness to attempt the simulation"]
+        improvements = ["Avoid vague or rushed answers", "Focus on ethics, clarity, and action"]
+        persona = "Needs Guided Practice"
+
+    return {
+        "match_score": f"{score}%",
+        "overall_score": f"{score}%",
+        "summary": f"Your {career_title} simulation shows a {score}% readiness signal across judgment, clarity, and response quality.",
+        "persona": persona,
+        "strengths": strengths,
+        "weaknesses": improvements,
+        "improvement_areas": improvements,
+        "career_readiness": "You are strongest when you slow the situation down, name the risk, and choose a professional next step. Keep practicing with more specific actions and follow-up plans.",
+    }
+
+def get_shared_async_client():
     global _httpx_client
     if _httpx_client is None:
+        import httpx
         _httpx_client = httpx.AsyncClient(timeout=30.0)
     return _httpx_client
 
@@ -121,7 +323,7 @@ async def generate_simulation_questions(career_title: str) -> List[str]:
         return questions[:7] if isinstance(questions, list) else []
     except Exception as e:
         print(f"Question Generation Error: {e}")
-        return []
+        return [state["scenario"] for state in build_live_simulation(career_title)]
 
 async def evaluate_simulation(career_title: str, questions: List[str], answers: List[str]) -> Dict:
     """Evaluates the user's responses to the simulation questions."""

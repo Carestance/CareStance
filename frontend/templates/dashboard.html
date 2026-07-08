@@ -159,6 +159,7 @@
 
 {% block content %}
 <div class="db-page space-y-8">
+    {% set has_dashboard_assessment = assessment and (assessment.assessment_report or assessment.phase_2_category or assessment.recommended_stream or assessment.final_analysis) %}
 
     {# Admin denied / generic error message banner (used by admin_auth redirects) #}
     {% if request.query_params.get('error') %}
@@ -168,19 +169,74 @@
     </div>
     {% endif %}
 
-    <!-- STATE 1: ASSESSMENT NOT STARTED / IN PROGRESS (shows dashboard with CTA) -->
-    {% if not assessment or not assessment.assessment_report %}
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-        <!-- Left/Main: Assessment CTA -->
-        <div class="lg:col-span-2 space-y-6">
-
-            <!-- Assessment Call to Action Card -->
-            <div class="db-card cta-card-gradient p-8 flex flex-col md:flex-row gap-8 items-center">
-                <div class="flex-shrink-0 relative">
-                    <div class="w-32 h-32 flex items-center justify-center">
-                        <div class="absolute inset-0 bg-teal-500/10 rounded-full blur-xl"></div>
-                        <img src="/static/images/careo.png?v=101" alt="Careo Mascot" class="w-full h-full object-contain relative z-10">
+    <!-- STATE 1: WELCOME INTRO FLOW (No Assessment or Assessment in Progress) -->
+    {% if not has_dashboard_assessment %}
+    <div x-data="{
+        step: 1,
+        isReturning: {% if assessment %}true{% else %}false{% endif %},
+        dialogues: {
+            new: [
+                'Hi! I am Careo, your personal career guide. 🐾 Welcome!',
+                'This is the CareStance platform! We help you discover your careers.',
+                'Let\'s find your superpower! Click below to start your career assessment.'
+            ],
+            returning: [
+                'Welcome back! 🐾 Great to see you again!',
+                'I see you started your career assessment earlier, but had to leave in between.',
+                'Let\'s continue your assessment from where you left off!'
+            ]
+        },
+        get currentText() {
+            return this.isReturning ? this.dialogues.returning[this.step - 1] : this.dialogues.new[this.step - 1];
+        },
+        nextStep() {
+            if (this.step < 3) {
+                this.step++;
+            }
+        },
+        prevStep() {
+            if (this.step > 1) {
+                this.step--;
+            }
+        }
+    }" class="max-w-4xl mx-auto py-8">
+        
+        <!-- Interactive Mascot Welcome Row -->
+        <div class="flex flex-col md:flex-row items-center gap-8 mb-12">
+            <!-- Mascot Image -->
+            <div class="w-48 h-48 md:w-56 md:h-56 mascot-container flex-shrink-0 relative">
+                <div class="absolute inset-0 bg-teal-500/10 rounded-full blur-2xl"></div>
+                <img src="/static/images/careo.png?v=101" alt="Careo Mascot" class="w-full h-full object-contain relative z-10">
+            </div>
+            
+            <!-- Speech Bubble -->
+            <div class="flex-1 w-full">
+                <div class="speech-bubble p-6 md:p-8 bg-white/95 glass-card">
+                    <p class="text-lg md:text-xl font-bold text-slate-800 leading-relaxed min-h-[4.5rem]" x-text="currentText"></p>
+                    
+                    <div class="flex items-center justify-between mt-6">
+                        <!-- Navigation Dots / Steps -->
+                        <div class="flex gap-2">
+                            <template x-for="i in 3">
+                                <span class="w-2.5 h-2.5 rounded-full transition-all duration-300"
+                                      :class="step === i ? 'bg-[var(--teal)] scale-125' : 'bg-slate-200'"></span>
+                            </template>
+                        </div>
+                        
+                        <!-- Navigation Buttons -->
+                        <div class="flex items-center gap-2">
+                            <button x-show="step < 3" @click="step = 3" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors mr-2">
+                                Skip Intro
+                            </button>
+                            
+                            <button x-show="step > 1" @click="prevStep()" class="px-4 py-2 text-sm font-bold text-slate-500 hover:text-slate-800 transition-colors">
+                                Back
+                            </button>
+                            
+                            <button x-show="step < 3" @click="nextStep()" class="px-6 py-2.5 btn-teal-primary text-white text-sm font-bold rounded-xl shadow-md transition-all">
+                                Next <i class="fas fa-arrow-right ml-1"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <div class="flex-1 text-center md:text-left">
@@ -306,6 +362,7 @@
 
     <!-- STATE 2: COMPLETED USERS (Dashboard Widgets Panel) -->
     {% else %}
+    {% set dashboard_sim_career = assessment.recommended_stream or assessment.phase_2_category or 'Career Explorer' %}
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         <!-- Left Column: Main Results, Action and Sessions -->
@@ -341,6 +398,10 @@
                         <a href="/chatbot"
                             class="w-full sm:w-auto text-center px-6 py-3.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold hover:bg-slate-50 transition">
                             Ask CareerBuddy (AI)
+                        </a>
+                        <a href="/assessment/simulation/start/{{ dashboard_sim_career | urlencode }}"
+                            class="w-full sm:w-auto text-center px-6 py-3.5 bg-amber-500 text-white rounded-xl font-bold hover:bg-amber-600 transition shadow-lg shadow-amber-100">
+                            Try Career Simulation
                         </a>
                     </div>
                 </div>
@@ -585,7 +646,9 @@
                 <div>
                     <h4 class="font-extrabold text-slate-900 text-lg leading-tight">{{ user.full_name }}</h4>
                     <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mt-0.5">{{ user.role or 'Student' }}</p>
-<p class="text-xs text-slate-400 mt-1">{{ user.email }}{% if user.contact_number %} &middot; {{ user.contact_number }}{% endif %}</p>
+                    <p class="text-xs text-slate-500 font-semibold mt-1">
+                        <i class="fas fa-phone-alt mr-1"></i>{{ user.contact_number or 'Phone not added' }}
+                    </p>
                 </div>
             </div>
 
@@ -641,6 +704,12 @@
                         <i class="fas fa-comments"></i>
                     </div>
                     <span class="text-xs font-bold text-slate-700 block">CareerBuddy AI</span>
+                </a>
+                <a href="/assessment/simulation/start/{{ dashboard_sim_career | urlencode }}" class="bg-white p-4 rounded-2xl border border-amber-100 shadow-sm hover:border-amber-300 hover:-translate-y-0.5 transition-all text-center">
+                    <div class="w-10 h-10 mx-auto bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mb-2">
+                        <i class="fas fa-vr-cardboard"></i>
+                    </div>
+                    <span class="text-xs font-bold text-slate-700 block">Simulation</span>
                 </a>
             </div>
 

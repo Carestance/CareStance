@@ -44,6 +44,8 @@ from .utils.resource_aggregator import ResourceAggregator
 from .services import simulation_service
 from .services import assessment_engine
 
+LIVE_SIMULATION_SESSIONS = {}
+
 try:
     from app.pipeline.feature_extractor import FeatureExtractor
     extractor_tool = FeatureExtractor()
@@ -639,7 +641,6 @@ async def add_cache_control_header(request: Request, call_next):
         response.headers["Pragma"] = "no-cache"
         response.headers["Expires"] = "0"
     return response
-
 
 @app.middleware("http")
 async def check_suspension(request: Request, call_next):
@@ -1616,6 +1617,17 @@ async def assessment_api_questions(request: Request, db: AsyncSession = Depends(
     user = await get_current_user(request, db)
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
+
+    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+    if not result:
+        raise HTTPException(status_code=404, detail="Assessment not found")
+
+    phase = result.current_phase or 1
+    student_type = result.student_type or "10th"
+    try:
+        vector = json.loads(result.personality) if result.personality else {}
+    except Exception:
+        vector = {}
     
     if phase == 0 and student_type == "12th":
         return {"message": "Hello! I'm Alex, your career mentor. Let's start with your name. What's your name?"}
@@ -1628,23 +1640,16 @@ async def assessment_api_questions(request: Request, db: AsyncSession = Depends(
         import random
         random.seed(result.id or 42)
         random.shuffle(shuffled)
-        return {"cards": shuffled[:12]} # Increased to 12
+        return {"cards": shuffled[:5]}
 
     elif phase == 2:
-        # Archetype Display State
-        from .pipeline.vector_utils import classify_archetype
-        archetype = classify_archetype(vector)
-        return {
-            "archetype": archetype,
-            "vector": vector,
-            "message": "Based on your reflexes, we've identified your primary cognitive archetype."
-        }
+        return {"status": "phase2_mcqs", "message": "Load /assessment/api/phase2_mcqs for the 5 behavioral MCQs."}
 
     elif phase == 3:
         # Phase 3 (User Term): Personalized MCQs
         from .pipeline.vector_utils import load_json, select_top_questions
         all_mcqs = load_json("phase3_mcqs.json")
-        top_qs = select_top_questions(vector, all_mcqs, limit=8)
+        top_qs = select_top_questions(vector, all_mcqs, limit=5)
         return {"proxy_questions": top_qs}
 
     elif phase == 4:
@@ -1662,9 +1667,10 @@ async def assessment_api_swipe(request: Request, payload: dict, db: AsyncSession
     user = await get_current_user(request, db)
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
-        
-    if len(mcqs) > 12:
-        mcqs = random.sample(mcqs, 12)
+
+    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+    if not result:
+        raise HTTPException(status_code=404, detail="Assessment not found")
         
     swipes = payload.get("swipes", [])
     result.telemetry_logs = swipes
@@ -1750,7 +1756,7 @@ async def get_phase2_mcqs(request: Request, db: AsyncSession = Depends(get_db)):
     if os.path.exists(mcqs_path):
         with open(mcqs_path, "r", encoding="utf-8") as f:
             mcqs = json.load(f)
-        return {"status": "success", "mcqs": mcqs}
+        return {"status": "success", "mcqs": mcqs[:5]}
     return {"status": "error", "detail": "Questions not found"}
 
 @app.post("/assessment/api/phase2/submit")
@@ -1782,11 +1788,11 @@ async def submit_phase2_mcqs(request: Request, payload: dict, db: AsyncSession =
     except Exception as e:
         print(f"Failed to calculate phase 2 score: {e}")
         
-    result.current_phase = 2
+    result.current_phase = 3
     await db.commit()
     sync_assessment_to_appwrite(user.id, result)
     
-    return {"status": "success", "next_phase": 5}
+    return {"status": "success", "next_phase": 3}
 
 @app.post("/assessment/api/compile")
 async def assessment_api_compile(request: Request, db: AsyncSession = Depends(get_db)):
@@ -4119,6 +4125,151 @@ async def simulation_verify_payment(request: Request, db: AsyncSession = Depends
         
     return {"status": "ok"}
 
+@app.post("/simulation/start")
+async def live_simulation_start(
+    request: Request,
+    career_title: str = Form(...),
+    difficulty: str = Form("Foundation"),
+    db: AsyncSession = Depends(get_db)
+):
+    user = await get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+    if not result:
+        raise HTTPException(status_code=404, detail="Assessment result not found")
+
+    db_user = (await db.execute(select(models.User).where(models.User.id == user.id))).scalars().first()
+    sims_completed = max(result.simulations_completed or 0, (db_user.simulations_completed or 0) if db_user else 0)
+    sim_credits = max(result.simulation_credits or 0, (db_user.simulation_credits or 0) if db_user else 0)
+
+    if sims_completed >= 1 and sim_credits <= 0:
+        raise HTTPException(status_code=402, detail="Simulation payment required")
+
+    scenarios = simulation_service.build_live_simulation(career_title, difficulty)
+    session_id = uuid.uuid4().hex
+    LIVE_SIMULATION_SESSIONS[session_id] = {
+        "user_id": user.id,
+        "career_title": career_title,
+        "difficulty": difficulty,
+        "scenarios": scenarios,
+        "current_index": 0,
+        "moves": [],
+        "final_evaluation": None,
+    }
+
+    if sims_completed >= 1:
+        if result.simulation_credits and result.simulation_credits > 0:
+            result.simulation_credits -= 1
+        if db_user and db_user.simulation_credits and db_user.simulation_credits > 0:
+            db_user.simulation_credits -= 1
+
+    result.simulation_career = career_title
+    result.simulation_questions = [scenario["scenario"] for scenario in scenarios]
+    result.simulation_answers = []
+    result.simulation_evaluation = None
+    result.simulation_paid = False
+    if db_user:
+        db_user.simulation_paid = False
+
+    update_assessment_simulation(user.id, career=career_title, questions=result.simulation_questions, answers=[], evaluation=None)
+    await db.commit()
+
+    return {
+        "session_id": session_id,
+        "initial_state": scenarios[0],
+        "total_steps": len(scenarios),
+    }
+
+@app.post("/simulation/step")
+async def live_simulation_step(
+    request: Request,
+    session_id: str = Form(...),
+    user_input: str = Form(...),
+    response_time: float = Form(0),
+    db: AsyncSession = Depends(get_db)
+):
+    user = await get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    session = LIVE_SIMULATION_SESSIONS.get(session_id)
+    if not session or session["user_id"] != user.id:
+        raise HTTPException(status_code=404, detail="Simulation session not found")
+
+    index = session["current_index"]
+    scenarios = session["scenarios"]
+    if index >= len(scenarios):
+        return {"is_last_step": True, "analysis": None, "next_state": None}
+
+    scenario = scenarios[index]
+    analysis = simulation_service.analyze_live_simulation_move(user_input, scenario, response_time)
+    session["moves"].append({
+        "phase": scenario.get("phase"),
+        "scenario": scenario.get("scenario"),
+        "answer": user_input,
+        "analysis": analysis,
+    })
+    session["current_index"] += 1
+
+    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+    if result:
+        result.simulation_answers = [move["answer"] for move in session["moves"]]
+        update_assessment_simulation(user.id, answers=result.simulation_answers)
+        await db.commit()
+
+    is_last_step = session["current_index"] >= len(scenarios)
+    if is_last_step:
+        await _finalize_live_simulation_session(user.id, session, db)
+        return {"is_last_step": True, "analysis": analysis, "next_state": None}
+
+    return {
+        "is_last_step": False,
+        "analysis": analysis,
+        "next_state": scenarios[session["current_index"]],
+    }
+
+@app.get("/simulation/session/{session_id}")
+async def live_simulation_session(session_id: str, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    session = LIVE_SIMULATION_SESSIONS.get(session_id)
+    if not session or session["user_id"] != user.id:
+        raise HTTPException(status_code=404, detail="Simulation session not found")
+
+    if not session.get("final_evaluation"):
+        await _finalize_live_simulation_session(user.id, session, db)
+
+    return {
+        "session_id": session_id,
+        "career_title": session["career_title"],
+        "moves": session["moves"],
+        "final_evaluation": session["final_evaluation"],
+    }
+
+async def _finalize_live_simulation_session(user_id: int, session: dict, db: AsyncSession):
+    if session.get("final_evaluation"):
+        return session["final_evaluation"]
+
+    evaluation = simulation_service.finalize_live_simulation(session["career_title"], session["moves"])
+    session["final_evaluation"] = evaluation
+
+    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user_id))).scalars().first()
+    if result:
+        result.simulation_answers = [move["answer"] for move in session["moves"]]
+        result.simulation_evaluation = evaluation
+        result.simulations_completed = (result.simulations_completed or 0) + 1
+        db_user = (await db.execute(select(models.User).where(models.User.id == user_id))).scalars().first()
+        if db_user:
+            db_user.simulations_completed = (db_user.simulations_completed or 0) + 1
+        update_assessment_simulation(user_id, answers=result.simulation_answers, evaluation=evaluation)
+        await db.commit()
+
+    return evaluation
+
 @app.get("/assessment/simulation/start/{category}/{career_title}", response_class=HTMLResponse)
 async def simulation_start_with_category(category: str, career_title: str, request: Request, db: AsyncSession = Depends(get_db)):
     return await simulation_start(career_title, request, db)
@@ -4141,38 +4292,11 @@ async def simulation_start(career_title: str, request: Request, db: AsyncSession
     if sims_completed >= 1 and sim_credits <= 0:
         return RedirectResponse(url=f"/assessment/simulation/pay/{career_title}", status_code=status.HTTP_302_FOUND)
     
-    # Generate questions based on class
-    if result.selected_class == '10th':
-        questions = await simulation_service.generate_academic_simulation_questions(career_title)
-    else:
-        questions = await simulation_service.generate_simulation_questions(career_title)
-
-    if not questions:
-        return RedirectResponse(url="/assessment/result?error=failed_to_generate_simulation", status_code=status.HTTP_302_FOUND)
-    
-    # Appwrite Update
-    update_assessment_simulation(user.id, career=career_title, questions=questions, answers=[], evaluation=None)
-    
-    # SQL Fallback
-    result.simulation_career = career_title
-    result.simulation_questions = questions
-    result.simulation_answers = [] # Reset answers
-    result.simulation_evaluation = None # Reset evaluation
-    
-    if sims_completed >= 1:
-        if result.simulation_credits > 0:
-            result.simulation_credits -= 1
-        if db_user and db_user.simulation_credits > 0:
-            db_user.simulation_credits -= 1
-
-    if result.simulation_paid:
-        result.simulation_paid = False
-    if db_user and db_user.simulation_paid:
-        db_user.simulation_paid = False
-        
-    await db.commit()
-    
-    return RedirectResponse(url="/assessment/simulation/question/0", status_code=status.HTTP_302_FOUND)
+    return templates.TemplateResponse(request=request, name="simulation.html", context={
+        "user": user,
+        "career_title": career_title,
+        "difficulty": "Foundation" if result.selected_class == "10th" else "Career",
+    })
 
 @app.get("/assessment/simulation/question/{index}", response_class=HTMLResponse)
 async def simulation_question(index: int, request: Request, db: AsyncSession = Depends(get_db)):
@@ -4815,6 +4939,61 @@ class ResolveVoiceRequest(BaseModel):
     transcript: str
     options: list
 
+def build_local_careerbuddy_response(user, result, user_message: str) -> str:
+    """Useful no-key fallback for CareerBuddy so local/demo chat still helps students."""
+    message = (user_message or "").lower()
+    archetype = getattr(result, "phase_2_category", None) if result else None
+    stream = getattr(result, "recommended_stream", None) if result else None
+    grade = getattr(result, "selected_class", None) if result else None
+    personality = getattr(result, "personality", None) if result else None
+    focus = stream or archetype or "your current career direction"
+
+    if any(word in message for word in ("college", "university", "institute")):
+        return (
+            f"Based on your profile, start college research around **{focus}**.\n\n"
+            "1. Shortlist 5-8 colleges that offer the relevant course.\n"
+            "2. Compare fees, placements, location, entrance requirements, and practical exposure.\n"
+            "3. Keep one ambitious option, three realistic options, and two backup options.\n\n"
+            "On CareStance, use **Colleges** from your dashboard to generate a more specific list."
+        )
+
+    if any(word in message for word in ("roadmap", "plan", "study", "steps", "prepare")):
+        return (
+            f"Here is a simple starting roadmap for **{focus}**:\n\n"
+            "1. **Foundation:** revise the core subjects and concepts connected to this path.\n"
+            "2. **Skill Practice:** complete one small project, case study, or practical task every week.\n"
+            "3. **Proof of Work:** keep notes, certificates, screenshots, or portfolio links.\n"
+            "4. **Guidance:** discuss confusing steps with a counsellor or CareerBuddy before changing direction.\n\n"
+            "Best next action: pick one milestone you can finish in the next 7 days."
+        )
+
+    if any(word in message for word in ("strength", "weakness", "personality", "match")):
+        return (
+            f"Looking at your profile, your current signal is **{archetype or personality or 'still being refined'}**.\n\n"
+            "**Likely strengths:** focused decision-making, willingness to explore, and career curiosity.\n"
+            "**Growth areas:** make your choices more evidence-based, compare options calmly, and test careers through small simulations.\n\n"
+            "A good next step is to try the **Career Simulation** from your dashboard and see how you respond to a real-world scenario."
+        )
+
+    if any(word in message for word in ("exam", "entrance", "test")):
+        return (
+            f"For **{focus}**, do not choose exams randomly.\n\n"
+            "1. First decide the target course or career cluster.\n"
+            "2. List the common entrance exams for that course.\n"
+            "3. Check eligibility, syllabus, exam month, and application deadline.\n"
+            "4. Build a weekly prep plan around the highest-value exam first.\n\n"
+            "Tell me your target course and city/state, and I can help you narrow the exam list."
+        )
+
+    return (
+        f"Hi {user.full_name or 'there'}, I can help you with **{focus}**.\n\n"
+        "Here are three useful next moves:\n"
+        "1. Ask me to explain your strengths and growth areas.\n"
+        "2. Ask for a weekly study or career roadmap.\n"
+        "3. Try the dashboard **Career Simulation** to test your real-world fit.\n\n"
+        f"Your current context: grade/class **{grade or 'not set'}**, recommendation **{focus}**."
+    )
+
 @app.get("/chatbot", response_class=HTMLResponse)
 async def chatbot_page(request: Request, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
@@ -4963,9 +5142,13 @@ Response (Concise, Markdown formatted):
                                         yield text_chunk
                             except Exception as gemini_e:
                                 print(f"Chatbot Gemini Error: {gemini_e}")
-                                yield f"I'm sorry, both AI services are currently unavailable. (Groq: {str(groq_e)}, Gemini: {str(gemini_e)})"
+                                fallback = build_local_careerbuddy_response(user, result, user_message)
+                                full_response_text += fallback
+                                yield fallback
                         else:
-                            yield f"AI Service error: {str(groq_e)}"
+                            fallback = build_local_careerbuddy_response(user, result, user_message)
+                            full_response_text += fallback
+                            yield fallback
                 elif GEMINI_API_KEY:
                     try:
                         print(f"AI Chat for User {user_id}: Trying Gemini...")
@@ -4977,16 +5160,17 @@ Response (Concise, Markdown formatted):
                                 full_response_text += text_chunk
                                 yield text_chunk
                     except Exception as gemini_e:
-                        yield f"AI Service error: {str(gemini_e)}"
+                        fallback = build_local_careerbuddy_response(user, result, user_message)
+                        full_response_text += fallback
+                        yield fallback
                 else:
-                     # Demo Mode Simulation
-                     fake_response = "I'm in demo mode (No API Key). Based on your profile, I'd suggest exploring based on your interests! (Please set GEMINI_API_KEY or GROQ_API_KEY to get real AI responses)"
-                     for word in fake_response.split():
+                     fallback = build_local_careerbuddy_response(user, result, user_message)
+                     for word in fallback.split():
                          text_chunk = word + " "
                          full_response_text += text_chunk
                          yield text_chunk
                          import asyncio
-                         await asyncio.sleep(0.05) 
+                         await asyncio.sleep(0.02)
                 
                 # Save AI Message using local_db
                 if full_response_text:
