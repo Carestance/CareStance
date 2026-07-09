@@ -7,209 +7,456 @@
 {% block title %}Community | CareStance{% endblock %}
 
 {% block content %}
+<!-- GLOBAL ANIMATED BACKGROUND: teal/turquoise waves + floating glass bubbles, fixed behind all content (copied from landing.html) -->
+<div class="site-bg" aria-hidden="true">
+    <div class="site-bg-waves">
+        <svg class="site-bg-wave wave-1" viewBox="0 0 800 1400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0,1400 L0,300 C150,250 220,420 320,480 C440,560 520,380 620,460 C700,520 760,700 800,780 L800,1400 Z" fill="#cdeeec" />
+        </svg>
+        <svg class="site-bg-wave wave-2" viewBox="0 0 800 1400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0,1400 L0,520 C120,460 200,620 300,640 C420,665 500,520 610,560 C700,592 760,760 800,860 L800,1400 Z" fill="#9fdcd8" />
+        </svg>
+        <svg class="site-bg-wave wave-3" viewBox="0 0 800 1400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0,1400 L0,760 C140,720 240,860 360,880 C480,900 560,780 660,820 C730,848 780,950 800,1020 L800,1400 Z" fill="#6fc1bd" />
+        </svg>
+    </div>
+    <div class="site-bg-bubble b1"></div>
+    <div class="site-bg-bubble b2"></div>
+    <div class="site-bg-bubble b3"></div>
+    <div class="site-bg-bubble b4"></div>
+    <div class="site-bg-bubble b5"></div>
+    <div class="site-bg-bubble b6"></div>
+</div>
+
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
 
 <style>
-    .archetype-badge {
-        background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(99, 102, 241, 0.15));
-        border: 1px solid rgba(139, 92, 246, 0.3);
+    /* ===================================================================
+       GLOBAL ANIMATED BACKGROUND — copied 1:1 from landing.html: layered
+       teal/turquoise wave SVGs + floating glass bubbles, fixed behind
+       everything via position:fixed + z-index:-1 (so it always shows,
+       even above/behind the navbar, regardless of any parent background).
+       =================================================================== */
+    .site-bg {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: -1;
+        overflow: hidden;
+        background: linear-gradient(160deg, #d7f3f1 0%, #bfe9e6 28%, #9ddcd9 55%, #6fc4c2 78%, #4fb0ae 100%);
     }
 
-    .student-card {
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    .site-bg-waves {
+        position: absolute;
+        inset: -10% -10% -10% -10%;
+        width: 120%;
+        height: 120%;
     }
 
-    .student-card:hover {
-        transform: translateY(-6px);
-        box-shadow: 0 20px 40px -12px rgba(139, 92, 246, 0.25);
+    .site-bg-wave {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
     }
 
-    .connect-btn {
-        transition: all 0.3s ease;
+    .site-bg-wave.wave-1 { animation: bgDrift1 38s ease-in-out infinite; opacity: 0.55; }
+    .site-bg-wave.wave-2 { animation: bgDrift2 46s ease-in-out infinite; opacity: 0.5; }
+    .site-bg-wave.wave-3 { animation: bgDrift3 54s ease-in-out infinite; opacity: 0.4; }
+
+    @keyframes bgDrift1 { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(-2%, 2%) scale(1.04); } }
+    @keyframes bgDrift2 { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(2.5%, -1.5%) scale(1.05); } }
+    @keyframes bgDrift3 { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(-1.5%, -2%) scale(1.03); } }
+
+    /* Floating glassy bubbles, like the reference image */
+    .site-bg-bubble {
+        position: absolute;
+        border-radius: 50%;
+        background: radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.85) 0%, rgba(102, 158, 167, 0.25) 35%, rgba(103, 211, 210, 0.383) 70%, transparent 100%);
+        filter: blur(0.5px);
+        will-change: transform;
     }
 
-    .connect-btn:hover {
-        transform: scale(1.05);
+    .site-bg-bubble.b1 { width: 380px; height: 380px; top: -6%; right: 4%; animation: bubbleFloat1 24s ease-in-out infinite; }
+    .site-bg-bubble.b2 {
+        width: 220px; height: 220px; top: 18%; right: 22%;
+        background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.9) 0%, rgba(56, 189, 248, 0.55) 40%, rgba(13, 148, 136, 0.2) 75%, transparent 100%);
+        animation: bubbleFloat2 19s ease-in-out infinite;
+    }
+    .site-bg-bubble.b3 {
+        width: 120px; height: 120px; top: 38%; right: 6%;
+        background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.95) 0%, rgba(45, 212, 191, 0.6) 45%, transparent 100%);
+        animation: bubbleFloat3 16s ease-in-out infinite;
+    }
+    .site-bg-bubble.b4 { width: 150px; height: 150px; top: 58%; left: 4%; animation: bubbleFloat2 21s ease-in-out infinite reverse; }
+    .site-bg-bubble.b5 {
+        width: 90px; height: 90px; top: 80%; left: 18%;
+        background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.9) 0%, rgba(56, 189, 248, 0.5) 45%, transparent 100%);
+        animation: bubbleFloat1 17s ease-in-out infinite reverse;
+    }
+    .site-bg-bubble.b6 { width: 260px; height: 260px; bottom: -8%; right: 12%; animation: bubbleFloat3 27s ease-in-out infinite; }
+
+    @keyframes bubbleFloat1 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-18px, 22px); } }
+    @keyframes bubbleFloat2 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(16px, -20px); } }
+    @keyframes bubbleFloat3 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-14px, -16px); } }
+
+    @media (max-width: 768px) {
+        .site-bg-bubble.b1 { width: 220px; height: 220px; }
+        .site-bg-bubble.b2 { width: 130px; height: 130px; }
+        .site-bg-bubble.b6 { width: 160px; height: 160px; }
     }
 
-    @keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
+    /* ===================================================================
+       CareStance Community — Rebuilt with dependable, self-contained CSS.
+       The previous version relied heavily on bracket-syntax Tailwind
+       utilities (bg-gradient-to-br from-[var(--navy)] to-[var(--teal)],
+       etc). Those are dynamic-looking to Tailwind's build-time purge scan
+       and get silently stripped in production, which is why the page came
+       through with no real gradients, no real grid gaps, default black
+       browser text and no fonts — basically unstyled HTML. Every color,
+       gradient, grid and hover rule below is real CSS in this file, so it
+       always ships regardless of the purge step.
+       =================================================================== */
 
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
+    .cns-comm-wrap {
+        font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        color: #0f172a;
     }
 
-    .animate-card {
-        animation: fadeInUp 0.5s ease-out forwards;
+    /* ---------- Hero ---------- */
+    .cns-hero {
+        position: relative;
+        overflow: hidden;
+        max-width: 80vw;
+        margin-left: auto;
+        margin-right: auto;
+        border-radius: 1.75rem;
+        background: linear-gradient(135deg, #14464B 0%, #1C5B57 45%, #0D9488 130%);
+        color: #fff;
+        box-shadow: 0 25px 50px -20px rgba(14, 42, 46, 0.35);
+    }
+    .cns-hero::before, .cns-hero::after {
+        content: '';
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(60px);
+        pointer-events: none;
+    }
+    .cns-hero::before {
+        width: 320px; height: 320px;
+        top: -110px; right: -80px;
+        background: radial-gradient(circle, rgba(45, 212, 191, 0.45), transparent 70%);
+    }
+    .cns-hero::after {
+        width: 300px; height: 300px;
+        bottom: -120px; left: -60px;
+        background: radial-gradient(circle, rgba(56, 189, 248, 0.30), transparent 70%);
+    }
+    .cns-hero-icon {
+        width: 3rem; height: 3rem; border-radius: 1rem;
+        background: linear-gradient(135deg, #2DD4BF, #0D9488);
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 10px 20px -6px rgba(13, 148, 136, 0.6);
+    }
+    .cns-chip {
+        background: rgba(255, 255, 255, 0.10);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        backdrop-filter: blur(10px);
+        transition: transform 0.25s ease, background 0.25s ease;
+    }
+    .cns-chip:hover { background: rgba(255, 255, 255, 0.18); transform: translateY(-2px); }
+    .cns-avatar-chip {
+        width: 2.5rem; height: 2.5rem; border-radius: 50%;
+        background: linear-gradient(135deg, #2DD4BF, #0D9488);
+        display: flex; align-items: center; justify-content: center;
+        color: #fff; font-weight: 800; box-shadow: 0 6px 14px -4px rgba(13,148,136,0.6);
+    }
+    .cns-pending-badge {
+        position: absolute; top: -0.5rem; right: -0.5rem;
+        height: 1.5rem; width: 1.5rem; border-radius: 50%;
+        background: #f43f5e; color: #fff; font-size: 0.65rem; font-weight: 800;
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 4px 10px -2px rgba(244, 63, 94, 0.7);
+        animation: cns-pulse 1.8s ease-in-out infinite;
+    }
+    @keyframes cns-pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.12); }
+    }
+    .cns-search {
+        width: 100%;
+        padding: 0.9rem 1.1rem 0.9rem 3rem;
+        border-radius: 1rem;
+        background: rgba(255, 255, 255, 0.10);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        color: #fff;
+        font-size: 0.9rem;
+        font-weight: 500;
+        transition: box-shadow 0.25s ease, background 0.25s ease;
+    }
+    .cns-search::placeholder { color: rgba(255, 255, 255, 0.55); }
+    .cns-search:focus {
+        outline: none;
+        background: rgba(255, 255, 255, 0.16);
+        box-shadow: 0 0 0 4px rgba(45, 212, 191, 0.30);
+    }
+
+    /* ---------- Section headers ---------- */
+    .cns-section-icon {
+        width: 2.5rem; height: 2.5rem; border-radius: 0.85rem;
+        display: flex; align-items: center; justify-content: center;
+        color: #fff; font-weight: 800;
+        background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
+        box-shadow: 0 8px 18px -6px var(--accent-shadow);
+    }
+    .cns-count-pill {
+        background: var(--accent-soft);
+        color: var(--accent-text);
+        font-weight: 800;
+        font-size: 0.7rem;
+        padding: 0.3rem 0.75rem;
+        border-radius: 999px;
+    }
+
+    /* ---------- Grid (safety net — real CSS grid, not dependent on
+       Tailwind's responsive utility scan) ---------- */
+    .cns-grid {
+        display: grid;
+        grid-template-columns: repeat(1, minmax(0, 1fr));
+        gap: 1.35rem;
+    }
+    @media (min-width: 640px)  { .cns-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (min-width: 1024px) { .cns-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    @media (min-width: 1280px) { .cns-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+    /* ---------- Student cards ---------- */
+    .cns-card {
+        background: rgba(255, 255, 255, 0.92);
+        border: 1px solid #eef2f0;
+        border-radius: 1.25rem;
+        overflow: hidden;
+        box-shadow: 0 8px 20px -12px rgba(15, 42, 46, 0.18);
+        transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.35s cubic-bezier(0.4, 0, 0.2, 1);
         opacity: 0;
+        animation: cns-fade-up 0.5s ease-out forwards;
+    }
+    .cns-card:hover {
+        transform: translateY(-7px) scale(1.015);
+        box-shadow: 0 26px 45px -18px var(--accent-shadow);
+    }
+    @keyframes cns-fade-up {
+        from { opacity: 0; transform: translateY(18px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    .cns-card-header {
+        height: 5.25rem;
+        position: relative;
+        background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
+    }
+    .cns-avatar-ring {
+        position: absolute; bottom: -1.75rem; left: 50%;
+        transform: translateX(-50%);
+        width: 4rem; height: 4rem; border-radius: 1.1rem;
+        object-fit: cover;
+        border: 3px solid #fff;
+        box-shadow: 0 10px 20px -8px rgba(15, 42, 46, 0.35);
+    }
+    .cns-card-body { padding: 2.25rem 1.25rem 1.4rem; text-align: center; }
+    .cns-card-name {
+        font-weight: 800; color: #0f172a; font-size: 1rem;
+        transition: color 0.2s ease;
+    }
+    .cns-card-name:hover { color: var(--accent-b); }
+    .cns-badge-archetype {
+        background: var(--accent-soft);
+        color: var(--accent-text);
+        font-size: 0.68rem; font-weight: 800;
+        padding: 0.32rem 0.7rem; border-radius: 999px;
+    }
+    .cns-badge-personality {
+        background: #f1f5f9; color: #475569;
+        font-size: 0.68rem; font-weight: 800;
+        padding: 0.32rem 0.7rem; border-radius: 999px;
+    }
+    .cns-bio {
+        font-size: 0.75rem; color: #64748b; margin-top: 0.85rem;
+        line-height: 1.5;
+        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
     }
 
-    .search-glow:focus {
-        box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.15);
+    /* ---------- Buttons ---------- */
+    .cns-btn {
+        display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
+        font-size: 0.72rem; font-weight: 800;
+        padding: 0.55rem 0.9rem;
+        border-radius: 0.85rem;
+        transition: transform 0.22s ease, box-shadow 0.22s ease, background 0.22s ease;
+        border: none; cursor: pointer; width: 100%;
+    }
+    .cns-btn:hover { transform: scale(1.045); }
+    .cns-btn-primary {
+        background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
+        color: #fff;
+        box-shadow: 0 10px 22px -8px var(--accent-shadow);
+    }
+    .cns-btn-success { background: #d1fae5; color: #047857; }
+    .cns-btn-success:hover { background: #a7f3d0; }
+    .cns-btn-muted { background: #f1f5f9; color: #475569; }
+    .cns-btn-muted:hover { background: #e2e8f0; }
+    .cns-btn-warn { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+    .cns-btn-warn:hover { background: #fde68a; }
+    .cns-btn-icon-only { width: auto; padding: 0.55rem 0.8rem; flex: 0 0 auto; }
+    .cns-btn-soft {
+        background: var(--accent-soft); color: var(--accent-text);
+        border: 1px solid var(--accent-soft);
+    }
+
+    /* ---------- Accent themes (scoped via CSS variables, cascades to
+       every .cns-card / .cns-section-icon / .cns-btn inside) ---------- */
+    .cns-accent-mint  { --accent-a:#34d399; --accent-b:#0d9488; --accent-soft:#d1fae5; --accent-text:#047857; --accent-shadow:rgba(13,148,136,0.35); }
+    .cns-accent-sky   { --accent-a:#38bdf8; --accent-b:#0284c7; --accent-soft:#dbeafe; --accent-text:#0369a1; --accent-shadow:rgba(2,132,199,0.32); }
+    .cns-accent-amber { --accent-a:#fbbf24; --accent-b:#d97706; --accent-soft:#fef3c7; --accent-text:#b45309; --accent-shadow:rgba(217,119,6,0.32); }
+    .cns-accent-coral { --accent-a:#fb7185; --accent-b:#e11d48; --accent-soft:#ffe4e6; --accent-text:#be123c; --accent-shadow:rgba(225,29,72,0.30); }
+    .cns-accent-violet{ --accent-a:#a78bfa; --accent-b:#7c3aed; --accent-soft:#ede9fe; --accent-text:#6d28d9; --accent-shadow:rgba(124,58,237,0.32); }
+
+    /* ---------- Empty state ---------- */
+    .cns-empty {
+        max-width: 80vw;
+        margin-left: auto;
+        margin-right: auto;
+        background: rgba(255, 255, 255, 0.9);
+        border: 1.5px solid #bfeedd;
+        border-radius: 1.75rem;
+        padding: 4rem 2rem;
+        text-align: center;
+        box-shadow: 0 20px 40px -24px rgba(15, 42, 46, 0.2);
+        transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.35s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.35s ease;
+    }
+    .cns-empty:hover {
+        transform: translateY(-4px) scale(1.015);
+        box-shadow: 0 28px 55px -24px rgba(13, 148, 136, 0.28);
+        border-color: #7fdcb8;
+    }
+    .cns-empty-icon {
+        width: 5rem; height: 5rem; margin: 0 auto 1.5rem;
+        border-radius: 50%;
+        background: #d1fae5;
+        display: flex; align-items: center; justify-content: center;
+        color: #0d9488; font-size: 1.75rem;
     }
 </style>
 
-<div class="space-y-8">
+<div class="cns-comm-wrap space-y-10">
 
     <!-- Hero Header -->
-    <div
-        class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-[var(--navy)] to-[var(--navy)] text-white shadow-2xl">
-        <div class="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 rounded-full bg-[var(--teal)] blur-3xl opacity-15">
-        </div>
-        <div class="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 rounded-full bg-[var(--teal)] blur-3xl opacity-15">
-        </div>
-        <div
-            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-pink-500 blur-3xl opacity-5">
-        </div>
-
-        <div class="relative z-10 px-8 py-12 sm:px-12">
+    <div class="cns-hero px-6 py-10 sm:px-12 sm:py-14">
+        <div class="relative z-10">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div>
                     <div class="flex items-center gap-3 mb-4">
-                        <div
-                            class="h-12 w-12 rounded-2xl bg-gradient-to-br from-[var(--teal)] to-[var(--teal)] flex items-center justify-center shadow-lg">
-                            <i class="fas fa-users text-xl"></i>
+                        <div class="cns-hero-icon">
+                            <i class="fas fa-users text-lg"></i>
                         </div>
                         <h1 class="text-3xl font-extrabold tracking-tight">Find Your Tribe</h1>
                     </div>
-                    <p class="text-[var(--teal-light)] max-w-xl text-lg">
+                    <p class="text-teal-100 max-w-xl text-base sm:text-lg" style="color:#a7f3d0;">
                         Connect with students who share your archetype and build your career network.
                     </p>
                 </div>
 
-                <div class="flex items-center gap-4">
+                <div class="flex items-center gap-3">
                     {% if my_archetype %}
-                    <div
-                        class="flex items-center gap-3 bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/10">
-                        <div
-                            class="h-10 w-10 rounded-full bg-gradient-to-br from-[var(--teal)] to-[var(--teal)] flex items-center justify-center text-white font-bold shadow-lg">
-                            {{ my_archetype[0] | upper }}
-                        </div>
+                    <div class="cns-chip flex items-center gap-3 px-4 py-3 rounded-2xl">
+                        <div class="cns-avatar-chip">{{ my_archetype[0] | upper }}</div>
                         <div>
-                            <p class="text-xs text-[var(--teal-light)] font-bold uppercase tracking-wider">Your Archetype</p>
-                            <p class="font-bold text-white">{{ my_archetype }}</p>
+                            <p class="text-[10px] font-bold uppercase tracking-wider" style="color:#a7f3d0;">Your Archetype</p>
+                            <p class="font-bold text-white text-sm">{{ my_archetype }}</p>
                         </div>
                     </div>
                     {% endif %}
 
-                    <a href="/my-connections" title="View your connections"
-                        class="relative flex items-center gap-2 bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/10 hover:bg-white/20 transition-all font-bold">
+                    <a href="/my-connections" class="cns-chip relative flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-sm text-white">
                         <i class="fas fa-user-friends"></i>
                         My Connections
                         {% if pending_count > 0 %}
-                        <span
-                            class="absolute -top-2 -right-2 h-6 w-6 bg-rose-500 text-white text-xs rounded-full flex items-center justify-center font-bold animate-pulse shadow-lg">
-                            {{ pending_count }}
-                        </span>
+                        <span class="cns-pending-badge">{{ pending_count }}</span>
                         {% endif %}
                     </a>
                 </div>
             </div>
 
             <!-- Search -->
-            <div class="mt-8 max-w-xl">
-                <div class="relative">
-                    <label for="student-search" class="sr-only">Search students by name</label>
-                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-[var(--teal-light)]"></i>
-                    <input type="text" id="student-search" placeholder="Search students by name..."
-                        title="Search students by name"
-                        class="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 text-white placeholder-[var(--teal-light)] focus:outline-none search-glow transition-all text-sm font-medium">
-                </div>
+            <div class="mt-8 max-w-xl relative">
+                <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2" style="color:#a7f3d0;"></i>
+                <input type="text" id="student-search" placeholder="Search students by name..." class="cns-search">
             </div>
         </div>
     </div>
 
     <!-- Similar Archetype Section -->
     {% if similar_students %}
-    <div>
+    <div class="cns-accent-mint">
         <div class="flex items-center gap-3 mb-6">
-            <div
-                class="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-400 to-green-600 flex items-center justify-center text-white shadow-lg">
-                <i class="fas fa-star"></i>
-            </div>
+            <div class="cns-section-icon"><i class="fas fa-star"></i></div>
             <div>
                 <h2 class="text-xl font-extrabold text-slate-900">Similar to You</h2>
-                <p class="text-sm text-slate-500">Students who share the <span class="font-bold text-[var(--navy)]">{{
-                        my_archetype }}</span> archetype</p>
+                <p class="text-sm text-slate-500">Students who share the <span class="font-bold" style="color:#0E2A2E;">{{ my_archetype }}</span> archetype</p>
             </div>
-            <span class="ml-auto px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full">{{
-                similar_students|length }} found</span>
+            <span class="ml-auto cns-count-pill">{{ similar_students|length }} found</span>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5" id="similar-grid">
+        <div class="cns-grid" id="similar-grid">
             {% for sd in similar_students %}
-            <div class="student-card animate-card bg-white/80 backdrop-blur-xl rounded-2xl border border-white/50 shadow-lg overflow-hidden"
-                data-delay="{{ loop.index0 * 0.08 }}" data-name="{{ sd.user.full_name|lower }}">
+            <div class="cns-card" style="animation-delay: {{ loop.index0 * 0.06 }}s" data-name="{{ sd.user.full_name|lower }}">
 
-                <!-- Card Header with Gradient -->
-                <div class="h-20 bg-gradient-to-br from-emerald-400 via-green-500 to-teal-600 relative">
-                    <div class="absolute -bottom-8 left-1/2 -translate-x-1/2">
-                        <img src="{{ sd.user.profile_photo if sd.user.profile_photo else 'https://ui-avatars.com/api/?name=' ~ (sd.user.full_name or 'User') ~ '&background=random&size=128' }}"
-                            alt="{{ sd.user.full_name }}"
-                            class="w-16 h-16 rounded-2xl object-cover border-4 border-white shadow-lg">
-                    </div>
+                <div class="cns-card-header">
+                    <img src="{{ sd.user.profile_photo if sd.user.profile_photo else 'https://ui-avatars.com/api/?name=' + sd.user.full_name + '&background=random&size=128' }}"
+                        alt="{{ sd.user.full_name }}" class="cns-avatar-ring">
                 </div>
 
-                <div class="pt-10 pb-5 px-5 text-center">
-                    <a href="/student/{{ sd.user.id }}" class="hover:text-[var(--navy)] transition-colors">
-                        <h3 class="font-bold text-slate-900 text-base">{{ sd.user.full_name }}</h3>
+                <div class="cns-card-body">
+                    <a href="/student/{{ sd.user.id }}">
+                        <h3 class="cns-card-name">{{ sd.user.full_name }}</h3>
                     </a>
 
-                    <div class="flex items-center justify-center gap-2 mt-2">
-                        <span class="archetype-badge px-2.5 py-1 rounded-full text-[11px] font-bold text-[var(--navy)]">
-                            {{ sd.assessment.phase_2_category }}
-                        </span>
+                    <div class="flex items-center justify-center gap-2 mt-2 flex-wrap">
+                        <span class="cns-badge-archetype">{{ sd.assessment.phase_2_category }}</span>
                         {% if sd.assessment.personality %}
-                        <span class="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full text-[11px] font-bold">
-                            {{ sd.assessment.personality }}
-                        </span>
+                        <span class="cns-badge-personality">{{ sd.assessment.personality }}</span>
                         {% endif %}
                     </div>
 
                     {% if sd.user.bio %}
-                    <p class="text-xs text-slate-500 mt-3 line-clamp-2 leading-relaxed">{{ sd.user.bio[:100] }}{% if
-                        sd.user.bio|length > 100 %}...{% endif %}</p>
+                    <p class="cns-bio">{{ sd.user.bio[:100] }}{% if sd.user.bio|length > 100 %}...{% endif %}</p>
                     {% endif %}
 
                     <div class="mt-4">
                         {% if sd.connection %}
                         {% if sd.connection.status == 'accepted' %}
                         <div class="flex gap-2">
-                            <a href="/connection/{{ sd.connection.conn_id }}/chat"
-                                title="Chat with {{ sd.user.full_name }}"
-                                class="connect-btn flex-1 px-4 py-2 bg-[var(--navy)] text-white rounded-xl text-xs font-bold hover:bg-[var(--teal)] shadow-md flex items-center justify-center gap-2">
+                            <a href="/connection/{{ sd.connection.conn_id }}/chat" class="cns-btn cns-btn-primary flex-1">
                                 <i class="fas fa-comment"></i> Message
                             </a>
-                            <a href="/student/{{ sd.user.id }}"
-                                title="View {{ sd.user.full_name }}'s profile"
-                                class="connect-btn px-4 py-2 bg-[var(--teal-soft)] text-[var(--navy)] rounded-xl text-xs font-bold hover:bg-[var(--teal-soft)] transition-all border border-[var(--teal-light)]">
+                            <a href="/student/{{ sd.user.id }}" class="cns-btn cns-btn-soft cns-btn-icon-only">
                                 <i class="fas fa-user"></i>
                             </a>
                         </div>
                         {% elif sd.connection.status == 'pending' and sd.connection.is_requester %}
                         <form action="/connection/{{ sd.connection.conn_id }}/withdraw" method="POST" class="w-full">
-                            <button type="submit"
-                                class="inline-flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-600 rounded-xl text-[10px] font-bold w-full justify-center hover:bg-amber-100 transition-all border border-amber-100">
+                            <button type="submit" class="cns-btn cns-btn-warn">
                                 <i class="fas fa-clock"></i> Withdraw
                             </button>
                         </form>
                         {% elif sd.connection.status == 'pending' and not sd.connection.is_requester %}
                         <div class="flex gap-2">
                             <form action="/connection/{{ sd.connection.conn_id }}/accept" method="POST" class="flex-1">
-                                <button type="submit"
-                                    class="connect-btn w-full px-3 py-2 bg-[var(--navy)] text-white rounded-xl text-xs font-bold hover:bg-[var(--teal)]">
+                                <button type="submit" class="cns-btn cns-btn-primary">
                                     <i class="fas fa-check"></i> Accept
                                 </button>
                             </form>
                             <form action="/connection/{{ sd.connection.conn_id }}/reject" method="POST" class="flex-1">
-                                <button type="submit"
-                                    title="Decline request"
-                                    class="connect-btn w-full px-3 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-200">
+                                <button type="submit" class="cns-btn cns-btn-muted">
                                     <i class="fas fa-times"></i>
                                 </button>
                             </form>
@@ -217,8 +464,7 @@
                         {% endif %}
                         {% else %}
                         <form action="/connect/{{ sd.user.id }}" method="POST">
-                            <button type="submit"
-                                class="connect-btn inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[var(--navy)] to-[var(--teal)] text-white rounded-xl text-xs font-bold w-full justify-center hover:from-[var(--navy)] hover:to-[var(--navy)] shadow-lg shadow-[var(--teal-soft)]">
+                            <button type="submit" class="cns-btn cns-btn-primary">
                                 <i class="fas fa-user-plus"></i> Connect
                             </button>
                         </form>
@@ -232,80 +478,63 @@
     {% endif %}
 
     <!-- Other Archetypes -->
+    {% set accent_cycle = ['cns-accent-sky', 'cns-accent-amber', 'cns-accent-coral', 'cns-accent-violet'] %}
     {% for archetype, students in other_archetypes.items() %}
-    <div>
+    <div class="{{ accent_cycle[loop.index0 % accent_cycle|length] }}">
         <div class="flex items-center gap-3 mb-6 mt-4">
-            <div
-                class="h-10 w-10 rounded-xl bg-gradient-to-br from-[var(--teal)] to-[var(--teal)] flex items-center justify-center text-white shadow-lg font-bold">
-                {{ archetype[0] | upper }}
-            </div>
+            <div class="cns-section-icon">{{ archetype[0] | upper }}</div>
             <div>
                 <h2 class="text-xl font-extrabold text-slate-900">{{ archetype }}</h2>
-                <p class="text-sm text-slate-500">{{ students|length }} student{{ 's' if students|length > 1 else '' }}
-                </p>
+                <p class="text-sm text-slate-500">{{ students|length }} student{{ 's' if students|length > 1 else '' }}</p>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+        <div class="cns-grid">
             {% for sd in students %}
-            <div class="student-card animate-card bg-white/80 backdrop-blur-xl rounded-2xl border border-white/50 shadow-lg overflow-hidden"
-                data-delay="{{ loop.index0 * 0.08 }}" data-name="{{ sd.user.full_name|lower }}">
+            <div class="cns-card" style="animation-delay: {{ loop.index0 * 0.06 }}s" data-name="{{ sd.user.full_name|lower }}">
 
-                <div class="h-20 bg-gradient-to-br from-[var(--teal)] via-[var(--teal)] to-[var(--teal)] relative">
-                    <div class="absolute -bottom-8 left-1/2 -translate-x-1/2">
-                        <img src="{{ sd.user.profile_photo if sd.user.profile_photo else 'https://ui-avatars.com/api/?name=' ~ (sd.user.full_name or 'User') ~ '&background=random&size=128' }}"
-                            alt="{{ sd.user.full_name }}"
-                            class="w-16 h-16 rounded-2xl object-cover border-4 border-white shadow-lg">
-                    </div>
+                <div class="cns-card-header">
+                    <img src="{{ sd.user.profile_photo if sd.user.profile_photo else 'https://ui-avatars.com/api/?name=' + sd.user.full_name + '&background=random&size=128' }}"
+                        alt="{{ sd.user.full_name }}" class="cns-avatar-ring">
                 </div>
 
-                <div class="pt-10 pb-5 px-5 text-center">
-                    <a href="/student/{{ sd.user.id }}" class="hover:text-[var(--navy)] transition-colors">
-                        <h3 class="font-bold text-slate-900 text-base">{{ sd.user.full_name }}</h3>
+                <div class="cns-card-body">
+                    <a href="/student/{{ sd.user.id }}">
+                        <h3 class="cns-card-name">{{ sd.user.full_name }}</h3>
                     </a>
 
-                    <div class="flex items-center justify-center gap-2 mt-2">
-                        <span class="archetype-badge px-2.5 py-1 rounded-full text-[11px] font-bold text-[var(--navy)]">
-                            {{ sd.assessment.phase_2_category }}
-                        </span>
+                    <div class="flex items-center justify-center gap-2 mt-2 flex-wrap">
+                        <span class="cns-badge-archetype">{{ sd.assessment.phase_2_category }}</span>
                         {% if sd.assessment.personality %}
-                        <span class="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full text-[11px] font-bold">
-                            {{ sd.assessment.personality }}
-                        </span>
+                        <span class="cns-badge-personality">{{ sd.assessment.personality }}</span>
                         {% endif %}
                     </div>
 
                     {% if sd.user.bio %}
-                    <p class="text-xs text-slate-500 mt-3 line-clamp-2 leading-relaxed">{{ sd.user.bio[:100] }}{% if
-                        sd.user.bio|length > 100 %}...{% endif %}</p>
+                    <p class="cns-bio">{{ sd.user.bio[:100] }}{% if sd.user.bio|length > 100 %}...{% endif %}</p>
                     {% endif %}
 
                     <div class="mt-4">
                         {% if sd.connection %}
                         {% if sd.connection.status == 'accepted' %}
-                        <a href="/student/{{ sd.user.id }}"
-                            class="connect-btn inline-flex items-center gap-2 px-4 py-2 bg-emerald-100 text-emerald-700 rounded-xl text-xs font-bold w-full justify-center">
+                        <a href="/student/{{ sd.user.id }}" class="cns-btn cns-btn-success">
                             <i class="fas fa-check-circle"></i> Connected
                         </a>
                         {% elif sd.connection.status == 'pending' and sd.connection.is_requester %}
                         <form action="/connection/{{ sd.connection.conn_id }}/withdraw" method="POST" class="w-full">
-                            <button type="submit"
-                                class="inline-flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-600 rounded-xl text-[10px] font-bold w-full justify-center hover:bg-amber-100 transition-all border border-amber-100">
+                            <button type="submit" class="cns-btn cns-btn-warn">
                                 <i class="fas fa-clock"></i> Withdraw
                             </button>
                         </form>
                         {% elif sd.connection.status == 'pending' and not sd.connection.is_requester %}
                         <div class="flex gap-2">
                             <form action="/connection/{{ sd.connection.conn_id }}/accept" method="POST" class="flex-1">
-                                <button type="submit"
-                                    class="connect-btn w-full px-3 py-2 bg-[var(--navy)] text-white rounded-xl text-xs font-bold hover:bg-[var(--teal)]">
+                                <button type="submit" class="cns-btn cns-btn-primary">
                                     <i class="fas fa-check"></i> Accept
                                 </button>
                             </form>
                             <form action="/connection/{{ sd.connection.conn_id }}/reject" method="POST" class="flex-1">
-                                <button type="submit"
-                                    title="Decline request"
-                                    class="connect-btn w-full px-3 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-200">
+                                <button type="submit" class="cns-btn cns-btn-muted">
                                     <i class="fas fa-times"></i>
                                 </button>
                             </form>
@@ -313,8 +542,7 @@
                         {% endif %}
                         {% else %}
                         <form action="/connect/{{ sd.user.id }}" method="POST">
-                            <button type="submit"
-                                class="connect-btn inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[var(--navy)] to-[var(--teal)] text-white rounded-xl text-xs font-bold w-full justify-center hover:from-[var(--navy)] hover:to-[var(--navy)] shadow-lg shadow-[var(--teal-soft)]">
+                            <button type="submit" class="cns-btn cns-btn-primary">
                                 <i class="fas fa-user-plus"></i> Connect
                             </button>
                         </form>
@@ -329,15 +557,14 @@
 
     {% if not similar_students and not other_archetypes %}
     <!-- Empty State -->
-    <div class="bg-white/70 backdrop-blur-xl rounded-3xl p-16 shadow-xl border border-white/50 text-center">
-        <div class="w-20 h-20 mx-auto bg-[var(--teal-soft)] rounded-full flex items-center justify-center mb-6">
-            <i class="fas fa-users text-3xl text-[var(--teal)]"></i>
+    <div class="cns-empty">
+        <div class="cns-empty-icon">
+            <i class="fas fa-users"></i>
         </div>
         <h3 class="text-xl font-bold text-slate-900 mb-2">No Students Yet</h3>
         <p class="text-slate-500 max-w-md mx-auto">Be one of the first students to complete your assessment and start
             building your career network!</p>
-        <a href="/dashboard"
-            class="inline-block mt-6 px-6 py-3 bg-gradient-to-r from-[var(--navy)] to-[var(--teal)] text-white rounded-xl font-bold hover:from-[var(--navy)] hover:to-[var(--navy)] shadow-lg shadow-[var(--teal-soft)] transition-all">
+        <a href="/dashboard" class="cns-btn cns-accent-mint cns-btn-primary" style="width:auto; display:inline-flex; margin-top:1.5rem; padding:0.85rem 1.75rem;">
             Go to Dashboard
         </a>
     </div>
@@ -346,21 +573,11 @@
 
 <!-- Search Script -->
 <script>
-    // Apply animation delays and search logic
-    document.addEventListener('DOMContentLoaded', () => {
-        const studentCards = document.querySelectorAll('.student-card');
-        studentCards.forEach(card => {
-            if (card.dataset.delay) {
-                card.style.animationDelay = card.dataset.delay + 's';
-            }
-        });
-
-        document.getElementById('student-search').addEventListener('input', function (e) {
-            const query = e.target.value.toLowerCase();
-            studentCards.forEach(card => {
-                const name = card.dataset.name || '';
-                card.style.display = name.includes(query) ? '' : 'none';
-            });
+    document.getElementById('student-search').addEventListener('input', function (e) {
+        const query = e.target.value.toLowerCase();
+        document.querySelectorAll('.cns-card').forEach(card => {
+            const name = card.dataset.name || '';
+            card.style.display = name.includes(query) ? '' : 'none';
         });
     });
 </script>
