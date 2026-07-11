@@ -19,9 +19,14 @@ class User(Base):
     last_login = Column(DateTime(timezone=True), nullable=True)
 
     onboarded = Column(Boolean, default=False, index=True)
+    assessments_completed = Column(Integer, default=0, nullable=False)
     simulations_completed = Column(Integer, default=0, nullable=False)
     simulation_paid = Column(Boolean, default=False, nullable=False)
     simulation_credits = Column(Integer, default=0, nullable=False)
+    subscription_plan = Column(String, nullable=True, index=True)
+    subscription_status = Column(String, nullable=True, index=True)
+    subscription_started_at = Column(DateTime(timezone=True), nullable=True)
+    subscription_expires_at = Column(DateTime(timezone=True), nullable=True)
     
     assessment = relationship("AssessmentResult", back_populates="user", uselist=False)
     given_ratings = relationship("CounselorRating", foreign_keys="[CounselorRating.student_id]", back_populates="student")
@@ -351,5 +356,20 @@ class SimulationPayment(Base):
 
     career = Column(String, nullable=True, index=True)
     created_at = Column(DateTime, default=func.now())
+
+    user = relationship("User")
+
+class SubscriptionPayment(Base):
+    __tablename__ = "subscription_payments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    plan = Column(String, index=True)
+    razorpay_order_id = Column(String, nullable=True, index=True)
+    razorpay_payment_id = Column(String, nullable=True, index=True)
+    amount = Column(Float, index=True)
+    status = Column(String, default="success", nullable=True, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    expires_at = Column(DateTime(timezone=True), nullable=True, index=True)
 
     user = relationship("User")

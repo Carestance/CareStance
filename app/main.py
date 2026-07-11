@@ -25,6 +25,7 @@ from sqlalchemy.orm import selectinload, joinedload
 from sqlalchemy import select, and_, or_, func
 from .database import AsyncSessionLocal, engine, get_db, Base, SQLALCHEMY_DATABASE_URL
 import re
+from app.pipeline.vector_utils import classify_archetype
 
 def sync_assessment_to_appwrite(user_id, result):
     pass  # Appwrite sync disabled — local DB only
@@ -43,6 +44,8 @@ from .data.career_keywords import career_keywords
 from .utils.resource_aggregator import ResourceAggregator
 from .services import simulation_service
 from .services import assessment_engine
+
+LIVE_SIMULATION_SESSIONS = {}
 
 try:
     from app.pipeline.feature_extractor import FeatureExtractor
@@ -95,12 +98,111 @@ RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID", "rzp_test_your_key_id")
 RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET", "your_key_secret")
 razorpay_client = None
 
+def is_razorpay_configured():
+    return (
+        RAZORPAY_KEY_ID.startswith("rzp_")
+        and RAZORPAY_KEY_ID != "rzp_test_your_key_id"
+        and RAZORPAY_KEY_SECRET
+        and RAZORPAY_KEY_SECRET != "your_key_secret"
+    )
+
 def get_razorpay_client():
+    if not is_razorpay_configured():
+        raise RuntimeError("Razorpay is not configured. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET.")
     global razorpay_client
     if razorpay_client is None:
         import razorpay
         razorpay_client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
     return razorpay_client
+
+SUBSCRIPTION_PLANS = {
+    "critical": {
+        "name": "Critical",
+        "amount": 200,
+        "tagline": "Monthly report and roadmap plan",
+        "features": [
+            "10-15 page detailed assessment report",
+            "Personalized roadmap",
+            "Curated learning resources",
+            "Progress tracking",
+            "College recommendation",
+        ],
+    },
+    "customised": {
+        "name": "Customised",
+        "amount": 250,
+        "tagline": "Monthly plan with weekly AI follow-up",
+        "features": [
+            "Everything in Critical",
+            "Weekly AI conversation",
+            "AI progress tracking",
+            "College recommendation",
+            "More personalized next-step support",
+        ],
+    },
+}
+
+def get_assessment_display_archetype(result) -> str:
+    if not result:
+        return "Explorer"
+    if result.phase_2_category:
+        return result.phase_2_category
+    if result.recommended_stream:
+        return result.recommended_stream
+    if result.assessment_report:
+        trait = result.assessment_report.get("riasec_analysis", {}).get("dominant_trait")
+        if trait:
+            return trait
+    raw = result.personality
+    if not raw:
+        return "Explorer"
+    if isinstance(raw, str):
+        stripped = raw.strip()
+        if stripped.startswith("{") or stripped.startswith("["):
+            try:
+                parsed = json.loads(stripped)
+                if isinstance(parsed, dict) and parsed:
+                    best_key = max(parsed, key=lambda key: parsed.get(key) or 0)
+                    return str(best_key).replace("_", " ").title()
+            except Exception:
+                return "Explorer"
+        return stripped
+    return "Explorer"
+
+def get_subscription_state(user) -> dict:
+    now = datetime.datetime.utcnow()
+    expires_at = getattr(user, "subscription_expires_at", None)
+    is_active = (
+        getattr(user, "subscription_status", None) == "active"
+        and expires_at is not None
+        and expires_at > now
+    )
+    return {
+        "active": is_active,
+        "plan": getattr(user, "subscription_plan", None) if is_active else None,
+        "expires_at": expires_at if is_active else None,
+    }
+
+def has_completed_assessment(result) -> bool:
+    return bool(
+        result
+        and (
+            result.assessment_report
+            or result.recommended_stream
+            or result.final_analysis
+            or result.phase_2_category
+        )
+    )
+
+async def mark_assessment_completed_once(user, result, db: AsyncSession):
+    if not user or not result:
+        return
+    raw_answers = dict(result.raw_answers or {})
+    if raw_answers.get("assessment_counted"):
+        return
+    user.assessments_completed = max(user.assessments_completed or 0, 1)
+    raw_answers["assessment_counted"] = True
+    result.raw_answers = raw_answers
 
 from .utils.redis_cache import ai_cache
 from .utils.cache_utils import user_cache
@@ -217,14 +319,18 @@ async def run_migrations():
     
     try:
         async with engine.begin() as conn:
-            inspector = await conn.run_sync(inspect)
+            def inspect_schema(sync_conn):
+                inspector = inspect(sync_conn)
+                schema = {}
+                for table_name in inspector.get_table_names():
+                    schema[table_name] = [col["name"] for col in inspector.get_columns(table_name)]
+                return schema
 
-            # Get existing columns for each table
+            schema = await conn.run_sync(inspect_schema)
+
+            # Get existing columns for each table. None means table missing; [] means table exists with no inspected columns.
             def get_columns(table_name):
-                try:
-                    return [col['name'] for col in inspector.get_columns(table_name)]
-                except Exception:
-                    return []
+                return schema.get(table_name)
 
             migrations = []
 
@@ -233,20 +339,28 @@ async def run_migrations():
             print(f"DEBUG MIGRATION: Found columns for 'users': {u_cols}", flush=True)
             
             # Always attempt to check/add these columns
-            if 'profile_photo' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN profile_photo VARCHAR")
-            if 'bio' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN bio TEXT")
-            if 'is_suspended' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN is_suspended BOOLEAN DEFAULT FALSE")
-            if 'contact_number' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN contact_number VARCHAR")
-            if 'full_name' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN full_name VARCHAR")
-            if 'role' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN role VARCHAR")
-            if 'onboarded' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN onboarded BOOLEAN DEFAULT FALSE")
-            if 'simulations_completed' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN simulations_completed INTEGER DEFAULT 0")
-            if 'simulation_paid' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN simulation_paid BOOLEAN DEFAULT FALSE")
-            if 'simulation_credits' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN simulation_credits INTEGER DEFAULT 0")
-            if 'created_at' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN created_at TIMESTAMP")
-            if 'last_login' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN last_login TIMESTAMP")
-            migrations.append("CREATE INDEX IF NOT EXISTS ix_users_full_name ON users (full_name)")
-            migrations.append("CREATE INDEX IF NOT EXISTS ix_users_onboarded ON users (onboarded)")
+            if u_cols is not None:
+                if 'profile_photo' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN profile_photo VARCHAR")
+                if 'bio' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN bio TEXT")
+                if 'is_suspended' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN is_suspended BOOLEAN DEFAULT FALSE")
+                if 'contact_number' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN contact_number VARCHAR")
+                if 'full_name' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN full_name VARCHAR")
+                if 'role' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN role VARCHAR")
+                if 'onboarded' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN onboarded BOOLEAN DEFAULT FALSE")
+                if 'assessments_completed' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN assessments_completed INTEGER DEFAULT 0")
+                if 'simulations_completed' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN simulations_completed INTEGER DEFAULT 0")
+                if 'simulation_paid' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN simulation_paid BOOLEAN DEFAULT FALSE")
+                if 'simulation_credits' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN simulation_credits INTEGER DEFAULT 0")
+                if 'subscription_plan' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN subscription_plan VARCHAR")
+                if 'subscription_status' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN subscription_status VARCHAR")
+                if 'subscription_started_at' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN subscription_started_at TIMESTAMP")
+                if 'subscription_expires_at' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN subscription_expires_at TIMESTAMP")
+                if 'created_at' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN created_at TIMESTAMP")
+                if 'last_login' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN last_login TIMESTAMP")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_users_full_name ON users (full_name)")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_users_onboarded ON users (onboarded)")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_users_subscription_plan ON users (subscription_plan)")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_users_subscription_status ON users (subscription_status)")
 
             # 2. Counsellor Profiles
             cp_cols = get_columns('counsellor_profiles')
@@ -334,6 +448,7 @@ async def run_migrations():
                     razorpay_payment_id VARCHAR,
                     amount FLOAT,
                     career VARCHAR,
+                    status VARCHAR DEFAULT 'success',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
                 """)
@@ -354,7 +469,27 @@ async def run_migrations():
             if sp_cols2:
                 if 'status' not in sp_cols2: migrations.append("ALTER TABLE simulation_payments ADD COLUMN status VARCHAR DEFAULT 'success'")
 
-            # 11. Counsellor Profiles
+            # 11. Subscription Payments
+            sub_cols = get_columns('subscription_payments')
+            if sub_cols is None:
+                migrations.append("""
+                CREATE TABLE subscription_payments (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER REFERENCES users(id),
+                    plan VARCHAR,
+                    razorpay_order_id VARCHAR,
+                    razorpay_payment_id VARCHAR,
+                    amount FLOAT,
+                    status VARCHAR DEFAULT 'success',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    expires_at TIMESTAMP
+                )
+                """)
+            elif sub_cols:
+                if 'expires_at' not in sub_cols: migrations.append("ALTER TABLE subscription_payments ADD COLUMN expires_at TIMESTAMP")
+                if 'status' not in sub_cols: migrations.append("ALTER TABLE subscription_payments ADD COLUMN status VARCHAR DEFAULT 'success'")
+
+            # 12. Counsellor Profiles
             if cp_cols:
                 if 'verification_remarks' not in cp_cols: migrations.append("ALTER TABLE counsellor_profiles ADD COLUMN verification_remarks TEXT")
 
@@ -395,50 +530,49 @@ async def _health():
 async def startup_event():
     """Run migrations on startup for local development and when explicitly enabled."""
     try:
-        # EMERGENCY FIX: Force add missing columns to 'users' table in ONE batch
-        async with engine.begin() as conn:
-            from sqlalchemy import text
-            try:
-                # Grouping into one command is much faster and prevents startup timeouts
-                # Note: IF NOT EXISTS is used for each column for safety
-                sql = """
-                ALTER TABLE users 
-                ADD COLUMN IF NOT EXISTS profile_photo VARCHAR,
-                ADD COLUMN IF NOT EXISTS bio TEXT,
-                ADD COLUMN IF NOT EXISTS is_suspended BOOLEAN DEFAULT FALSE,
-                ADD COLUMN IF NOT EXISTS contact_number VARCHAR,
-                ADD COLUMN IF NOT EXISTS full_name VARCHAR,
-                ADD COLUMN IF NOT EXISTS role VARCHAR,
-                ADD COLUMN IF NOT EXISTS onboarded BOOLEAN DEFAULT FALSE,
-                ADD COLUMN IF NOT EXISTS simulations_completed INTEGER DEFAULT 0,
-                ADD COLUMN IF NOT EXISTS simulation_paid BOOLEAN DEFAULT FALSE,
-                ADD COLUMN IF NOT EXISTS simulation_credits INTEGER DEFAULT 0,
-                ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW(),
-                ADD COLUMN IF NOT EXISTS last_login TIMESTAMP;
-                """
-                await conn.execute(text(sql))
-                print("DEBUG: Emergency batch migration for 'users' table completed.", flush=True)
-                # 2. Counsellor Profiles table
-                sql_cp = """
-                ALTER TABLE counsellor_profiles 
-                ADD COLUMN IF NOT EXISTS is_blocked BOOLEAN DEFAULT FALSE,
-                ADD COLUMN IF NOT EXISTS block_reason VARCHAR,
-                ADD COLUMN IF NOT EXISTS verification_remarks TEXT,
-                ADD COLUMN IF NOT EXISTS fee_locked BOOLEAN DEFAULT FALSE,
-                ADD COLUMN IF NOT EXISTS razorpay_account_id VARCHAR,
-                ADD COLUMN IF NOT EXISTS onboarding_status VARCHAR DEFAULT 'not_started',
-                ADD COLUMN IF NOT EXISTS razorpay_contact_id VARCHAR,
-                ADD COLUMN IF NOT EXISTS razorpay_fund_account_id VARCHAR,
-                ADD COLUMN IF NOT EXISTS is_founding_counsellor BOOLEAN DEFAULT FALSE,
-                ADD COLUMN IF NOT EXISTS founding_badge_awarded_at TIMESTAMP,
-                ADD COLUMN IF NOT EXISTS commission_free_until TIMESTAMP,
-                ADD COLUMN IF NOT EXISTS tnc_accepted BOOLEAN DEFAULT FALSE,
-                ADD COLUMN IF NOT EXISTS tnc_accepted_at TIMESTAMP;
-                """
-                await conn.execute(text(sql_cp))
-                print("DEBUG: Emergency batch migration for 'counsellor_profiles' table completed.", flush=True)
-            except Exception as e:
-                print(f"DEBUG: Emergency batch migration failed (likely already patched): {e}", flush=True)
+        if not SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
+            # EMERGENCY FIX: Force add missing columns to core tables in ONE PostgreSQL batch.
+            async with engine.begin() as conn:
+                from sqlalchemy import text
+                try:
+                    sql = """
+                    ALTER TABLE users 
+                    ADD COLUMN IF NOT EXISTS profile_photo VARCHAR,
+                    ADD COLUMN IF NOT EXISTS bio TEXT,
+                    ADD COLUMN IF NOT EXISTS is_suspended BOOLEAN DEFAULT FALSE,
+                    ADD COLUMN IF NOT EXISTS contact_number VARCHAR,
+                    ADD COLUMN IF NOT EXISTS full_name VARCHAR,
+                    ADD COLUMN IF NOT EXISTS role VARCHAR,
+                    ADD COLUMN IF NOT EXISTS onboarded BOOLEAN DEFAULT FALSE,
+                    ADD COLUMN IF NOT EXISTS assessments_completed INTEGER DEFAULT 0,
+                    ADD COLUMN IF NOT EXISTS simulations_completed INTEGER DEFAULT 0,
+                    ADD COLUMN IF NOT EXISTS simulation_paid BOOLEAN DEFAULT FALSE,
+                    ADD COLUMN IF NOT EXISTS simulation_credits INTEGER DEFAULT 0,
+                    ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW(),
+                    ADD COLUMN IF NOT EXISTS last_login TIMESTAMP;
+                    """
+                    await conn.execute(text(sql))
+                    print("DEBUG: Emergency batch migration for 'users' table completed.", flush=True)
+                    sql_cp = """
+                    ALTER TABLE counsellor_profiles 
+                    ADD COLUMN IF NOT EXISTS is_blocked BOOLEAN DEFAULT FALSE,
+                    ADD COLUMN IF NOT EXISTS block_reason VARCHAR,
+                    ADD COLUMN IF NOT EXISTS verification_remarks TEXT,
+                    ADD COLUMN IF NOT EXISTS fee_locked BOOLEAN DEFAULT FALSE,
+                    ADD COLUMN IF NOT EXISTS razorpay_account_id VARCHAR,
+                    ADD COLUMN IF NOT EXISTS onboarding_status VARCHAR DEFAULT 'not_started',
+                    ADD COLUMN IF NOT EXISTS razorpay_contact_id VARCHAR,
+                    ADD COLUMN IF NOT EXISTS razorpay_fund_account_id VARCHAR,
+                    ADD COLUMN IF NOT EXISTS is_founding_counsellor BOOLEAN DEFAULT FALSE,
+                    ADD COLUMN IF NOT EXISTS founding_badge_awarded_at TIMESTAMP,
+                    ADD COLUMN IF NOT EXISTS commission_free_until TIMESTAMP,
+                    ADD COLUMN IF NOT EXISTS tnc_accepted BOOLEAN DEFAULT FALSE,
+                    ADD COLUMN IF NOT EXISTS tnc_accepted_at TIMESTAMP;
+                    """
+                    await conn.execute(text(sql_cp))
+                    print("DEBUG: Emergency batch migration for 'counsellor_profiles' table completed.", flush=True)
+                except Exception as e:
+                    print(f"DEBUG: Emergency batch migration failed (likely already patched): {e}", flush=True)
 
         if RUN_MIGRATIONS_ON_STARTUP or SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
             # Create all tables asynchronously and run any schema migrations
@@ -640,7 +774,6 @@ async def add_cache_control_header(request: Request, call_next):
         response.headers["Expires"] = "0"
     return response
 
-
 @app.middleware("http")
 async def check_suspension(request: Request, call_next):
     # Paths that suspended users can still access
@@ -710,9 +843,14 @@ def verify_password(plain_password, hashed_password):
         hashed_password = hashed_password.encode('utf-8')
     return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password)
 
-def get_password_hash(password):
+def get_password_hash(password: str) -> str:
     bcrypt = _get_bcrypt()
-    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    # bcrypt has a hard limit of 72 BYTES on UTF-8 encoded passwords.
+    # Truncate safely by bytes then decode with errors='ignore'.
+    pwd_bytes = password.encode('utf-8')[:72]
+    pwd_trunc = pwd_bytes.decode('utf-8', errors='ignore')
+    return bcrypt.hashpw(pwd_trunc.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
 
 async def get_current_user(request: Request, db: AsyncSession = Depends(get_db)):
     user_id = request.cookies.get("user_id")
@@ -862,6 +1000,10 @@ async def signup(
     user = result.scalars().first()
     if user:
         return templates.TemplateResponse(request=request, name="signup.html", context={"error": "Email already exists"})
+        
+    # Phone number validation: must start with +, have 1-3 digit country code, optional space, and 10 digits
+    if not re.match(r'^\+\d{1,3}\s?\d{10}$', contact_number.strip()):
+        return templates.TemplateResponse(request=request, name="signup.html", context={"error": "Invalid phone number. It must include a country code (e.g., +91) followed by a 10-digit number."})
     
     try:
         # 2. Create User in Appwrite Auth
@@ -1203,6 +1345,7 @@ async def select_role_page(request: Request, db: AsyncSession = Depends(get_db))
 async def select_role(
     request: Request,
     role: str = Form(...),
+    contact_number: str = Form(...),
     db: AsyncSession = Depends(get_db)
 ):
     user = await get_current_user(request, db)
@@ -1213,7 +1356,14 @@ async def select_role(
         if role not in ("student", "counsellor"):
             return RedirectResponse(url="/select-role", status_code=status.HTTP_302_FOUND)
             
+        if not re.match(r'^\+\d{1,3}\s?\d{10}$', contact_number.strip()):
+            return templates.TemplateResponse(request=request, name="select_role.html", context={
+                "error": "Invalid phone number. It must include a country code (e.g., +91) followed by a 10-digit number.",
+                "user": user
+            })
+            
         user.role = role
+        user.contact_number = contact_number
         db.add(user)
         
         # Create counsellor profile if needed
@@ -1225,11 +1375,44 @@ async def select_role(
         
         await db.commit()
         user_cache.invalidate_user(user.id)
+
+        # Save User Metadata in Appwrite DB
+        try:
+            from appwrite.query import Query
+            res = tables_db.list_rows(DB_ID, COLLECTIONS["users"], [Query.equal('email', user.email)])
+            documents = res.get('documents', []) if isinstance(res, dict) else getattr(res, 'documents', [])
+            
+            if documents:
+                doc = documents[0]
+                doc_id = doc.get('$id') if isinstance(doc, dict) else getattr(doc, '$id', getattr(doc, 'id', None))
+                if doc_id:
+                    tables_db.update_row(DB_ID, COLLECTIONS["users"], doc_id, {
+                        "contact_number": contact_number,
+                        "role": role
+                    })
+            else:
+                new_user_id = str(uuid.uuid4())[:20]
+                tables_db.create_row(
+                    database_id=DB_ID,
+                    table_id=COLLECTIONS["users"],
+                    row_id=new_user_id,
+                    data={
+                        "email": user.email,
+                        "full_name": user.full_name,
+                        "contact_number": contact_number,
+                        "role": role,
+                        "local_id": user.id
+                    }
+                )
+        except Exception as de:
+            print(f"Appwrite DB Error in select_role: {de}")
+
     except Exception as e:
         print(f"Role selection error: {e}")
         await db.rollback()
         return templates.TemplateResponse(request=request, name="select_role.html", context={
-            "error": "An error occurred while saving your role. Please try again."
+            "error": "An error occurred while saving your role. Please try again.",
+            "user": user
         })
     
     return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
@@ -1251,6 +1434,16 @@ async def assessment_start(
     try:
         # Check/Create Result
         result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+
+        used_free_assessment = (user.assessments_completed or 0) >= 1 or has_completed_assessment(result)
+        if used_free_assessment and not get_subscription_state(user)["active"]:
+            if (user.assessments_completed or 0) < 1:
+                user.assessments_completed = 1
+                await db.commit()
+            return RedirectResponse(
+                url="/subscription?reason=assessment_retake",
+                status_code=status.HTTP_302_FOUND
+            )
         
         # Grade 12 starts at current_phase=0 (Intake Chat), Grade 10 starts at current_phase=1 (Swipe)
         start_phase = 0 if student_type == "12th" else 1
@@ -1300,6 +1493,8 @@ async def assessment_start(
                 chat_turn=0
             )
             db.add(result)
+
+        user.assessments_completed = max(user.assessments_completed or 0, 1)
         
         await db.commit()
         sync_assessment_to_appwrite(user.id, result)
@@ -1319,6 +1514,16 @@ async def assessment_reset(request: Request, db: AsyncSession = Depends(get_db))
     
     result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
     if result:
+        used_free_assessment = (user.assessments_completed or 0) >= 1 or has_completed_assessment(result)
+        if used_free_assessment and not get_subscription_state(user)["active"]:
+            if (user.assessments_completed or 0) < 1:
+                user.assessments_completed = 1
+                await db.commit()
+            return RedirectResponse(
+                url="/subscription?reason=assessment_retake",
+                status_code=status.HTTP_302_FOUND
+            )
+
         start_phase = 0 if result.student_type == "12th" else 1
         result.current_phase = start_phase
         result.intake_turn = 1
@@ -1396,10 +1601,11 @@ async def assessment_api_intake(request: Request, payload: dict, db: AsyncSessio
     user = await get_current_user(request, db)
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
-        
+
     result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
-    if not result or result.student_type != "12th":
-        raise HTTPException(status_code=404, detail="Assessment not found or invalid type")
+    if not result:
+        raise HTTPException(status_code=404, detail="Assessment not found")
+
         
     # Check if payload is from the new form submission
     if "name" in payload and "pursuing" in payload and "interests" in payload:
@@ -1440,6 +1646,7 @@ async def assessment_api_intake(request: Request, payload: dict, db: AsyncSessio
             "salary_priority": salary_priority
         }
         result.intake_turn = 3
+        # Always force Phase 1 (swipe cards / behavioral assessment) after intake form completion.
         result.current_phase = 1
         
         await db.commit()
@@ -1530,7 +1737,9 @@ async def assessment_api_phase4_complete(request: Request, payload: dict, db: As
     if not result: raise HTTPException(status_code=404)
     
     # Payload contains text/workflow from sequence planner
-    result.raw_answers["phase4_planner"] = payload
+    raw_answers = dict(result.raw_answers or {})
+    raw_answers["phase4_planner"] = payload
+    result.raw_answers = raw_answers
     
     # Process text for vector multipliers
     if extractor_tool and "workflow" in payload:
@@ -1559,11 +1768,65 @@ async def assessment_api_phase4_complete(request: Request, payload: dict, db: As
     await db.commit()
     return {"status": "success", "next_phase": 5}
 
+@app.post("/assessment/api/proxy")
+async def assessment_api_proxy(request: Request, payload: dict, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+    if not result:
+        raise HTTPException(status_code=404, detail="Assessment not found")
+
+    answers = payload.get("answers", [])
+    result.proxy_answers = answers
+
+    try:
+        from .pipeline.vector_utils import init_student_vector, update_vector_from_mcq
+        current_vector = json.loads(result.personality) if result.personality else init_student_vector()
+        if not isinstance(current_vector, dict) or not current_vector:
+            current_vector = init_student_vector()
+        result.personality = json.dumps(update_vector_from_mcq(current_vector, answers))
+    except Exception as e:
+        print(f"Proxy vector update failed: {e}")
+
+    result.current_phase = 4
+    await db.commit()
+    sync_assessment_to_appwrite(user.id, result)
+    return {"status": "success", "next_phase": 4}
+
+@app.post("/assessment/api/scenarios")
+async def assessment_api_scenarios(request: Request, payload: dict, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+    if not result:
+        raise HTTPException(status_code=404, detail="Assessment not found")
+
+    result.scenario_answers = payload.get("answers", [])
+    result.current_phase = 5
+    await db.commit()
+    sync_assessment_to_appwrite(user.id, result)
+    return {"status": "success", "next_phase": 5}
+
 @app.get("/assessment/api/questions")
 async def assessment_api_questions(request: Request, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
+
+    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+    if not result:
+        raise HTTPException(status_code=404, detail="Assessment not found")
+
+    phase = result.current_phase or 1
+    student_type = result.student_type or "10th"
+    try:
+        vector = json.loads(result.personality) if result.personality else {}
+    except Exception:
+        vector = {}
     
     if phase == 0 and student_type == "12th":
         return {"message": "Hello! I'm Alex, your career mentor. Let's start with your name. What's your name?"}
@@ -1576,23 +1839,16 @@ async def assessment_api_questions(request: Request, db: AsyncSession = Depends(
         import random
         random.seed(result.id or 42)
         random.shuffle(shuffled)
-        return {"cards": shuffled[:12]} # Increased to 12
+        return {"cards": shuffled[:5]}
 
     elif phase == 2:
-        # Archetype Display State
-        from .pipeline.vector_utils import classify_archetype
-        archetype = classify_archetype(vector)
-        return {
-            "archetype": archetype,
-            "vector": vector,
-            "message": "Based on your reflexes, we've identified your primary cognitive archetype."
-        }
+        return {"status": "phase2_mcqs", "message": "Load /assessment/api/phase2_mcqs for the 5 behavioral MCQs."}
 
     elif phase == 3:
         # Phase 3 (User Term): Personalized MCQs
         from .pipeline.vector_utils import load_json, select_top_questions
         all_mcqs = load_json("phase3_mcqs.json")
-        top_qs = select_top_questions(vector, all_mcqs, limit=8)
+        top_qs = select_top_questions(vector, all_mcqs, limit=5)
         return {"proxy_questions": top_qs}
 
     elif phase == 4:
@@ -1600,7 +1856,16 @@ async def assessment_api_questions(request: Request, db: AsyncSession = Depends(
         from .pipeline.vector_utils import classify_archetype, select_phase4_task
         archetype = classify_archetype(vector)
         task_data = select_phase4_task(student_type, archetype)
-        return {"task": task_data}
+        scenario = {
+            "id": f"phase4_{task_data.get('class', student_type)}_{task_data.get('nature', 'general')}",
+            "scenario": task_data.get("task", "Complete a realistic planning task."),
+            "task": task_data,
+            "options": [
+                {"label": tool, "description": f"Use {tool} as part of your solution."}
+                for tool in (task_data.get("tools_required") or [])[:5]
+            ],
+        }
+        return {"task": task_data, "scenarios": [scenario]}
     else:
         return {"status": "phase_not_applicable"}
       
@@ -1610,14 +1875,15 @@ async def assessment_api_swipe(request: Request, payload: dict, db: AsyncSession
     user = await get_current_user(request, db)
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
-        
-    if len(mcqs) > 12:
-        mcqs = random.sample(mcqs, 12)
+
+    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+    if not result:
+        raise HTTPException(status_code=404, detail="Assessment not found")
         
     swipes = payload.get("swipes", [])
     result.telemetry_logs = swipes
     
-    # Standard 13-parameter calculations
+    # Swipe calculations use the real card files and multipliers used by the pipeline.
     metrics = assessment_engine.calculate_telemetry_metrics(swipes, result.student_type)
     result.personality = json.dumps(metrics.get("latent_profile", {}))
     result.confidence = metrics.get("consistency_index", 0.85)
@@ -1698,7 +1964,7 @@ async def get_phase2_mcqs(request: Request, db: AsyncSession = Depends(get_db)):
     if os.path.exists(mcqs_path):
         with open(mcqs_path, "r", encoding="utf-8") as f:
             mcqs = json.load(f)
-        return {"status": "success", "mcqs": mcqs}
+        return {"status": "success", "mcqs": mcqs[:5]}
     return {"status": "error", "detail": "Questions not found"}
 
 @app.post("/assessment/api/phase2/submit")
@@ -1730,11 +1996,11 @@ async def submit_phase2_mcqs(request: Request, payload: dict, db: AsyncSession =
     except Exception as e:
         print(f"Failed to calculate phase 2 score: {e}")
         
-    result.current_phase = 2
+    result.current_phase = 3
     await db.commit()
     sync_assessment_to_appwrite(user.id, result)
     
-    return {"status": "success", "next_phase": 5}
+    return {"status": "success", "next_phase": 3}
 
 @app.post("/assessment/api/compile")
 async def assessment_api_compile(request: Request, db: AsyncSession = Depends(get_db)):
@@ -1888,6 +2154,7 @@ async def assessment_api_compile(request: Request, db: AsyncSession = Depends(ge
         result.personality = dashboard.get("dominant_riasec", "Realistic")
         result.goal_status = "Assessment compiled via vector pipeline."
         result.reasoning   = result.final_analysis or ""
+        await mark_assessment_completed_once(user, result, db)
 
         await db.commit()
         sync_assessment_to_appwrite(user.id, result)
@@ -1918,8 +2185,25 @@ async def assessment_result(request: Request, db: AsyncSession = Depends(get_db)
         except:
             await db.rollback()
     
+    sims_completed = max(result.simulations_completed or 0, user.simulations_completed or 0)
+    simulation_credits = max(result.simulation_credits or 0, user.simulation_credits or 0)
+    simulation_access = {
+        "is_free": sims_completed < 1,
+        "credits": simulation_credits,
+        "completed": sims_completed,
+        "requires_payment": sims_completed >= 1 and simulation_credits <= 0,
+    }
+    display_archetype = get_assessment_display_archetype(result)
+
     display_confidence = result.confidence
-    return templates.TemplateResponse(request=request, name="result.html", context={"user": user, "result": result, "display_confidence": display_confidence})
+    return templates.TemplateResponse(request=request, name="result.html", context={
+        "user": user,
+        "result": result,
+        "display_confidence": display_confidence,
+        "simulation_access": simulation_access,
+        "display_archetype": display_archetype,
+        "subscription_state": get_subscription_state(user),
+    })
 
 @app.get("/share/report/{result_id}", response_class=HTMLResponse)
 async def share_report(result_id: int, request: Request, mode: str = "full", db: AsyncSession = Depends(get_db)):
@@ -1949,13 +2233,33 @@ async def share_report(result_id: int, request: Request, mode: str = "full", db:
             
     display_confidence = result.confidence
 
+    # --- Start of new logic ---
+    dominant_trait = result.personality
+    if dominant_trait and isinstance(dominant_trait, str):
+        try:
+            # If the string is a JSON dict, this will parse it
+            parsed_trait = json.loads(dominant_trait)
+            if isinstance(parsed_trait, dict):
+                # If it's a dict, classify it to get the name
+                dominant_trait = classify_archetype(parsed_trait)
+        except (json.JSONDecodeError, TypeError):
+            # If it's not JSON, it's a normal string like "Realistic". Use as is.
+            pass
+            
+    # Final safety net
+    if not dominant_trait or not isinstance(dominant_trait, str):
+        dominant_trait = "Realistic"
+    # --- End of new logic ---
+
     return templates.TemplateResponse(request=request, name="result.html", context={
         "user": current_user, 
         "owner": owner,
         "result": result,
         "is_public_share": True,
         "mode": mode,
-        "display_confidence": display_confidence
+        "display_confidence": display_confidence,
+        "display_archetype": get_assessment_display_archetype(result),
+        "subscription_state": get_subscription_state(current_user) if current_user else {"active": False},
     })
 
 @app.get("/dashboard", response_class=HTMLResponse)
@@ -1972,7 +2276,9 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
         profile = (await db.execute(select(models.CounsellorProfile).where(models.CounsellorProfile.user_id == user.id))).scalars().first()
         # Show active/scheduled, requested, accepted, and completed appointments on dashboard
         appointments = (await db.execute(
-            select(models.Appointment).where(
+            select(models.Appointment).options(
+                selectinload(models.Appointment.student).selectinload(models.User.assessment)
+            ).where(
                 models.Appointment.counsellor_id == user.id,
                 models.Appointment.status.in_(["scheduled", "requested", "accepted", "completed"])
             ).order_by(models.Appointment.appointment_time.desc())
@@ -2041,7 +2347,9 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
 
         # Fetch recent reviews
         recent_reviews = (await db.execute(
-            select(models.CounselorRating).where(
+            select(models.CounselorRating).options(
+                selectinload(models.CounselorRating.student)
+            ).where(
                 models.CounselorRating.counsellor_id == user.id
             ).order_by(models.CounselorRating.timestamp.desc()).limit(5)
         )).scalars().all()
@@ -2112,6 +2420,8 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
             "request": request, 
             "user": user, 
             "assessment": assessment,
+            "display_archetype": get_assessment_display_archetype(assessment),
+            "subscription_state": get_subscription_state(user),
             "appointments": appointments,
             "tickets": tickets,
             "pending_conn_count": pending_conn_count
@@ -2121,172 +2431,167 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
         import traceback
         return HTMLResponse(content=f"Template Error: {e}<br><pre>{traceback.format_exc()}</pre>", status_code=500)
 
-# @app.get("/admin", response_class=HTMLResponse)
-# async def admin_dashboard(
-#     request: Request, 
-#     db: AsyncSession = Depends(get_db),
-#     user_page: int = 1,
-#     feedback_page: int = 1,@app.post("/admin/users/{user_id}/suspend")
-# @app.post("/admin/users/{user_id}/unsuspend")
-# @app.post("/admin/flags/{flag_id}/action")
-# @app.post("/admin/verify-counsellor/{counsellor_id}")
-# @app.post("/admin/block-counsellor/{counsellor_id}")
-# @app.post("/admin/unblock-counsellor/{counsellor_id}")
-#     ticket_page: int = 1,
-#     page_size: int = 20,
-#     user_search: str = "",
-#     counsellor_search: str = ""
-# ):
-#     try:
-#         current_user = await get_current_user(request, db)
-        # if not current_user:
-        #      return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+@app.get("/admin", response_class=HTMLResponse)
+async def admin_dashboard(
+    request: Request, 
+    db: AsyncSession = Depends(get_db),
+    user_page: int = 1,
+    feedback_page: int = 1,
+    ticket_page: int = 1,
+    page_size: int = 20,
+    user_search: str = "",
+    counsellor_search: str = ""
+):
+    try:
+        current_user = await get_current_user(request, db)
+        if not current_user:
+             return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
         
-        # admin_email = os.getenv("ADMIN_EMAIL")
-        # if current_user.role != "admin" and (not admin_email or current_user.email != admin_email):
-        #     print(f"DEBUG: Admin access denied for {current_user.email}")
-        #     return RedirectResponse(url="/dashboard?error=Admin access denied", status_code=status.HTTP_302_FOUND)
+        admin_email = os.getenv("ADMIN_EMAIL")
+        if current_user.role != "admin" and (not admin_email or current_user.email != admin_email):
+            print(f"DEBUG: Admin access denied for {current_user.email}")
+            return RedirectResponse(url="/dashboard?error=Admin access denied", status_code=status.HTTP_302_FOUND)
 
-        # # ─── Paginated Data ──────────────────────────────────────────────
-        # user_search = user_search.strip()
-        # if user_search:
-        #     # Search across the entire database by name or email
-        #     search_filter = models.User.full_name.ilike(f"%{user_search}%") | models.User.email.ilike(f"%{user_search}%")
-        #     all_users = (await db.execute(select(models.User).where(search_filter).order_by(models.User.id.desc()))).scalars().all()
-        #     total_users = len(all_users)
-        # else:
-        #     all_users = (await db.execute(select(models.User).order_by(models.User.id.desc()).offset((user_page - 1) * page_size).limit(page_size))).scalars().all()
-        #     total_users = (await db.execute(select(func.count()).select_from(models.User))).scalar()
+        # ─── Paginated Data ──────────────────────────────────────────────
+        user_search = user_search.strip()
+        if user_search:
+            # Search across the entire database by name or email
+            search_filter = models.User.full_name.ilike(f"%{user_search}%") | models.User.email.ilike(f"%{user_search}%")
+            all_users = (await db.execute(select(models.User).where(search_filter).order_by(models.User.id.desc()))).scalars().all()
+            total_users = len(all_users)
+        else:
+            all_users = (await db.execute(select(models.User).order_by(models.User.id.desc()).offset((user_page - 1) * page_size).limit(page_size))).scalars().all()
+            total_users = (await db.execute(select(func.count()).select_from(models.User))).scalar()
 
-        # all_feedback = (await db.execute(select(models.Feedback).order_by(models.Feedback.timestamp.desc()).offset((feedback_page - 1) * page_size).limit(page_size))).scalars().all()
-        # total_feedback = (await db.execute(select(func.count()).select_from(models.Feedback))).scalar()
+        all_feedback = (await db.execute(select(models.Feedback).order_by(models.Feedback.timestamp.desc()).offset((feedback_page - 1) * page_size).limit(page_size))).scalars().all()
+        total_feedback = (await db.execute(select(func.count()).select_from(models.Feedback))).scalar()
 
-        # all_tickets = (await db.execute(select(models.Ticket).order_by(models.Ticket.timestamp.desc()).offset((ticket_page - 1) * page_size).limit(page_size))).scalars().all()
-        # total_tickets = (await db.execute(select(func.count()).select_from(models.Ticket))).scalar()
+        all_tickets = (await db.execute(select(models.Ticket).order_by(models.Ticket.timestamp.desc()).offset((ticket_page - 1) * page_size).limit(page_size))).scalars().all()
+        total_tickets = (await db.execute(select(func.count()).select_from(models.Ticket))).scalar()
 
-        # pending_counsellors = (await db.execute(select(models.CounsellorProfile).where(models.CounsellorProfile.verification_status == "pending"))).scalars().all()
+        pending_counsellors = (await db.execute(select(models.CounsellorProfile).where(models.CounsellorProfile.verification_status == "pending"))).scalars().all()
         
-        # # ─── Optimized Counsellor Stats (Single Query) ───────────────────
+        # ─── Optimized Counsellor Stats (Single Query) ───────────────────
 
         
-        # # Get all completed sessions count per counsellor
-        # _completed_rows = (await db.execute(
-        #     select(models.Appointment.counsellor_id, func.count(models.Appointment.id).label("count"))
-        #     .where(models.Appointment.status == "completed")
-        #     .group_by(models.Appointment.counsellor_id)
-        # )).all()
-        # completed_map = {row.counsellor_id: row.count for row in _completed_rows}
+        # Get all completed sessions count per counsellor
+        _completed_rows = (await db.execute(
+            select(models.Appointment.counsellor_id, func.count(models.Appointment.id).label("count"))
+            .where(models.Appointment.status == "completed")
+            .group_by(models.Appointment.counsellor_id)
+        )).all()
+        completed_map = {row.counsellor_id: row.count for row in _completed_rows}
 
-        # # Get total sessions count per counsellor
-        # _total_rows = (await db.execute(
-        #     select(models.Appointment.counsellor_id, func.count(models.Appointment.id).label("count"))
-        #     .group_by(models.Appointment.counsellor_id)
-        # )).all()
-        # total_map = {row.counsellor_id: row.count for row in _total_rows}
+        # Get total sessions count per counsellor
+        _total_rows = (await db.execute(
+            select(models.Appointment.counsellor_id, func.count(models.Appointment.id).label("count"))
+            .group_by(models.Appointment.counsellor_id)
+        )).all()
+        total_map = {row.counsellor_id: row.count for row in _total_rows}
 
-        # counsellor_search = counsellor_search.strip()
-        # if counsellor_search:
-        #     # Search across all counsellors by name or email
-        #     search_filter = models.User.full_name.ilike(f"%{counsellor_search}%") | models.User.email.ilike(f"%{counsellor_search}%")
-        #     all_counsellors = (await db.execute(
-        #         select(models.CounsellorProfile).join(models.User).where(search_filter)
-        #     )).scalars().all()
-        # else:
-        #     all_counsellors = (await db.execute(select(models.CounsellorProfile))).scalars().all()
-        # for cp in all_counsellors:
-        #     cp.session_count = completed_map.get(cp.user_id, 0)
-        #     cp.total_sessions = total_map.get(cp.user_id, 0)
+        counsellor_search = counsellor_search.strip()
+        if counsellor_search:
+            # Search across all counsellors by name or email
+            search_filter = models.User.full_name.ilike(f"%{counsellor_search}%") | models.User.email.ilike(f"%{counsellor_search}%")
+            all_counsellors = (await db.execute(
+                select(models.CounsellorProfile).join(models.User).where(search_filter)
+            )).scalars().all()
+        else:
+            all_counsellors = (await db.execute(select(models.CounsellorProfile))).scalars().all()
+        for cp in all_counsellors:
+            cp.session_count = completed_map.get(cp.user_id, 0)
+            cp.total_sessions = total_map.get(cp.user_id, 0)
 
-        # # ─── Payment Split Analytics ──────────────────────────────────────
-        # try:
-        #     all_payments = (await db.execute(select(models.Payment).order_by(models.Payment.created_at.desc()).limit(20))).scalars().all()
+        # ─── Payment Split Analytics ──────────────────────────────────────
+        try:
+            all_payments = (await db.execute(select(models.Payment).order_by(models.Payment.created_at.desc()).limit(20))).scalars().all()
             
             # Using scalars directly for performance
-        #     session_revenue = (await db.execute(
-        #         select(func.sum(models.Payment.amount)).where(models.Payment.status == "captured")
-        #     )).scalar() or 0.0
+            session_revenue = (await db.execute(
+                select(func.sum(models.Payment.amount)).where(models.Payment.status == "captured")
+            )).scalar() or 0.0
 
-        #     sim_revenue = (await db.execute(
-        #         select(func.sum(models.SimulationPayment.amount))
-        #     )).scalar() or 0.0
+            sim_revenue = (await db.execute(
+                select(func.sum(models.SimulationPayment.amount))
+            )).scalar() or 0.0
             
-        #     total_revenue = session_revenue + sim_revenue
+            total_revenue = session_revenue + sim_revenue
 
-        #     total_counselor_payouts = (await db.execute(
-        #         select(func.sum(models.Transfer.amount)).where(models.Transfer.status == "processed")
-        #     )).scalar() or 0.0
+            total_counselor_payouts = (await db.execute(
+                select(func.sum(models.Transfer.amount)).where(models.Transfer.status == "processed")
+            )).scalar() or 0.0
 
-        #     platform_commission = session_revenue - total_counselor_payouts + sim_revenue
+            platform_commission = session_revenue - total_counselor_payouts + sim_revenue
 
-        #     pending_transfers = (await db.execute(select(func.count()).select_from(models.Transfer).where(models.Transfer.status == "pending"))).scalar()
-        #     failed_transfers = (await db.execute(select(func.count()).select_from(models.Transfer).where(models.Transfer.status == "failed"))).scalar()
-        #     captured_payments_count = (await db.execute(select(func.count()).select_from(models.Payment).where(models.Payment.status == "captured"))).scalar()
-        #     sim_payments_count = (await db.execute(select(func.count()).select_from(models.SimulationPayment))).scalar()
-        # except Exception as pe:
-        #     print(f"Payment analytics error: {pe}")
-        #     all_payments, total_revenue, total_counselor_payouts, platform_commission = [], 0.0, 0.0, 0.0
-        #     session_revenue, sim_revenue, sim_payments_count = 0.0, 0.0, 0
-        #     pending_transfers, failed_transfers, captured_payments_count = 0, 0, 0
+            pending_transfers = (await db.execute(select(func.count()).select_from(models.Transfer).where(models.Transfer.status == "pending"))).scalar()
+            failed_transfers = (await db.execute(select(func.count()).select_from(models.Transfer).where(models.Transfer.status == "failed"))).scalar()
+            captured_payments_count = (await db.execute(select(func.count()).select_from(models.Payment).where(models.Payment.status == "captured"))).scalar()
+            sim_payments_count = (await db.execute(select(func.count()).select_from(models.SimulationPayment))).scalar()
+        except Exception as pe:
+            print(f"Payment analytics error: {pe}")
+            all_payments, total_revenue, total_counselor_payouts, platform_commission = [], 0.0, 0.0, 0.0
+            session_revenue, sim_revenue, sim_payments_count = 0.0, 0.0, 0
+            pending_transfers, failed_transfers, captured_payments_count = 0, 0, 0
         
-        # # Fetch Moderation Flags (Limited for performance)
-        # moderation_flags = (await db.execute(select(models.ModerationFlag).order_by(models.ModerationFlag.timestamp.desc()).limit(50))).scalars().all()
+        # Fetch Moderation Flags (Limited for performance)
+        moderation_flags = (await db.execute(select(models.ModerationFlag).order_by(models.ModerationFlag.timestamp.desc()).limit(50))).scalars().all()
 
-        # # Fetch all appointments for admin Session Management table
-        # all_appointments = (await db.execute(
-        #     select(models.Appointment).options(
-        #         joinedload(models.Appointment.student),
-        #         joinedload(models.Appointment.counsellor)
-        #     ).order_by(models.Appointment.appointment_time.desc()).limit(50)
-        # )).scalars().all()
+        # Fetch all appointments for admin Session Management table
+        all_appointments = (await db.execute(
+            select(models.Appointment).options(
+                joinedload(models.Appointment.student),
+                joinedload(models.Appointment.counsellor)
+            ).order_by(models.Appointment.appointment_time.desc()).limit(50)
+        )).scalars().all()
 
-        # # Fetch simulation payments
-        # simulation_payments = (await db.execute(
-        #     select(models.SimulationPayment).options(
-        #         joinedload(models.SimulationPayment.user)
-        #     ).order_by(models.SimulationPayment.id.desc()).limit(50)
-        # )).scalars().all()
+        # Fetch simulation payments
+        simulation_payments = (await db.execute(
+            select(models.SimulationPayment).options(
+                joinedload(models.SimulationPayment.user)
+            ).order_by(models.SimulationPayment.id.desc()).limit(50)
+        )).scalars().all()
 
-        # try:
-        #     template = templates.get_template("admin_dashboard.html")
-        #     content = template.render({
-        #         "request": request, 
-        #         "user": current_user, 
-        #         "users": all_users,
-        #         "total_users": total_users,
-        #         "user_page": user_page,
-        #         "feedbacks": all_feedback,
-        #         "total_feedback": total_feedback,
-        #         "feedback_page": feedback_page,
-        #         "tickets": all_tickets,
-        #         "total_tickets": total_tickets,
-        #         "ticket_page": ticket_page,
-        #         "page_size": page_size,
-        #         "pending_counsellors": pending_counsellors,
-        #         "all_counsellors": all_counsellors,
-        #         "all_payments": all_payments,
-        #         "total_revenue": total_revenue,
-        #         "session_revenue": session_revenue,
-        #         "sim_revenue": sim_revenue,
-        #         "total_counselor_payouts": total_counselor_payouts,
-        #         "platform_commission": platform_commission,
-        #         "pending_transfers": pending_transfers,
-        #         "failed_transfers": failed_transfers,
-        #         "captured_payments_count": captured_payments_count,
-        #         "sim_payments_count": sim_payments_count,
-        #         "moderation_flags": moderation_flags,
-        #         "all_appointments": all_appointments,
-        #         "simulation_payments": simulation_payments,
-        #         "user_search": user_search,
-        #         "counsellor_search": counsellor_search
-    #         })
-    #         return HTMLResponse(content=content)
-    #     except Exception as e:
-    #         import traceback
-    #         return HTMLResponse(content=f"Template Error: {e}<br><pre>{traceback.format_exc()}</pre>", status_code=500)
-    # except Exception as e:
-    #     import traceback
-    #     print(f"ADMIN DASHBOARD ERROR: {traceback.format_exc()}")
-    #     return RedirectResponse(url=f"/dashboard?error=Admin+Error:+{str(e)[:100]}", status_code=status.HTTP_302_FOUND)
+        try:
+            template = templates.get_template("admin_dashboard.html")
+            content = template.render({
+                "request": request, 
+                "user": current_user, 
+                "users": all_users,
+                "total_users": total_users,
+                "user_page": user_page,
+                "feedbacks": all_feedback,
+                "total_feedback": total_feedback,
+                "feedback_page": feedback_page,
+                "tickets": all_tickets,
+                "total_tickets": total_tickets,
+                "ticket_page": ticket_page,
+                "page_size": page_size,
+                "pending_counsellors": pending_counsellors,
+                "all_counsellors": all_counsellors,
+                "all_payments": all_payments,
+                "total_revenue": total_revenue,
+                "session_revenue": session_revenue,
+                "sim_revenue": sim_revenue,
+                "total_counselor_payouts": total_counselor_payouts,
+                "platform_commission": platform_commission,
+                "pending_transfers": pending_transfers,
+                "failed_transfers": failed_transfers,
+                "captured_payments_count": captured_payments_count,
+                "sim_payments_count": sim_payments_count,
+                "moderation_flags": moderation_flags,
+                "all_appointments": all_appointments,
+                "simulation_payments": simulation_payments,
+                "user_search": user_search,
+                "counsellor_search": counsellor_search
+            })
+            return HTMLResponse(content=content)
+        except Exception as e:
+            import traceback
+            return HTMLResponse(content=f"Template Error: {e}<br><pre>{traceback.format_exc()}</pre>", status_code=500)
+    except Exception as e:
+        import traceback
+        print(f"ADMIN DASHBOARD ERROR: {traceback.format_exc()}")
+        return RedirectResponse(url=f"/dashboard?error=Admin+Error:+{str(e)[:100]}", status_code=status.HTTP_302_FOUND)
 
 @app.post("/admin/send-completion-reminders")
 async def send_completion_reminders(request: Request, db: AsyncSession = Depends(get_db)):
@@ -3794,7 +4099,7 @@ async def phase3_chat_v2(request: Request, chat_req: Phase3V2ChatRequest, db: As
         {"role": "system", "content": sys_prompt}
     ]
 
-    # Add conversation history
+    # Add conversation history (already includes the current user message from client)
     if chat_req.answers:
         for msg in chat_req.answers:
             role = msg.get("role", "user")
@@ -3802,15 +4107,11 @@ async def phase3_chat_v2(request: Request, chat_req: Phase3V2ChatRequest, db: As
             if role in ["user", "assistant"]:
                 messages.append({"role": role, "content": content})
 
-    # Add current user message (if any)
-    if chat_req.message.strip():
-        messages.append({"role": "user", "content": chat_req.message})
-
     # Immediately persist the user's message to the database before waiting for AI
+    # Note: chat_req.answers already contains the user message (appended client-side),
+    # so we do NOT append chat_req.message again to avoid duplication.
     full_history = chat_req.answers.copy() if chat_req.answers else []
-    if chat_req.message and chat_req.message.strip():
-        full_history.append({"role": "user", "content": chat_req.message})
-    
+
     if result:
         result.chat_messages = full_history.copy()
         await db.commit()
@@ -3845,7 +4146,7 @@ async def phase3_chat_v2(request: Request, chat_req: Phase3V2ChatRequest, db: As
     return JSONResponse({
         "response": ai_text,
         "done": False,
-        "recommendation_ready": user_msg_count >= 10
+        "recommendation_ready": ("finish" in ai_text.lower() and "click" in ai_text.lower()) or user_msg_count >= 10
     })
 
 
@@ -3968,12 +4269,107 @@ async def phase3_finalize(request: Request, finalize_req: Phase3FinalizeRequest,
         # Soft fallback
         result.phase3_analysis = "We've captured your insights and mapped them to your potential."
         
+    await mark_assessment_completed_once(user, result, db)
     await db.commit()
 
     return JSONResponse({"redirect": "/assessment/result"})
 
 
 # --- Simulation Phase Routes ---
+
+@app.get("/subscription", response_class=HTMLResponse)
+async def subscription_page(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+
+    return templates.TemplateResponse(request=request, name="subscription.html", context={
+        "user": user,
+        "plans": SUBSCRIPTION_PLANS,
+        "subscription_state": get_subscription_state(user),
+        "RAZORPAY_KEY_ID": RAZORPAY_KEY_ID,
+        "razorpay_configured": is_razorpay_configured(),
+    })
+
+@app.post("/subscription/create-order")
+async def subscription_create_order(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401)
+    if not is_razorpay_configured():
+        raise HTTPException(
+            status_code=503,
+            detail="Payment gateway is not configured. Add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to .env."
+        )
+
+    data = await request.json()
+    plan = data.get("plan", "critical")
+    plan_data = SUBSCRIPTION_PLANS.get(plan)
+    if not plan_data:
+        raise HTTPException(status_code=400, detail="Invalid subscription plan")
+
+    order_data = {
+        "amount": plan_data["amount"] * 100,
+        "currency": "INR",
+        "receipt": f"receipt_sub_{uuid.uuid4().hex[:10]}",
+        "payment_capture": 1,
+        "notes": {"plan": plan, "user_id": str(user.id)}
+    }
+    try:
+        return get_razorpay_client().order.create(data=order_data)
+    except Exception as e:
+        print(f"Razorpay Subscription Order Create Error: {e}")
+        raise HTTPException(status_code=502, detail=f"Could not create subscription order: {str(e)}")
+
+@app.post("/subscription/verify-payment")
+async def subscription_verify_payment(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401)
+    if not is_razorpay_configured():
+        raise HTTPException(
+            status_code=503,
+            detail="Payment gateway is not configured. Add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to .env."
+        )
+
+    data = await request.json()
+    plan = data.get("plan", "critical")
+    plan_data = SUBSCRIPTION_PLANS.get(plan)
+    if not plan_data:
+        raise HTTPException(status_code=400, detail="Invalid subscription plan")
+
+    params_dict = {
+        "razorpay_order_id": data.get("razorpay_order_id"),
+        "razorpay_payment_id": data.get("razorpay_payment_id"),
+        "razorpay_signature": data.get("razorpay_signature")
+    }
+    try:
+        get_razorpay_client().utility.verify_payment_signature(params_dict)
+    except Exception as e:
+        print(f"Subscription Payment Verification Failed: {e}")
+        raise HTTPException(status_code=400, detail="Signature verification failed")
+
+    now = datetime.datetime.utcnow()
+    expires_at = now + datetime.timedelta(days=30)
+    db_user = (await db.execute(select(models.User).where(models.User.id == user.id))).scalars().first()
+    if db_user:
+        db_user.subscription_plan = plan
+        db_user.subscription_status = "active"
+        db_user.subscription_started_at = now
+        db_user.subscription_expires_at = expires_at
+
+    payment = models.SubscriptionPayment(
+        user_id=user.id,
+        plan=plan,
+        razorpay_order_id=data.get("razorpay_order_id"),
+        razorpay_payment_id=data.get("razorpay_payment_id"),
+        amount=float(plan_data["amount"]),
+        status="success",
+        expires_at=expires_at,
+    )
+    db.add(payment)
+    await db.commit()
+    return {"status": "ok", "plan": plan, "expires_at": expires_at.isoformat()}
 
 @app.get("/assessment/simulation/pay/{category}/{career_title}", response_class=HTMLResponse)
 async def simulation_pay_with_category(category: str, career_title: str, request: Request, db: AsyncSession = Depends(get_db)):
@@ -3990,7 +4386,8 @@ async def simulation_pay(career_title: str, request: Request, db: AsyncSession =
     return templates.TemplateResponse(request=request, name="simulation_payment.html", context={
         "user": user,
         "career_title": career_title,
-        "RAZORPAY_KEY_ID": RAZORPAY_KEY_ID
+        "RAZORPAY_KEY_ID": RAZORPAY_KEY_ID,
+        "razorpay_configured": is_razorpay_configured()
     })
 
 @app.post("/assessment/simulation/create-order")
@@ -4000,7 +4397,15 @@ async def simulation_create_order(request: Request, db: AsyncSession = Depends(g
         raise HTTPException(status_code=401)
         
     req_data = await request.json()
+    if not is_razorpay_configured():
+        raise HTTPException(
+            status_code=503,
+            detail="Payment gateway is not configured. Add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to .env."
+        )
+
     package = req_data.get("package", "single") # "single" or "bundle"
+    if package not in ("single", "bundle"):
+        raise HTTPException(status_code=400, detail="Invalid simulation package")
     amount_in_inr = 35 if package == "bundle" else 15
     
     data = {
@@ -4015,7 +4420,7 @@ async def simulation_create_order(request: Request, db: AsyncSession = Depends(g
         return order
     except Exception as e:
         print(f"Razorpay Simulation Order Create Error: {e}")
-        raise HTTPException(status_code=500, detail="Could not create payment order")
+        raise HTTPException(status_code=502, detail=f"Could not create payment order: {str(e)}")
 
 @app.post("/assessment/simulation/verify-payment")
 async def simulation_verify_payment(request: Request, db: AsyncSession = Depends(get_db)):
@@ -4024,6 +4429,11 @@ async def simulation_verify_payment(request: Request, db: AsyncSession = Depends
         raise HTTPException(status_code=401)
         
     data = await request.json()
+    if not is_razorpay_configured():
+        raise HTTPException(
+            status_code=503,
+            detail="Payment gateway is not configured. Add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to .env."
+        )
     razorpay_payment_id = data.get("razorpay_payment_id")
     razorpay_order_id = data.get("razorpay_order_id")
     razorpay_signature = data.get("razorpay_signature")
@@ -4067,6 +4477,151 @@ async def simulation_verify_payment(request: Request, db: AsyncSession = Depends
     await db.commit()
         
     return {"status": "ok"}
+
+@app.post("/simulation/start")
+async def live_simulation_start(
+    request: Request,
+    career_title: str = Form(...),
+    difficulty: str = Form("Foundation"),
+    db: AsyncSession = Depends(get_db)
+):
+    user = await get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+    if not result:
+        raise HTTPException(status_code=404, detail="Assessment result not found")
+
+    db_user = (await db.execute(select(models.User).where(models.User.id == user.id))).scalars().first()
+    sims_completed = max(result.simulations_completed or 0, (db_user.simulations_completed or 0) if db_user else 0)
+    sim_credits = max(result.simulation_credits or 0, (db_user.simulation_credits or 0) if db_user else 0)
+
+    if sims_completed >= 1 and sim_credits <= 0:
+        raise HTTPException(status_code=402, detail="Simulation payment required")
+
+    scenarios = simulation_service.build_live_simulation(career_title, difficulty)
+    session_id = uuid.uuid4().hex
+    LIVE_SIMULATION_SESSIONS[session_id] = {
+        "user_id": user.id,
+        "career_title": career_title,
+        "difficulty": difficulty,
+        "scenarios": scenarios,
+        "current_index": 0,
+        "moves": [],
+        "final_evaluation": None,
+    }
+
+    if sims_completed >= 1:
+        if result.simulation_credits and result.simulation_credits > 0:
+            result.simulation_credits -= 1
+        if db_user and db_user.simulation_credits and db_user.simulation_credits > 0:
+            db_user.simulation_credits -= 1
+
+    result.simulation_career = career_title
+    result.simulation_questions = [scenario["scenario"] for scenario in scenarios]
+    result.simulation_answers = []
+    result.simulation_evaluation = None
+    result.simulation_paid = False
+    if db_user:
+        db_user.simulation_paid = False
+
+    update_assessment_simulation(user.id, career=career_title, questions=result.simulation_questions, answers=[], evaluation=None)
+    await db.commit()
+
+    return {
+        "session_id": session_id,
+        "initial_state": scenarios[0],
+        "total_steps": len(scenarios),
+    }
+
+@app.post("/simulation/step")
+async def live_simulation_step(
+    request: Request,
+    session_id: str = Form(...),
+    user_input: str = Form(...),
+    response_time: float = Form(0),
+    db: AsyncSession = Depends(get_db)
+):
+    user = await get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    session = LIVE_SIMULATION_SESSIONS.get(session_id)
+    if not session or session["user_id"] != user.id:
+        raise HTTPException(status_code=404, detail="Simulation session not found")
+
+    index = session["current_index"]
+    scenarios = session["scenarios"]
+    if index >= len(scenarios):
+        return {"is_last_step": True, "analysis": None, "next_state": None}
+
+    scenario = scenarios[index]
+    analysis = simulation_service.analyze_live_simulation_move(user_input, scenario, response_time)
+    session["moves"].append({
+        "phase": scenario.get("phase"),
+        "scenario": scenario.get("scenario"),
+        "answer": user_input,
+        "analysis": analysis,
+    })
+    session["current_index"] += 1
+
+    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+    if result:
+        result.simulation_answers = [move["answer"] for move in session["moves"]]
+        update_assessment_simulation(user.id, answers=result.simulation_answers)
+        await db.commit()
+
+    is_last_step = session["current_index"] >= len(scenarios)
+    if is_last_step:
+        await _finalize_live_simulation_session(user.id, session, db)
+        return {"is_last_step": True, "analysis": analysis, "next_state": None}
+
+    return {
+        "is_last_step": False,
+        "analysis": analysis,
+        "next_state": scenarios[session["current_index"]],
+    }
+
+@app.get("/simulation/session/{session_id}")
+async def live_simulation_session(session_id: str, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    session = LIVE_SIMULATION_SESSIONS.get(session_id)
+    if not session or session["user_id"] != user.id:
+        raise HTTPException(status_code=404, detail="Simulation session not found")
+
+    if not session.get("final_evaluation"):
+        await _finalize_live_simulation_session(user.id, session, db)
+
+    return {
+        "session_id": session_id,
+        "career_title": session["career_title"],
+        "moves": session["moves"],
+        "final_evaluation": session["final_evaluation"],
+    }
+
+async def _finalize_live_simulation_session(user_id: int, session: dict, db: AsyncSession):
+    if session.get("final_evaluation"):
+        return session["final_evaluation"]
+
+    evaluation = simulation_service.finalize_live_simulation(session["career_title"], session["moves"])
+    session["final_evaluation"] = evaluation
+
+    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user_id))).scalars().first()
+    if result:
+        result.simulation_answers = [move["answer"] for move in session["moves"]]
+        result.simulation_evaluation = evaluation
+        result.simulations_completed = (result.simulations_completed or 0) + 1
+        db_user = (await db.execute(select(models.User).where(models.User.id == user_id))).scalars().first()
+        if db_user:
+            db_user.simulations_completed = (db_user.simulations_completed or 0) + 1
+        update_assessment_simulation(user_id, answers=result.simulation_answers, evaluation=evaluation)
+        await db.commit()
+
+    return evaluation
 
 @app.get("/assessment/simulation/start/{category}/{career_title}", response_class=HTMLResponse)
 async def simulation_start_with_category(category: str, career_title: str, request: Request, db: AsyncSession = Depends(get_db)):
@@ -4544,6 +5099,7 @@ async def assessment_final_submit(request: Request, db: AsyncSession = Depends(g
         else:
              result.final_analysis = "AI Analysis Unavailable (API Key missing)."
 
+        await mark_assessment_completed_once(user, result, db)
         await db.commit()
 
     return RedirectResponse(url="/assessment/result", status_code=status.HTTP_302_FOUND)
@@ -4764,6 +5320,61 @@ class ResolveVoiceRequest(BaseModel):
     transcript: str
     options: list
 
+def build_local_careerbuddy_response(user, result, user_message: str) -> str:
+    """Useful no-key fallback for CareerBuddy so local/demo chat still helps students."""
+    message = (user_message or "").lower()
+    archetype = getattr(result, "phase_2_category", None) if result else None
+    stream = getattr(result, "recommended_stream", None) if result else None
+    grade = getattr(result, "selected_class", None) if result else None
+    personality = getattr(result, "personality", None) if result else None
+    focus = stream or archetype or "your current career direction"
+
+    if any(word in message for word in ("college", "university", "institute")):
+        return (
+            f"Based on your profile, start college research around **{focus}**.\n\n"
+            "1. Shortlist 5-8 colleges that offer the relevant course.\n"
+            "2. Compare fees, placements, location, entrance requirements, and practical exposure.\n"
+            "3. Keep one ambitious option, three realistic options, and two backup options.\n\n"
+            "On CareStance, use **Colleges** from your dashboard to generate a more specific list."
+        )
+
+    if any(word in message for word in ("roadmap", "plan", "study", "steps", "prepare")):
+        return (
+            f"Here is a simple starting roadmap for **{focus}**:\n\n"
+            "1. **Foundation:** revise the core subjects and concepts connected to this path.\n"
+            "2. **Skill Practice:** complete one small project, case study, or practical task every week.\n"
+            "3. **Proof of Work:** keep notes, certificates, screenshots, or portfolio links.\n"
+            "4. **Guidance:** discuss confusing steps with a counsellor or CareerBuddy before changing direction.\n\n"
+            "Best next action: pick one milestone you can finish in the next 7 days."
+        )
+
+    if any(word in message for word in ("strength", "weakness", "personality", "match")):
+        return (
+            f"Looking at your profile, your current signal is **{archetype or personality or 'still being refined'}**.\n\n"
+            "**Likely strengths:** focused decision-making, willingness to explore, and career curiosity.\n"
+            "**Growth areas:** make your choices more evidence-based, compare options calmly, and test careers through small simulations.\n\n"
+            "A good next step is to try the **Career Simulation** from your dashboard and see how you respond to a real-world scenario."
+        )
+
+    if any(word in message for word in ("exam", "entrance", "test")):
+        return (
+            f"For **{focus}**, do not choose exams randomly.\n\n"
+            "1. First decide the target course or career cluster.\n"
+            "2. List the common entrance exams for that course.\n"
+            "3. Check eligibility, syllabus, exam month, and application deadline.\n"
+            "4. Build a weekly prep plan around the highest-value exam first.\n\n"
+            "Tell me your target course and city/state, and I can help you narrow the exam list."
+        )
+
+    return (
+        f"Hi {user.full_name or 'there'}, I can help you with **{focus}**.\n\n"
+        "Here are three useful next moves:\n"
+        "1. Ask me to explain your strengths and growth areas.\n"
+        "2. Ask for a weekly study or career roadmap.\n"
+        "3. Try the dashboard **Career Simulation** to test your real-world fit.\n\n"
+        f"Your current context: grade/class **{grade or 'not set'}**, recommendation **{focus}**."
+    )
+
 @app.get("/chatbot", response_class=HTMLResponse)
 async def chatbot_page(request: Request, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
@@ -4912,9 +5523,13 @@ Response (Concise, Markdown formatted):
                                         yield text_chunk
                             except Exception as gemini_e:
                                 print(f"Chatbot Gemini Error: {gemini_e}")
-                                yield f"I'm sorry, both AI services are currently unavailable. (Groq: {str(groq_e)}, Gemini: {str(gemini_e)})"
+                                fallback = build_local_careerbuddy_response(user, result, user_message)
+                                full_response_text += fallback
+                                yield fallback
                         else:
-                            yield f"AI Service error: {str(groq_e)}"
+                            fallback = build_local_careerbuddy_response(user, result, user_message)
+                            full_response_text += fallback
+                            yield fallback
                 elif GEMINI_API_KEY:
                     try:
                         print(f"AI Chat for User {user_id}: Trying Gemini...")
@@ -4926,16 +5541,17 @@ Response (Concise, Markdown formatted):
                                 full_response_text += text_chunk
                                 yield text_chunk
                     except Exception as gemini_e:
-                        yield f"AI Service error: {str(gemini_e)}"
+                        fallback = build_local_careerbuddy_response(user, result, user_message)
+                        full_response_text += fallback
+                        yield fallback
                 else:
-                     # Demo Mode Simulation
-                     fake_response = "I'm in demo mode (No API Key). Based on your profile, I'd suggest exploring based on your interests! (Please set GEMINI_API_KEY or GROQ_API_KEY to get real AI responses)"
-                     for word in fake_response.split():
+                     fallback = build_local_careerbuddy_response(user, result, user_message)
+                     for word in fallback.split():
                          text_chunk = word + " "
                          full_response_text += text_chunk
                          yield text_chunk
                          import asyncio
-                         await asyncio.sleep(0.05) 
+                         await asyncio.sleep(0.02)
                 
                 # Save AI Message using local_db
                 if full_response_text:

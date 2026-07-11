@@ -68,10 +68,8 @@ async def resolve_moderation_flag(
         return None
 
     flag.status = new_status
-    # Store admin note in content field temporarily until column is added
-    # TODO: add admin_note column to ModerationFlag model
     if admin_note:
-        logger.info(f"Admin note for flag {flag_id}: {admin_note}")
+        flag.admin_note = admin_note
 
     await db.commit()
     await db.refresh(flag)

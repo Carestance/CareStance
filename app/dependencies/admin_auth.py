@@ -1,56 +1,69 @@
-"""
-Admin authentication dependency
-Reusable across all admin-only routes and APIs.
-"""
+"""Reusable admin authentication dependency."""
 
-import os
 import logging
-from fastapi import Depends, HTTPException, Request, status
-from fastapi.responses import RedirectResponse
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+import os
 
-from app.database import get_db  # adjust import path as per your project
+from fastapi import Depends, HTTPException, Request, status
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.database import get_db
 from app.models import User
 
 logger = logging.getLogger(__name__)
-
-ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "")
 
 
 async def get_current_admin(
     request: Request,
     db: AsyncSession = Depends(get_db),
 ) -> User:
-    """
-    Dependency: validates session cookie and checks admin role.
-    Use this in any admin-only route.
-
-    Raises:
-        RedirectResponse → /login  (no session)
-        HTTPException 403         (logged in but not admin)
-    """
+    """Validate the user_id cookie and allow only admins or ADMIN_EMAIL."""
     user_id = request.cookies.get("user_id")
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_302_FOUND,
+            headers={"Location": "/login"},
+            detail="Login required.",
+        )
 
     try:
-        uid = int(user_id)
-    except ValueError:
-        return RedirectResponse(url="/login", status_code=302)
+        user_id_int = int(user_id)
+    except (TypeError, ValueError):
+        raise HTTPException(
+            status_code=status.HTTP_302_FOUND,
+            headers={"Location": "/login"},
+            detail="Invalid session.",
+        )
 
-    result = await db.execute(select(User).where(User.id == uid))
+    result = await db.execute(select(User).where(User.id == user_id_int))
     user = result.scalar_one_or_none()
-
     if not user:
-        return RedirectResponse(url="/login", status_code=302)
+        raise HTTPException(
+            status_code=status.HTTP_302_FOUND,
+            headers={"Location": "/login"},
+            detail="Login required.",
+        )
 
-    is_admin = (user.role == "admin") or (user.email == ADMIN_EMAIL)
+    # Deny suspended/blocked users (module requirement)
+    if getattr(user, "is_suspended", False):
+        logger.warning("Suspended user blocked from admin access: user_id=%s email=%s", user.id, user.email)
+        raise HTTPException(
+            status_code=status.HTTP_302_FOUND,
+            headers={"Location": "/suspended"},
+            detail="Account suspended.",
+        )
 
+    admin_email = os.getenv("ADMIN_EMAIL", "")
+    is_admin = user.role == "admin" or (bool(admin_email) and user.email == admin_email)
     if not is_admin:
         logger.warning(
-            f"Unauthorized admin access attempt by user_id={user_id} email={user.email}"
+            "Unauthorized admin access attempt by user_id=%s email=%s",
+            user.id,
+            user.email,
         )
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=status.HTTP_302_FOUND,
+            headers={"Location": "/dashboard?error=Admin+access+denied"},
             detail="Admin access denied.",
         )
 

@@ -4,7 +4,7 @@
 
 {% block content %}
 <!-- Main Layout Container -->
-<div class="max-w-7xl mx-auto h-[calc(100vh-5rem)] md:h-[calc(100vh-8rem)] min-h-[500px] flex gap-6">
+<div class="chatbot-shell max-w-7xl mx-auto h-[calc(100vh-5rem)] md:h-[calc(100vh-8rem)] min-h-[500px] flex gap-6">
 
     <!-- SIDEBAR: Context & Profile (Hidden on Mobile) -->
     <div class="hidden lg:flex flex-col w-80 gap-4 h-full shrink-0">
@@ -175,15 +175,15 @@
             <div class="flex gap-2 overflow-x-auto pb-3 mb-1 no-scrollbar">
                 <button onclick="fillInput('Create a study plan for me')"
                     class="whitespace-nowrap px-4 py-1.5 rounded-full bg-slate-100 hover:bg-[var(--teal-soft)] text-slate-600 hover:text-[var(--navy)] border border-slate-200 hover:border-[var(--teal-light)]/30 text-xs font-bold transition-colors">
-                    📅 Study Plan
+                    <i class="fas fa-calendar-alt mr-1"></i> Study Plan
                 </button>
                 <button onclick="fillInput('What are the top colleges for my interest?')"
                     class="whitespace-nowrap px-4 py-1.5 rounded-full bg-slate-100 hover:bg-[var(--teal-soft)] text-slate-600 hover:text-[var(--navy)] border border-slate-200 hover:border-[var(--teal-light)]/30 text-xs font-bold transition-colors">
-                    🏛️ Top Colleges
+                    <i class="fas fa-university mr-1"></i> Top Colleges
                 </button>
                 <button onclick="fillInput('Explain my strengths and weaknesses')"
                     class="whitespace-nowrap px-4 py-1.5 rounded-full bg-slate-100 hover:bg-[var(--teal-soft)] text-slate-600 hover:text-[var(--navy)] border border-slate-200 hover:border-[var(--teal-light)]/30 text-xs font-bold transition-colors">
-                    💪 My Strengths
+                    <i class="fas fa-bolt mr-1"></i> My Strengths
                 </button>
             </div>
 
@@ -206,7 +206,7 @@
                 </div>
 
                 <button type="submit" id="send-btn"
-                    class="bg-[var(--navy)] text-white p-4 rounded-2xl shadow-lg transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                    class="bg-slate-900 text-white p-4 rounded-2xl shadow-lg transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transform rotate-90" fill="none"
                         viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -214,7 +214,7 @@
                     </svg>
                 </button>
             </form>
-            <p class="text-center text-[10px] text-slate-400 mt-3 font-medium uppercase tracking-widest">AI generated •
+            <p class="text-center text-[10px] text-slate-400 mt-3 font-medium uppercase tracking-widest">AI generated -
                 Check important info</p>
         </div>
     </div>
@@ -283,6 +283,52 @@
 
     .animate-fade-in-up {
         animation: fadeInUp 0.3s ease-out forwards;
+    }
+
+    #chat-box {
+        overflow-wrap: anywhere;
+    }
+
+    @media (max-width: 768px) {
+        .chatbot-shell {
+            height: calc(100dvh - 4.25rem);
+            min-height: 0;
+            padding: 0 0.75rem 0.75rem;
+        }
+
+        #chat-box {
+            padding: 0.875rem;
+        }
+
+        #chat-box > .flex {
+            gap: 0.625rem;
+        }
+
+        #chat-box .w-10.h-10 {
+            width: 2rem;
+            height: 2rem;
+            border-radius: 0.875rem;
+        }
+
+        #chat-box .max-w-\[90\%\],
+        #chat-box .sm\:max-w-\[80\%\] {
+            max-width: calc(100% - 2.5rem) !important;
+        }
+
+        #chat-form {
+            gap: 0.5rem;
+        }
+
+        #user-input {
+            padding: 0.875rem 2.75rem 0.875rem 1rem;
+            font-size: 0.95rem;
+        }
+
+        #send-btn {
+            padding: 0.875rem;
+            border-radius: 1rem;
+            flex-shrink: 0;
+        }
     }
 </style>
 
@@ -426,7 +472,14 @@
                 body: JSON.stringify({ message: message })
             });
 
-            if (!response.ok) throw new Error('Network error');
+            if (!response.ok) {
+                let errorText = 'Sorry, I could not respond right now. Please try again.';
+                try {
+                    const errorData = await response.json();
+                    errorText = errorData.error || errorData.detail || errorText;
+                } catch (_) {}
+                throw new Error(errorText);
+            }
 
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
@@ -444,7 +497,8 @@
             }
 
         } catch (error) {
-            contentDiv.innerHTML = `<span class="text-rose-500 font-medium">Sorry, connection issue. Please try again.</span>`;
+            fullText = `Sorry, connection issue. ${error.message || 'Please try again.'}`;
+            contentDiv.innerHTML = `<span class="text-rose-500 font-medium">${fullText}</span>`;
         } finally {
             // Reset UI
             userInput.disabled = false;
@@ -458,7 +512,7 @@
             }
 
             // Final render to ensure clean markdown
-            contentDiv.innerHTML = marked.parse(fullText);
+            if (fullText) contentDiv.innerHTML = marked.parse(fullText);
         }
     });
 

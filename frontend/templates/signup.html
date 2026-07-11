@@ -60,7 +60,6 @@
       <a href="/">Home</a>
       <a href="/founders">Founders</a>
       <a href="/articles">Articles</a>
-      <a href="https://forms.gle/yEpw1tBG97sSnNaF7" target="_blank" rel="noopener">Internships</a>
       {% if user %}
       <a href="/dashboard">Dashboard</a>
       <a href="/logout" class="nav-logout">Logout</a>
@@ -191,6 +190,7 @@
 
                     <div class="relative">
                         <input id="contact_number" name="contact_number" type="tel" required
+                            pattern="^\+\d{1,3}\s?\d{10}$" title="Must include country code (e.g., +91) and 10 digits"
                             class="peer w-full px-4 pt-5 pb-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-[var(--teal)] focus:border-[var(--teal)] outline-none transition"
                             placeholder=" ">
                         <label for="contact_number"

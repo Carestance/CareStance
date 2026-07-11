@@ -64,7 +64,7 @@ def test_grade_10_flow():
     p1_data = response.json()
     assert "cards" in p1_data
     cards = p1_data["cards"]
-    assert len(cards) == 10
+    assert len(cards) == 5
     
     # Submit Phase 1 (Swipe)
     swipes = [{"card_id": c["id"], "direction": "right", "reaction_ms": 500, "dwell_ms": 600, "hesitation_ms": 0} for c in cards]
@@ -72,25 +72,22 @@ def test_grade_10_flow():
     assert response.status_code == 200
     assert response.json()["status"] == "success"
     
-    # Verify phase transition to Phase 2 (Mentor Chat)
+    # Verify phase transition to Phase 2 (5 MCQs)
     response = client.get("/assessment/api/state")
     state = response.json()
     assert state["current_phase"] == 2
-    
-    # Phase 2 (Mentor Chat) E2E Simulation
-    chat_completed = False
-    for i in range(6):
-        response = client.post("/assessment/api/chat", json={"message": f"Answer turn {i}"})
-        assert response.status_code == 200
-        res_data = response.json()
-        assert res_data["status"] == "success"
-        if res_data.get("phase_complete"):
-            chat_completed = True
-            break
-            
-    assert chat_completed, "Chat phase should successfully complete and transition to next phase"
-    
-    # Verify we are on Phase 3 (Proxies)
+
+    response = client.get("/assessment/api/phase2_mcqs")
+    assert response.status_code == 200
+    mcqs = response.json()["mcqs"]
+    assert len(mcqs) == 5
+
+    mcq_answers = [{"question_id": q["id"], "archetype_id": q["options"][0]["archetype_id"]} for q in mcqs]
+    response = client.post("/assessment/api/phase2/submit", json={"answers": mcq_answers})
+    assert response.status_code == 200
+    assert response.json()["status"] == "success"
+
+    # Verify we are on Phase 3 (Mentor/deep-dive choice)
     response = client.get("/assessment/api/state")
     state = response.json()
     assert state["current_phase"] == 3
@@ -100,7 +97,7 @@ def test_grade_10_flow():
     p3_data = response.json()
     assert "proxy_questions" in p3_data
     proxies = p3_data["proxy_questions"]
-    assert len(proxies) > 0
+    assert len(proxies) == 5
     
     # Submit Phase 3 answers
     proxy_answers = [{"question_id": pq["id"], "answer": pq["options"][0]["text"]} for pq in proxies]
@@ -180,38 +177,34 @@ def test_grade_12_flow():
     # Get Phase 1 questions (Swipe Cards)
     response = client.get("/assessment/api/questions")
     cards = response.json()["cards"]
-    assert len(cards) == 10
+    assert len(cards) == 5
     
     # Submit Phase 1 (Swipe)
     swipes = [{"card_id": c["id"], "direction": "right", "reaction_ms": 500, "dwell_ms": 600, "hesitation_ms": 0} for c in cards]
     response = client.post("/assessment/api/swipe", json={"swipes": swipes})
     assert response.status_code == 200
     
-    # Verify transition to Phase 2 (Mentor Chat)
+    # Verify transition to Phase 2 (5 MCQs)
     response = client.get("/assessment/api/state")
     assert response.json()["current_phase"] == 2
-    
-    # Chat E2E Simulation
-    chat_completed = False
-    for i in range(6):
-        response = client.post("/assessment/api/chat", json={"message": f"Grade 12 response turn {i}"})
-        assert response.status_code == 200
-        res_data = response.json()
-        assert res_data["status"] == "success"
-        if res_data.get("phase_complete"):
-            chat_completed = True
-            break
-            
-    assert chat_completed, "Grade 12 chat phase should successfully transition"
-    
-    # Verify transition to Phase 3 (Context/Proxies)
+
+    response = client.get("/assessment/api/phase2_mcqs")
+    assert response.status_code == 200
+    mcqs = response.json()["mcqs"]
+    assert len(mcqs) == 5
+
+    mcq_answers = [{"question_id": q["id"], "archetype_id": q["options"][0]["archetype_id"]} for q in mcqs]
+    response = client.post("/assessment/api/phase2/submit", json={"answers": mcq_answers})
+    assert response.status_code == 200
+
+    # Verify transition to Phase 3 (Mentor/deep-dive choice)
     response = client.get("/assessment/api/state")
     assert response.json()["current_phase"] == 3
     
     # Get Phase 3 questions
     response = client.get("/assessment/api/questions")
     proxies = response.json()["proxy_questions"]
-    assert len(proxies) > 0
+    assert len(proxies) == 5
     
     # Submit Phase 3 answers
     proxy_answers = [{"question_id": pq["id"], "answer": pq["options"][0]["text"]} for pq in proxies]
