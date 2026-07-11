@@ -3,6 +3,7 @@ import uuid
 import random
 import datetime
 import asyncio
+import io
 import os
 import shutil
 import warnings
@@ -181,6 +182,10 @@ def get_subscription_state(user) -> dict:
         "plan": getattr(user, "subscription_plan", None) if is_active else None,
         "expires_at": expires_at if is_active else None,
     }
+
+def has_customised_subscription(user) -> bool:
+    state = get_subscription_state(user)
+    return bool(state.get("active") and state.get("plan") == "customised")
 
 def has_completed_assessment(result) -> bool:
     return bool(
@@ -2203,6 +2208,170 @@ async def assessment_result(request: Request, db: AsyncSession = Depends(get_db)
         "display_archetype": display_archetype,
         "subscription_state": get_subscription_state(user),
     })
+
+def build_detailed_report_sections(user, result):
+    report = result.assessment_report or {}
+    final_recs = report.get("final_recommendations") or []
+    top_careers = report.get("top_careers") or []
+    stream_rec = report.get("stream_recommendation") or {}
+    confidence = int((result.confidence or 0.82) * 100)
+    career_names = []
+    for item in final_recs or top_careers:
+        if isinstance(item, dict):
+            career_names.append(item.get("career") or item.get("title") or item.get("name"))
+        elif isinstance(item, str):
+            career_names.append(item)
+    career_names = [name for name in career_names if name][:5]
+    primary_path = result.recommended_stream or (career_names[0] if career_names else "Career Explorer")
+    archetype = get_assessment_display_archetype(result)
+
+    def para_list(items):
+        clean = [str(item).strip() for item in items if str(item).strip()]
+        return clean or ["Keep validating this area through roadmap tasks, simulations, and counsellor review."]
+
+    strengths = para_list(result.stream_pros or report.get("strengths") or [
+        f"Shows alignment with {archetype} style decisions.",
+        "Can compare options using structured evidence instead of random guessing.",
+        "Has enough assessment signal to start a guided roadmap."
+    ])
+    growth = para_list(result.stream_cons or report.get("growth_areas") or [
+        "Needs practical proof through projects, tasks, and short assessments.",
+        "Should verify college and entrance requirements before committing.",
+        "Should review progress weekly instead of waiting until deadlines."
+    ])
+
+    return [
+        ("Career Blueprint Cover", [
+            f"Student: {user.full_name or 'Student'}",
+            f"Recommended direction: {primary_path}",
+            f"Assessment confidence: {confidence}%",
+            "This report turns the assessment result into a practical guidance document for planning, discussion, and tracking."
+        ]),
+        ("Profile Snapshot", [
+            f"Class or stage: {result.selected_class or 'Not specified'}",
+            f"Career archetype: {archetype}",
+            f"Goal status: {result.goal_status or 'Exploration'}",
+            f"Primary personality signal: {result.personality or archetype}"
+        ]),
+        ("Assessment Summary", [
+            result.final_analysis or result.reasoning or "The assessment combines interest, decision style, scenario response, and stream fit to identify a practical direction.",
+            "The result should be used as a planning compass, then validated through roadmap tasks and simulations."
+        ]),
+        ("Recommended Career Direction", [
+            f"The strongest current recommendation is {primary_path}.",
+            f"Other high-value matches: {', '.join(career_names[1:]) if len(career_names) > 1 else 'Generate more career matches from the result page.'}",
+            "Prioritise careers where the student can build visible work samples and test real responsibilities early."
+        ]),
+        ("Stream and Academic Fit", [
+            f"Suggested stream: {stream_rec.get('stream') if isinstance(stream_rec, dict) else result.recommended_stream or primary_path}",
+            f"Reason: {stream_rec.get('reason') if isinstance(stream_rec, dict) else 'Based on the assessment profile and career target.'}",
+            "Confirm eligibility, subject requirements, and entrance exam paths for the chosen course before final selection."
+        ]),
+        ("Strengths to Build On", strengths),
+        ("Growth Areas", growth),
+        ("Roadmap Guidance", [
+            "Use milestones as real checkpoints, not fictional tasks.",
+            "Each milestone should include a deliverable, timeline, resources, and a small MCQ-based check.",
+            "A milestone is complete only when the student can explain what was done and answer the step check correctly."
+        ]),
+        ("Resource Plan", [
+            "Start with official or reputable learning platforms, course pages, documentation, and university resources.",
+            "Avoid random links that do not directly support the milestone objective.",
+            "Review resources monthly because links, eligibility pages, and course pages can change."
+        ]),
+        ("College and Entrance Planning", [
+            "Shortlist colleges by course fit, eligibility, entrance route, location, fees, placement signal, and credibility.",
+            "Track application windows and exam dates separately from the career roadmap.",
+            "Use college recommendations as a starting list, then verify each college from the official website."
+        ]),
+        ("Tracking and AI Review", [
+            "After each roadmap step, the student should discuss evidence with the AI tracker.",
+            "For the Customised plan, a weekly AI conversation keeps the plan current and catches blockers early.",
+            "Progress should depend on completed work, assessment checks, and follow-up reflection."
+        ]),
+        ("Next 30 Days", [
+            "Week 1: choose the highest-confidence career path and open its roadmap.",
+            "Week 2: complete the first milestone and its MCQ check.",
+            "Week 3: collect resources and verify college or course requirements.",
+            "Week 4: review progress with CareerBuddy or a counsellor and adjust the next milestone."
+        ]),
+    ]
+
+def generate_assessment_report_pdf(user, result) -> bytes:
+    try:
+        from reportlab.lib import colors
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import inch
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Table, TableStyle
+        from xml.sax.saxutils import escape
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"PDF generation is not available: {exc}")
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=0.65 * inch,
+        leftMargin=0.65 * inch,
+        topMargin=0.65 * inch,
+        bottomMargin=0.65 * inch,
+        title="CareStance Detailed Career Report",
+    )
+    styles = getSampleStyleSheet()
+    styles.add(ParagraphStyle(name="CareTitle", parent=styles["Title"], fontSize=24, leading=30, textColor=colors.HexColor("#0f172a")))
+    styles.add(ParagraphStyle(name="CareHeading", parent=styles["Heading1"], fontSize=18, leading=24, textColor=colors.HexColor("#0f766e")))
+    styles.add(ParagraphStyle(name="CareBody", parent=styles["BodyText"], fontSize=10.5, leading=16, textColor=colors.HexColor("#334155")))
+
+    story = []
+    sections = build_detailed_report_sections(user, result)
+    for index, (title, points) in enumerate(sections, start=1):
+        if index == 1:
+            story.append(Paragraph("CareStance Detailed Career Report", styles["CareTitle"]))
+            story.append(Spacer(1, 0.25 * inch))
+        story.append(Paragraph(f"{index}. {escape(title)}", styles["CareHeading"]))
+        story.append(Spacer(1, 0.15 * inch))
+        rows = [["Focus", "Guidance"]]
+        for point_index, point in enumerate(points, start=1):
+            rows.append([str(point_index), Paragraph(escape(str(point)), styles["CareBody"])])
+        table = Table(rows, colWidths=[0.7 * inch, 6.0 * inch])
+        table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#ccfbf1")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor("#0f172a")),
+            ("GRID", (0, 0), (-1, -1), 0.35, colors.HexColor("#cbd5e1")),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 8),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+            ("TOPPADDING", (0, 0), (-1, -1), 8),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+        ]))
+        story.append(table)
+        story.append(Spacer(1, 0.2 * inch))
+        story.append(Paragraph("Generated by CareStance. Verify deadlines, eligibility, and college information from official sources before final decisions.", styles["CareBody"]))
+        if index < len(sections):
+            story.append(PageBreak())
+
+    doc.build(story)
+    return buffer.getvalue()
+
+@app.get("/assessment/report/download")
+async def download_assessment_report(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    state = get_subscription_state(user)
+    if not state.get("active"):
+        return RedirectResponse(url="/subscription", status_code=status.HTTP_302_FOUND)
+    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+    if not result:
+        return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
+    pdf_bytes = generate_assessment_report_pdf(user, result)
+    filename = f"carestance-report-{result.id}.pdf"
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
 
 @app.get("/share/report/{result_id}", response_class=HTMLResponse)
 async def share_report(result_id: int, request: Request, mode: str = "full", db: AsyncSession = Depends(get_db)):
@@ -5346,6 +5515,114 @@ async def chatbot_page(request: Request, db: AsyncSession = Depends(get_db)):
         import traceback
         return HTMLResponse(content=f"Template Error: {e}<br><pre>{traceback.format_exc()}</pre>", status_code=500)
 
+def get_weekly_checkin_status(messages):
+    weekly_messages = [msg for msg in messages if msg.sender == "weekly_user"]
+    if not weekly_messages:
+        return {"is_due": True, "last_at": None, "next_due": None}
+    last_at = weekly_messages[-1].timestamp
+    if getattr(last_at, "tzinfo", None):
+        now = datetime.datetime.now(last_at.tzinfo)
+    else:
+        now = datetime.datetime.utcnow()
+    next_due = last_at + datetime.timedelta(days=7)
+    return {"is_due": now >= next_due, "last_at": last_at, "next_due": next_due}
+
+def build_weekly_local_response(user, result, user_message: str, is_due: bool) -> str:
+    focus = result.recommended_stream if result and result.recommended_stream else "your selected career direction"
+    if not user_message.strip():
+        return (
+            f"This week's check-in is for **{focus}**.\n\n"
+            "Tell me: what did you complete this week, what got stuck, and which milestone are you targeting next?"
+        )
+    if is_due:
+        return (
+            f"Good check-in. For **{focus}**, convert this into one measurable action for the next 7 days.\n\n"
+            "1. Pick one roadmap milestone.\n"
+            "2. Finish one visible deliverable.\n"
+            "3. Save proof of work.\n"
+            "4. Come back next week and compare progress against this promise."
+        )
+    return (
+        f"I have noted this update for **{focus}**. Since your next weekly review is not due yet, use this as a progress note and keep working on the current milestone."
+    )
+
+@app.get("/weekly-checkin", response_class=HTMLResponse)
+async def weekly_checkin_page(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    if not has_customised_subscription(user):
+        return RedirectResponse(url="/subscription", status_code=status.HTTP_302_FOUND)
+
+    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+    history = (await db.execute(
+        select(models.ChatMessage)
+        .where(models.ChatMessage.user_id == user.id, models.ChatMessage.sender.in_(["weekly_user", "weekly_ai"]))
+        .order_by(models.ChatMessage.timestamp)
+    )).scalars().all()
+    status_info = get_weekly_checkin_status(history)
+    if not history:
+        opening = build_weekly_local_response(user, result, "", True)
+        db.add(models.ChatMessage(user_id=user.id, sender="weekly_ai", content=opening))
+        await db.commit()
+        history = (await db.execute(
+            select(models.ChatMessage)
+            .where(models.ChatMessage.user_id == user.id, models.ChatMessage.sender.in_(["weekly_user", "weekly_ai"]))
+            .order_by(models.ChatMessage.timestamp)
+        )).scalars().all()
+        status_info = get_weekly_checkin_status(history)
+
+    return templates.TemplateResponse(request=request, name="weekly_checkin.html", context={
+        "user": user,
+        "result": result,
+        "history": history,
+        "checkin_status": status_info,
+    })
+
+@app.post("/weekly-checkin/message")
+async def weekly_checkin_message(request: Request, chat_req: ChatRequest, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    if not has_customised_subscription(user):
+        raise HTTPException(status_code=403, detail="Customised plan required")
+
+    user_message = (chat_req.message or "").strip()
+    if not user_message:
+        raise HTTPException(status_code=400, detail="Message is required")
+    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+    history = (await db.execute(
+        select(models.ChatMessage)
+        .where(models.ChatMessage.user_id == user.id, models.ChatMessage.sender.in_(["weekly_user", "weekly_ai"]))
+        .order_by(models.ChatMessage.timestamp)
+    )).scalars().all()
+    status_info = get_weekly_checkin_status(history)
+
+    db.add(models.ChatMessage(user_id=user.id, sender="weekly_user", content=user_message))
+    context = "\n".join([f"{msg.sender}: {msg.content}" for msg in history[-8:]])
+    prompt = f"""
+You are CareStance Weekly AI Tracker for a Customised plan student.
+Student: {user.full_name}
+Recommended path: {result.recommended_stream if result else 'Career Explorer'}
+Archetype: {result.phase_2_category if result else 'Explorer'}
+Weekly check-in due now: {status_info['is_due']}
+
+Previous weekly notes:
+{context}
+
+Student update:
+{user_message}
+
+Reply in 120 words max. Confirm progress, identify one blocker, and give exactly one practical next-week action.
+"""
+    try:
+        ai_text = await generate_content_with_fallback(prompt)
+    except Exception:
+        ai_text = build_weekly_local_response(user, result, user_message, status_info["is_due"])
+    db.add(models.ChatMessage(user_id=user.id, sender="weekly_ai", content=ai_text))
+    await db.commit()
+    return {"response": ai_text, "is_due": status_info["is_due"]}
+
 @app.post("/assessment/resolve-voice")
 async def resolve_voice(req: ResolveVoiceRequest):
     """
@@ -5743,7 +6020,7 @@ Each resource MUST be:
 
 {{
 "name": "...",
-"url": "...",
+"provider": "Coursera/edX/MIT OpenCourseWare/Khan Academy/YouTube/Google Scholar",
 "type": "youtube/course/documentation/article",
 "difficulty": "Beginner/Intermediate/Advanced"
 }}
@@ -5761,7 +6038,7 @@ Rules:
 - IBM SkillsBuild
 - Udemy Best Sellers
 
-Never generate fake URLs.
+Never generate direct URLs. The app will convert the resource name and provider into a safe search link.
 
 6. Student Project
 
@@ -5892,7 +6169,7 @@ OUTPUT FORMAT (VALID JSON ONLY):
       "courses": [
         {{
           "name": "...",
-          "url": "...",
+          "provider": "Coursera/edX/MIT OpenCourseWare/Khan Academy/YouTube/Google Scholar",
           "type": "...",
           "difficulty": "..."
         }}
@@ -5940,6 +6217,7 @@ Return ONLY VALID JSON.
 No markdown.
 No explanations.
 No text outside JSON.
+Do not create direct URLs. For every course/resource, provide only a real resource name, provider, type, and difficulty.
 """
 
 
@@ -5971,6 +6249,10 @@ No text outside JSON.
             "career_outlook": path_data.get("career_outlook", {}),
             "reminders": path_data.get("reminders", [])
         }
+        full_path_data = ResourceAggregator.normalize_roadmap_resources(
+            full_path_data,
+            path_data.get("career_title", path_req.career_title),
+        )
         
         new_path.path_data = full_path_data
         
@@ -6103,6 +6385,47 @@ class RoadmapStepChatRequest(BaseModel):
     message: str = ""
     answers: list = []
 
+def get_roadmap_steps(path_data):
+    if isinstance(path_data, dict) and isinstance(path_data.get("steps"), list):
+        return path_data["steps"]
+    if isinstance(path_data, list):
+        return path_data
+    return []
+
+def ensure_step_mcq(step: dict, career_title: str, step_index: int) -> dict:
+    existing = step.get("mcq_assessment")
+    if isinstance(existing, dict) and existing.get("question") and existing.get("options"):
+        return existing
+    action = step.get("action") or step.get("title") or f"Milestone {step_index + 1}"
+    task = step.get("detailed_task") or step.get("description") or "complete the milestone task"
+    mcq = {
+        "question": f"For '{action}', what is the best proof that this milestone is genuinely complete?",
+        "options": [
+            f"I can show the finished deliverable, explain my decisions, and connect it to {career_title}.",
+            "I only read a few resources and saved the links for later.",
+            "I guessed that this step is done because the title sounds familiar.",
+            f"I skipped the practical task and only thought about {task[:80]}."
+        ],
+        "correct_index": 0,
+        "explanation": "A real milestone needs visible work plus a short explanation of what you learned and why it matters.",
+    }
+    step["mcq_assessment"] = mcq
+    return mcq
+
+def evaluate_step_mcq(step: dict, selected_index: int) -> dict:
+    mcq = step.get("mcq_assessment") or {}
+    correct_index = int(mcq.get("correct_index", 0))
+    is_correct = selected_index == correct_index
+    result = {
+        "selected_index": selected_index,
+        "is_correct": is_correct,
+        "score": 100 if is_correct else 0,
+        "completed_at": datetime.datetime.utcnow().isoformat(),
+        "explanation": mcq.get("explanation", ""),
+    }
+    step["mcq_result"] = result
+    return result
+
 @app.get("/career/roadmap/{path_id}/step/{step_index}/chat", response_class=HTMLResponse)
 async def roadmap_step_chat_page(path_id: int, step_index: int, request: Request, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
@@ -6114,11 +6437,7 @@ async def roadmap_step_chat_page(path_id: int, step_index: int, request: Request
         raise HTTPException(status_code=404, detail="Roadmap not found")
         
     data = path.path_data
-    steps = []
-    if isinstance(data, dict) and "steps" in data:
-        steps = data["steps"]
-    elif isinstance(data, list):
-        steps = data
+    steps = get_roadmap_steps(data)
         
     if not (0 <= step_index < len(steps)):
         raise HTTPException(status_code=404, detail="Step not found")
@@ -6129,6 +6448,12 @@ async def roadmap_step_chat_page(path_id: int, step_index: int, request: Request
             return RedirectResponse(url=f"/career/roadmap/{path_id}", status_code=status.HTTP_302_FOUND)
         
     step = steps[step_index]
+    ensure_step_mcq(step, path.career_title, step_index)
+    path.path_data = data
+    from sqlalchemy.orm.attributes import flag_modified
+    flag_modified(path, "path_data")
+    db.add(path)
+    await db.commit()
     return templates.TemplateResponse(request=request, name="roadmap_step_chat.html", context={
         "user": user,
         "path": path,
@@ -6147,11 +6472,7 @@ async def roadmap_step_chat_message(path_id: int, step_index: int, request: Requ
         raise HTTPException(status_code=404, detail="Roadmap not found")
         
     data = path.path_data
-    steps = []
-    if isinstance(data, dict) and "steps" in data:
-        steps = data["steps"]
-    elif isinstance(data, list):
-        steps = data
+    steps = get_roadmap_steps(data)
         
     if not (0 <= step_index < len(steps)):
          raise HTTPException(status_code=404, detail="Step not found")
@@ -6246,14 +6567,41 @@ async def roadmap_step_chat_finalize(path_id: int, step_index: int, request: Req
         raise HTTPException(status_code=404, detail="Roadmap not found")
         
     data = path.path_data
-    steps = []
-    if isinstance(data, dict) and "steps" in data:
-        steps = data["steps"]
-    elif isinstance(data, list):
-        steps = data
+    steps = get_roadmap_steps(data)
         
     if 0 <= step_index < len(steps):
-        steps[step_index]["completed"] = True
+        step = steps[step_index]
+        ensure_step_mcq(step, path.career_title, step_index)
+        payload = {}
+        try:
+            payload = await request.json()
+        except Exception:
+            payload = {}
+        selected_index = payload.get("selected_index")
+        if selected_index is None:
+            return JSONResponse({
+                "requires_mcq": True,
+                "mcq": step.get("mcq_assessment"),
+                "message": "Please answer the milestone MCQ before completing this step."
+            }, status_code=400)
+        try:
+            selected_index = int(selected_index)
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid MCQ answer")
+        mcq_result = evaluate_step_mcq(step, selected_index)
+        if not mcq_result["is_correct"]:
+            path.path_data = data
+            from sqlalchemy.orm.attributes import flag_modified
+            flag_modified(path, "path_data")
+            db.add(path)
+            await db.commit()
+            return {
+                "passed": False,
+                "mcq_result": mcq_result,
+                "message": "That answer does not prove the milestone is complete yet. Review the task and try the check again."
+            }
+
+        step["completed"] = True
         
         # Update progress percentage
         if isinstance(data, dict) and "steps" in data:
@@ -6279,6 +6627,15 @@ async def view_roadmap_detail(path_id: int, request: Request, db: AsyncSession =
     path = (await db.execute(select(models.CareerPath).where(models.CareerPath.id == path_id, models.CareerPath.user_id == user.id))).scalars().first()
     if not path:
         raise HTTPException(status_code=404, detail="Roadmap not found")
+
+    repaired_path_data = ResourceAggregator.normalize_roadmap_resources(path.path_data, path.career_title)
+    if isinstance(repaired_path_data, (dict, list)):
+        path.path_data = repaired_path_data
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(path, "path_data")
+        db.add(path)
+        await db.commit()
+        await db.refresh(path)
         
     assessment = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
     appointments = (await db.execute(select(models.Appointment).where(models.Appointment.student_id == user.id))).scalars().all()
@@ -6301,6 +6658,15 @@ async def view_roadmap_resources(path_id: int, request: Request, db: AsyncSessio
     path = (await db.execute(select(models.CareerPath).where(models.CareerPath.id == path_id, models.CareerPath.user_id == user.id))).scalars().first()
     if not path:
         raise HTTPException(status_code=404, detail="Roadmap not found")
+
+    repaired_path_data = ResourceAggregator.normalize_roadmap_resources(path.path_data, path.career_title)
+    if isinstance(repaired_path_data, (dict, list)):
+        path.path_data = repaired_path_data
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(path, "path_data")
+        db.add(path)
+        await db.commit()
+        await db.refresh(path)
         
     career_title = path.career_title
     keywords = career_keywords.get(career_title, [career_title]) # Fallback to title if not in keywords mapping

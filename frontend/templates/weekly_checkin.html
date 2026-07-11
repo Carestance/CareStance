@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Weekly AI Check-in - CareStance{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-slate-50 py-8">
+    <div class="max-w-4xl mx-auto px-4">
+        <div class="bg-white border border-slate-100 shadow-sm rounded-3xl p-6 mb-6">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <p class="text-xs font-black uppercase tracking-widest text-teal-600">Customised Plan</p>
+                    <h1 class="text-2xl font-black text-slate-900 mt-1">Weekly AI Conversation</h1>
+                    <p class="text-sm text-slate-500 mt-2">
+                        {% if checkin_status.is_due %}
+                        Your weekly review is due. Share progress, blockers, and next milestone.
+                        {% else %}
+                        Next review: {{ checkin_status.next_due.strftime('%d %b %Y') if checkin_status.next_due else 'soon' }}.
+                        {% endif %}
+                    </p>
+                </div>
+                <a href="/dashboard" class="inline-flex items-center justify-center px-4 py-2 rounded-xl border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50">
+                    Back to Dashboard
+                </a>
+            </div>
+        </div>
+
+        <div id="chatBox" class="bg-white border border-slate-100 shadow-sm rounded-3xl p-5 min-h-[420px] space-y-4">
+            {% for msg in history %}
+            <div class="flex {% if msg.sender == 'weekly_user' %}justify-end{% else %}justify-start{% endif %}">
+                <div class="max-w-[82%] rounded-2xl px-4 py-3 text-sm leading-relaxed {% if msg.sender == 'weekly_user' %}bg-teal-600 text-white{% else %}bg-slate-100 text-slate-700{% endif %}">
+                    {{ msg.content }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <form id="weeklyForm" class="mt-4 bg-white border border-slate-100 shadow-sm rounded-3xl p-4">
+            <label for="weeklyMessage" class="sr-only">Weekly update</label>
+            <textarea id="weeklyMessage" rows="3" class="w-full resize-none rounded-2xl border border-slate-200 p-4 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="Write what you completed, what got stuck, and your next milestone..."></textarea>
+            <div class="mt-3 flex justify-end">
+                <button id="sendBtn" type="submit" class="px-5 py-3 rounded-xl bg-teal-600 text-white text-sm font-black hover:bg-teal-700 transition">
+                    Send Check-in
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const chatBox = document.getElementById('chatBox');
+    const weeklyForm = document.getElementById('weeklyForm');
+    const weeklyMessage = document.getElementById('weeklyMessage');
+    const sendBtn = document.getElementById('sendBtn');
+
+    function addBubble(text, isUser) {
+        const row = document.createElement('div');
+        row.className = `flex ${isUser ? 'justify-end' : 'justify-start'}`;
+        const bubble = document.createElement('div');
+        bubble.className = `max-w-[82%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${isUser ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-700'}`;
+        bubble.textContent = text;
+        row.appendChild(bubble);
+        chatBox.appendChild(row);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    weeklyForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const message = weeklyMessage.value.trim();
+        if (!message) return;
+        addBubble(message, true);
+        weeklyMessage.value = '';
+        sendBtn.disabled = true;
+        sendBtn.textContent = 'Thinking...';
+        try {
+            const response = await fetch('/weekly-checkin/message', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message })
+            });
+            const data = await response.json();
+            addBubble(data.response || data.detail || 'Saved your weekly update.', false);
+        } catch (error) {
+            addBubble('Connection issue. Please try again.', false);
+        } finally {
+            sendBtn.disabled = false;
+            sendBtn.textContent = 'Send Check-in';
+        }
+    });
+</script>
+{% endblock %}

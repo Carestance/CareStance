@@ -95,8 +95,8 @@
                     <i class="fas fa-magic"></i>
                 </div>
                 <div>
-                    <h2 class="text-2xl font-black text-white tracking-tight">AI Premium Picks</h2>
-                    <p class="text-slate-400 text-sm font-medium">Selected by Groq Intelligence for elite learning</p>
+                    <h2 class="text-2xl font-black text-white tracking-tight">Curated Search Picks</h2>
+                    <p class="text-slate-400 text-sm font-medium">AI-selected topics opened through reliable provider searches</p>
                 </div>
             </div>
 
@@ -116,9 +116,9 @@
                     <h4 class="text-white font-bold mb-2 group-hover:text-[var(--teal-light)] transition-colors">{{ res.title }}
                     </h4>
                     <p class="text-slate-400 text-xs leading-relaxed mb-6">{{ res.description }}</p>
-                    <a href="{{ res.link }}" target="_blank"
+                    <a href="{{ res.link }}" target="_blank" rel="noopener noreferrer"
                         class="flex items-center text-[var(--teal)] text-xs font-black uppercase tracking-widest gap-2 group/btn">
-                        Access Resource <i
+                        Search {{ res.provider or 'Resource' }} <i
                             class="fas fa-external-link-alt group-hover/btn:translate-x-1 transition-transform"></i>
                     </a>
                 </div>
@@ -143,7 +143,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
 
             <!-- NDLI -->
-            <a href="{{ resources.ndli }}" target="_blank"
+            <a href="{{ resources.ndli }}" target="_blank" rel="noopener noreferrer"
                 class="resource-card group bg-slate-900 rounded-[2rem] p-8 animate-in border border-white/5 hover:border-[var(--teal)]/30"
                 style="animation-delay: 0.1s">
                 <div class="flex items-start justify-between mb-6">
@@ -151,13 +151,12 @@
                         class="h-14 w-14 rounded-2xl bg-orange-500/10 flex items-center justify-center text-orange-500">
                         <i class="fas fa-book-reader text-2xl"></i>
                     </div>
-                    <span class="source-badge">NDLI Search</span>
+                    <span class="source-badge">NDLI Discovery</span>
                 </div>
                 <h3 class="text-2xl font-bold text-white mb-3 group-hover:text-orange-400 transition-colors">National
                     Digital Library of India</h3>
                 <p class="text-slate-400 text-sm leading-relaxed mb-6">
-                    Access a vast collection of academic resources, from textbooks to rare manuscripts, digitized for
-                    global access.
+                    Discover NDLI resources through a stable web search scoped to the current public NDLI domain.
                 </p>
                 <div class="flex items-center text-orange-400 font-bold text-sm">
                     Explore Library <i
@@ -166,7 +165,7 @@
             </a>
 
             <!-- arXiv -->
-            <a href="{{ resources.arxiv }}" target="_blank"
+            <a href="{{ resources.arxiv }}" target="_blank" rel="noopener noreferrer"
                 class="resource-card group bg-slate-900 rounded-[2rem] p-8 animate-in border border-white/5 hover:border-rose-500/30"
                 style="animation-delay: 0.2s">
                 <div class="flex items-start justify-between mb-6">
@@ -188,7 +187,7 @@
             </a>
 
             <!-- YouTube -->
-            <a href="{{ resources.youtube }}" target="_blank"
+            <a href="{{ resources.youtube }}" target="_blank" rel="noopener noreferrer"
                 class="resource-card group bg-slate-900 rounded-[2rem] p-8 animate-in border border-white/5 hover:border-red-500/30"
                 style="animation-delay: 0.3s">
                 <div class="flex items-start justify-between mb-6">
@@ -209,7 +208,7 @@
             </a>
 
             <!-- Google Scholar -->
-            <a href="{{ resources.scholar }}" target="_blank"
+            <a href="{{ resources.scholar }}" target="_blank" rel="noopener noreferrer"
                 class="resource-card group bg-slate-900 rounded-[2rem] p-8 animate-in border border-white/5 hover:border-blue-500/30"
                 style="animation-delay: 0.4s">
                 <div class="flex items-start justify-between mb-6">
