@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Your Career Blueprint - {{ target_career_title }}</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&display=swap');
+
+        @page {
+            size: A4;
+            margin: 2cm;
+            @bottom-center {
+                content: "Page " counter(page) " of " counter(pages);
+                font-size: 10px;
+                color: #555;
+            }
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        h1, h2, h3, h4 {
+            font-weight: 700;
+            color: #1a202c;
+            margin-bottom: 0.6em;
+        }
+
+        h1 { font-size: 32px; }
+        h2 { font-size: 24px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-top: 2em;}
+        h3 { font-size: 18px; color: #2d3748; }
+        h4 { font-size: 16px; color: #4a5568; }
+
+        .cover-page {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 23cm;
+            text-align: center;
+            page-break-after: always;
+        }
+
+        .cover-page .logo {
+             font-weight: 800;
+             font-size: 24px;
+             color: #2c5282;
+             margin-bottom: 50px;
+        }
+
+        .cover-page h1 {
+            font-size: 48px;
+            font-weight: 800;
+            color: #2d3748;
+            margin-bottom: 20px;
+        }
+        
+        .cover-page .user-name {
+            font-size: 28px;
+            color: #4a5568;
+            margin: 30px 0;
+        }
+
+        .cover-page .date {
+            font-size: 14px;
+            color: #718096;
+            margin-top: 50px;
+        }
+
+        .section {
+            margin-bottom: 2.5em;
+            page-break-inside: avoid;
+        }
+
+        .milestone {
+            page-break-after: always;
+            padding-top: 1.5em;
+        }
+        
+        .milestone-header {
+            background-color: #f7fafc;
+            padding: 1em 1.5em;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 1.5em;
+        }
+
+        .resource-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1em;
+            font-size: 12px;
+        }
+        
+        .resource-table th, .resource-table td {
+            border: 1px solid #e2e8f0;
+            padding: 10px;
+            text-align: left;
+        }
+        
+        .resource-table th {
+            background-color: #f7fafc;
+            font-weight: 600;
+        }
+
+        .resource-table a {
+            color: #2b6cb0;
+            text-decoration: none;
+        }
+        .resource-table a:hover {
+            text-decoration: underline;
+        }
+
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 0.5em;
+        }
+
+        .simulation-summary {
+            background-color: #edf2f7;
+            padding: 1.5em;
+            border-radius: 8px;
+            margin-top: 1em;
+        }
+        
+        .placeholder-text {
+            color: #718096;
+            font-style: italic;
+        }
+
+    </style>
+</head>
+<body>
+
+    {# Macro to recursively render simulation results #}
+    {% macro render_dict(data) %}
+        <ul>
+        {% for key, value in data.items() %}
+            <li>
+                <strong>{{ key.replace('_', ' ').title() }}:</strong>
+                {% if value is mapping %}
+                    {{ render_dict(value) }}
+                {% elif value is iterable and value is not string %}
+                    <ul>
+                    {% for item in value %}
+                        <li>{{ item }}</li>
+                    {% endfor %}
+                    </ul>
+                {% else %}
+                    {{ value }}
+                {% endif %}
+            </li>
+        {% endfor %}
+        </ul>
+    {% endmacro %}
+
+    <!-- COVER PAGE -->
+    <div class="cover-page">
+        <div class="logo">CareStance</div>
+        <h1>Career Blueprint</h1>
+        <h3>{{ target_career_title }}</h3>
+        <p class="user-name">{{ user.full_name }}</p>
+        <p class="date">Report Generated: {{ date }}</p>
+    </div>
+
+    <!-- EXECUTIVE SUMMARY -->
+    <div class="section">
+        <h2>Executive Summary</h2>
+        <p>This report provides a comprehensive guide based on your unique assessment results. It is designed to give you clarity and a concrete, actionable path towards a fulfilling career in **{{ target_career_title }}**.</p>
+        
+        <h3>Your Profile at a Glance</h3>
+        <ul>
+            <li><strong>Core Archetype:</strong> {{ display_archetype }}</li>
+            <li><strong>Dominant RIASEC Trait:</strong> {{ dominant_trait }}</li>
+            <li><strong>Profile Clarity & Confidence:</strong> {{ (display_confidence * 100)|int }}%</li>
+        </ul>
+
+        <h3>Top Career Recommendations</h3>
+        <table class="resource-table">
+            <tr>
+                <th>Career</th>
+                <th>Match Score</th>
+                <th>Feasibility</th>
+            </tr>
+            {% for rec in recommendations %}
+            <tr>
+                <td>{{ rec.career }}</td>
+                <td>
+                    {% if rec.confidence_score is not none and rec.confidence_score > 0 %}
+                        {{ (rec.confidence_score * 100)|int }}%
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </td>
+                <td>{{ rec.feasibility_status }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+    
+    <div class="section" style="page-break-after: always;">
+        <h2>College & Institution Ecosystem</h2>
+        <p>Based on your profile, here are well-regarded colleges that offer a strong return on investment and a culture that aligns with your personality for pursuing **{{ target_career_title }}**.</p>
+        
+        {% for college in colleges %}
+        <div class="college-card" style="margin-top: 1.5em; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1em;">
+            <h4 style="border-bottom: 1px solid #eee; padding-bottom: 0.5em; margin-bottom: 1em;">{{ loop.index }}. {{ college.get('name', 'N/A') }}</h4>
+            <p><strong>Location:</strong> {{ college.get('location', 'N/A') }}</p>
+            <p><strong>Ranking:</strong> {{ college.get('ranking', 'N/A') }}</p>
+            <p><strong>Highlights:</strong> {{ college.get('highlights', 'N/A') }}</p>
+            <p><strong>Admission Criteria:</strong> {{ college.get('admission_criteria', 'N/A') }}</p>
+            <p><strong>Avg. Package:</strong> {{ college.get('avg_package', 'N/A') }}</p>
+            <p><strong>Placement Rate:</strong> {{ college.get('placement_rate', 'N/A') }}</p>
+            
+            {% if college.get('courses_offered') %}
+            <p><strong>Courses Offered:</strong></p>
+            <ul>
+                {% for course in college.get('courses_offered', []) %}
+                <li>{{ course }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+            {% if college.get('top_recruiters') %}
+            <p><strong>Top Recruiters:</strong></p>
+            <ul style="list-style-type: none; padding-left: 0; display: -weasy-table;">
+                {% for recruiter in college.get('top_recruiters', []) %}
+                <li style="display: -weasy-inline-block; background-color: #f1f5f9; padding: 5px 10px; border-radius: 12px; margin-right: 5px; margin-bottom: 5px; font-size: 11px;">{{ recruiter }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+            
+            {% if college.get('website') %}
+            <p><a href="{{ college.get('website') }}" target="_blank">Official Website</a></p>
+            {% endif %}
+        </div>
+        {% endfor %}
+        
+        <h3 style="margin-top: 2em;">College Preparation Strategy</h3>
+        <ul>
+            {% for tip in preparation_tips %}
+            <li>{{ tip }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- ROADMAP -->
+    <div class="section">
+        <h2>Your Personalized Roadmap: {{ roadmap.career_title }}</h2>
+        <p>This is your step-by-step journey. Each milestone is a concrete step towards your goal.</p>
+    </div>
+    
+    {% for step in roadmap.get('steps', []) %}
+    <div class="milestone">
+        <div class="milestone-header">
+            <h3>Milestone {{ step.get('step', loop.index) }}: {{ step.get('action', 'N/A') }}</h3>
+            <span><strong>Timeline:</strong> {{ step.get('timeline', 'N/A') }}</span>
+        </div>
+        <p><strong>Objective:</strong> {{ step.get('description', 'No description available.') }}</p>
+        
+        <h4>Your Main Task</h4>
+        <p>{{ step.get('detailed_task', 'No detailed task available.') }}</p>
+        
+        <h4>Skills You'll Acquire</h4>
+        <ul>
+            {% for skill in step.get('skills', []) %}
+            <li>{{ skill }}</li>
+            {% endfor %}
+        </ul>
+
+        <h4>Top Resources for this Milestone</h4>
+        <table class="resource-table">
+            <tr>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Difficulty</th>
+            </tr>
+            {% set resource_list = step.get('courses') or step.get('resources') or [] %}
+            {% for course in resource_list %}
+            <tr>
+                <td><a href="{{ course.get('url', '#') }}" target="_blank">{{ course.get('name', 'N/A') }}</a></td>
+                <td>{{ course.get('type', 'N/A') }}</td>
+                <td>{{ course.get('difficulty', 'N/A') }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="3" class="placeholder-text">No specific resources were generated for this step.</td>
+            </tr>
+            {% endfor %}
+        </table>
+
+        {% if step.project %}
+        <h4>Milestone Project: {{ step.project.name }}</h4>
+        <p>{{ step.project.description }}</p>
+        <ul>
+            <li><strong>Tools:</strong> {{ step.project.tools|join(', ') }}</li>
+            <li><strong>Portfolio Value:</strong> {{ step.project.portfolio_value }}</li>
+        </ul>
+        {% endif %}
+    </div>
+    {% endfor %}
+
+    <!-- SIMULATION RESULTS -->
+    <div class="section">
+    {% if simulation_result %}
+        <h2>Simulation Performance Review</h2>
+        <p>You recently completed a simulation for the **{{ target_career_title }}** role. Here is a summary of your performance.</p>
+        <div class="simulation-summary">
+            {{ render_dict(simulation_result) }}
+        </div>
+    {% else %}
+        <h2>Simulation Performance</h2>
+        <p class="placeholder-text">You have not completed the career simulation for **{{ target_career_title }}** yet. Complete the simulation from your dashboard to unlock detailed insights into your performance and professional fit for this career.</p>
+    {% endif %}
+    </div>
+
+    <!-- FINAL PAGE -->
+    <div class="section">
+        <h2>Next Steps</h2>
+        <p>This Career Blueprint is a living document. Use the roadmap to guide your learning, complete the projects to build your portfolio, and leverage the resources to accelerate your journey. Your future as a **{{ target_career_title }}** is in your hands.</p>
+        <p>Good luck!</p>
+    </div>
+
+</body>
+</html>

@@ -26,6 +26,8 @@ from sqlalchemy import select, and_, or_, func
 from .database import AsyncSessionLocal, engine, get_db, Base, SQLALCHEMY_DATABASE_URL
 import re
 from app.pipeline.vector_utils import classify_archetype
+from weasyprint import HTML, CSS
+
 
 def sync_assessment_to_appwrite(user_id, result):
     pass  # Appwrite sync disabled — local DB only
@@ -4497,8 +4499,8 @@ async def live_simulation_start(
     sims_completed = max(result.simulations_completed or 0, (db_user.simulations_completed or 0) if db_user else 0)
     sim_credits = max(result.simulation_credits or 0, (db_user.simulation_credits or 0) if db_user else 0)
 
-    if sims_completed >= 1 and sim_credits <= 0:
-        raise HTTPException(status_code=402, detail="Simulation payment required")
+    # if sims_completed >= 1 and sim_credits <= 0:
+    #     raise HTTPException(status_code=402, detail="Simulation payment required")
 
     scenarios = simulation_service.build_live_simulation(career_title, difficulty)
     session_id = uuid.uuid4().hex
@@ -5650,6 +5652,104 @@ async def submit_ticket(
 class CareerPathRequest(BaseModel):
     career_title: str
 
+
+async def _generate_and_save_career_path(career_title: str, user: models.User, result: models.AssessmentResult, db: AsyncSession):
+    archetype = result.phase_2_category or "Explorer"
+    personality = result.personality or "Ambivert"
+    current_class = result.selected_class or "10th"
+    phase3_insight = result.phase3_analysis or ""
+    final_insight = result.final_analysis or ""
+
+    prompt = f"""
+    You are CareStance's Elite Career Architect, Industry Mentor, and Student Success Strategist.
+
+    Student Profile:
+    - Current Stage: {current_class}
+    - Archetype: {archetype}
+    - Personality: {personality}
+    - Goal Career: {career_title}
+    - Deep Analysis Context: {phase3_insight[:600]}
+    - Recommendation Engine Notes: {final_insight[:600]}
+
+    TASK: Create a highly personalized "Zero-to-Hero Career Journey" for this student.
+    IMPORTANT: DO NOT generate a fixed number of roadmap steps. First analyze:
+    1. Complexity of {career_title}
+    2. Required education level
+    3. Skill depth required
+    4. Time required to become job-ready
+
+    Based on this analysis dynamically determine the roadmap size.
+    - Simple Careers → 6-8 milestones
+    - Moderate Careers → 8-10 milestones
+    - Advanced Careers → 10-14 milestones
+    - Highly Specialized Careers → 14-20 milestones
+
+    Every roadmap should include these phases:
+    Phase 1: Discovery & Career Awareness
+    Phase 2: Foundations & Mindset Building
+    Phase 3: Core Skills Development
+    Phase 4: Applied Learning
+    Phase 5: Projects & Portfolio Building
+    Phase 6: Industry Exposure
+    Phase 7: Professional Readiness
+    Phase 8: Career Launch
+
+    For EACH roadmap milestone include:
+    1. Action Name (Catchy, Motivational)
+    2. Stage (e.g., Foundations, Core Skills)
+    3. Description (3-5 personalized sentences explaining WHY)
+    4. Skills To Acquire (4 to 6 highly relevant skills)
+    5. Resources (Exactly 3 resources in the format {{"name": "...", "url": "...", "type": "...", "difficulty": "..."}}, prefer official docs, Coursera, edX)
+    6. Student Project (in the format {{"name": "...", "description": "...", "tools": [], "difficulty": "...", "portfolio_value": "..."}})
+    7. Detailed Task (A precise action plan)
+    8. Timeline (e.g., "Weeks 1-2")
+    
+    OUTPUT FORMAT (VALID JSON ONLY):
+    {{
+      "career_title": "{career_title}",
+      "total_milestones": 0,
+      "path_steps": [
+        {{
+          "step": 1,
+          "stage": "...",
+          "action": "...",
+          "description": "...",
+          "skills": ["...", "..."],
+          "courses": [
+            {{"name": "...", "url": "...", "type": "...", "difficulty": "..."}}
+          ],
+          "project": {{"name": "...", "description": "...", "tools": [], "difficulty": "...", "portfolio_value": "..."}},
+          "detailed_task": "...",
+          "timeline": "...",
+          "completed": false
+        }}
+      ]
+    }}
+    """
+    try:
+        clean_text = await generate_content_with_fallback(prompt)
+        path_data = json.loads(clean_text)
+        
+        full_path_data = {
+            "steps": path_data.get("path_steps", []),
+            "career_title": path_data.get("career_title", career_title),
+            "total_milestones": path_data.get("total_milestones", len(path_data.get("path_steps", [])))
+        }
+        
+        new_path = models.CareerPath(
+            user_id=user.id,
+            career_title=career_title,
+            path_data=full_path_data,
+        )
+        
+        db.add(new_path)
+        await db.commit()
+        await db.refresh(new_path)
+        return new_path
+    except Exception as e:
+        print(f"Helper Career Path Generation Error: {e}")
+        return None
+
 @app.post("/assessment/generate_path")
 async def generate_career_path(request: Request, path_req: CareerPathRequest, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
@@ -5660,374 +5760,13 @@ async def generate_career_path(request: Request, path_req: CareerPathRequest, db
     if not result:
         raise HTTPException(status_code=404, detail="Assessment results not found")
 
-    archetype = result.phase_2_category or "Explorer"
-    personality = result.personality or "Ambivert"
-    current_class = result.selected_class or "10th"
-    phase3_insight = result.phase3_analysis or ""
-    final_insight = result.final_analysis or ""
-
-    prompt = f"""
-You are CareStance's Elite Career Architect, Industry Mentor, and Student Success Strategist.
-
-Student Profile:
-- Current Stage: {current_class}
-- Archetype: {archetype}
-- Personality: {personality}
-- Goal Career: {path_req.career_title}
-- Deep Analysis Context: {phase3_insight[:600]}
-- Recommendation Engine Notes: {final_insight[:600]}
-
-TASK:
-
-Create a highly personalized "Zero-to-Hero Career Journey" for this student.
-
-IMPORTANT:
-
-DO NOT generate a fixed number of roadmap steps.
-
-First analyze:
-
-1. Complexity of {path_req.career_title}
-2. Required education level
-3. Skill depth required
-4. Certification requirements
-5. Industry expectations
-6. Portfolio requirements
-7. Experience requirements
-8. Time required to become job-ready
-
-Based on this analysis dynamically determine the roadmap size.
-
-Roadmap Guidelines:
-
-- Simple Careers → 6-8 milestones
-- Moderate Careers → 8-10 milestones
-- Advanced Careers → 10-14 milestones
-- Highly Specialized Careers → 14-20 milestones
-
-Examples:
-
-Data Analyst → 8 Milestones
-Software Engineer → 10 Milestones
-AI/ML Engineer → 12 Milestones
-Cybersecurity Engineer → 12 Milestones
-Doctor → 18 Milestones
-Research Scientist → 16 Milestones
-Lawyer → 15 Milestones
-Chartered Accountant → 14 Milestones
-
-The roadmap must feel like a complete progression journey.
-
-Every roadmap should include these phases:
-
-Phase 1:
-Discovery & Career Awareness
-
-Phase 2:
-Foundations & Mindset Building
-
-Phase 3:
-Core Skills Development
-
-Phase 4:
-Applied Learning
-
-Phase 5:
-Projects & Portfolio Building
-
-Phase 6:
-Industry Exposure
-
-Phase 7:
-Professional Readiness
-
-Phase 8:
-Career Launch
-
-Add additional phases if the career requires deeper specialization.
-
-Tone:
-
-- Student-friendly
-- Inspirational
-- Future-focused
-- Motivational
-- Personalized
-
-Use "You" and "We".
-
-Avoid generic career advice.
-
-For EACH roadmap milestone include:
-
-1. Action Name
-   - Catchy
-   - Motivational
-   - Career-specific
-
-2. Stage
-   Example:
-   Foundations
-   Core Skills
-   Portfolio Building
-   Career Launch
-
-3. Description
-   - 3-5 personalized sentences
-   - Explain WHY this milestone matters
-   - Connect it to student's personality and archetype
-   - Explain how it moves them closer to becoming a {path_req.career_title}
-
-4. Skills To Acquire
-   - 4 to 6 highly relevant skills
-
-5. Resources
-
-MUST provide exactly 3 resources.
-
-Each resource MUST be:
-
-{{
-"name": "...",
-"url": "...",
-"type": "youtube/course/documentation/article",
-"difficulty": "Beginner/Intermediate/Advanced"
-}}
-
-Rules:
-
-- Prefer Official Documentation
-- Coursera
-- DeepLearning.AI
-- MIT OpenCourseWare
-- Stanford Online
-- Harvard Online
-- Google Learning
-- Microsoft Learn
-- IBM SkillsBuild
-- Udemy Best Sellers
-
-Never generate fake URLs.
-
-6. Student Project
-
-Must contain:
-
-{{
-"name": "...",
-"description": "...",
-"tools": ["...", "..."],
-"parameters": ["...", "..."],
-"difficulty": "...",
-"portfolio_value": "..."
-}}
-
-Project Requirements:
-
-- Step 1 projects should be beginner-friendly
-- Difficulty must progressively increase
-- Final projects should be industry-level
-- Projects should be portfolio-worthy
-
-7. Detailed Task
-
-Provide a precise action plan.
-
-Bad Example:
-"Learn Python"
-
-Good Example:
-"Complete Python fundamentals including loops, functions, OOP, exception handling and build three mini projects."
-
-8. Timeline
-
-Examples:
-
-"Weeks 1-2"
-"Months 1-3"
-"Months 4-6"
-
-Provide realistic estimates.
-
-9. Gamification
-
-Provide:
-
-{{
-"xp_points": 100,
-"achievement_badge": "...",
-"unlocks": "..."
-}}
-
-10. CareerBuddy Prompt
-
-Generate a contextual AI mentor prompt:
-
-Example:
-
-"Review my first machine learning project and suggest improvements."
-
-Additional Career Insights:
-
-Internships:
-
-Provide 3 dream internships or entry-level roles.
-
-Format:
-
-{{
-"title": "...",
-"why_it_matters": "..."
-}}
-
-Career Outlook:
-
-Provide:
-
-- Salary Journey
-- Entry Level Salary
-- Mid Level Salary
-- Senior Level Salary
-- Leadership Level Salary
-- Top 5 Companies
-- Hiring Trends
-- Future Scope
-- Automation Risk
-- Global Opportunities
-
-Hiring Trends:
-
-Provide a detailed paragraph explaining:
-
-- Current demand
-- Recruiter expectations
-- Most hired roles
-- Important certifications
-- Emerging skills
-
-Future Scope:
-
-Explain why this field will or will not grow over the next decade.
-
-Success Metrics:
-
-Generate measurable success indicators.
-
-Examples:
-
-- Complete 5 projects
-- Earn AWS Certification
-- Reach 500 GitHub Contributions
-- Publish Portfolio Website
-
-OUTPUT FORMAT (VALID JSON ONLY):
-
-{{
-  "career_title": "{path_req.career_title}",
-  "career_complexity": "...",
-  "estimated_total_duration": "...",
-  "total_milestones": 0,
-
-  "path_steps": [
-    {{
-      "step": 1,
-      "stage": "...",
-      "action": "...",
-      "description": "...",
-      "skills": ["...", "..."],
-      "courses": [
-        {{
-          "name": "...",
-          "url": "...",
-          "type": "...",
-          "difficulty": "..."
-        }}
-      ],
-      "project": {{
-        "name": "...",
-        "description": "...",
-        "tools": [],
-        "parameters": [],
-        "difficulty": "...",
-        "portfolio_value": "..."
-      }},
-      "detailed_task": "...",
-      "timeline": "...",
-      "xp_points": 100,
-      "achievement_badge": "...",
-      "unlocks": "...",
-      "careerbuddy_prompt": "...",
-      "completed": false
-    }}
-  ],
-
-  "internships": [],
-
-  "career_outlook": {{
-    "salary_journey": {{
-      "entry_level": "...",
-      "mid_level": "...",
-      "senior_level": "...",
-      "leadership_level": "..."
-    }},
-    "top_companies": [],
-    "hiring_trends": "...",
-    "future_scope": "...",
-    "automation_risk": "...",
-    "global_opportunities": "..."
-  }},
-
-  "success_metrics": [],
-
-  "motivational_message": "..."
-}}
-
-Return ONLY VALID JSON.
-No markdown.
-No explanations.
-No text outside JSON.
-"""
-
-
-    try:
-        clean_text = await generate_content_with_fallback(prompt)
-        path_data = json.loads(clean_text)
-        
-        # Save to DB
-        new_path = models.CareerPath(
-            user_id=user.id,
-            career_title=path_data.get("career_title", path_req.career_title),
-            path_data=path_data.get("path_steps", []),
-            reminders=path_data.get("reminders", []),
-            # We can store the extra info in the path_data or reminders, 
-            # but let's keep it clean by putting everything in one JSON if possible, 
-            # or use path_data for the core steps and add a new column if needed.
-            # Actually, I'll put the career_outlook and internships into the reminders or a new field if I update the model.
-            # Let's update the model to have a general 'meta_data' field or just expand path_data.
-        )
-        # To avoid database schema migration immediately, I'll wrap everything into path_data
-        # and reminders.
-        
-        # Merge outlook into reminders as a special entry if needed, or just keep it in path_data.
-        # Let's put everything extra into a special 'extra_info' key in path_data or just use JSON column flexibility.
-        
-        full_path_data = {
-            "steps": path_data.get("path_steps", []),
-            "internships": path_data.get("internships", []),
-            "career_outlook": path_data.get("career_outlook", {}),
-            "reminders": path_data.get("reminders", [])
-        }
-        
-        new_path.path_data = full_path_data
-        
-        db.add(new_path)
-        await db.commit()
-        await db.refresh(new_path)
-
+    new_path = await _generate_and_save_career_path(path_req.career_title, user, result, db)
+    
+    if new_path:
         return {"success": True, "path_id": new_path.id}
-    except Exception as e:
-        print(f"Career Path Generation Error: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to generate career path: {str(e)}")
+    else:
+        raise HTTPException(status_code=500, detail="Failed to generate career path")
+
 
 @app.post("/career/roadmap/{path_id}/step/{step_index}/toggle")
 async def toggle_step_completion(path_id: int, step_index: int, request: Request, db: AsyncSession = Depends(get_db)):
@@ -6343,11 +6082,17 @@ async def view_roadmap_resources(path_id: int, request: Request, db: AsyncSessio
     user = await get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+
+    if not get_subscription_state(user)["active"]:
+        return RedirectResponse(
+            url="/subscription?reason=resources",
+            status_code=status.HTTP_302_FOUND
+        )
     
     path = (await db.execute(select(models.CareerPath).where(models.CareerPath.id == path_id, models.CareerPath.user_id == user.id))).scalars().first()
     if not path:
         raise HTTPException(status_code=404, detail="Roadmap not found")
-        
+
     career_title = path.career_title
     keywords = career_keywords.get(career_title, [career_title]) # Fallback to title if not in keywords mapping
     
@@ -6374,14 +6119,8 @@ async def view_roadmap_resources(path_id: int, request: Request, db: AsyncSessio
 class CollegeRecRequest(BaseModel):
     career_title: str
 
-@app.post("/career/colleges/generate")
-async def generate_college_recommendations(request: Request, req: CollegeRecRequest, db: AsyncSession = Depends(get_db)):
-    user = await get_current_user(request, db)
-    if not user:
-        raise HTTPException(status_code=401, detail="Unauthorized")
 
-    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
-
+async def _generate_and_save_college_recs(career_title: str, user: models.User, result: models.AssessmentResult, db: AsyncSession):
     current_class = result.selected_class if result else "12th"
     archetype = result.phase_2_category if result else "Explorer"
     personality = result.personality if result else "Ambivert"
@@ -6400,75 +6139,54 @@ async def generate_college_recommendations(request: Request, req: CollegeRecRequ
     - Current Stage: {current_class}
     - Archetype: {archetype}
     - Personality: {personality}
-    - Target Career: {req.career_title}
-
-    🧠 PERSONALIZATION REQUIREMENT:
-    Match colleges based on:
-    - Teaching style (practical vs theoretical)
-    - Campus culture (competitive vs collaborative)
-    - Student personality fit (introvert/extrovert, structured/creative)
-    - Growth opportunities (internships, exposure, startup culture)
+    - Target Career: {career_title}
 
     📌 TASK:
     For EACH college, provide REALISTIC and FACTUALLY GROUNDED details:
+    1. "name", 2. "location", 3. "ranking" (relative positioning), 4. "admission_criteria", 5. "courses_offered" (3-5 relevant programs), 6. "placement_rate", 7. "avg_package" (in INR LPA), 8. "top_recruiters", 9. "highlights" (Why it's a good fit for the student), 10. "website"
 
-    1. "name" — Full official name
-    2. "location" — City, India
-    3. "ranking" — Relative positioning (e.g., "Top Private College in North India", avoid fake global ranks)
-    4. "admission_criteria" — Exams accepted, eligibility, approximate cutoffs, and admission process (3-4 sentences, realistic)
-    5. "courses_offered" — 3–5 relevant programs aligned with the career
-    6. "placement_rate" — Realistic estimate (avoid 100% claims unless justified)
-    7. "avg_package" — Realistic average package range (in INR LPA)
-    8. "top_recruiters" — 3–4 commonly known recruiters (avoid exaggeration)
-    9. "highlights" — Why this college is a GOOD FIT for THIS student's archetype and personality (VERY IMPORTANT)
-    10. "website" — Official website URL
-
-    ⚠️ IMPORTANT RULES:
-    - Do NOT hallucinate rankings or unrealistic salary figures
-    - Prefer well-known but non-elite institutions (e.g., VIT, SRM, Manipal, etc.)
-    - Ensure diversity (different states / types of colleges)
-    - Ensure explanation clearly connects to student personality
-
-    📦 OUTPUT FORMAT (STRICT JSON ONLY — NO EXTRA TEXT):
+    📦 OUTPUT FORMAT (STRICT JSON ONLY):
     {{
       "colleges": [
         {{
-          "name": "...",
-          "location": "...",
-          "ranking": "...",
-          "admission_criteria": "...",
-          "courses_offered": ["...", "...", "..."],
-          "placement_rate": "...",
-          "avg_package": "...",
-          "top_recruiters": ["...", "...", "..."],
-          "highlights": "...",
-          "website": "https://..."
+          "name": "...", "location": "...", "ranking": "...", "admission_criteria": "...", "courses_offered": [], "placement_rate": "...", "avg_package": "...", "top_recruiters": [], "highlights": "...", "website": "https://..."
         }}
       ],
-      "preparation_tips": ["...", "...", "...", "..."]
+      "preparation_tips": ["...", "...", "..."]
     }}
-
-    🎯 PREPARATION TIPS:
-    Provide 3–4 highly practical and actionable tips tailored to this student profile (not generic advice).
     """
-
     try:
         clean_text = await generate_content_with_fallback(prompt)
         college_data = json.loads(clean_text)
 
         new_rec = models.CollegeRecommendation(
             user_id=user.id,
-            career_title=req.career_title,
+            career_title=career_title,
             college_data=college_data,
         )
         db.add(new_rec)
         await db.commit()
         await db.refresh(new_rec)
-
-        return {"success": True, "rec_id": new_rec.id}
+        return new_rec
     except Exception as e:
-        print(f"College Recommendation Error: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to generate college recommendations: {str(e)}")
+        print(f"Helper College Rec Generation Error: {e}")
+        return None
+
+@app.post("/career/colleges/generate")
+async def generate_college_recommendations(request: Request, req: CollegeRecRequest, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+    
+    new_rec = await _generate_and_save_college_recs(req.career_title, user, result, db)
+
+    if new_rec:
+        return {"success": True, "rec_id": new_rec.id}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to generate college recommendations")
+
 
 
 @app.get("/career/colleges", response_class=HTMLResponse)
@@ -6499,6 +6217,111 @@ async def view_college_detail(rec_id: int, request: Request, db: AsyncSession = 
     return templates.TemplateResponse(request=request, name="college_detail.html", context={"user": user, "rec": rec})
 
 
+@app.get("/assessment/report/{result_id}/download")
+async def download_report(result_id: int, request: Request, career: str, db: AsyncSession = Depends(get_db)):
+    # 1. Fetch user and assessment data
+    user = await get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    result = (await db.execute(
+        select(models.AssessmentResult)
+        .where(models.AssessmentResult.id == result_id, models.AssessmentResult.user_id == user.id)
+    )).scalars().first()
+
+    if not result:
+        raise HTTPException(status_code=404, detail="Assessment report not found.")
+
+    # 2. Get all career recommendations and standardize the data
+    raw_recommendations = []
+    if result.assessment_report and 'final_recommendations' in result.assessment_report:
+        if isinstance(result.assessment_report['final_recommendations'], list):
+            raw_recommendations = result.assessment_report['final_recommendations']
+    
+    if not raw_recommendations and result.stream_pros and isinstance(result.stream_pros, list):
+        raw_recommendations = result.stream_pros
+
+    if not raw_recommendations:
+        raise HTTPException(status_code=404, detail="No career recommendations found to generate the report.")
+
+    recommendations = []
+    for rec in raw_recommendations:
+        if not isinstance(rec, dict): continue
+        
+        new_rec = {
+            "career": rec.get("career") or rec.get("title", "N/A"),
+            "confidence_score": rec.get("confidence_score"), # Defaults to None if missing
+            "feasibility_status": rec.get("feasibility_status") or rec.get("status", "Exploratory"),
+            "pivot_notes": rec.get("pivot_notes") or rec.get("reason", "No specific notes available.")
+        }
+        recommendations.append(new_rec)
+
+    if not recommendations:
+        raise HTTPException(status_code=404, detail="No valid career recommendations could be processed.")
+
+    target_career_title = career
+
+    # 3. Ensure roadmap exists for the target career, or generate it
+    roadmap = (await db.execute(
+        select(models.CareerPath)
+        .where(models.CareerPath.user_id == user.id, models.CareerPath.career_title == target_career_title)
+        .order_by(models.CareerPath.created_at.desc())
+    )).scalars().first()
+
+    if not roadmap:
+        roadmap = await _generate_and_save_career_path(target_career_title, user, result, db)
+        if not roadmap:
+            raise HTTPException(status_code=500, detail="Failed to generate career roadmap for the report.")
+
+    # 4. Ensure college recommendations exist for the target career, or generate them
+    college_recs = (await db.execute(
+        select(models.CollegeRecommendation)
+        .where(models.CollegeRecommendation.user_id == user.id, models.CollegeRecommendation.career_title == target_career_title)
+        .order_by(models.CollegeRecommendation.created_at.desc())
+    )).scalars().first()
+
+    if not college_recs:
+        college_recs = await _generate_and_save_college_recs(target_career_title, user, result, db)
+        if not college_recs:
+            raise HTTPException(status_code=500, detail="Failed to generate college recommendations for the report.")
+    
+    # 5. Find the specific simulation result for the target career
+    simulation_result = None
+    if result.simulation_evaluation and result.simulation_career == target_career_title:
+        simulation_result = result.simulation_evaluation
+
+    # 6. Aggregate all data for the template
+    template_context = {
+        "request": request,
+        "user": user,
+        "date": datetime.datetime.now().strftime("%B %d, %Y"),
+        "display_archetype": get_assessment_display_archetype(result),
+        "dominant_trait": get_assessment_display_archetype(result),
+        "display_confidence": result.confidence or 0.85,
+        "recommendations": recommendations[:3],
+        "target_career_title": target_career_title,
+        "roadmap": roadmap.path_data or {},
+        "colleges": college_recs.college_data.get('colleges', []) if college_recs.college_data else [],
+        "preparation_tips": college_recs.college_data.get('preparation_tips', []) if college_recs.college_data else [],
+        "simulation_result": simulation_result
+    }
+
+    # 7. Render HTML template to a string
+    html_string = templates.get_template("report_template.html").render(template_context)
+
+    # 8. Generate PDF using WeasyPrint
+    html = HTML(string=html_string, base_url=str(request.base_url))
+    pdf_bytes = html.write_pdf()
+
+    # 9. Return the PDF as a downloadable response
+    filename = f"CareStance_Blueprint_{user.full_name.replace(' ', '_')}_{target_career_title.replace(' ', '_')}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename=\"{filename}\""
+        }
+    )
 # ─── Student Community & Connection Routes ────────────────────────────────────
 
 @app.get("/community", response_class=HTMLResponse)
