@@ -25,3 +25,4 @@ json-repair
 passlib
 numpy
 pandas
+reportlab
