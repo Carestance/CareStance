@@ -208,6 +208,55 @@
 
 {% block content %}
 <style>
+  /* ── TOP MARQUEE ── */
+  .final-cta-marquee {
+    width: 100vw;
+    max-width: 100vw;
+    margin-left: calc(-50vw + 50%);
+    margin-right: calc(-50vw + 50%);
+    overflow: hidden;
+    background: #0d9488;
+    padding: 0.85rem 0;
+    transform: rotate(-1.5deg) scale(1.02);
+    box-shadow: 0 8px 24px rgba(13, 148, 136, 0.3);
+    margin-bottom: 2rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  .final-cta-marquee-track {
+    display: flex;
+    width: max-content;
+    animation: marqueeScroll 22s linear infinite;
+  }
+
+  .final-cta-marquee-track span {
+    flex-shrink: 0;
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-weight: 700;
+    font-size: 1.4rem;
+    color: #fff;
+    white-space: nowrap;
+    padding-right: 0.5rem;
+  }
+
+  @keyframes marqueeScroll {
+    0% {
+      transform: translateX(0);
+    }
+
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .final-cta-marquee-track span {
+      font-size: 1.1rem;
+    }
+  }
+
   /* ── GLOBAL SITE BACKGROUND: layered teal/turquoise waves + drifting glass bubbles ── */
   .site-bg {
     position: fixed;
@@ -426,6 +475,9 @@
 
 <div class="min-h-screen flex flex-col items-center relative" style="background: transparent;">
 
+  <!-- Top Marquee -->
+
+
   <!-- Top spacer to prevent navbar overlap and center vertically -->
   <div class="w-full flex-grow" style="min-height: 140px;"></div>
 
@@ -548,6 +600,74 @@
   <!-- Bottom spacer -->
   <div class="w-full flex-grow" style="min-height: 60px;"></div>
 </div>
+
+<!-- ── FINAL CTA MARQUEE ── -->
+<section class="final-cta">
+  <div class="final-cta-marquee">
+    <div class="final-cta-marquee-track">
+      <span>Your Future Is Waiting to Be Discovered&nbsp;&nbsp;✦&nbsp;&nbsp;</span>
+      <span>Your Future Is Waiting to Be Discovered&nbsp;&nbsp;✦&nbsp;&nbsp;</span>
+      <span>Your Future Is Waiting to Be Discovered&nbsp;&nbsp;✦&nbsp;&nbsp;</span>
+      <span>Your Future Is Waiting to Be Discovered&nbsp;&nbsp;✦&nbsp;&nbsp;</span>
+      <span>Your Future Is Waiting to Be Discovered&nbsp;&nbsp;✦&nbsp;&nbsp;</span>
+      <span>Your Future Is Waiting to Be Discovered&nbsp;&nbsp;✦&nbsp;&nbsp;</span>
+      <span>Your Future Is Waiting to Be Discovered&nbsp;&nbsp;✦&nbsp;&nbsp;</span>
+      <span>Your Future Is Waiting to Be Discovered&nbsp;&nbsp;✦&nbsp;&nbsp;</span>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ── -->
+<footer class="f-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-logo">
+          <img src="/static/images/image.webp" alt="CareStance" height="32">
+          <span class="footer-logo-text">CareStance</span>
+        </div>
+        <p style="font-family:'Space Grotesk',var(--font-sans); font-size:1rem; color: #94a3b8; margin-bottom: 1.5rem;">
+          Authentic educational and structural
+          counseling designed for students.</p>
+        <div>
+          <a href="https://www.instagram.com/carestance.in/" target="_blank" rel="noopener" class="social-btn-footer"><i
+              class="fab fa-instagram"></i></a>
+          <a href="https://www.linkedin.com/company/carestance" target="_blank" rel="noopener" class="social-btn-footer"><i
+              class="fab fa-linkedin-in"></i></a>
+        </div>
+      </div>
+      <div>
+        <div class="footer-col-title">Platform</div>
+        <ul>
+          <li><a href="#career-discovery">Discovery</a></li>
+          <li><a href="#archetypes">Archetypes</a></li>
+          <li><a href="#simulations">Simulations</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer-col-title">Company</div>
+        <ul>
+          <li><a href="/founders">Founders</a></li>
+          <li><a href="/articles">Articles</a></li>
+          <li><a href="mailto:contact@carestance.me">Contact</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer-col-title">Legal</div>
+        <ul>
+          <li><a href="/privacy">Privacy Policy</a></li>
+          <li><a href="/terms">Terms of Service</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-divider">
+      <p class="footer-copy">© 2026 CareStance AI. All rights reserved.</p>
+      <span class="footer-contact-link"
+        style="font-family:'Space Grotesk',var(--font-sans);font-size:.98rem;color:#94a3b8"><i class="fas fa-envelope"
+          style="margin-right:.4rem;color:var(--teal)"></i>contact@carestance.me</span>
+    </div>
+  </div>
+</footer>
 
 <script>
   const menuToggle = document.getElementById('f-menu-toggle');

@@ -6917,9 +6917,30 @@ async def community_page(request: Request, db: AsyncSession = Depends(get_db)):
     similar_students = []
     other_archetypes = {}
     for student, assessment in students_with_assessments:
+        display_personality = assessment.personality
+        is_json_str = isinstance(display_personality, str) and display_personality.strip().startswith("{")
+        is_dict = isinstance(display_personality, dict)
+        
+        if display_personality and (is_json_str or is_dict):
+            arch = assessment.phase_2_category or ""
+            mapping = {
+                "FOCUSED SPECIALIST": "Introvert",
+                "QUIET EXPLORER": "Introvert",
+                "STRATEGIC BUILDER": "Ambivert",
+                "DYNAMIC GENERALIST": "Ambivert",
+                "VISIONARY LEADER": "Extrovert",
+                "ADAPTIVE EXPLORER": "Extrovert",
+            }
+            display_personality = "Ambivert"
+            for k, v in mapping.items():
+                if k.lower() in arch.lower():
+                    display_personality = v
+                    break
+
         student_data = {
             "user": student,
             "assessment": assessment,
+            "display_personality": display_personality,
             "connection": connection_map.get(student.id)
         }
         if my_archetype and assessment.phase_2_category == my_archetype:
