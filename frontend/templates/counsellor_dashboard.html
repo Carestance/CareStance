@@ -2,7 +2,247 @@
 
 {% block title %}Counsellor Dashboard{% endblock %}
 
+{% block extra_head %}
+<style>
+    /* ===================================================================
+       GLOBAL ANIMATED BACKGROUND — copied 1:1 from landing.html: layered
+       teal/turquoise wave SVGs + floating glass bubbles, fixed behind
+       everything via position:fixed + z-index:-1 (so it always shows,
+       even above/behind the navbar, regardless of any parent background).
+       =================================================================== */
+    .site-bg {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: -1;
+        overflow: hidden;
+        background: linear-gradient(160deg, #d7f3f1 0%, #bfe9e6 28%, #9ddcd9 55%, #6fc4c2 78%, #4fb0ae 100%);
+    }
+
+    .site-bg-waves {
+        position: absolute;
+        inset: -10% -10% -10% -10%;
+        width: 120%;
+        height: 120%;
+    }
+
+    .site-bg-wave {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+    }
+
+    .site-bg-wave.wave-1 { animation: bgDrift1 38s ease-in-out infinite; opacity: 0.55; }
+    .site-bg-wave.wave-2 { animation: bgDrift2 46s ease-in-out infinite; opacity: 0.5; }
+    .site-bg-wave.wave-3 { animation: bgDrift3 54s ease-in-out infinite; opacity: 0.4; }
+
+    @keyframes bgDrift1 { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(-2%, 2%) scale(1.04); } }
+    @keyframes bgDrift2 { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(2.5%, -1.5%) scale(1.05); } }
+    @keyframes bgDrift3 { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(-1.5%, -2%) scale(1.03); } }
+
+    /* Floating glassy bubbles, like the reference image */
+    .site-bg-bubble {
+        position: absolute;
+        border-radius: 50%;
+        background: radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.85) 0%, rgba(102, 158, 167, 0.25) 35%, rgba(103, 211, 210, 0.383) 70%, transparent 100%);
+        filter: blur(0.5px);
+        will-change: transform;
+    }
+
+    .site-bg-bubble.b1 { width: 380px; height: 380px; top: -6%; right: 4%; animation: bubbleFloat1 24s ease-in-out infinite; }
+    .site-bg-bubble.b2 {
+        width: 220px; height: 220px; top: 18%; right: 22%;
+        background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.9) 0%, rgba(56, 189, 248, 0.55) 40%, rgba(13, 148, 136, 0.2) 75%, transparent 100%);
+        animation: bubbleFloat2 19s ease-in-out infinite;
+    }
+    .site-bg-bubble.b3 {
+        width: 120px; height: 120px; top: 38%; right: 6%;
+        background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.95) 0%, rgba(45, 212, 191, 0.6) 45%, transparent 100%);
+        animation: bubbleFloat3 16s ease-in-out infinite;
+    }
+    .site-bg-bubble.b4 { width: 150px; height: 150px; top: 58%; left: 4%; animation: bubbleFloat2 21s ease-in-out infinite reverse; }
+    .site-bg-bubble.b5 {
+        width: 90px; height: 90px; top: 80%; left: 18%;
+        background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.9) 0%, rgba(56, 189, 248, 0.5) 45%, transparent 100%);
+        animation: bubbleFloat1 17s ease-in-out infinite reverse;
+    }
+    .site-bg-bubble.b6 { width: 260px; height: 260px; bottom: -8%; right: 12%; animation: bubbleFloat3 27s ease-in-out infinite; }
+
+    @keyframes bubbleFloat1 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-18px, 22px); } }
+    @keyframes bubbleFloat2 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(16px, -20px); } }
+    @keyframes bubbleFloat3 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-14px, -16px); } }
+
+    @media (max-width: 768px) {
+        .site-bg-bubble.b1 { width: 220px; height: 220px; }
+        .site-bg-bubble.b2 { width: 130px; height: 130px; }
+        .site-bg-bubble.b6 { width: 160px; height: 160px; }
+    }
+
+    /* ===================================================================
+       CareStance Counsellor Dashboard — Refreshed Theme
+       Palette pulled from the marketing site: mint/seafoam surfaces,
+       deep navy chrome, teal + sky + amber + coral accent tints.
+       =================================================================== */
+
+    /* Page atmosphere: soft mint gradient with faint color blooms,
+       echoing the bubble/gradient hero on the marketing site */
+    .cns-page-bg {
+        position: relative;
+        overflow: hidden;
+        border-radius: 0 0 2.5rem 2.5rem;
+        margin-top: -1px;
+        padding: clamp(1rem, 3.5vw, 2.5rem);
+    }
+
+    /* Main dashboard card: let more of the mint atmosphere show through */
+    .cns-shell {
+        position: relative;
+        z-index: 1;
+        background: rgba(255, 255, 255, 0.55) !important;
+    }
+
+    /* Terms & Conditions banner: solid, dependable colors (the previous
+       bg-gradient-to-r from-[var(--navy)] to-[var(--teal)] combo relied on
+       bracket-syntax utilities the production purge strips, which silently
+       killed --tw-gradient-stops and left the header nearly white) */
+    .cns-tnc-card {
+        background: rgba(255, 255, 255, 0.97) !important;
+        border: 1px solid #CDEEE0;
+    }
+    .cns-tnc-header {
+        background: linear-gradient(90deg, #0E2A2E 0%, #0D9488 100%) !important;
+    }
+
+    /* --- Bugfix: force dynamic bracket-syntax Tailwind classes to render.
+       These are built with :class bindings so the production purge step
+       can't statically detect them, which is why the active tab / active
+       day pill etc previously fell back to an unstyled white box. --- */
+    .bg-\[var\(--navy\)\] { background-color: var(--navy) !important; }
+    .hover\:bg-\[var\(--teal\)\]:hover { background-color: var(--teal) !important; }
+    .bg-\[var\(--teal\)\] { background-color: var(--teal) !important; }
+    .bg-\[var\(--teal-soft\)\] { background-color: var(--teal-soft) !important; }
+    .bg-\[var\(--teal-light\)\] { background-color: var(--teal-light) !important; }
+    .text-\[var\(--teal\)\] { color: var(--teal) !important; }
+    .text-\[var\(--teal-light\)\] { color: var(--teal-light) !important; }
+    .text-\[var\(--navy\)\] { color: var(--navy) !important; }
+    .border-\[var\(--navy\)\] { border-color: var(--navy) !important; }
+    .border-\[var\(--teal-light\)\] { border-color: var(--teal-light) !important; }
+    .from-\[var\(--teal-soft\)\] { --tw-gradient-from: var(--teal-soft) !important; }
+    .from-\[var\(--navy\)\] { --tw-gradient-from: var(--navy) !important; }
+    .to-\[var\(--teal\)\] { --tw-gradient-to: var(--teal) !important; }
+    .shadow-\[var\(--teal-soft\)\] { box-shadow: 0 10px 25px -5px var(--teal-soft) !important; }
+
+    /* --- Tab pills: dedicated classes replace the fragile bracket bindings --- */
+    .cns-tabs {
+        background: rgba(255, 255, 255, 0.65);
+        border: 1px solid rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(6px);
+    }
+    .cns-tab {
+        padding: 0.65rem 1.35rem;
+        border-radius: 0.9rem;
+        font-size: 0.875rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #0E2A2E;
+        white-space: nowrap;
+        transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .cns-tab:hover { background: rgba(255, 255, 255, 0.95); transform: translateY(-1px); }
+    .cns-tab-active, .cns-tab-active:hover {
+        background: linear-gradient(135deg, #0E2A2E 0%, #0D9488 100%);
+        color: #fff;
+        box-shadow: 0 10px 22px -8px rgba(13, 148, 136, 0.55);
+        transform: scale(1.04);
+    }
+
+    /* --- Universal tile hover/scale: stat cards, review cards, appointment
+       rows, quick-action tiles --- */
+    .cns-tile {
+        transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+                    box-shadow 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+                    border-color 0.35s;
+    }
+    .cns-tile:hover {
+        transform: translateY(-5px) scale(1.015);
+        box-shadow: 0 22px 40px -16px rgba(15, 42, 46, 0.22);
+    }
+    .cns-tile-sm:hover {
+        transform: translateY(-3px) scale(1.02);
+        box-shadow: 0 14px 28px -14px rgba(15, 42, 46, 0.22);
+    }
+
+    /* --- Stat-card tints (mint / sky / amber / coral) --- */
+    .cns-stat-mint  { background: linear-gradient(155deg, #E3FBF2 0%, #FFFFFF 65%); border: 1px solid #BFEEDD; }
+    .cns-stat-sky   { background: linear-gradient(155deg, #E4F5FE 0%, #FFFFFF 65%); border: 1px solid #BEE6FB; }
+    .cns-stat-amber { background: linear-gradient(155deg, #FEF3D6 0%, #FFFFFF 65%); border: 1px solid #FBE3A7; }
+    .cns-stat-coral { background: linear-gradient(155deg, #FEE9EC 0%, #FFFFFF 65%); border: 1px solid #FAD0D7; }
+
+    .cns-icon-badge {
+        width: 2.5rem;
+        height: 2.5rem;
+        border-radius: 0.85rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.95rem;
+        flex-shrink: 0;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+    }
+    .cns-icon-mint  { background: #CFF3E4; color: #0D9488; }
+    .cns-icon-sky   { background: #CDEBFB; color: #0284C7; }
+    .cns-icon-amber { background: #FCE7B4; color: #B45309; }
+    .cns-icon-coral { background: #FBD5DB; color: #E11D48; }
+    .cns-icon-navy  { background: #DCE6E6; color: #0E2A2E; }
+
+    /* --- Settings / Payout / Verification panels: tinted, not flat white --- */
+    .cns-panel {
+        border-radius: 1.5rem;
+        padding: 1.75rem;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .cns-panel:hover { box-shadow: 0 18px 34px -18px rgba(15, 42, 46, 0.2); }
+    .cns-panel-mint  { background: linear-gradient(160deg, #EBFBF4 0%, #FFFFFF 60%); border: 1px solid #CDEEE0; }
+    .cns-panel-sky   { background: linear-gradient(160deg, #EAF6FE 0%, #FFFFFF 60%); border: 1px solid #C9E7FA; }
+    .cns-panel-amber { background: linear-gradient(160deg, #FEF6E2 0%, #FFFFFF 60%); border: 1px solid #F8E3AC; }
+
+    .cns-panel-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1.25rem;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
+
+<!-- GLOBAL ANIMATED BACKGROUND: teal/turquoise waves + floating glass bubbles, fixed behind all content (copied from landing.html) -->
+<div class="site-bg" aria-hidden="true">
+    <div class="site-bg-waves">
+        <svg class="site-bg-wave wave-1" viewBox="0 0 800 1400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0,1400 L0,300 C150,250 220,420 320,480 C440,560 520,380 620,460 C700,520 760,700 800,780 L800,1400 Z" fill="#cdeeec" />
+        </svg>
+        <svg class="site-bg-wave wave-2" viewBox="0 0 800 1400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0,1400 L0,520 C120,460 200,620 300,640 C420,665 500,520 610,560 C700,592 760,760 800,860 L800,1400 Z" fill="#9fdcd8" />
+        </svg>
+        <svg class="site-bg-wave wave-3" viewBox="0 0 800 1400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0,1400 L0,760 C140,720 240,860 360,880 C480,900 560,780 660,820 C730,848 780,950 800,1020 L800,1400 Z" fill="#6fc1bd" />
+        </svg>
+    </div>
+    <div class="site-bg-bubble b1"></div>
+    <div class="site-bg-bubble b2"></div>
+    <div class="site-bg-bubble b3"></div>
+    <div class="site-bg-bubble b4"></div>
+    <div class="site-bg-bubble b5"></div>
+    <div class="site-bg-bubble b6"></div>
+</div>
+
+<div class="cns-page-bg">
 
 {% for notif in notifications %}
 {% if notif.type == 'founding_badge_awarded' %}
@@ -86,9 +326,9 @@
 
 {% if profile and not profile.tnc_accepted and not profile.is_blocked %}
 <!-- Terms & Conditions Acceptance Required -->
-<div class="mb-6 bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-[var(--teal-light)] overflow-hidden"
+<div class="cns-tnc-card mb-6 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden"
     x-data="{ agreed: false }">
-    <div class="px-8 py-5 bg-gradient-to-r from-[var(--navy)] to-[var(--teal)] flex items-center gap-3">
+    <div class="cns-tnc-header px-8 py-5 flex items-center gap-3">
         <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24"
                 stroke="currentColor">
@@ -197,7 +437,7 @@
         </label>
         <form action="/counsellor/accept-tnc" method="POST">
             <button type="submit"
-                class="w-full sm:w-auto px-8 py-3 rounded-xl font-bold text-white bg-gradient-to-r from-[var(--navy)] to-[var(--teal)] hover:scale-[1.02] hover:shadow-xl transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
+                class="w-full sm:w-auto px-8 py-3 rounded-xl font-bold text-white cns-tnc-header hover:scale-[1.02] hover:shadow-xl transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
                 :disabled="!agreed">
                 I Agree & Continue →
             </button>
@@ -247,7 +487,7 @@
 {% endif %}
 
 <div x-data="{ tab: 'overview' }"
-    class="bg-white/70 backdrop-blur-xl rounded-3xl overflow-hidden shadow-2xl border border-white/50">
+    class="cns-shell backdrop-blur-xl rounded-3xl overflow-hidden shadow-2xl border border-white/50">
     <!-- Dashboard Header & Tabs -->
     <div class="px-6 py-6 sm:px-8 bg-[var(--teal-soft)]/50 border-b border-[var(--teal-light)]">
         <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
@@ -289,25 +529,25 @@
                 </div>
             </div>
 
-            <div class="flex items-center gap-4 bg-white/50 p-1.5 rounded-2xl border border-white/80 shadow-sm">
+            <div class="cns-tabs flex items-center gap-2 p-1.5 rounded-2xl shadow-sm">
                 <button @click="tab = 'overview'"
-                    :class="tab === 'overview' ? 'bg-[var(--navy)] text-white shadow-lg' : 'text-slate-600 hover:bg-white'"
-                    class="px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
+                    :class="tab === 'overview' ? 'cns-tab-active' : ''"
+                    class="cns-tab">
                     <i class="fas fa-th-large"></i> Home
                 </button>
                 <button @click="tab = 'appointments'"
-                    :class="tab === 'appointments' ? 'bg-[var(--navy)] text-white shadow-lg' : 'text-slate-600 hover:bg-white'"
-                    class="px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
+                    :class="tab === 'appointments' ? 'cns-tab-active' : ''"
+                    class="cns-tab">
                     <i class="fas fa-calendar-alt"></i> Sessions
                 </button>
                 <button @click="tab = 'settings'"
-                    :class="tab === 'settings' ? 'bg-[var(--navy)] text-white shadow-lg' : 'text-slate-600 hover:bg-white'"
-                    class="px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
+                    :class="tab === 'settings' ? 'cns-tab-active' : ''"
+                    class="cns-tab">
                     <i class="fas fa-cog"></i> Profile
                 </button>
                 <button @click="tab = 'verification'"
-                    :class="tab === 'verification' ? 'bg-[var(--navy)] text-white shadow-lg' : 'text-slate-600 hover:bg-white'"
-                    class="px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
+                    :class="tab === 'verification' ? 'cns-tab-active' : ''"
+                    class="cns-tab">
                     <i class="fas fa-user-check"></i> Verification
                 </button>
             </div>
@@ -321,39 +561,45 @@
         <div x-show="tab === 'overview'" x-transition class="space-y-8">
             <!-- Stats Grid -->
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-                <div
-                    class="bg-gradient-to-br from-[var(--teal-soft)] to-white p-6 rounded-3xl border border-[var(--teal-light)] shadow-sm">
+                <div class="cns-tile cns-stat-mint p-6 rounded-3xl">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="cns-icon-badge cns-icon-mint"><i class="fas fa-users"></i></span>
+                    </div>
                     <p class="text-[10px] font-black uppercase text-[var(--teal)] tracking-widest mb-1">Total Clients</p>
                     <h4 class="text-3xl font-black text-slate-900">{{ stats.total_clients }}</h4>
                     <div class="flex items-center gap-1.5 mt-2 text-[var(--navy)]">
-                        <i class="fas fa-users text-xs"></i>
                         <span class="text-[10px] font-bold">Lifetime Scholars</span>
                     </div>
                 </div>
 
-                <div
-                    class="bg-gradient-to-br from-emerald-50 to-white p-6 rounded-3xl border border-emerald-100 shadow-sm">
+                <div class="cns-tile cns-stat-mint p-6 rounded-3xl">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="cns-icon-badge cns-icon-mint"><i class="fas fa-calendar-check"></i></span>
+                    </div>
                     <p class="text-[10px] font-black uppercase text-emerald-500 tracking-widest mb-1">Today's Sessions
                     </p>
                     <h4 class="text-3xl font-black text-slate-900">{{ stats.today_sessions }}</h4>
                     <div class="flex items-center gap-1.5 mt-2 text-emerald-600">
-                        <i class="fas fa-calendar-check text-xs"></i>
                         <span class="text-[10px] font-bold">Waiting for you</span>
                     </div>
                 </div>
 
-                <div class="bg-gradient-to-br from-amber-50 to-white p-6 rounded-3xl border border-amber-100 shadow-sm">
+                <div class="cns-tile cns-stat-amber p-6 rounded-3xl">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="cns-icon-badge cns-icon-amber"><i class="fas fa-rupee-sign"></i></span>
+                    </div>
                     <p class="text-[10px] font-black uppercase text-amber-500 tracking-widest mb-1">Daily Earnings</p>
                     <h4 class="text-3xl font-black text-slate-900">₹{{ "%.0f"|format(stats.earnings_daily) }}</h4>
                     <div class="flex items-center gap-1.5 mt-2 text-amber-600">
-                        <i class="fas fa-rupee-sign text-xs"></i>
                         <span class="text-[10px] font-bold">Earned Today</span>
                     </div>
                 </div>
 
-                <div
-                    class="bg-gradient-to-br from-[var(--teal-soft)] to-white p-6 rounded-3xl border border-[var(--teal-light)] shadow-sm">
-                    <p class="text-[10px] font-black uppercase text-[var(--teal)] tracking-widest mb-1">Platform Rating</p>
+                <div class="cns-tile cns-stat-sky p-6 rounded-3xl">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="cns-icon-badge cns-icon-sky"><i class="fas fa-star"></i></span>
+                    </div>
+                    <p class="text-[10px] font-black uppercase text-sky-600 tracking-widest mb-1">Platform Rating</p>
                     <h4 class="text-3xl font-black text-slate-900">{{ stats.avg_rating }}</h4>
                     <div class="flex items-center gap-1 mt-2 text-[var(--navy)]">
                         {% for i in range(5) %}
@@ -367,7 +613,7 @@
             <!-- Business & Impact Row -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <!-- Earning Summary Card -->
-                <div class="bg-slate-900 rounded-3xl p-8 text-white relative overflow-hidden shadow-xl">
+                <div class="cns-tile bg-slate-900 rounded-3xl p-8 text-white relative overflow-hidden shadow-xl">
                     <div class="absolute right-0 bottom-0 opacity-10 transform translate-x-1/4 translate-y-1/4">
                         <i class="fas fa-wallet text-[200px]"></i>
                     </div>
@@ -396,14 +642,14 @@
                 </div>
 
                 <!-- Notifications & Quick Actions -->
-                <div class="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm">
+                <div class="cns-tile cns-panel cns-panel-sky">
                     <h5 class="font-bold text-slate-900 mb-6 flex items-center gap-2">
-                        <i class="fas fa-bell text-[var(--teal)]"></i> Pending Tasks
+                        <span class="cns-icon-badge cns-icon-sky"><i class="fas fa-bell"></i></span> Pending Tasks
                     </h5>
                     <div class="space-y-4">
                         {% if notifications %}
                         {% for notif in notifications %}
-                        <div class="flex items-start gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100 italic">
+                        <div class="cns-tile-sm flex items-start gap-3 p-3 bg-white/70 rounded-2xl border border-white italic">
                             <div class="w-2 h-2 rounded-full bg-[var(--teal)] mt-1.5"></div>
                             <p class="text-xs text-slate-600">{{ notif.message }}</p>
                         </div>
@@ -427,7 +673,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {% for review in reviews %}
                     <div
-                        class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                        class="cns-tile bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
                         <div class="flex items-center justify-between mb-4">
                             <div class="flex items-center gap-1 text-amber-400">
                                 {% for i in range(5) %}
@@ -471,7 +717,7 @@
             <div class="space-y-4">
                 {% for apt in appointments %}
                 <div
-                    class="flex flex-col md:flex-row items-start md:items-center justify-between p-5 bg-slate-50 border border-slate-200 rounded-2xl hover:bg-white hover:shadow-lg transition-all gap-4"
+                    class="cns-tile flex flex-col md:flex-row items-start md:items-center justify-between p-5 bg-slate-50 border border-slate-200 rounded-2xl hover:bg-white gap-4"
                     x-data="{
                         aptTime: new Date('{{ apt.appointment_time.strftime('%Y-%m-%dT%H:%M:%S') }}'),
                         now: new Date(),
@@ -494,7 +740,7 @@
                     }">
                     <div class="flex items-center gap-4">
                         <div
-                            class="w-12 h-12 bg-[var(--teal-soft)] rounded-2xl flex items-center justify-center text-[var(--navy)] text-xl shadow-inner">
+                            class="w-12 h-12 rounded-2xl flex items-center justify-center text-xl cns-icon-mint">
                             <i class="fas fa-user"></i>
                         </div>
                         <div>
@@ -603,8 +849,11 @@
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <!-- Fee & Bio -->
                 <div class="space-y-6">
-                    <div class="bg-white rounded-2xl p-6 border border-slate-200">
-                        <h4 class="text-md font-bold text-slate-900 mb-4">Session & Fee</h4>
+                    <div class="cns-tile cns-panel cns-panel-mint">
+                        <div class="cns-panel-header">
+                            <span class="cns-icon-badge cns-icon-mint"><i class="fas fa-rupee-sign"></i></span>
+                            <h4 class="text-md font-bold text-slate-900">Session & Fee</h4>
+                        </div>
                         <form action="/counsellor/update" method="POST" class="space-y-4">
                             <div>
                                 <label class="block text-xs font-bold text-slate-500 uppercase">Your Fee per Session
@@ -692,33 +941,36 @@
                 </div>
 
                 <!-- Bank Details -->
-                <div class="bg-white rounded-2xl p-6 border border-slate-200">
-                    <h4 class="text-md font-bold text-slate-900 mb-4">Payout Account</h4>
+                <div class="cns-tile cns-panel cns-panel-sky">
+                    <div class="cns-panel-header">
+                        <span class="cns-icon-badge cns-icon-sky"><i class="fas fa-university"></i></span>
+                        <h4 class="text-md font-bold text-slate-900">Payout Account</h4>
+                    </div>
                     <form action="/counsellor/update" method="POST" class="space-y-4">
                         <div class="grid grid-cols-1 gap-4">
                             <div>
                                 <label class="block text-xs font-bold text-slate-500 uppercase">Bank Name</label>
                                 <input type="text" name="bank_name" title="Bank Name"
                                     value="{% if profile.account_details %}{{ profile.account_details.get('bank_name', '') }}{% endif %}"
-                                    class="mt-1 block w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-xl">
+                                    class="mt-1 block w-full px-4 py-2 bg-white/80 border border-sky-200 rounded-xl focus:ring-2 focus:ring-sky-300 focus:outline-none transition-all">
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-slate-500 uppercase">Account Number</label>
                                 <input type="text" name="account_num" title="Account Number"
                                     value="{% if profile.account_details %}{{ profile.account_details.get('account_num', '') }}{% endif %}"
-                                    class="mt-1 block w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-xl">
+                                    class="mt-1 block w-full px-4 py-2 bg-white/80 border border-sky-200 rounded-xl focus:ring-2 focus:ring-sky-300 focus:outline-none transition-all">
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-slate-500 uppercase">IFSC Code</label>
                                 <input type="text" name="ifsc_code" title="IFSC Code"
                                     value="{% if profile.account_details %}{{ profile.account_details.get('ifsc', '') }}{% endif %}"
-                                    class="mt-1 block w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-xl">
+                                    class="mt-1 block w-full px-4 py-2 bg-white/80 border border-sky-200 rounded-xl focus:ring-2 focus:ring-sky-300 focus:outline-none transition-all">
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-slate-500 uppercase">UPI ID</label>
                                 <input type="text" name="upi_id" title="UPI ID"
                                     value="{% if profile.account_details %}{{ profile.account_details.get('upi', '') }}{% endif %}"
-                                    class="mt-1 block w-full px-4 py-2 bg-slate-50 border border-slate-300 rounded-xl">
+                                    class="mt-1 block w-full px-4 py-2 bg-white/80 border border-sky-200 rounded-xl focus:ring-2 focus:ring-sky-300 focus:outline-none transition-all">
                             </div>
                         </div>
                         <button type="submit"
@@ -731,9 +983,12 @@
         </div>
 
         <!-- Tab 4: Verification -->
-        <div x-show="tab === 'verification'" x-transition x-cloak>
-            <div class="max-w-2xl mx-auto bg-white rounded-3xl p-8 border border-slate-200 shadow-sm">
-                <h4 class="text-xl font-bold text-slate-900 mb-2">Professional Verification</h4>
+        <div x-show="tab === 'verification'" x-transition style="display: none;">
+            <div class="cns-tile cns-panel cns-panel-amber max-w-2xl mx-auto">
+                <div class="cns-panel-header mb-2">
+                    <span class="cns-icon-badge cns-icon-amber"><i class="fas fa-user-check"></i></span>
+                    <h4 class="text-xl font-bold text-slate-900">Professional Verification</h4>
+                </div>
                 <p class="text-sm text-slate-500 mb-8">Admins use this information to verify your credentials as a
                     professional coach.</p>
 
@@ -742,21 +997,21 @@
                     <div>
                         <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Years of Experience &
                             Expertise</label>
-                        <textarea name="experience" rows="4" required title="Your experience and expertise"
+                        <textarea name="experience" rows="4" required
                             class="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-2xl focus:ring-2 focus:ring-[var(--teal)] focus:outline-none transition-all">{{ profile.experience or '' }}</textarea>
                     </div>
 
                     <div>
                         <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Certificates
                             (PDF/Images)</label>
-                        <input type="file" name="files" multiple accept=".pdf,image/*" title="Upload certificates"
-                            class="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-[var(--navy)] file:text-white hover:file:bg-[var(--navy)]">
+                        <input type="file" name="files" multiple accept=".pdf,image/*"
+                            class="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-amber-600 file:text-white hover:file:bg-amber-700">
                     </div>
 
                     {% if profile.certificates %}
                     <div class="grid grid-cols-3 gap-3">
                         {% for cert in profile.certificates %}
-                        <div class="relative h-20 bg-slate-100 rounded-xl overflow-hidden border border-slate-200">
+                        <div class="cns-tile-sm relative h-20 bg-slate-100 rounded-xl overflow-hidden border border-amber-200">
                             {% if cert.endswith('.pdf') %}
                             <a href="{{ cert }}" target="_blank" title="View PDF Certificate"
                                 class="w-full h-full flex flex-col items-center justify-center bg-red-50 text-red-600">
@@ -776,7 +1031,7 @@
                     {% endif %}
 
                     <button type="submit"
-                        class="w-full py-4 bg-[var(--navy)] text-white font-black rounded-2xl shadow-xl hover:bg-[var(--navy)] hover:scale-[1.02] transition-all uppercase tracking-widest text-xs">
+                        class="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black rounded-2xl shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all uppercase tracking-widest text-xs">
                         Submit Verification Documents
                     </button>
                 </form>
@@ -784,6 +1039,8 @@
         </div>
 
     </div>
+</div>
+
 </div>
 
 {% endblock %}

@@ -3,111 +3,362 @@
 {% block title %}Support Tickets{% endblock %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto py-12 px-4 sm:px-6 lg:px-8 space-y-8">
-
-    <!-- Submit New Ticket -->
-    <div class="bg-white/70 backdrop-blur-xl shadow-2xl rounded-3xl p-8 border border-white/50">
-        <h2 class="text-3xl font-extrabold text-slate-800 mb-6 text-center">Submit a Query</h2>
-        <p class="text-center text-slate-500 mb-8">Having an issue or need help? Create a ticket and our admin team will
-            review it.</p>
-
-        <form action="/ticket/submit" method="POST" class="space-y-6">
-            <div>
-                <label for="subject"
-                    class="block text-sm font-bold text-slate-700 uppercase tracking-wide mb-2">Subject</label>
-                <input type="text" id="subject" name="subject" required
-                    class="block w-full px-5 py-4 bg-white/60 border border-slate-200 rounded-2xl text-slate-900 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
-                    placeholder="Brief description of your query">
-            </div>
-
-            <div>
-                <label for="description"
-                    class="block text-sm font-bold text-slate-700 uppercase tracking-wide mb-2">Description</label>
-                <textarea id="description" name="description" rows="5" required
-                    class="block w-full px-5 py-4 bg-white/60 border border-slate-200 rounded-2xl text-slate-900 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
-                    placeholder="Provide detailed information about your query or issue..."></textarea>
-            </div>
-
-            <button type="submit"
-                class="w-full bg-gradient-to-r from-slate-900 to-teal-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-teal-500/20 hover:shadow-xl hover:translate-y-[-2px] active:scale-95 transition-all duration-200">
-                Submit Ticket
-            </button>
-        </form>
+<!-- GLOBAL ANIMATED BACKGROUND: teal/turquoise waves + floating glass bubbles, fixed behind all content (copied from landing.html) -->
+<div class="site-bg" aria-hidden="true">
+    <div class="site-bg-waves">
+        <svg class="site-bg-wave wave-1" viewBox="0 0 800 1400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0,1400 L0,300 C150,250 220,420 320,480 C440,560 520,380 620,460 C700,520 760,700 800,780 L800,1400 Z" fill="#cdeeec" />
+        </svg>
+        <svg class="site-bg-wave wave-2" viewBox="0 0 800 1400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0,1400 L0,520 C120,460 200,620 300,640 C420,665 500,520 610,560 C700,592 760,760 800,860 L800,1400 Z" fill="#9fdcd8" />
+        </svg>
+        <svg class="site-bg-wave wave-3" viewBox="0 0 800 1400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0,1400 L0,760 C140,720 240,860 360,880 C480,900 560,780 660,820 C730,848 780,950 800,1020 L800,1400 Z" fill="#6fc1bd" />
+        </svg>
     </div>
+    <div class="site-bg-bubble b1"></div>
+    <div class="site-bg-bubble b2"></div>
+    <div class="site-bg-bubble b3"></div>
+    <div class="site-bg-bubble b4"></div>
+    <div class="site-bg-bubble b5"></div>
+    <div class="site-bg-bubble b6"></div>
+</div>
 
-    <!-- Previous Tickets -->
-    {% if tickets %}
-    <div class="bg-white/70 backdrop-blur-xl shadow-2xl rounded-3xl p-8 border border-white/50">
-        <h3 class="text-xl font-extrabold text-slate-800 mb-6 flex items-center gap-2">
-            <i class="fas fa-ticket-alt text-[var(--teal)]"></i> Your Tickets
-        </h3>
+<style>
+    /* ===================================================================
+       GLOBAL ANIMATED BACKGROUND — copied 1:1 from landing.html: layered
+       teal/turquoise wave SVGs + floating glass bubbles, fixed behind
+       everything via position:fixed + z-index:-1 (so it always shows,
+       even above/behind the navbar, regardless of any parent background).
+       =================================================================== */
+    .site-bg {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: -1;
+        overflow: hidden;
+        background: linear-gradient(160deg, #d7f3f1 0%, #bfe9e6 28%, #9ddcd9 55%, #6fc4c2 78%, #4fb0ae 100%);
+    }
 
-        <div class="space-y-5">
-            {% for ticket in tickets %}
-            <div class="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm transition-all hover:shadow-md">
-                <!-- Ticket Header -->
-                <div class="flex justify-between items-start mb-3">
+    .site-bg-waves {
+        position: absolute;
+        inset: -10% -10% -10% -10%;
+        width: 120%;
+        height: 120%;
+    }
+
+    .site-bg-wave {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+    }
+
+    .site-bg-wave.wave-1 { animation: bgDrift1 38s ease-in-out infinite; opacity: 0.55; }
+    .site-bg-wave.wave-2 { animation: bgDrift2 46s ease-in-out infinite; opacity: 0.5; }
+    .site-bg-wave.wave-3 { animation: bgDrift3 54s ease-in-out infinite; opacity: 0.4; }
+
+    @keyframes bgDrift1 { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(-2%, 2%) scale(1.04); } }
+    @keyframes bgDrift2 { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(2.5%, -1.5%) scale(1.05); } }
+    @keyframes bgDrift3 { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(-1.5%, -2%) scale(1.03); } }
+
+    /* Floating glassy bubbles, like the reference image */
+    .site-bg-bubble {
+        position: absolute;
+        border-radius: 50%;
+        background: radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.85) 0%, rgba(102, 158, 167, 0.25) 35%, rgba(103, 211, 210, 0.383) 70%, transparent 100%);
+        filter: blur(0.5px);
+        will-change: transform;
+    }
+
+    .site-bg-bubble.b1 { width: 380px; height: 380px; top: -6%; right: 4%; animation: bubbleFloat1 24s ease-in-out infinite; }
+    .site-bg-bubble.b2 {
+        width: 220px; height: 220px; top: 18%; right: 22%;
+        background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.9) 0%, rgba(56, 189, 248, 0.55) 40%, rgba(13, 148, 136, 0.2) 75%, transparent 100%);
+        animation: bubbleFloat2 19s ease-in-out infinite;
+    }
+    .site-bg-bubble.b3 {
+        width: 120px; height: 120px; top: 38%; right: 6%;
+        background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.95) 0%, rgba(45, 212, 191, 0.6) 45%, transparent 100%);
+        animation: bubbleFloat3 16s ease-in-out infinite;
+    }
+    .site-bg-bubble.b4 { width: 150px; height: 150px; top: 58%; left: 4%; animation: bubbleFloat2 21s ease-in-out infinite reverse; }
+    .site-bg-bubble.b5 {
+        width: 90px; height: 90px; top: 80%; left: 18%;
+        background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.9) 0%, rgba(56, 189, 248, 0.5) 45%, transparent 100%);
+        animation: bubbleFloat1 17s ease-in-out infinite reverse;
+    }
+    .site-bg-bubble.b6 { width: 260px; height: 260px; bottom: -8%; right: 12%; animation: bubbleFloat3 27s ease-in-out infinite; }
+
+    @keyframes bubbleFloat1 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-18px, 22px); } }
+    @keyframes bubbleFloat2 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(16px, -20px); } }
+    @keyframes bubbleFloat3 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-14px, -16px); } }
+
+    @media (max-width: 768px) {
+        .site-bg-bubble.b1 { width: 220px; height: 220px; }
+        .site-bg-bubble.b2 { width: 130px; height: 130px; }
+        .site-bg-bubble.b6 { width: 160px; height: 160px; }
+    }
+
+    /* Self-contained, dependable CSS — avoids bracket-syntax Tailwind
+       gradients like bg-gradient-to-r from-blue-600 to-[var(--teal)] and
+       from-[var(--teal-soft)] to-[var(--teal-soft)], which your build's
+       purge step strips since it can't statically detect the dynamic-
+       looking arbitrary values. Real CSS below always ships. */
+
+    .tk-page {
+        font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        border-radius: 2rem;
+        padding: clamp(1.5rem, 4vw, 3rem) 1rem;
+    }
+
+    .tk-card {
+        background: rgba(255, 255, 255, 0.95);
+        border: 1px solid #e7f3ee;
+        border-radius: 1.5rem;
+        overflow: hidden;
+        box-shadow: 0 25px 55px -25px rgba(14, 42, 46, 0.3);
+        transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .tk-card:hover {
+        box-shadow: 0 32px 65px -25px rgba(14, 42, 46, 0.35);
+    }
+
+    .tk-header {
+        position: relative;
+        overflow: hidden;
+        padding: 2.25rem 2rem;
+        background: linear-gradient(120deg, #0E2A2E 0%, #14524E 55%, #0D9488 140%);
+        text-align: center;
+    }
+    .tk-header::before {
+        content: '';
+        position: absolute;
+        width: 220px; height: 220px;
+        top: -90px; left: -60px;
+        border-radius: 50%;
+        filter: blur(45px);
+        background: radial-gradient(circle, rgba(56, 189, 248, 0.35), transparent 70%);
+    }
+    .tk-header-icon {
+        width: 3rem; height: 3rem; border-radius: 1rem;
+        margin: 0 auto 0.9rem;
+        background: rgba(255, 255, 255, 0.14);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        display: flex; align-items: center; justify-content: center;
+        color: #fff; font-size: 1.1rem;
+        backdrop-filter: blur(6px);
+    }
+
+    .tk-body { padding: 2.25rem 2rem; }
+
+    .tk-input {
+        width: 100%;
+        padding: 1rem 1.15rem;
+        background: #f8fafc;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 1rem;
+        outline: none;
+        resize: none;
+        transition: border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+    }
+    .tk-input:focus {
+        border-color: #0d9488;
+        background: #fff;
+        box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.12);
+    }
+
+    .tk-submit {
+        width: 100%;
+        padding: 1.05rem;
+        border: none;
+        border-radius: 1rem;
+        color: #fff;
+        font-weight: 800;
+        font-size: 1.05rem;
+        letter-spacing: 0.02em;
+        background: linear-gradient(120deg, #0E2A2E 0%, #14524E 55%, #0D9488 140%);
+        box-shadow: 0 16px 32px -14px rgba(13, 148, 136, 0.5);
+        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease;
+        cursor: pointer;
+    }
+    .tk-submit:hover {
+        transform: translateY(-3px) scale(1.015);
+        box-shadow: 0 22px 42px -16px rgba(13, 148, 136, 0.6);
+    }
+    .tk-submit:active { transform: scale(0.97); }
+
+    .tk-ticket {
+        background: #fff;
+        border: 1px solid #eef2f0;
+        border-radius: 1.25rem;
+        padding: 1.5rem;
+        transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.32s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.32s ease;
+    }
+    .tk-ticket:hover {
+        transform: translateY(-4px) scale(1.008);
+        box-shadow: 0 18px 36px -18px rgba(14, 42, 46, 0.22);
+        border-color: #cdeee0;
+    }
+
+    .tk-badge {
+        display: inline-flex; align-items: center; gap: 0.3rem;
+        padding: 0.35rem 0.8rem;
+        border-radius: 999px;
+        font-size: 0.65rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+    .tk-badge-resolved { background: #d1fae5; color: #047857; border: 1px solid #a7f3d0; }
+    .tk-badge-pending  { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+
+    .tk-message-box {
+        background: #f8fafc;
+        border: 1px solid #eef2f0;
+        border-radius: 1rem;
+        padding: 1rem 1.15rem;
+        margin-bottom: 1rem;
+    }
+
+    .tk-reply-box {
+        position: relative;
+        overflow: hidden;
+        border-radius: 1rem;
+        padding: 1.1rem 1.25rem;
+        background: linear-gradient(155deg, #E3FBF2 0%, #FFFFFF 75%);
+        border: 1px solid #BFEEDD;
+    }
+    .tk-reply-box::before {
+        content: '';
+        position: absolute;
+        top: -20px; right: -20px;
+        width: 90px; height: 90px;
+        border-radius: 50%;
+        background: rgba(13, 148, 136, 0.08);
+    }
+    .tk-reply-icon {
+        width: 1.6rem; height: 1.6rem; border-radius: 0.5rem;
+        background: #0d9488; color: #fff;
+        display: inline-flex; align-items: center; justify-content: center;
+        font-size: 0.65rem;
+    }
+
+    .tk-awaiting {
+        background: #f8fafc;
+        border: 1.5px dashed #d8e2e0;
+        border-radius: 1rem;
+        padding: 1rem 1.15rem;
+        text-align: center;
+    }
+</style>
+
+<div class="tk-page">
+    <div class="max-w-3xl mx-auto space-y-8">
+
+        <!-- Submit New Ticket -->
+        <div class="tk-card">
+            <div class="tk-header">
+                <div class="relative z-10">
+                    <div class="tk-header-icon"><i class="fas fa-life-ring"></i></div>
+                    <h2 class="text-2xl sm:text-3xl font-extrabold text-white mb-2">Submit a Query</h2>
+                    <p style="color:#a7f3d0;" class="max-w-md mx-auto text-sm sm:text-base">Having an issue or need
+                        help? Create a ticket and our admin team will review it.</p>
+                </div>
+            </div>
+
+            <div class="tk-body">
+                <form action="/ticket/submit" method="POST" class="space-y-6">
                     <div>
-                        <h4 class="font-bold text-slate-900 text-lg">{{ ticket.subject }}</h4>
-                        <p class="text-xs text-slate-400 mt-0.5">
-                            {{ ticket.timestamp.strftime('%b %d, %Y at %I:%M %p') if ticket.timestamp else '' }}
-                        </p>
-                    </div>
-                    {% if ticket.status == 'Closed' %}
-                    <span
-                        class="px-3 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200 uppercase tracking-wider">
-                        ✅ Resolved
-                    </span>
-                    {% else %}
-                    <span
-                        class="px-3 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-200 uppercase tracking-wider">
-                        ⏳ {{ ticket.status }}
-                    </span>
-                    {% endif %}
-                </div>
-
-                <!-- Your Message -->
-                <div class="bg-slate-50 rounded-xl p-4 border border-slate-100 mb-4">
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Your Message</p>
-                    <p class="text-sm text-slate-600 leading-relaxed">{{ ticket.description }}</p>
-                </div>
-
-                <!-- Admin Reply -->
-                {% if ticket.admin_reply %}
-                <div
-                    class="bg-gradient-to-r from-[var(--teal-soft)] to-[var(--teal-soft)] rounded-xl p-4 border border-[var(--teal-light)] relative overflow-hidden">
-                    <div class="absolute top-0 right-0 p-3 opacity-5">
-                        <i class="fas fa-comment-dots text-4xl"></i>
-                    </div>
-                    <div class="relative z-10">
-                        <p
-                            class="text-[10px] font-bold text-[var(--navy)] uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                            <i class="fas fa-user-shield text-[10px]"></i> Admin Response
-                        </p>
-                        <p class="text-sm text-slate-700 leading-relaxed">{{ ticket.admin_reply }}</p>
+                        <label for="subject"
+                            class="block text-sm font-bold text-slate-700 uppercase tracking-wide mb-2">Subject</label>
+                        <input type="text" id="subject" name="subject" required class="tk-input"
+                            placeholder="Brief description of your query">
                     </div>
 
-                    {% if ticket.status == 'Closed' %}
-                    <div class="mt-3 pt-3 border-t border-[var(--teal-light)]">
-                        <p class="text-[11px] text-[var(--teal)] font-medium italic">
-                            This ticket has been resolved. If you still need help, please
-                            <a href="/ticket" class="underline font-bold hover:text-[var(--navy)]">submit a new
-                                ticket</a>.
-                        </p>
+                    <div>
+                        <label for="description"
+                            class="block text-sm font-bold text-slate-700 uppercase tracking-wide mb-2">Description</label>
+                        <textarea id="description" name="description" rows="5" required class="tk-input"
+                            placeholder="Provide detailed information about your query or issue..."></textarea>
                     </div>
-                    {% endif %}
-                </div>
-                {% else %}
-                <div class="bg-slate-50 rounded-xl p-4 border border-dashed border-slate-200 text-center">
-                    <p class="text-xs text-slate-400 italic">
-                        <i class="fas fa-clock mr-1"></i> Awaiting admin response...
-                    </p>
-                </div>
-                {% endif %}
+
+                    <button type="submit" class="tk-submit">
+                        Submit Ticket
+                    </button>
+                </form>
             </div>
-            {% endfor %}
         </div>
+
+        <!-- Previous Tickets -->
+        {% if tickets %}
+        <div class="tk-card">
+            <div class="tk-body">
+                <h3 class="text-xl font-extrabold text-slate-800 mb-6 flex items-center gap-2">
+                    <i class="fas fa-ticket-alt" style="color:#0d9488;"></i> Your Tickets
+                </h3>
+
+                <div class="space-y-5">
+                    {% for ticket in tickets %}
+                    <div class="tk-ticket">
+                        <!-- Ticket Header -->
+                        <div class="flex justify-between items-start mb-3 gap-3">
+                            <div>
+                                <h4 class="font-bold text-slate-900 text-lg">{{ ticket.subject }}</h4>
+                                <p class="text-xs text-slate-400 mt-0.5">
+                                    {{ ticket.timestamp.strftime('%b %d, %Y at %I:%M %p') if ticket.timestamp else '' }}
+                                </p>
+                            </div>
+                            {% if ticket.status == 'Closed' %}
+                            <span class="tk-badge tk-badge-resolved">✅ Resolved</span>
+                            {% else %}
+                            <span class="tk-badge tk-badge-pending">⏳ {{ ticket.status }}</span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Your Message -->
+                        <div class="tk-message-box">
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Your
+                                Message</p>
+                            <p class="text-sm text-slate-600 leading-relaxed">{{ ticket.description }}</p>
+                        </div>
+
+                        <!-- Admin Reply -->
+                        {% if ticket.admin_reply %}
+                        <div class="tk-reply-box">
+                            <div class="relative z-10">
+                                <p class="text-[10px] font-bold uppercase tracking-wider mb-1.5 flex items-center gap-1.5"
+                                    style="color:#0E2A2E;">
+                                    <span class="tk-reply-icon"><i class="fas fa-user-shield"></i></span> Admin
+                                    Response
+                                </p>
+                                <p class="text-sm text-slate-700 leading-relaxed">{{ ticket.admin_reply }}</p>
+                            </div>
+
+                            {% if ticket.status == 'Closed' %}
+                            <div class="mt-3 pt-3 relative z-10" style="border-top: 1px solid #BFEEDD;">
+                                <p class="text-[11px] font-medium italic" style="color:#0d9488;">
+                                    This ticket has been resolved. If you still need help, please
+                                    <a href="/ticket" class="underline font-bold" style="color:#0E2A2E;">submit a new
+                                        ticket</a>.
+                                </p>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <div class="tk-awaiting">
+                            <p class="text-xs text-slate-400 italic">
+                                <i class="fas fa-clock mr-1"></i> Awaiting admin response...
+                            </p>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
     </div>
-    {% endif %}
 </div>
 {% endblock %}
