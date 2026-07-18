@@ -48,6 +48,21 @@ from .services import assessment_engine
 
 LIVE_SIMULATION_SESSIONS = {}
 
+import jwt
+JWT_SECRET_KEY = os.getenv("SECRET_KEY", "a_very_secret_key_for_sessions")
+JWT_ALGORITHM = "HS256"
+
+def create_access_token(user_id: str):
+    expire = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=30)
+    to_encode = {"sub": str(user_id), "exp": expire}
+    return jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+
+def decode_access_token(token: str):
+    try:
+        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+        return payload.get("sub")
+    except Exception:
+        return None
 try:
     from app.pipeline.feature_extractor import FeatureExtractor
     extractor_tool = FeatureExtractor()
@@ -800,8 +815,9 @@ async def check_suspension(request: Request, call_next):
     is_exempt = any(path == p or path.startswith("/static/") or path.startswith("/auth/") for p in exempt_paths)
     
     if not is_exempt:
-        user_id = request.cookies.get("user_id")
-        if user_id and user_id.strip(): # Added safety check for empty/invalid strings
+        token = request.cookies.get("user_id")
+        user_id = decode_access_token(token) if token else None
+        if user_id and str(user_id).strip(): # Added safety check for empty/invalid strings
             try:
                 uid = int(user_id)
                 # Quick check for suspension
@@ -858,7 +874,9 @@ def get_password_hash(password: str) -> str:
 
 
 async def get_current_user(request: Request, db: AsyncSession = Depends(get_db)):
-    user_id = request.cookies.get("user_id")
+    token = request.cookies.get("user_id")
+    if not token: return None
+    user_id = decode_access_token(token)
     if not user_id: return None
     try:
         # Try fetching from Appwrite first
@@ -1133,13 +1151,15 @@ async def login(
     
     response = RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
     # 30 day persistent session
-    response.set_cookie(
-        key="user_id", 
-        value=str(effective_user_id), 
-        max_age=30 * 24 * 60 * 60,
-        httponly=True,
-        samesite="lax"
-    )
+    if effective_user_id is not None:
+        token = create_access_token(str(effective_user_id))
+        response.set_cookie(
+            key="user_id", 
+            value=token, 
+            max_age=30 * 24 * 60 * 60,
+            httponly=True,
+            samesite="lax"
+        )
     return response
 
 @app.get("/logout")
@@ -1317,7 +1337,8 @@ async def auth_callback(request: Request, db: AsyncSession = Depends(get_db)):
         # Users without a role must select it first
         redirect_url = "/select-role" if (is_new_user or not user.role) else "/dashboard"
         response = RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
-        response.set_cookie(key="user_id", value=str(user.id))
+        token = create_access_token(str(user.id))
+        response.set_cookie(key="user_id", value=token, max_age=30 * 24 * 60 * 60, httponly=True, samesite="lax")
         return response
     except Exception as exc:
         import traceback
@@ -2383,14 +2404,24 @@ async def share_report(result_id: int, request: Request, mode: str = "full", db:
     
     owner = (await db.execute(select(models.User).where(models.User.id == result.user_id))).scalars().first()
     # current_user = await get_current_user(request, db)
-    user_id_cookie = request.cookies.get("user_id")
-    uid = int(user_id_cookie)
-    result_cu = await db.execute(
-        select(models.User)
-        .options(selectinload(models.User.assessment))
-        .where(models.User.id == uid)
-    )
-    current_user = result_cu.scalars().first()
+    token = request.cookies.get("user_id")
+    uid = None
+    if token:
+        sub = decode_access_token(token)
+        if sub:
+            try:
+                uid = int(sub)
+            except ValueError:
+                pass
+    
+    current_user = None
+    if uid:
+        result_cu = await db.execute(
+            select(models.User)
+            .options(selectinload(models.User.assessment))
+            .where(models.User.id == uid)
+        )
+        current_user = result_cu.scalars().first()
     
     # Ensure a stable high confidence (82-98%) is saved and displayed
     if not result.confidence or result.confidence < 0.81:
