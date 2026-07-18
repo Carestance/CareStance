@@ -25,6 +25,27 @@ PROVIDER_SEARCH_SITES = {
 }
 
 
+def _provider_search_url(provider, query):
+    """Use a provider's own search, never an LLM-invented deep link."""
+    provider_key = _clean_text(provider).lower()
+    encoded = _quote_query(query)
+    if "coursera" in provider_key:
+        return f"https://www.coursera.org/search?query={encoded}"
+    if "edx" in provider_key:
+        return f"https://www.edx.org/search?q={encoded}"
+    if "mit" in provider_key or "ocw" in provider_key:
+        return f"https://ocw.mit.edu/search/?q={encoded}"
+    if "khan" in provider_key:
+        return f"https://www.khanacademy.org/search?page_search_query={encoded}"
+    if "youtube" in provider_key:
+        return f"https://www.youtube.com/results?search_query={encoded}"
+    if "scholar" in provider_key:
+        return f"https://scholar.google.com/scholar?q={encoded}"
+    if "arxiv" in provider_key:
+        return f"https://arxiv.org/search/?query={encoded}&searchtype=all"
+    return None
+
+
 def _clean_text(value):
     return re.sub(r"\s+", " ", str(value or "")).strip()
 
@@ -58,7 +79,11 @@ class ResourceAggregator:
     @staticmethod
     def get_provider_search_link(provider, *query_parts):
         provider_key = _clean_text(provider).lower()
-        query = _quote_query(*query_parts)
+        clean_parts = [_clean_text(part) for part in query_parts if _clean_text(part)]
+        first_party_url = _provider_search_url(provider, " ".join(clean_parts))
+        if first_party_url:
+            return first_party_url
+        query = _quote_query(*clean_parts)
         for key, site in PROVIDER_SEARCH_SITES.items():
             if key in provider_key:
                 return f"https://www.google.com/search?q={query}+site%3A{urllib.parse.quote_plus(site)}"
@@ -82,6 +107,7 @@ class ResourceAggregator:
             "type": _clean_text(resource_type) or "Course",
             "provider": link_provider,
             "difficulty": "Beginner to Intermediate",
+            "source_verified": True,
         }
 
     @staticmethod

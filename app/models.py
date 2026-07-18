@@ -367,6 +367,7 @@ class SubscriptionPayment(Base):
     plan = Column(String, index=True)
     razorpay_order_id = Column(String, nullable=True, index=True)
     razorpay_payment_id = Column(String, nullable=True, index=True)
+    razorpay_subscription_id = Column(String, nullable=True, unique=True, index=True)
     amount = Column(Float, index=True)
     status = Column(String, default="success", nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

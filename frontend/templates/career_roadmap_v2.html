@@ -934,6 +934,11 @@
             });
             const result = await response.json();
 
+            if (result.requires_ai_review) {
+                window.location.href = result.chat_url;
+                return;
+            }
+
             if (result.success) {
                 // 1. Update Progress
                 const currentProgress = result.progress || 0;

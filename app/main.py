@@ -26,7 +26,8 @@ from sqlalchemy.orm import selectinload, joinedload
 from sqlalchemy import select, and_, or_, func
 from .database import AsyncSessionLocal, engine, get_db, Base, SQLALCHEMY_DATABASE_URL
 import re
-from app.pipeline.vector_utils import classify_archetype
+import hashlib
+import hmac
 
 def sync_assessment_to_appwrite(user_id, result):
     pass  # Appwrite sync disabled — local DB only
@@ -97,6 +98,9 @@ serializer = URLSafeTimedSerializer(os.getenv("SECRET_KEY", "a_very_secret_key_f
 # Razorpay Client
 RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID", "rzp_test_your_key_id")
 RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET", "your_key_secret")
+RAZORPAY_CRITICAL_PLAN_ID = os.getenv("RAZORPAY_CRITICAL_PLAN_ID", "").strip()
+RAZORPAY_CUSTOMISED_PLAN_ID = os.getenv("RAZORPAY_CUSTOMISED_PLAN_ID", "").strip()
+RAZORPAY_WEBHOOK_SECRET = os.getenv("RAZORPAY_WEBHOOK_SECRET", "").strip()
 razorpay_client = None
 
 def is_razorpay_configured():
@@ -187,6 +191,23 @@ def get_subscription_state(user) -> dict:
 def has_customised_subscription(user) -> bool:
     state = get_subscription_state(user)
     return bool(state.get("active") and state.get("plan") == "customised")
+
+def get_razorpay_subscription_plan_id(plan: str) -> str:
+    """Resolve the pre-created Razorpay monthly plan for a CareStance plan."""
+    plan_ids = {
+        "critical": RAZORPAY_CRITICAL_PLAN_ID,
+        "customised": RAZORPAY_CUSTOMISED_PLAN_ID,
+    }
+    plan_id = plan_ids.get(plan, "")
+    if not plan_id:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                f"Recurring plan for '{plan}' is not configured. Add its Razorpay plan id "
+                "to RAZORPAY_CRITICAL_PLAN_ID or RAZORPAY_CUSTOMISED_PLAN_ID in .env."
+            ),
+        )
+    return plan_id
 
 def has_completed_assessment(result) -> bool:
     return bool(
@@ -484,6 +505,7 @@ async def run_migrations():
                     plan VARCHAR,
                     razorpay_order_id VARCHAR,
                     razorpay_payment_id VARCHAR,
+                    razorpay_subscription_id VARCHAR UNIQUE,
                     amount FLOAT,
                     status VARCHAR DEFAULT 'success',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -493,6 +515,8 @@ async def run_migrations():
             elif sub_cols:
                 if 'expires_at' not in sub_cols: migrations.append("ALTER TABLE subscription_payments ADD COLUMN expires_at TIMESTAMP")
                 if 'status' not in sub_cols: migrations.append("ALTER TABLE subscription_payments ADD COLUMN status VARCHAR DEFAULT 'success'")
+                if 'razorpay_subscription_id' not in sub_cols: migrations.append("ALTER TABLE subscription_payments ADD COLUMN razorpay_subscription_id VARCHAR")
+                migrations.append("CREATE UNIQUE INDEX IF NOT EXISTS ix_subscription_payments_razorpay_subscription_id ON subscription_payments (razorpay_subscription_id)")
 
             # 12. Counsellor Profiles
             if cp_cols:
@@ -4477,18 +4501,23 @@ async def subscription_create_order(request: Request, db: AsyncSession = Depends
     if not plan_data:
         raise HTTPException(status_code=400, detail="Invalid subscription plan")
 
-    order_data = {
-        "amount": plan_data["amount"] * 100,
-        "currency": "INR",
-        "receipt": f"receipt_sub_{uuid.uuid4().hex[:10]}",
-        "payment_capture": 1,
-        "notes": {"plan": plan, "user_id": str(user.id)}
+    # Razorpay subscriptions charge the configured plan every month.  A plan id
+    # is intentionally configured in the dashboard/.env rather than created per
+    # request, which prevents accidental duplicate billing plans.
+    plan_id = get_razorpay_subscription_plan_id(plan)
+    subscription_data = {
+        "plan_id": plan_id,
+        "total_count": 120,  # ten years of monthly renewals; user may cancel anytime
+        "quantity": 1,
+        "customer_notify": 1,
+        "notes": {"plan": plan, "user_id": str(user.id)},
     }
     try:
-        return get_razorpay_client().order.create(data=order_data)
+        subscription = get_razorpay_client().subscription.create(data=subscription_data)
+        return {"id": subscription["id"], "plan": plan, "subscription": True}
     except Exception as e:
-        print(f"Razorpay Subscription Order Create Error: {e}")
-        raise HTTPException(status_code=502, detail=f"Could not create subscription order: {str(e)}")
+        print(f"Razorpay Subscription Create Error: {e}")
+        raise HTTPException(status_code=502, detail=f"Could not create recurring subscription: {str(e)}")
 
 @app.post("/subscription/verify-payment")
 async def subscription_verify_payment(request: Request, db: AsyncSession = Depends(get_db)):
@@ -4507,11 +4536,15 @@ async def subscription_verify_payment(request: Request, db: AsyncSession = Depen
     if not plan_data:
         raise HTTPException(status_code=400, detail="Invalid subscription plan")
 
+    subscription_id = data.get("razorpay_subscription_id")
+    payment_id = data.get("razorpay_payment_id")
     params_dict = {
-        "razorpay_order_id": data.get("razorpay_order_id"),
-        "razorpay_payment_id": data.get("razorpay_payment_id"),
-        "razorpay_signature": data.get("razorpay_signature")
+        "razorpay_subscription_id": subscription_id,
+        "razorpay_payment_id": payment_id,
+        "razorpay_signature": data.get("razorpay_signature"),
     }
+    if not subscription_id or not payment_id or not params_dict["razorpay_signature"]:
+        raise HTTPException(status_code=400, detail="Missing Razorpay subscription payment details")
     try:
         get_razorpay_client().utility.verify_payment_signature(params_dict)
     except Exception as e:
@@ -4530,8 +4563,8 @@ async def subscription_verify_payment(request: Request, db: AsyncSession = Depen
     payment = models.SubscriptionPayment(
         user_id=user.id,
         plan=plan,
-        razorpay_order_id=data.get("razorpay_order_id"),
-        razorpay_payment_id=data.get("razorpay_payment_id"),
+        razorpay_payment_id=payment_id,
+        razorpay_subscription_id=subscription_id,
         amount=float(plan_data["amount"]),
         status="success",
         expires_at=expires_at,
@@ -4539,6 +4572,56 @@ async def subscription_verify_payment(request: Request, db: AsyncSession = Depen
     db.add(payment)
     await db.commit()
     return {"status": "ok", "plan": plan, "expires_at": expires_at.isoformat()}
+
+@app.post("/subscription/webhook")
+async def subscription_webhook(request: Request, db: AsyncSession = Depends(get_db)):
+    """Keep local access in sync with successful Razorpay recurring charges."""
+    if not RAZORPAY_WEBHOOK_SECRET:
+        raise HTTPException(status_code=503, detail="RAZORPAY_WEBHOOK_SECRET is not configured")
+
+    body = await request.body()
+    received_signature = request.headers.get("X-Razorpay-Signature", "")
+    expected_signature = hmac.new(
+        RAZORPAY_WEBHOOK_SECRET.encode("utf-8"), body, hashlib.sha256
+    ).hexdigest()
+    if not hmac.compare_digest(received_signature, expected_signature):
+        raise HTTPException(status_code=400, detail="Invalid webhook signature")
+
+    payload = json.loads(body.decode("utf-8"))
+    event = payload.get("event", "")
+    subscription = payload.get("payload", {}).get("subscription", {}).get("entity", {})
+    subscription_id = subscription.get("id")
+    if not subscription_id:
+        return {"status": "ignored"}
+
+    payment = (await db.execute(
+        select(models.SubscriptionPayment).where(
+            models.SubscriptionPayment.razorpay_subscription_id == subscription_id
+        )
+    )).scalars().first()
+    if not payment:
+        # Do not grant access for a subscription that was never verified by the app.
+        return {"status": "ignored"}
+
+    user = (await db.execute(select(models.User).where(models.User.id == payment.user_id))).scalars().first()
+    if not user:
+        return {"status": "ignored"}
+
+    if event in ("subscription.charged", "subscription.activated"):
+        now = datetime.datetime.utcnow()
+        user.subscription_status = "active"
+        user.subscription_started_at = user.subscription_started_at or now
+        user.subscription_expires_at = now + datetime.timedelta(days=30)
+        payment.status = "success"
+        payment.expires_at = user.subscription_expires_at
+    elif event in ("subscription.cancelled", "subscription.halted", "subscription.completed"):
+        user.subscription_status = "cancelled"
+        payment.status = event.rsplit(".", 1)[-1]
+    else:
+        return {"status": "ignored"}
+
+    await db.commit()
+    return {"status": "ok"}
 
 @app.get("/assessment/simulation/pay/{category}/{career_title}", response_class=HTMLResponse)
 async def simulation_pay_with_category(category: str, career_title: str, request: Request, db: AsyncSession = Depends(get_db)):
@@ -6336,9 +6419,19 @@ async def toggle_step_completion(path_id: int, step_index: int, request: Request
         raise HTTPException(status_code=400, detail="Invalid path data format")
 
     if 0 <= step_index < len(steps):
-        # Toggle completed state
         is_completed = steps[step_index].get("completed", False)
-        steps[step_index]["completed"] = not is_completed
+        # Completion is intentionally not a toggle.  It must be earned through
+        # the milestone AI conversation and its MCQ in /chat/finalize.
+        if not is_completed:
+            return JSONResponse({
+                "success": False,
+                "requires_ai_review": True,
+                "message": "Complete the AI milestone review and MCQ before marking this step done.",
+                "chat_url": f"/career/roadmap/{path_id}/step/{step_index}/chat",
+            }, status_code=409)
+
+        # A completed step may be reopened by the student for genuine rework.
+        steps[step_index]["completed"] = False
         
         # Update progress percentage if it's a dict with steps
         if isinstance(data, dict) and "steps" in data:
