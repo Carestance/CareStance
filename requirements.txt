@@ -26,3 +26,5 @@ passlib
 numpy
 pandas
 reportlab
+pyjwt
+

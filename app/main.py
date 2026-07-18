@@ -703,6 +703,8 @@ async def global_exception_handler(request: Request, exc: Exception):
     import traceback
     print(f"GLOBAL ERROR: {exc}", flush=True)
     traceback.print_exc()
+    with open("traceback_dump.txt", "w") as f:
+        traceback.print_exc(file=f)
     try:
         return templates.TemplateResponse(
             request=request,
