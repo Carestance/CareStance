@@ -111,7 +111,7 @@ async function subscribe(plan) {
             currency: order.currency,
             name: 'CareStance',
             description: `${planData.name} Monthly Subscription`,
-            order_id: order.id,
+            subscription_id: order.id,
             handler: async function (paymentResponse) {
                 const verifyRes = await fetch('/subscription/verify-payment', {
                     method: 'POST',

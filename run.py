@@ -12,6 +12,10 @@ if __name__ == "__main__":
     port = int(os.getenv("PORT", "8080"))
     dev_reload = os.getenv("DEV_RELOAD", "false").strip().lower() in ("1", "true", "yes")
 
+    import logging
+    logging.getLogger("asyncio").setLevel(logging.ERROR)
+
+
     app = _get_app()
 
     # Windows stability fix for ProactorEventLoop and SSL issues

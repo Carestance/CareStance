@@ -236,6 +236,17 @@
                 <button onclick="window.print()" class="no-print px-5 py-2.5 bg-white border border-slate-200 hover:border-teal-500 hover:text-teal-600 rounded-xl text-slate-600 font-bold transition-all shadow-sm flex items-center gap-2">
                     <i class="fas fa-print"></i> Print Report
                 </button>
+                {% if not is_public_share %}
+                    {% if subscription_state and subscription_state.active %}
+                    <a href="/assessment/report/download" class="no-print px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold transition-all shadow-sm flex items-center gap-2">
+                        <i class="fas fa-file-pdf"></i> Detailed PDF
+                    </a>
+                    {% else %}
+                    <a href="/subscription" class="no-print px-5 py-2.5 bg-amber-50 border border-amber-200 hover:bg-amber-100 text-amber-700 rounded-xl font-bold transition-all shadow-sm flex items-center gap-2">
+                        <i class="fas fa-lock"></i> Unlock PDF
+                    </a>
+                    {% endif %}
+                {% endif %}
             </div>
 
             <div class="space-y-6">
@@ -277,7 +288,7 @@
 
                             <!-- Interactive Actions -->
                             <div class="no-print flex flex-wrap gap-3 shrink-0">
-                                <a href="/assessment/simulation/start/{{ career_title }}" 
+                                <a href="/assessment/simulation/start/{{ career_title|urlencode }}" 
                                    class="px-4 py-2 rounded-xl bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 text-xs font-bold transition flex items-center gap-2">
                                     <i class="fas fa-terminal"></i>
                                     {% if simulation_access and simulation_access.is_free %}
@@ -299,11 +310,11 @@
                                         {% endif %}
                                     </span>
                                 {% endif %}
-                                <button onclick="generateCollegeRecs('{{ career_title }}')"
+                                <button type="button" onclick='generateCollegeRecs({{ career_title|tojson }})'
                                         class="px-4 py-2 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 text-xs font-bold transition flex items-center gap-2">
                                     <i class="fas fa-university"></i> Institutes
                                 </button>
-                                <button onclick="generateRoadmap('{{ career_title }}')"
+                                <button type="button" onclick='generateRoadmap({{ career_title|tojson }})'
                                         class="px-4 py-2 rounded-xl bg-teal-600 text-slate-900 hover:bg-teal-700 text-xs font-bold transition shadow-md shadow-teal-500/20 flex items-center gap-2">
                                     Roadmap <i class="fas fa-arrow-right"></i>
                                 </button>
@@ -418,6 +429,22 @@
 </div>
 
 <script>
+    async function readJsonResponse(response) {
+        const rawText = await response.text();
+        let data = {};
+        try {
+            data = rawText ? JSON.parse(rawText) : {};
+        } catch (error) {
+            throw new Error(rawText || 'Server returned an invalid response.');
+        }
+
+        if (!response.ok) {
+            throw new Error(data.detail || data.error || 'Request failed. Please try again.');
+        }
+
+        return data;
+    }
+
     async function generateRoadmap(careerTitle) {
         const overlay = document.getElementById('loadingOverlay');
         overlay.classList.remove('hidden');
@@ -431,16 +458,16 @@
                 body: JSON.stringify({ career_title: careerTitle }),
             });
 
-            const data = await response.json();
+            const data = await readJsonResponse(response);
             if (data.success) {
-                window.location.href = `/career/roadmap/${data.path_id}`;
+                window.location.href = data.path_id ? `/career/roadmap/${data.path_id}` : '/career/roadmaps';
             } else {
-                alert('Roadmap synthesis failed. Please try again.');
+                alert(data.detail || 'Roadmap synthesis failed. Please try again.');
                 overlay.classList.add('hidden');
             }
         } catch (error) {
             console.error('Error:', error);
-            alert('An error occurred. Please try again.');
+            alert(error.message || 'An error occurred. Please try again.');
             overlay.classList.add('hidden');
         }
     }
@@ -458,16 +485,16 @@
                 body: JSON.stringify({ career_title: careerTitle }),
             });
 
-            const data = await response.json();
+            const data = await readJsonResponse(response);
             if (data.success) {
-                window.location.href = `/career/colleges/${data.rec_id}`;
+                window.location.href = data.rec_id ? `/career/colleges/${data.rec_id}` : '/career/colleges';
             } else {
-                alert('Institute curation failed. Please try again.');
+                alert(data.detail || 'Institute curation failed. Please try again.');
                 overlay.classList.add('hidden');
             }
         } catch (error) {
             console.error('Error:', error);
-            alert('An error occurred. Please try again.');
+            alert(error.message || 'An error occurred. Please try again.');
             overlay.classList.add('hidden');
         }
     }

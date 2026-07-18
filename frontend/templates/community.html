@@ -31,20 +31,9 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
 
 <style>
-    /* ===================================================================
-       GLOBAL ANIMATED BACKGROUND — copied 1:1 from landing.html: layered
-       teal/turquoise wave SVGs + floating glass bubbles, fixed behind
-       everything via position:fixed + z-index:-1 (so it always shows,
-       even above/behind the navbar, regardless of any parent background).
-       =================================================================== */
-    .site-bg {
-        position: fixed;
-        inset: 0;
-        width: 100vw;
-        height: 100vh;
-        z-index: -1;
-        overflow: hidden;
-        background: linear-gradient(160deg, #d7f3f1 0%, #bfe9e6 28%, #9ddcd9 55%, #6fc4c2 78%, #4fb0ae 100%);
+    .archetype-badge {
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(99, 102, 241, 0.15));
+        border: 1px solid rgba(88, 30, 223, 0.3);
     }
 
     .site-bg-waves {
@@ -350,37 +339,56 @@
 <div class="cns-comm-wrap space-y-10">
 
     <!-- Hero Header -->
-    <div class="cns-hero px-6 py-10 sm:px-12 sm:py-14">
-        <div class="relative z-10">
+    <div
+        class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-[var(--navy)] to-[var(--navy)] text-white shadow-2xl">
+        <div class="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 rounded-full bg-[var(--teal)] blur-3xl opacity-15">
+        </div>
+        <div class="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 rounded-full bg-[var(--teal)] blur-3xl opacity-15">
+        </div>
+        <div
+            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-pink-500 blur-3xl opacity-5">
+        </div>
+
+        <div class="relative z-10 px-8 py-12 sm:px-12">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div>
                     <div class="flex items-center gap-3 mb-4">
-                        <div class="cns-hero-icon">
-                            <i class="fas fa-users text-lg"></i>
+                        <div
+                            class="h-12 w-12 rounded-2xl bg-gradient-to-br from-[var(--teal)] to-[var(--teal)] flex items-center justify-center shadow-lg">
+                            <i class="fas fa-users text-xl"></i>
                         </div>
-                        <h1 class="text-3xl font-extrabold tracking-tight text-white">Find Your Tribe</h1>
+                        <h1 class="text-3xl font-extrabold tracking-tight">Find Your Tribe</h1>
                     </div>
-                    <p class="text-teal-100 max-w-xl text-base sm:text-lg" style="color:#a7f3d0;">
+                    <p class="text-[var(--teal-light)] max-w-xl text-lg">
                         Connect with students who share your archetype and build your career network.
                     </p>
                 </div>
 
                 <div class="flex items-center gap-3">
                     {% if my_archetype %}
-                    <div class="cns-chip flex items-center gap-3 px-4 py-3 rounded-2xl">
-                        <div class="cns-avatar-chip">{{ my_archetype[0] | upper }}</div>
+                    <div
+                        class="flex items-center gap-3 bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/10">
+                        <div
+                            class="h-10 w-10 rounded-full bg-gradient-to-br from-[var(--teal)] to-[var(--teal)] flex items-center justify-center text-white font-bold shadow-lg">
+                            {{ my_archetype[0] | upper }}
+                        </div>
                         <div>
-                            <p class="text-[10px] font-bold uppercase tracking-wider" style="color:#a7f3d0;">Your Archetype</p>
-                            <p class="font-bold text-white text-sm">{{ my_archetype }}</p>
+                            <p class="text-xs text-[var(--teal-light)] font-bold uppercase tracking-wider">Your
+                                Archetype</p>
+                            <p class="font-bold text-white">{{ my_archetype }}</p>
                         </div>
                     </div>
                     {% endif %}
 
-                    <a href="/my-connections" class="cns-chip relative flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-sm text-white">
+                    <a href="/my-connections" title="View your connections"
+                        class="relative flex items-center gap-2 bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/10 hover:bg-white/20 transition-all font-bold">
                         <i class="fas fa-user-friends"></i>
                         My Connections
                         {% if pending_count > 0 %}
-                        <span class="cns-pending-badge">{{ pending_count }}</span>
+                        <span
+                            class="absolute -top-2 -right-2 h-6 w-6 bg-rose-500 text-white text-xs rounded-full flex items-center justify-center font-bold animate-pulse shadow-lg">
+                            {{ pending_count }}
+                        </span>
                         {% endif %}
                     </a>
                 </div>
@@ -420,10 +428,14 @@
                         <h3 class="cns-card-name">{{ sd.user.full_name }}</h3>
                     </a>
 
-                    <div class="flex items-center justify-center gap-2 mt-2 flex-wrap">
-                        <span class="cns-badge-archetype">{{ sd.assessment.phase_2_category }}</span>
-                        {% if sd.assessment.personality %}
-                        <span class="cns-badge-personality">{{ sd.assessment.personality }}</span>
+                    <div class="flex items-center justify-center gap-2 mt-2">
+                        <span class="archetype-badge px-2.5 py-1 rounded-full text-[11px] font-bold text-[var(--navy)]">
+                            {{ sd.assessment.phase_2_category }}
+                        </span>
+                        {% if sd.display_personality %}
+                        <span class="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full text-[11px] font-bold">
+                            {{ sd.display_personality }}
+                        </span>
                         {% endif %}
                     </div>
 
@@ -438,7 +450,8 @@
                             <a href="/connection/{{ sd.connection.conn_id }}/chat" class="cns-btn cns-btn-primary flex-1">
                                 <i class="fas fa-comment"></i> Message
                             </a>
-                            <a href="/student/{{ sd.user.id }}" class="cns-btn cns-btn-soft cns-btn-icon-only">
+                            <a href="/student/{{ sd.user.id }}" title="View {{ sd.user.full_name }}'s profile"
+                                class="connect-btn px-4 py-2 bg-[var(--teal-soft)] text-[var(--navy)] rounded-xl text-xs font-bold hover:bg-[var(--teal-soft)] transition-all border border-[var(--teal-light)]">
                                 <i class="fas fa-user"></i>
                             </a>
                         </div>
@@ -456,7 +469,8 @@
                                 </button>
                             </form>
                             <form action="/connection/{{ sd.connection.conn_id }}/reject" method="POST" class="flex-1">
-                                <button type="submit" class="cns-btn cns-btn-muted">
+                                <button type="submit" title="Decline request"
+                                    class="connect-btn w-full px-3 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-200">
                                     <i class="fas fa-times"></i>
                                 </button>
                             </form>
@@ -464,7 +478,8 @@
                         {% endif %}
                         {% else %}
                         <form action="/connect/{{ sd.user.id }}" method="POST">
-                            <button type="submit" class="cns-btn cns-btn-primary">
+                            <button type="submit"
+                                class="connect-btn inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[var(--navy)] to-[var(--teal)] text-white rounded-xl text-xs font-bold w-full justify-center hover:from-[var(--navy)] hover:to-[var(--navy)] shadow-lg shadow-[var(--teal-soft)]">
                                 <i class="fas fa-user-plus"></i> Connect
                             </button>
                         </form>
@@ -482,7 +497,10 @@
     {% for archetype, students in other_archetypes.items() %}
     <div class="{{ accent_cycle[loop.index0 % accent_cycle|length] }}">
         <div class="flex items-center gap-3 mb-6 mt-4">
-            <div class="cns-section-icon">{{ archetype[0] | upper }}</div>
+            <div
+                class="h-10 w-10 rounded-xl bg-gradient-to-br from-[var(--teal)] to-[var(--teal)] flex items-center justify-center text-white shadow-lg font-bold">
+                {{ archetype[0] | upper }}
+            </div>
             <div>
                 <h2 class="text-xl font-extrabold text-slate-900">{{ archetype }}</h2>
                 <p class="text-sm text-slate-500">{{ students|length }} student{{ 's' if students|length > 1 else '' }}</p>
@@ -491,11 +509,15 @@
 
         <div class="cns-grid">
             {% for sd in students %}
-            <div class="cns-card" style="animation-delay: {{ loop.index0 * 0.06 }}s" data-name="{{ sd.user.full_name|lower }}">
+            <div class="student-card animate-card bg-white/80 backdrop-blur-xl rounded-2xl border border-white/50 shadow-lg overflow-hidden"
+                data-delay="{{ loop.index0 * 0.08 }}" data-name="{{ sd.user.full_name|lower }}">
 
-                <div class="cns-card-header">
-                    <img src="{{ sd.user.profile_photo if sd.user.profile_photo else 'https://ui-avatars.com/api/?name=' + sd.user.full_name + '&background=random&size=128' }}"
-                        alt="{{ sd.user.full_name }}" class="cns-avatar-ring">
+                <div class="h-20 bg-gradient-to-br from-[var(--teal)] via-[var(--teal)] to-[var(--teal)] relative">
+                    <div class="absolute -bottom-8 left-1/2 -translate-x-1/2">
+                        <img src="{{ sd.user.profile_photo if sd.user.profile_photo else 'https://ui-avatars.com/api/?name=' ~ (sd.user.full_name or 'User') ~ '&background=random&size=128' }}"
+                            alt="{{ sd.user.full_name }}"
+                            class="w-16 h-16 rounded-2xl object-cover border-4 border-white shadow-lg">
+                    </div>
                 </div>
 
                 <div class="cns-card-body">
@@ -503,10 +525,14 @@
                         <h3 class="cns-card-name">{{ sd.user.full_name }}</h3>
                     </a>
 
-                    <div class="flex items-center justify-center gap-2 mt-2 flex-wrap">
-                        <span class="cns-badge-archetype">{{ sd.assessment.phase_2_category }}</span>
-                        {% if sd.assessment.personality %}
-                        <span class="cns-badge-personality">{{ sd.assessment.personality }}</span>
+                    <div class="flex items-center justify-center gap-2 mt-2">
+                        <span class="archetype-badge px-2.5 py-1 rounded-full text-[11px] font-bold text-[var(--navy)]">
+                            {{ sd.assessment.phase_2_category }}
+                        </span>
+                        {% if sd.display_personality %}
+                        <span class="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full text-[11px] font-bold">
+                            {{ sd.display_personality }}
+                        </span>
                         {% endif %}
                     </div>
 
@@ -534,7 +560,8 @@
                                 </button>
                             </form>
                             <form action="/connection/{{ sd.connection.conn_id }}/reject" method="POST" class="flex-1">
-                                <button type="submit" class="cns-btn cns-btn-muted">
+                                <button type="submit" title="Decline request"
+                                    class="connect-btn w-full px-3 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-200">
                                     <i class="fas fa-times"></i>
                                 </button>
                             </form>
@@ -542,7 +569,8 @@
                         {% endif %}
                         {% else %}
                         <form action="/connect/{{ sd.user.id }}" method="POST">
-                            <button type="submit" class="cns-btn cns-btn-primary">
+                            <button type="submit"
+                                class="connect-btn inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[var(--navy)] to-[var(--teal)] text-white rounded-xl text-xs font-bold w-full justify-center hover:from-[var(--navy)] hover:to-[var(--navy)] shadow-lg shadow-[var(--teal-soft)]">
                                 <i class="fas fa-user-plus"></i> Connect
                             </button>
                         </form>
@@ -564,7 +592,8 @@
         <h3 class="text-xl font-bold text-slate-900 mb-2">No Students Yet</h3>
         <p class="text-slate-500 max-w-md mx-auto">Be one of the first students to complete your assessment and start
             building your career network!</p>
-        <a href="/dashboard" class="cns-btn cns-accent-mint cns-btn-primary" style="width:auto; display:inline-flex; margin-top:1.5rem; padding:0.85rem 1.75rem;">
+        <a href="/dashboard"
+            class="inline-block mt-6 px-6 py-3 bg-gradient-to-r from-[var(--navy)] to-[var(--teal)] text-white rounded-xl font-bold hover:from-[var(--navy)] hover:to-[var(--navy)] shadow-lg shadow-[var(--teal-soft)] transition-all">
             Go to Dashboard
         </a>
     </div>

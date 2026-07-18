@@ -301,6 +301,11 @@
             });
             const result = await response.json();
 
+            if (result.requires_ai_review) {
+                window.location.href = result.chat_url;
+                return;
+            }
+
             if (result.success) {
                 // Update UI visually
                 const title = document.getElementById(`step-title-${stepIndex}`);

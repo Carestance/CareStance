@@ -7,6 +7,8 @@
 {% block title %}Your Journey: {{ path.career_title }} | CareStance{% endblock %}
 
 {% block content %}
+{% set steps = path.path_data.steps if (path.path_data is mapping and 'steps' in path.path_data) else (path.path_data if path.path_data is iterable and path.path_data is not mapping else []) %}
+{% set progress_pct = path.path_data.progress_percentage|default(0)|int %}
 {% set completed_count = namespace(val=0) %}
 {% set effort_sum = namespace(val=0) %}
 {% set effort_count = namespace(val=0) %}
@@ -34,6 +36,10 @@
     {% endif %}
 {% endfor %}
 
+{% if total_xp.val == 0 and progress_pct > 0 and total_possible_xp.val > 0 %}
+    {% set total_xp.val = (progress_pct * 5)|int %}
+{% endif %}
+
 {% set hero_level = (total_xp.val // 500) + 1 %}
 {% if hero_level > 8 %}{% set hero_level = 8 %}{% endif %}
 {% set rank_names = ['Explorer', 'Pathfinder', 'Builder', 'Specialist', 'Professional', 'Expert', 'Master', 'Legend'] %}
@@ -43,7 +49,6 @@
 {% set level_progress_percentage = (((total_xp.val - current_level_base) / 500) * 100)|int if hero_level < 8 else 100 %}
 
 {# Career Readiness Score = (progress_percentage * 0.7) + (avg_effort * 0.3) #}
-{% set progress_pct = path.path_data.progress_percentage|default(0)|int %}
 {% set readiness_score = ((progress_pct * 0.7) + (avg_effort * 0.3))|int %}
 
 <!-- Gamification Library for Mission Completion -->
@@ -72,9 +77,6 @@
                 We've mapped out your unique path to professional mastery. Mark your milestones and watch your future unfold.
             </p>
         </div>
-
-        <!-- Determine steps early so it's always available -->
-        {% set steps = path.path_data.steps if (path.path_data is mapping and 'steps' in path.path_data) else (path.path_data if path.path_data is iterable and path.path_data is not mapping else []) %}
 
         <!-- Your Journey Progress Tracker -->
         <div class="bg-white/70 backdrop-blur-xl rounded-3xl md:rounded-[40px] p-4 md:p-10 shadow-lg md:shadow-2xl border border-white mb-8 md:mb-12 relative overflow-hidden animate-fade-in-up" style="animation-delay: 100ms;">
@@ -473,10 +475,10 @@
                                      <div class="space-y-1.5">
                                          {% for course in step.courses[:3] %}
                                          {% if course is mapping %}
-                                         <a href="{{ course.url }}" target="_blank" class="flex items-center justify-between p-2 bg-white rounded-xl border border-slate-100 hover:border-[var(--teal)] hover:shadow-sm transition-all group/res">
-                                             <span class="text-[11px] font-bold text-slate-600 truncate max-w-[200px]">{{ course.name }}</span>
-                                             <i class="fas fa-external-link-alt text-[10px] text-slate-300 group-hover/res:text-[var(--teal)]"></i>
-                                         </a>
+                                        <a href="{{ course.url }}" target="_blank" rel="noopener noreferrer" class="flex items-center justify-between p-2 bg-white rounded-xl border border-slate-100 hover:border-[var(--teal)] hover:shadow-sm transition-all group/res">
+                                            <span class="text-[11px] font-bold text-slate-600 truncate max-w-[200px]">{{ course.name }}{% if course.provider %} · {{ course.provider }}{% endif %}</span>
+                                            <i class="fas fa-external-link-alt text-[10px] text-slate-300 group-hover/res:text-[var(--teal)]"></i>
+                                        </a>
                                          {% endif %}
                                          {% endfor %}
                                          <a href="/career/roadmap/{{ path.id }}/resources" class="block text-center py-1 text-[10px] font-black text-[var(--teal)] hover:text-[var(--navy)] uppercase tracking-widest transition-colors">
@@ -931,6 +933,11 @@
                 headers: { 'Content-Type': 'application/json' }
             });
             const result = await response.json();
+
+            if (result.requires_ai_review) {
+                window.location.href = result.chat_url;
+                return;
+            }
 
             if (result.success) {
                 // 1. Update Progress

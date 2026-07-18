@@ -1,6 +1,6 @@
 """
 Admin Analytics Service
-Handles appointments listing and moderation flag management.
+Handles appointments listing and moderation flag management
 """
 
 import logging
