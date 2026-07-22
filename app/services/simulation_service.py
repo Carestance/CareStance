@@ -111,47 +111,145 @@ def _career_context(career_title: str) -> Dict:
     return CAREER_CONTEXTS["default"]
 
 
-def build_live_simulation(career_title: str, difficulty: str = "Foundation") -> List[Dict]:
-    """Builds the required two-phase simulation without external AI dependency."""
+def _fallback_mcqs(career_title: str, context: Dict) -> List[Dict]:
+    """A reliable five-question fallback when an AI provider is unavailable."""
+    best = context["options"][0][0]
+    mixed = context["options"][2][0]
+    weak = context["options"][1][0]
+    return [
+        {"question": context["phase1"], "options": [best, mixed, weak, context["options"][3][0]], "correct_index": 0,
+         "explanation": "The strongest professional response protects people, communicates clearly, and acts on the risk."},
+        {"question": f"Which skill matters most when beginning work as a {career_title}?", "options": ["Clarifying the goal before acting", "Avoiding feedback", "Waiting for every detail", "Working alone by default"], "correct_index": 0,
+         "explanation": "Clear goals make good decisions and collaboration possible."},
+        {"question": "A teammate spots a possible issue in your work. What is the best first response?", "options": ["Thank them, check the evidence, and agree on a next step", "Ignore it until the deadline passes", "Defend your work immediately", "Ask them not to mention it"], "correct_index": 0,
+         "explanation": "Professional growth depends on being open to evidence and shared problem solving."},
+        {"question": "When a decision could affect someone else, what should guide you?", "options": ["Safety, ethics, and the likely impact", "What is quickest for you", "What avoids all responsibility", "What sounds most impressive"], "correct_index": 0,
+         "explanation": "Good role decisions balance results with responsibility."},
+        {"question": f"What is the most useful way to grow in the {career_title} role?", "options": ["Practice, seek feedback, and improve one skill at a time", "Only repeat familiar tasks", "Hide mistakes", "Compare yourself to everyone else"], "correct_index": 0,
+         "explanation": "Deliberate practice and feedback create sustainable progress."},
+    ]
+
+
+async def generate_simulation_mcqs(career_title: str, context: Dict) -> List[Dict]:
+    """Generate exactly five role-specific MCQs and validate the response before use."""
+    prompt = f"""
+You design career simulations for students. Create exactly 5 clear, realistic multiple-choice questions for a learner exploring the role: {career_title}.
+Each question must test role judgement, communication, ethics, collaboration, or problem solving. It must have exactly four concise options and exactly one best answer.
+Return ONLY JSON in this exact shape:
+{{"mcqs":[{{"question":"...","options":["...","...","...","..."],"correct_index":0,"explanation":"..."}}]}}
+"""
+    try:
+        response = await generate_ai_content(prompt, use_grok=True)
+        parsed = json.loads(extra_json(response))
+        mcqs = parsed.get("mcqs", []) if isinstance(parsed, dict) else []
+        valid = [q for q in mcqs if isinstance(q, dict) and isinstance(q.get("question"), str)
+                 and isinstance(q.get("options"), list) and len(q["options"]) == 4
+                 and isinstance(q.get("correct_index"), int) and 0 <= q["correct_index"] < 4]
+        if len(valid) == 5:
+            return valid
+    except Exception as exc:
+        print(f"Simulation MCQ generation fallback: {exc}")
+    return _fallback_mcqs(career_title, context)
+
+
+async def build_live_simulation(career_title: str, difficulty: str = "Foundation") -> List[Dict]:
+    """Build the three-phase career simulation: 5 MCQs, activity, then future-role scenario."""
     context = _career_context(career_title)
+    mcqs = await generate_simulation_mcqs(career_title, context)
     return [
         {
             "phase": 1,
-            "type": "scenario_answer",
-            "scenario": context["phase1"],
-            "objective": "Respond to the first real-world situation",
+            "type": "mcq_quiz",
+            "scenario": "Phase 1: Role readiness check. Answer all five AI-generated questions.",
+            "objective": "Show your professional judgement",
             "theme_hint": context["theme"],
             "visual_cue": "pulse-green",
-            "emergency_alert": "Phase 1: Read the situation and answer in your own words.",
+            "emergency_alert": "Phase 1 of 3 • Five quick career MCQs",
             "visual_dashboard": {"metric_name": context["metric"], "value": "45%"},
             "workspace": None,
-            "options": None,
+            "mcqs": mcqs,
         },
         {
             "phase": 2,
-            "type": "workspace_choice",
+            "type": "workspace_activity",
             "scenario": context["phase2"],
-            "objective": context["task"],
+            "objective": "Complete the role workspace activity",
             "theme_hint": context["theme"],
             "visual_cue": "shake",
-            "emergency_alert": "Phase 2: Use the workspace task and choose one option.",
+            "emergency_alert": "Phase 2 of 3 • Build your action sequence",
             "visual_dashboard": {"metric_name": context["metric"], "value": "68%"},
             "workspace": {
                 "task": context["task"],
-                "brief": f"Role: {career_title}. Difficulty: {difficulty}. Review the task and pick the action that best protects quality, ethics, and communication.",
+                "brief": f"Role: {career_title}. Use the workspace to create and connect the resources, people, and actions needed to complete this task.",
                 "panels": [
                     {"label": "Task", "value": context["task"]},
                     {"label": "Constraint", "value": "Limited time and visible consequences"},
                     {"label": "Expected", "value": "Clear reasoning, ownership, and ethical judgment"},
                 ],
             },
-            "options": [{"text": text, "quality": quality} for text, quality in context["options"]],
+        },
+        {
+            "phase": 3,
+            "type": "future_role",
+            "scenario": "Phase 3: Five years from now — chat with your future self.",
+            "objective": "Picture your life and choices in the role",
+            "theme_hint": context["theme"],
+            "visual_cue": "pulse-green",
+            "emergency_alert": "Phase 3 of 3 • Step into your future role",
+            "visual_dashboard": {"metric_name": "Future-role confidence", "value": "82%"},
+            "chat_questions": [
+                f"It is five years from now and you are a {career_title}. What does a satisfying ordinary workday look like for you?",
+                "What kind of challenge would you be proud to solve, and who would you work with to solve it?",
+                "What would you keep learning or improving so that your work and life stay meaningful?",
+            ],
+            "workspace": {"task": "A day in your future role", "brief": "Answer the future-self chat questions honestly and specifically.", "panels": [{"label": "Your role", "value": career_title}, {"label": "Focus", "value": "Impact, growth, and balance"}, {"label": "Timeline", "value": "Five years from today"}]},
+            "options": None,
         },
     ]
 
 
 def analyze_live_simulation_move(user_input: str, scenario: Dict, response_time: float = 0) -> Dict:
     """Scores one simulation move locally for reliable product behavior."""
+    if scenario.get("type") == "mcq_quiz":
+        try:
+            answers = json.loads(user_input)
+            mcqs = scenario.get("mcqs", [])
+            correct = sum(1 for index, answer in enumerate(answers)
+                          if index < len(mcqs) and answer == mcqs[index].get("correct_index"))
+            total = max(1, len(mcqs))
+            ratio = correct / total
+            return {
+                "eq_impact": round((ratio - 0.5) * 0.18, 2),
+                "problem_solving_score": round(0.35 + ratio * 0.6, 2),
+                "clarity_score": round(0.4 + ratio * 0.55, 2),
+                "feedback": f"You answered {correct} of {total} role-readiness questions correctly. " + ("Excellent professional judgement." if ratio >= .8 else "Use the explanations to strengthen your role judgement."),
+            }
+        except (json.JSONDecodeError, TypeError):
+            return {"eq_impact": 0, "problem_solving_score": .3, "clarity_score": .3, "feedback": "Your quiz response could not be read. Please try again."}
+
+    if scenario.get("type") == "workspace_activity":
+        try:
+            workspace = json.loads(user_input)
+        except (json.JSONDecodeError, TypeError):
+            workspace = {}
+        items = workspace.get("items", []) if isinstance(workspace, dict) else []
+        connections = workspace.get("connections", []) if isinstance(workspace, dict) else []
+        has_practical_plan = len(items) >= 3 and len(connections) >= 1
+        return {
+            "eq_impact": 0.08 if has_practical_plan else 0.02,
+            "problem_solving_score": 0.92 if has_practical_plan else 0.45,
+            "clarity_score": 0.88 if has_practical_plan else 0.48,
+            "feedback": "Strong practical workflow: you created a connected plan with multiple role resources." if has_practical_plan else "Add at least three workspace elements and link them before exporting your practical workflow.",
+        }
+
+    if scenario.get("type") == "future_role":
+        try:
+            future_answers = json.loads(user_input)
+            if isinstance(future_answers, list):
+                user_input = " ".join(str(answer) for answer in future_answers)
+        except (json.JSONDecodeError, TypeError):
+            pass
+
     text = (user_input or "").strip().lower()
     words = [w for w in re.split(r"\W+", text) if w]
     quality = None
@@ -264,6 +362,16 @@ async def generate_ai_content(prompt: str, use_grok: bool = False) -> str:
             # Fallback to Groq if Grok fails
             pass
 
+    if GEMINI_API_KEY:
+        try:
+            model = get_gemini_model("gemini-2.5-flash")
+            response = await model.generate_content_async(prompt)
+            content = (response.text or "").strip()
+            if content:
+                return content
+        except Exception as e:
+            print(f"Gemini Error: {e}")
+
     gclient = get_groq_client()
     if gclient:
         try:
@@ -323,7 +431,7 @@ async def generate_simulation_questions(career_title: str) -> List[str]:
         return questions[:7] if isinstance(questions, list) else []
     except Exception as e:
         print(f"Question Generation Error: {e}")
-        return [state["scenario"] for state in build_live_simulation(career_title)]
+        return [state["scenario"] for state in await build_live_simulation(career_title)]
 
 async def evaluate_simulation(career_title: str, questions: List[str], answers: List[str]) -> Dict:
     """Evaluates the user's responses to the simulation questions."""

@@ -283,11 +283,59 @@
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRecognition) {
             const recognition = new SpeechRecognition();
-            recognition.continuous = false;
+            let recognitionActive = false;
+            let submittedTranscript = false;
+            let localRecorder = null;
+            let localRecording = false;
+            let localAudioChunks = [];
+            recognition.continuous = true;
             recognition.interimResults = true;
-            recognition.lang = 'en-US';
+            recognition.lang = (navigator.language || 'en-IN').startsWith('en')
+                ? (navigator.language || 'en-IN') : 'en-IN';
+
+            const startLocalVoiceRecording = async () => {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    localAudioChunks = [];
+                    localRecorder = new MediaRecorder(stream);
+                    localRecording = true;
+                    setMentorStatus('Recording locally — tap the mic again when you finish.');
+                    localRecorder.ondataavailable = (event) => {
+                        if (event.data.size) localAudioChunks.push(event.data);
+                    };
+                    localRecorder.onstop = async () => {
+                        stream.getTracks().forEach(track => track.stop());
+                        localRecording = false;
+                        const blob = new Blob(localAudioChunks, { type: localRecorder.mimeType || 'audio/webm' });
+                        if (!blob.size) return;
+                        try {
+                            setMentorStatus('Transcribing your recording...');
+                            const form = new FormData();
+                            form.append('audio', blob, 'roadmap-voice.webm');
+                            const response = await fetch('/api/stt', { method: 'POST', body: form });
+                            const data = await response.json();
+                            if (!response.ok) throw new Error(data.detail || 'Transcription failed');
+                            const transcript = (data.transcript || '').trim();
+                            if (!transcript) throw new Error('No speech was detected');
+                            appendUserTranscript(transcript);
+                            setTimeout(() => getAIResponse(transcript), 300);
+                        } catch (error) {
+                            setMentorStatus(error.message || 'Could not transcribe the recording.');
+                            console.warn('Roadmap local transcription:', error);
+                        }
+                    };
+                    localRecorder.start();
+                } catch (error) {
+                    setMentorStatus(error?.name === 'NotAllowedError'
+                        ? 'Microphone permission is blocked in browser settings.'
+                        : 'No microphone is available. Check your device and try again.');
+                }
+            };
 
             recognition.onstart = () => {
+                recognitionActive = true;
+                submittedTranscript = false;
+                setMentorStatus('Listening...');
                 micIcon.innerText = '🛑';
                 micPulse.classList.add('animate-ping', 'opacity-30');
             };
@@ -297,20 +345,63 @@
                 for (let i = event.resultIndex; i < event.results.length; i++) {
                     if (event.results[i].isFinal) finalT += event.results[i][0].transcript;
                 }
-                if (finalT.trim()) {
+                if (finalT.trim() && !submittedTranscript) {
+                    submittedTranscript = true;
+                    recognition.stop();
                     appendUserTranscript(finalT.trim());
                     setTimeout(() => getAIResponse(finalT.trim()), 300);
                 }
             };
 
             recognition.onend = () => {
+                recognitionActive = false;
+                if (localRecording) return;
+                if (!isProcessing) setMentorStatus('Ready to listen');
                 micIcon.innerText = '🎙️';
                 micPulse.classList.remove('animate-ping', 'opacity-30');
             };
 
+            recognition.onerror = (event) => {
+                if (event.error === 'network') {
+                    startLocalVoiceRecording();
+                    return;
+                }
+                const errors = {
+                    'not-allowed': 'Microphone permission is blocked in browser settings.',
+                    'service-not-allowed': 'Browser speech recognition is blocked.',
+                    'audio-capture': 'No usable microphone was found.',
+                    'network': 'Speech recognition needs an internet connection.',
+                };
+                if (event.error !== 'no-speech' && event.error !== 'aborted') {
+                    setMentorStatus(errors[event.error] || 'Voice input stopped. Please try again.');
+                    console.warn('Roadmap voice input:', event.error);
+                }
+            };
+
             micBtn.onclick = () => {
                 if (isProcessing) return;
-                try { recognition.start(); } catch (e) { recognition.stop(); }
+                if (localRecording && localRecorder && localRecorder.state === 'recording') {
+                    localRecorder.stop();
+                    return;
+                }
+                if (recognitionActive) {
+                    recognition.stop();
+                    return;
+                }
+                (async () => {
+                    try {
+                        if (navigator.mediaDevices?.getUserMedia) {
+                            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                            stream.getTracks().forEach(track => track.stop());
+                        }
+                        recognition.start();
+                    } catch (error) {
+                        setMentorStatus(error?.name === 'NotAllowedError'
+                            ? 'Microphone permission is blocked in browser settings.'
+                            : 'No microphone is available. Check your device and try again.');
+                        console.warn('Roadmap microphone:', error);
+                    }
+                })();
             };
         }
 

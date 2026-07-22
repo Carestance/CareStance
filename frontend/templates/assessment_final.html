@@ -404,20 +404,56 @@
     window.speechSynthesis.onvoiceschanged = () => getBestVoice();
 
     function toggleSpeech(questionId, modePrefix = '') {
-        if (!('webkitSpeechRecognition' in window)) { alert("Speech recognition not supported. Please use Chrome."); return; }
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) { alert("Speech recognition is not supported by this browser. Please use Chrome or Edge."); return; }
         const pfx = modePrefix ? modePrefix + '-' : '';
         const btn = document.getElementById(`btn-${pfx}${questionId}`);
         const status = document.getElementById(`status-${pfx}${questionId}`);
         const textarea = document.getElementById(questionId);
         if (btn.classList.contains('listening')) { if (window.recognition) window.recognition.stop(); return; }
-        const recognition = new webkitSpeechRecognition();
+        const recognition = new SpeechRecognition();
         window.recognition = recognition;
-        recognition.continuous = false; recognition.interimResults = false; recognition.lang = 'en-US';
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = (navigator.language || 'en-IN').startsWith('en') ? (navigator.language || 'en-IN') : 'en-IN';
         recognition.onstart = function () { btn.classList.add('listening'); btn.classList.add('bg-red-50', 'text-red-600', 'border-red-200'); btn.innerHTML = '⏹️'; status.classList.remove('hidden'); };
-        recognition.onresult = function (event) { const transcript = event.results[0][0].transcript; textarea.value = (textarea.value ? textarea.value + " " : "") + transcript; };
-        recognition.onerror = () => resetUI(questionId, modePrefix);
+        recognition.onresult = function (event) {
+            let transcript = '';
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                if (event.results[i].isFinal) transcript += event.results[i][0].transcript + ' ';
+            }
+            if (transcript.trim()) {
+                textarea.value = (textarea.value ? textarea.value + " " : "") + transcript.trim();
+                recognition.stop();
+            }
+        };
+        recognition.onerror = (event) => {
+            resetUI(questionId, modePrefix);
+            if (status) {
+                status.textContent = event.error === 'not-allowed'
+                    ? 'Microphone permission is blocked in browser settings.'
+                    : 'Voice input could not start. Check your microphone and try again.';
+                status.classList.remove('hidden');
+            }
+        };
         recognition.onend = () => resetUI(questionId, modePrefix);
-        recognition.start();
+        (async () => {
+            try {
+                if (navigator.mediaDevices?.getUserMedia) {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    stream.getTracks().forEach(track => track.stop());
+                }
+                recognition.start();
+            } catch (error) {
+                resetUI(questionId, modePrefix);
+                if (status) {
+                    status.textContent = error?.name === 'NotAllowedError'
+                        ? 'Microphone permission is blocked in browser settings.'
+                        : 'No microphone is available. Check your device and try again.';
+                    status.classList.remove('hidden');
+                }
+            }
+        })();
     }
 
     function resetUI(questionId, modePrefix = '') {

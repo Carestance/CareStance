@@ -28,6 +28,7 @@ from .database import AsyncSessionLocal, engine, get_db, Base, SQLALCHEMY_DATABA
 import re
 import hashlib
 import hmac
+from html import escape
 
 def sync_assessment_to_appwrite(user_id, result):
     pass  # Appwrite sync disabled — local DB only
@@ -4734,7 +4735,7 @@ async def live_simulation_start(
     if sims_completed >= 1 and sim_credits <= 0:
         raise HTTPException(status_code=402, detail="Simulation payment required")
 
-    scenarios = simulation_service.build_live_simulation(career_title, difficulty)
+    scenarios = await simulation_service.build_live_simulation(career_title, difficulty)
     session_id = uuid.uuid4().hex
     LIVE_SIMULATION_SESSIONS[session_id] = {
         "user_id": user.id,
@@ -4753,7 +4754,11 @@ async def live_simulation_start(
             db_user.simulation_credits -= 1
 
     result.simulation_career = career_title
-    result.simulation_questions = [scenario["scenario"] for scenario in scenarios]
+    # Store a readable audit trail while keeping compatibility with the
+    # legacy simulation-question route, which expects a list of strings.
+    result.simulation_questions = [mcq["question"] for mcq in scenarios[0].get("mcqs", [])] + [
+        scenarios[1]["scenario"], scenarios[2]["scenario"]
+    ]
     result.simulation_answers = []
     result.simulation_evaluation = None
     result.simulation_paid = False
@@ -4816,6 +4821,38 @@ async def live_simulation_step(
         "analysis": analysis,
         "next_state": scenarios[session["current_index"]],
     }
+
+@app.get("/simulation/workspace/{session_id}", response_class=HTMLResponse)
+async def simulation_workspace(session_id: str, request: Request, db: AsyncSession = Depends(get_db)):
+    """Serve the Phase 4 UI as the practical workspace for simulation phase 2."""
+    user = await get_current_user(request, db)
+    session = LIVE_SIMULATION_SESSIONS.get(session_id)
+    if not user or not session or session["user_id"] != user.id:
+        raise HTTPException(status_code=404, detail="Simulation workspace not found")
+
+    workspace_path = os.path.join(os.path.dirname(__file__), "assessment_data", "Phase 4 UI.html")
+    with open(workspace_path, "r", encoding="utf-8") as source:
+        workspace_html = source.read()
+
+    role_goal = escape(f"Create a practical workflow for a {session['career_title']}")
+    workspace_html = workspace_html.replace(
+        'value="Architect an AI-driven distraction-free educational platform"',
+        f'value="{role_goal}"',
+        1,
+    )
+    completion_hook = """
+            window.parent.postMessage({
+                source: 'carestance-simulation-workspace',
+                type: 'complete',
+                payload: {
+                    goal: document.getElementById('situation-input').value,
+                    items: workspaceItems,
+                    connections: connections
+                }
+            }, window.location.origin);
+"""
+    workspace_html = workspace_html.replace("            // Mock logic for export UI", completion_hook, 1)
+    return HTMLResponse(workspace_html)
 
 @app.get("/simulation/session/{session_id}")
 async def live_simulation_session(session_id: str, request: Request, db: AsyncSession = Depends(get_db)):
@@ -5516,6 +5553,43 @@ async def generate_tts(text: str):
                 return JSONResponse({"error": f"HF Error: {response.text}"}, status_code=500)
         except Exception as e:
             return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.post("/api/stt")
+async def transcribe_audio(
+    request: Request,
+    audio: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+):
+    """Transcribe a short browser recording when Web Speech is unavailable."""
+    user = await get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    if not GEMINI_API_KEY:
+        raise HTTPException(status_code=503, detail="Speech transcription is not configured")
+
+    audio_bytes = await audio.read()
+    if not audio_bytes:
+        raise HTTPException(status_code=400, detail="No audio was recorded")
+    if len(audio_bytes) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="Audio is too large; please keep recordings under 10 MB")
+
+    mime_type = (audio.content_type or "audio/webm").split(";", 1)[0]
+    try:
+        model = get_gemini_model("gemini-2.5-flash")
+        response = await model.generate_content_async([
+            "Transcribe this spoken response exactly. Return only the transcript, with no labels, commentary, or markdown.",
+            {"mime_type": mime_type, "data": audio_bytes},
+        ])
+        transcript = (response.text or "").strip()
+        if not transcript:
+            raise ValueError("The transcription service returned no text")
+        return {"transcript": transcript}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        print(f"Speech transcription error: {exc}")
+        raise HTTPException(status_code=502, detail="Could not transcribe the recording. Please try again.")
 
 
 # --- Chatbot Routes ---
