@@ -367,11 +367,105 @@
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRecognition) {
             const recognition = new SpeechRecognition();
-            recognition.continuous = false;
+            let micRequested = false;
+            let recognitionActive = false;
+            let voiceText = '';
+            let sendVoiceTimer = null;
+            let restartVoiceTimer = null;
+            let localRecorder = null;
+            let localRecording = false;
+            let localAudioChunks = [];
+            recognition.continuous = true;
             recognition.interimResults = true;
-            recognition.lang = 'en-US';
+            recognition.lang = (navigator.language || 'en-IN').startsWith('en')
+                ? (navigator.language || 'en-IN') : 'en-IN';
+
+            const setMicState = (listening) => {
+                if (micPulse) micPulse.classList.toggle('animate-ping', listening);
+                if (micPulse) micPulse.classList.toggle('opacity-30', listening);
+                if (micBtn) micBtn.title = listening ? 'Listening — tap to stop' : 'Tap to talk';
+                setMentorStatus(listening ? 'Listening...' : 'Ready to listen');
+            };
+            const stopListening = () => {
+                micRequested = false;
+                clearTimeout(restartVoiceTimer);
+                clearTimeout(sendVoiceTimer);
+                if (recognitionActive) recognition.stop();
+                setMicState(false);
+            };
+            const submitVoice = () => {
+                const text = voiceText.trim();
+                if (!text || isProcessing) return;
+                voiceText = '';
+                micRequested = false;
+                clearTimeout(restartVoiceTimer);
+                clearTimeout(sendVoiceTimer);
+                if (recognitionActive) recognition.stop();
+                setMicState(false);
+                appendUserTranscript(text);
+                setTimeout(() => getAIResponse(text), 300);
+            };
+            const startListening = async () => {
+                if (recognitionActive || conversationDone || isProcessing || isSpeaking) return;
+                try {
+                    if (navigator.mediaDevices?.getUserMedia) {
+                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        stream.getTracks().forEach(track => track.stop());
+                    }
+                    recognition.start();
+                } catch (error) {
+                    micRequested = false;
+                    setMicState(false);
+                    setMentorStatus(error?.name === 'NotAllowedError'
+                        ? 'Microphone permission is blocked in browser settings.'
+                        : 'No microphone is available. Check your device and try again.');
+                    console.warn('Deep Dive microphone:', error);
+                }
+            };
+            const startLocalVoiceRecording = async () => {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    localAudioChunks = [];
+                    localRecorder = new MediaRecorder(stream);
+                    localRecording = true;
+                    setMicState(true);
+                    setMentorStatus('Recording locally — tap the mic again when you finish.');
+                    localRecorder.ondataavailable = (event) => {
+                        if (event.data.size) localAudioChunks.push(event.data);
+                    };
+                    localRecorder.onstop = async () => {
+                        stream.getTracks().forEach(track => track.stop());
+                        localRecording = false;
+                        const blob = new Blob(localAudioChunks, { type: localRecorder.mimeType || 'audio/webm' });
+                        if (!blob.size) { setMicState(false); return; }
+                        try {
+                            setMentorStatus('Transcribing your recording...');
+                            const form = new FormData();
+                            form.append('audio', blob, 'deep-dive-voice.webm');
+                            const response = await fetch('/api/stt', { method: 'POST', body: form });
+                            const data = await response.json();
+                            if (!response.ok) throw new Error(data.detail || 'Transcription failed');
+                            voiceText = (data.transcript || '').trim();
+                            submitVoice();
+                        } catch (error) {
+                            setMicState(false);
+                            setMentorStatus(error.message || 'Could not transcribe the recording.');
+                            console.warn('Deep Dive local transcription:', error);
+                        }
+                    };
+                    localRecorder.start();
+                } catch (error) {
+                    localRecording = false;
+                    setMicState(false);
+                    setMentorStatus(error?.name === 'NotAllowedError'
+                        ? 'Microphone permission is blocked in browser settings.'
+                        : 'No microphone is available. Check your device and try again.');
+                }
+            };
 
             recognition.onstart = () => {
+                recognitionActive = true;
+                setMicState(true);
                 micIcon.innerText = '🛑';
                 micPulse.classList.add('animate-ping', 'opacity-30');
             };
@@ -382,20 +476,59 @@
                     if (event.results[i].isFinal) finalT += event.results[i][0].transcript;
                 }
                 if (finalT.trim()) {
-                    appendUserTranscript(finalT.trim());
-                    setTimeout(() => getAIResponse(finalT.trim()), 300);
+                    voiceText += (voiceText ? ' ' : '') + finalT.trim();
+                    clearTimeout(sendVoiceTimer);
+                    sendVoiceTimer = setTimeout(submitVoice, 900);
                 }
             };
 
             recognition.onend = () => {
+                recognitionActive = false;
+                if (localRecording) return;
+                if (micRequested && !voiceText.trim() && !isProcessing) {
+                    restartVoiceTimer = setTimeout(startListening, 350);
+                    return;
+                }
+                if (!micRequested) setMicState(false);
                 if (micIcon) micIcon.innerText = '🎙️';
                 if (micPulse) micPulse.classList.remove('animate-ping', 'opacity-30');
             };
 
+            recognition.onerror = (event) => {
+                if (event.error === 'network') {
+                    micRequested = false;
+                    clearTimeout(restartVoiceTimer);
+                    clearTimeout(sendVoiceTimer);
+                    startLocalVoiceRecording();
+                    return;
+                }
+                if (event.error === 'no-speech' || event.error === 'aborted') return;
+                micRequested = false;
+                clearTimeout(restartVoiceTimer);
+                clearTimeout(sendVoiceTimer);
+                setMicState(false);
+                const errors = {
+                    'not-allowed': 'Microphone permission is blocked in browser settings.',
+                    'service-not-allowed': 'Browser speech recognition is blocked.',
+                    'audio-capture': 'No usable microphone was found.',
+                    'network': 'Speech recognition needs an internet connection.',
+                };
+                setMentorStatus(errors[event.error] || 'Voice input stopped. Please try again.');
+                console.warn('Deep Dive speech recognition:', event.error);
+            };
+
             if (micBtn) {
                 micBtn.onclick = () => {
-                    if (conversationDone || isProcessing || isSpeaking) return;
-                    try { recognition.start(); } catch (e) { recognition.stop(); }
+                    if (localRecording && localRecorder && localRecorder.state === 'recording') {
+                        localRecorder.stop();
+                        return;
+                    }
+                    if (micRequested) stopListening();
+                    else {
+                        micRequested = true;
+                        voiceText = '';
+                        startListening();
+                    }
                 };
             }
         }
