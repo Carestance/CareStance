@@ -1,5 +1,17 @@
 import os
 import asyncio
+import ssl
+
+import certifi
+os.environ["SSL_CERT_FILE"] = certifi.where()
+
+# Patch for macOS Python SSL Certificate verification issue
+try:
+    _create_unverified_https_context = ssl._create_unverified_context
+except AttributeError:
+    pass
+else:
+    ssl._create_default_https_context = _create_unverified_https_context
 
 def _get_app():
     # Import here so app package can use env vars set before run
