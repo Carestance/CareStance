@@ -698,8 +698,11 @@ app.include_router(payments_router)
 from .routes import admin
 app.include_router(admin.router)
 
-from app.voice.routes.websocket import router as voice_router
-app.include_router(voice_router)
+try:
+    from app.voice.routes.websocket import router as voice_router
+    app.include_router(voice_router)
+except (ImportError, ModuleNotFoundError) as e:
+    print(f"Warning: Voice router module not available ({e}). Skipping voice_router.")
 
 # Global Exception Handler for better debugging
 @app.exception_handler(Exception)
