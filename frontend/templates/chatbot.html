@@ -350,40 +350,181 @@
         userInput.focus();
     }
 
-    // --- Voice Input Logic (Unchanged) ---
+    // --- Voice Input Logic ---
+    // Browser speech recognition can end after a short silence even while the
+    // user is speaking. Keep the requested session alive until the user taps
+    // the microphone again, then restart recognition safely when needed.
     let recognition;
+    let voiceRequested = false;
+    let recognitionRunning = false;
+    let voiceBaseText = '';
+    let restartVoiceTimer = null;
+    let localRecorder = null;
+    let localRecording = false;
+    let localAudioChunks = [];
+
+    function setVoiceUi(listening) {
+        voiceBtn.classList.toggle('text-slate-400', !listening);
+        voiceBtn.classList.toggle('text-rose-500', listening);
+        voiceBtn.classList.toggle('bg-rose-50', listening);
+        voiceBtn.classList.toggle('animate-pulse', listening);
+        buddyStatus.classList.toggle('bg-slate-400', !listening);
+        buddyStatus.classList.toggle('bg-rose-500', listening);
+        buddyStatus.classList.toggle('shadow-[0_0_8px_#f43f5e]', listening);
+        voiceBtn.setAttribute('aria-pressed', String(listening));
+        voiceBtn.title = listening ? 'Listening — tap to stop' : 'Start voice input';
+    }
+
+    function stopVoiceInput() {
+        voiceRequested = false;
+        clearTimeout(restartVoiceTimer);
+        if (recognitionRunning) recognition.stop();
+        setVoiceUi(false);
+    }
+
+    async function startLocalVoiceRecording() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            localAudioChunks = [];
+            localRecorder = new MediaRecorder(stream);
+            localRecording = true;
+            setVoiceUi(true);
+            voiceBtn.title = 'Recording locally — tap to stop and transcribe';
+
+            localRecorder.ondataavailable = (event) => {
+                if (event.data.size) localAudioChunks.push(event.data);
+            };
+            localRecorder.onstop = async () => {
+                stream.getTracks().forEach(track => track.stop());
+                localRecording = false;
+                const audioBlob = new Blob(localAudioChunks, { type: localRecorder.mimeType || 'audio/webm' });
+                if (!audioBlob.size) {
+                    setVoiceUi(false);
+                    voiceBtn.title = 'No audio was captured. Tap to try again.';
+                    return;
+                }
+                try {
+                    voiceBtn.title = 'Transcribing your recording...';
+                    const data = new FormData();
+                    data.append('audio', audioBlob, 'careerbuddy-voice.webm');
+                    const response = await fetch('/api/stt', { method: 'POST', body: data });
+                    const result = await response.json();
+                    if (!response.ok) throw new Error(result.detail || 'Transcription failed');
+                    const transcript = (result.transcript || '').trim();
+                    if (!transcript) throw new Error('No speech was detected');
+                    userInput.value = [voiceBaseText, transcript].filter(Boolean).join(' ');
+                    userInput.focus();
+                    voiceBaseText = userInput.value.trim();
+                } catch (error) {
+                    voiceBtn.title = error.message || 'Could not transcribe the recording.';
+                    console.warn('CareerBuddy local transcription:', error);
+                } finally {
+                    setVoiceUi(false);
+                }
+            };
+            localRecorder.start();
+        } catch (error) {
+            localRecording = false;
+            setVoiceUi(false);
+            explainVoiceError(error.name === 'NotAllowedError' ? 'not-allowed' : 'audio-capture');
+        }
+    }
+
+    function explainVoiceError(error) {
+        const messages = {
+            'not-allowed': 'Microphone permission was denied. Allow microphone access in your browser site settings.',
+            'service-not-allowed': 'Speech recognition is blocked by the browser. Enable microphone and speech services, then try again.',
+            'audio-capture': 'No usable microphone was found. Check that another app is not using it.',
+            'network': 'Speech recognition needs an internet connection. Please check your connection.',
+        };
+        const message = messages[error] || 'Voice input stopped. Tap the microphone to try again.';
+        voiceBtn.title = message;
+        console.warn('CareerBuddy voice input:', error);
+    }
+
+    async function startVoiceInput() {
+        if (recognitionRunning) return;
+        try {
+            // Request the browser permission before SpeechRecognition starts so
+            // a denied/busy device produces a useful error instead of flashing.
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                stream.getTracks().forEach(track => track.stop());
+            }
+            recognition.start();
+        } catch (error) {
+            voiceRequested = false;
+            setVoiceUi(false);
+            explainVoiceError(error.name === 'NotAllowedError' ? 'not-allowed' : 'audio-capture');
+        }
+    }
+
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         recognition = new SpeechRecognition();
-        recognition.continuous = false;
-        recognition.lang = 'en-US';
-        recognition.interimResults = false;
+        recognition.continuous = true;
+        // Prefer the browser/device language; en-IN noticeably improves
+        // recognition for the app's primary audience compared with en-US.
+        recognition.lang = (navigator.language || 'en-IN').startsWith('en')
+            ? (navigator.language || 'en-IN')
+            : 'en-IN';
+        recognition.interimResults = true;
 
         recognition.onstart = function () {
-            voiceBtn.classList.remove('text-slate-400');
-            voiceBtn.classList.add('text-rose-500', 'bg-rose-50', 'animate-pulse');
-            buddyStatus.classList.remove('bg-slate-400');
-            buddyStatus.classList.add('bg-rose-500', 'shadow-[0_0_8px_#f43f5e]');
+            recognitionRunning = true;
+            setVoiceUi(true);
         };
 
         recognition.onend = function () {
-            voiceBtn.classList.add('text-slate-400');
-            voiceBtn.classList.remove('text-rose-500', 'bg-rose-50', 'animate-pulse');
-            buddyStatus.classList.add('bg-slate-400');
-            buddyStatus.classList.remove('bg-rose-500', 'shadow-[0_0_8px_#f43f5e]');
+            recognitionRunning = false;
+            if (localRecording) return;
+            if (voiceRequested) {
+                restartVoiceTimer = setTimeout(startVoiceInput, 300);
+            } else {
+                setVoiceUi(false);
+            }
         };
 
         recognition.onresult = function (event) {
-            const transcript = event.results[0][0].transcript;
-            userInput.value += (userInput.value ? ' ' : '') + transcript;
+            let finalText = '';
+            let interimText = '';
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                const text = event.results[i][0].transcript;
+                if (event.results[i].isFinal) finalText += text + ' ';
+                else interimText += text;
+            }
+            if (finalText) voiceBaseText += (voiceBaseText ? ' ' : '') + finalText.trim();
+            userInput.value = [voiceBaseText, interimText.trim()].filter(Boolean).join(' ');
             userInput.focus();
         };
 
+        recognition.onerror = function (event) {
+            if (event.error === 'network') {
+                // Chrome's cloud recognition service is unreachable. Record in
+                // the browser and use the app's Gemini transcription endpoint.
+                voiceRequested = false;
+                clearTimeout(restartVoiceTimer);
+                startLocalVoiceRecording();
+                return;
+            }
+            if (event.error === 'no-speech' || event.error === 'aborted') return;
+            voiceRequested = false;
+            clearTimeout(restartVoiceTimer);
+            setVoiceUi(false);
+            explainVoiceError(event.error);
+        };
+
         voiceBtn.addEventListener('click', () => {
-            if (voiceBtn.classList.contains('text-rose-500')) {
-                recognition.stop();
+            if (localRecording && localRecorder && localRecorder.state === 'recording') {
+                localRecorder.stop();
+                return;
+            }
+            if (voiceRequested) {
+                stopVoiceInput();
             } else {
-                recognition.start();
+                voiceRequested = true;
+                voiceBaseText = userInput.value.trim();
+                startVoiceInput();
             }
         });
     } else {
