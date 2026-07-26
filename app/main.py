@@ -697,6 +697,9 @@ app.include_router(payments_router)
 from .routes import admin
 app.include_router(admin.router)
 
+from app.voice.routes.websocket import router as voice_router
+app.include_router(voice_router)
+
 # Global Exception Handler for better debugging
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
@@ -1566,10 +1569,12 @@ async def assessment_reset(request: Request, db: AsyncSession = Depends(get_db))
     
     result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
     if result:
-        used_free_assessment = (user.assessments_completed or 0) >= 1 or has_completed_assessment(result)
+        assessments_completed = getattr(user, 'assessments_completed', 0) or 0
+        used_free_assessment = assessments_completed >= 1 or has_completed_assessment(result)
         if used_free_assessment and not get_subscription_state(user)["active"]:
-            if (user.assessments_completed or 0) < 1:
-                user.assessments_completed = 1
+            if assessments_completed < 1:
+                if hasattr(user, 'assessments_completed'):
+                    user.assessments_completed = 1
                 await db.commit()
             return RedirectResponse(
                 url="/subscription?reason=assessment_retake",
@@ -2237,8 +2242,8 @@ async def assessment_result(request: Request, db: AsyncSession = Depends(get_db)
         except:
             await db.rollback()
     
-    sims_completed = max(result.simulations_completed or 0, user.simulations_completed or 0)
-    simulation_credits = max(result.simulation_credits or 0, user.simulation_credits or 0)
+    sims_completed = max(getattr(result, 'simulations_completed', 0) or 0, getattr(user, 'simulations_completed', 0) or 0)
+    simulation_credits = max(getattr(result, 'simulation_credits', 0) or 0, getattr(user, 'simulation_credits', 0) or 0)
     simulation_access = {
         "is_free": sims_completed < 1,
         "credits": simulation_credits,
@@ -2689,13 +2694,13 @@ async def admin_dashboard(
             all_users = (await db.execute(select(models.User).order_by(models.User.id.desc()).offset((user_page - 1) * page_size).limit(page_size))).scalars().all()
             total_users = (await db.execute(select(func.count()).select_from(models.User))).scalar()
 
-        all_feedback = (await db.execute(select(models.Feedback).order_by(models.Feedback.timestamp.desc()).offset((feedback_page - 1) * page_size).limit(page_size))).scalars().all()
+        all_feedback = (await db.execute(select(models.Feedback).options(joinedload(models.Feedback.user)).order_by(models.Feedback.timestamp.desc()).offset((feedback_page - 1) * page_size).limit(page_size))).scalars().all()
         total_feedback = (await db.execute(select(func.count()).select_from(models.Feedback))).scalar()
 
-        all_tickets = (await db.execute(select(models.Ticket).order_by(models.Ticket.timestamp.desc()).offset((ticket_page - 1) * page_size).limit(page_size))).scalars().all()
+        all_tickets = (await db.execute(select(models.Ticket).options(joinedload(models.Ticket.user)).order_by(models.Ticket.timestamp.desc()).offset((ticket_page - 1) * page_size).limit(page_size))).scalars().all()
         total_tickets = (await db.execute(select(func.count()).select_from(models.Ticket))).scalar()
 
-        pending_counsellors = (await db.execute(select(models.CounsellorProfile).where(models.CounsellorProfile.verification_status == "pending"))).scalars().all()
+        pending_counsellors = (await db.execute(select(models.CounsellorProfile).options(joinedload(models.CounsellorProfile.user)).where(models.CounsellorProfile.verification_status == "pending"))).scalars().all()
         
         # ─── Optimized Counsellor Stats (Single Query) ───────────────────
 
@@ -2720,17 +2725,26 @@ async def admin_dashboard(
             # Search across all counsellors by name or email
             search_filter = models.User.full_name.ilike(f"%{counsellor_search}%") | models.User.email.ilike(f"%{counsellor_search}%")
             all_counsellors = (await db.execute(
-                select(models.CounsellorProfile).join(models.User).where(search_filter)
+                select(models.CounsellorProfile).join(models.User).options(joinedload(models.CounsellorProfile.user)).where(search_filter)
             )).scalars().all()
         else:
-            all_counsellors = (await db.execute(select(models.CounsellorProfile))).scalars().all()
+            all_counsellors = (await db.execute(select(models.CounsellorProfile).options(joinedload(models.CounsellorProfile.user)))).scalars().all()
         for cp in all_counsellors:
             cp.session_count = completed_map.get(cp.user_id, 0)
             cp.total_sessions = total_map.get(cp.user_id, 0)
 
         # ─── Payment Split Analytics ──────────────────────────────────────
         try:
-            all_payments = (await db.execute(select(models.Payment).order_by(models.Payment.created_at.desc()).limit(20))).scalars().all()
+            all_payments = (await db.execute(
+                select(models.Payment)
+                .options(
+                    joinedload(models.Payment.session).joinedload(models.Appointment.student),
+                    joinedload(models.Payment.session).joinedload(models.Appointment.counsellor),
+                    selectinload(models.Payment.transfers).joinedload(models.Transfer.counsellor)
+                )
+                .order_by(models.Payment.created_at.desc())
+                .limit(20)
+            )).scalars().all()
             
             # Using scalars directly for performance
             session_revenue = (await db.execute(
@@ -2760,7 +2774,7 @@ async def admin_dashboard(
             pending_transfers, failed_transfers, captured_payments_count = 0, 0, 0
         
         # Fetch Moderation Flags (Limited for performance)
-        moderation_flags = (await db.execute(select(models.ModerationFlag).order_by(models.ModerationFlag.timestamp.desc()).limit(50))).scalars().all()
+        moderation_flags = (await db.execute(select(models.ModerationFlag).options(joinedload(models.ModerationFlag.user)).order_by(models.ModerationFlag.timestamp.desc()).limit(50))).scalars().all()
 
         # Fetch all appointments for admin Session Management table
         all_appointments = (await db.execute(
