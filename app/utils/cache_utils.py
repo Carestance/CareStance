@@ -12,7 +12,14 @@ class UserCache:
     def __init__(self):
         self.redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
         try:
-            self.client = redis.from_url(self.redis_url, decode_responses=True)
+            self.client = redis.from_url(
+                self.redis_url, 
+                decode_responses=True,
+                socket_timeout=5,
+                socket_connect_timeout=5,
+                socket_keepalive=True,
+                health_check_interval=30
+            )
             self.client.ping()
             self.is_available = True
         except Exception as e:

@@ -105,6 +105,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="/static/js/voice_client.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         const interactionMode = "{{ mode }}";
@@ -156,80 +157,6 @@
         let timerInterval;
         let conversationDone = false;
         let isProcessing = false;
-        let isSpeaking = false;
-        let voiceUnlocked = false;
-        let currentAudio = null;
-
-        function stopSpeakingAnim() {
-            isSpeaking = false;
-            const orb = document.getElementById('talking-buddy-orb');
-            const rings = document.querySelectorAll('.pulse-ring');
-            const emoji = document.getElementById('buddy-emoji');
-            if (orb) orb.classList.remove('scale-110', 'shadow-[0_0_40px_rgba(139,92,246,0.6)]');
-            rings.forEach(r => r.classList.remove('animate-pulse-slow'));
-            if (emoji) emoji.classList.remove('scale-125');
-            setMentorStatus('Listening...');
-        }
-
-        // Ensure voices are loaded
-        window.speechSynthesis.getVoices();
-        window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
-
-        function setMentorStatus(text) {
-            if (mentorStatusSidebar) mentorStatusSidebar.textContent = text;
-        }
-
-        async function speakText(text) {
-            if (!voiceUnlocked) return;
-
-            console.log("Attempting TTS for:", text.substring(0, 30));
-            const orb = document.getElementById('talking-buddy-orb');
-            const rings = document.querySelectorAll('.pulse-ring');
-            const emoji = document.getElementById('buddy-emoji');
-
-            const startAnim = () => {
-                isSpeaking = true;
-                if (orb) orb.classList.add('scale-110', 'shadow-[0_0_40px_rgba(139,92,246,0.6)]');
-                rings.forEach(r => r.classList.add('animate-pulse-slow'));
-                if (emoji) emoji.classList.add('scale-125');
-                setMentorStatus('Speaking...');
-            };
-
-            const stopAnim = () => {
-                stopSpeakingAnim();
-            };
-
-            try {
-                const response = await fetch(`/api/tts?text=${encodeURIComponent(text.replace(/[*_#]/g, ''))}`);
-                if (response.ok && response.headers.get('Content-Type')?.includes('audio')) {
-                    const blob = await response.blob();
-                    if (currentAudio) { currentAudio.pause(); currentAudio = null; }
-                    currentAudio = new Audio(URL.createObjectURL(blob));
-                    currentAudio.onplay = startAnim;
-                    currentAudio.onended = () => { stopAnim(); currentAudio = null; };
-                    await currentAudio.play();
-                    return;
-                }
-            } catch (e) {
-                console.warn("API TTS failed, falling back to browser...");
-            }
-
-            // Browser Fallback
-            try {
-                window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance(text.replace(/[*_#]/g, ''));
-                const voices = window.speechSynthesis.getVoices();
-                const bestVoice = voices.find(v => v.lang.startsWith('en') && v.name.includes('Google')) ||
-                    voices.find(v => v.lang.startsWith('en')) ||
-                    voices[0];
-                if (bestVoice) utterance.voice = bestVoice;
-                utterance.onstart = startAnim;
-                utterance.onend = stopAnim;
-                window.speechSynthesis.speak(utterance);
-            } catch (e) {
-                stopAnim();
-            }
-        }
 
         function updateTimerDisplay() {
             const mins = Math.floor(timeLeft / 60);
@@ -246,12 +173,45 @@
                     clearInterval(timerInterval);
                     conversationDone = true;
                     if (micBtn) micBtn.style.display = 'none';
+                    if (window.voiceClient) window.voiceClient.disconnect();
                     const chatInputContainer = document.getElementById('chat-input-container');
                     if (chatInputContainer) chatInputContainer.style.display = 'none';
                     if (finishBtn) finishBtn.classList.remove('hidden');
                     appendMentorMessage("Time's up! Click Finish to see results.");
                 }
             }, 1000);
+        }
+
+        function setMentorStatus(state) {
+            let text = 'Connecting...';
+            if (state === 'LISTENING') text = 'Listening...';
+            if (state === 'SPEAKING') text = 'Speaking...';
+            if (state === 'THINKING') text = 'Thinking...';
+            if (state === 'DISCONNECTED' || state === 'COMPLETED' || state === 'ERROR') text = 'Disconnected';
+            
+            if (mentorStatusSidebar) mentorStatusSidebar.textContent = text;
+            
+            const orb = document.getElementById('talking-buddy-orb');
+            const rings = document.querySelectorAll('.pulse-ring');
+            const emoji = document.getElementById('buddy-emoji');
+            
+            if (state === 'SPEAKING') {
+                if (orb) orb.classList.add('scale-110', 'shadow-[0_0_40px_rgba(139,92,246,0.6)]');
+                rings.forEach(r => r.classList.add('animate-pulse-slow'));
+                if (emoji) emoji.classList.add('scale-125');
+            } else {
+                if (orb) orb.classList.remove('scale-110', 'shadow-[0_0_40px_rgba(139,92,246,0.6)]');
+                rings.forEach(r => r.classList.remove('animate-pulse-slow'));
+                if (emoji) emoji.classList.remove('scale-125');
+            }
+            
+            if (state === 'LISTENING' || state === 'THINKING') {
+                if (micIcon) micIcon.innerText = '🛑';
+                if (micPulse) micPulse.classList.add('animate-ping', 'opacity-30');
+            } else {
+                if (micIcon) micIcon.innerText = '🎙️';
+                if (micPulse) micPulse.classList.remove('animate-ping', 'opacity-30');
+            }
         }
 
         function appendMentorMessage(text) {
@@ -268,8 +228,10 @@
             chatBox.appendChild(div);
             chatBox.scrollTop = chatBox.scrollHeight;
             chatHistory.push({ role: "assistant", content: text });
-            if (interactionMode !== 'chat') {
-                speakText(text);
+            
+            const userMsgCount = chatHistory.filter(m => m.role === 'user').length;
+            if (userMsgCount >= 10 && finishBtn) {
+                finishBtn.classList.remove('hidden');
             }
         }
 
@@ -289,48 +251,6 @@
             chatHistory.push({ role: "user", content: text });
         }
 
-        async function getAIResponse(userMsg = "") {
-            if (isProcessing) return;
-            isProcessing = true;
-            if (micBtn) {
-                micBtn.disabled = true;
-                micBtn.classList.add('opacity-50');
-            }
-            const chatInput = document.getElementById('chatInput');
-            const sendBtn = document.getElementById('sendBtn');
-            if (chatInput) chatInput.disabled = true;
-            if (sendBtn) sendBtn.disabled = true;
-            setMentorStatus('Thinking...');
-
-            try {
-                const resp = await fetch('/assessment/phase3/chat_v2', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: userMsg, answers: chatHistory })
-                });
-                const data = await resp.json();
-                console.log("AI Response received. Ready?", data.recommendation_ready);
-                appendMentorMessage(data.response);
-                if (data.recommendation_ready && finishBtn) {
-                    console.log("Revealing Finish Button");
-                    finishBtn.classList.remove('hidden');
-                }
-            } catch (e) {
-                appendMentorMessage("Connection issue. Please check your internet.");
-            } finally {
-                isProcessing = false;
-                if (micBtn) {
-                    micBtn.disabled = false;
-                    micBtn.classList.remove('opacity-50');
-                }
-                if (chatInput) {
-                    chatInput.disabled = false;
-                    chatInput.focus();
-                }
-                if (sendBtn) sendBtn.disabled = false;
-            }
-        }
-
         window.handleTextSubmit = function() {
             if (conversationDone || isProcessing) return;
             const input = document.getElementById('chatInput');
@@ -339,81 +259,71 @@
             if (text) {
                 input.value = '';
                 appendUserTranscript(text);
-                setTimeout(() => getAIResponse(text), 300);
+                getAIResponse(text);
             }
         };
 
-        startSessionBtn.onclick = () => {
-            voiceUnlocked = true;
-            sessionOverlay.classList.add('hidden');
-            // Silent speech to unlock on mobile/Safari
-            const v = new SpeechSynthesisUtterance("");
-            window.speechSynthesis.speak(v);
+        // Fallback for text mode if needed
+        async function getAIResponse(userMsg = "") {
+            isProcessing = true;
+            setMentorStatus('THINKING');
+            try {
+                const resp = await fetch('/assessment/phase3/chat_v2', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: userMsg, answers: chatHistory })
+                });
+                const data = await resp.json();
+                appendMentorMessage(data.response);
+                if (data.recommendation_ready && finishBtn) {
+                    finishBtn.classList.remove('hidden');
+                }
+            } finally {
+                isProcessing = false;
+                setMentorStatus('IDLE');
+            }
+        }
 
+        startSessionBtn.onclick = () => {
+            sessionOverlay.classList.add('hidden');
             startTimer();
-            if (chatHistory.length === 0) {
-                getAIResponse(""); // Start first greeting
-            } else {
+            
+            if (chatHistory.length > 0) {
                 renderHistoricalMessages();
-                // Check if recommendation is ready
                 const userMsgCount = chatHistory.filter(m => m.role === 'user').length;
                 if (userMsgCount >= 10 && finishBtn) {
                     finishBtn.classList.remove('hidden');
                 }
             }
+
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${wsProtocol}//${window.location.host}/ws/voice`;
+            
+            window.voiceClient = new VoiceClient(wsUrl, setMentorStatus, (text, role) => {
+                if (role === 'user') appendUserTranscript(text);
+                else appendMentorMessage(text);
+            });
+            window.voiceClient.connect();
         };
 
-        // Speech Recognition Setup
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (SpeechRecognition) {
-            const recognition = new SpeechRecognition();
-            recognition.continuous = false;
-            recognition.interimResults = true;
-            recognition.lang = 'en-US';
-
-            recognition.onstart = () => {
-                micIcon.innerText = '🛑';
-                micPulse.classList.add('animate-ping', 'opacity-30');
-            };
-
-            recognition.onresult = (event) => {
-                let finalT = '';
-                for (let i = event.resultIndex; i < event.results.length; i++) {
-                    if (event.results[i].isFinal) finalT += event.results[i][0].transcript;
-                }
-                if (finalT.trim()) {
-                    appendUserTranscript(finalT.trim());
-                    setTimeout(() => getAIResponse(finalT.trim()), 300);
+        if (micBtn) {
+            micBtn.onclick = () => {
+                if (conversationDone) return;
+                if (window.voiceClient) {
+                    if (['LISTENING', 'SPEAKING', 'THINKING'].includes(window.voiceClient.state)) {
+                        window.voiceClient.disconnect();
+                    } else {
+                        window.voiceClient.connect();
+                    }
                 }
             };
-
-            recognition.onend = () => {
-                if (micIcon) micIcon.innerText = '🎙️';
-                if (micPulse) micPulse.classList.remove('animate-ping', 'opacity-30');
-            };
-
-            if (micBtn) {
-                micBtn.onclick = () => {
-                    if (conversationDone || isProcessing || isSpeaking) return;
-                    try { recognition.start(); } catch (e) { recognition.stop(); }
-                };
-            }
         }
 
         window.finishAssessment = async function () {
             if (finishBtn) { finishBtn.disabled = true; finishBtn.textContent = '⏳ Finalizing...'; }
             
-            // Stop all AI interactions
-            try {
-                window.speechSynthesis.cancel();
-                if (currentAudio) {
-                    currentAudio.pause();
-                    currentAudio = null;
-                }
-                stopSpeakingAnim();
-                isProcessing = false;
-            } catch (e) {
-                console.error("Error stopping AI:", e);
+            if (window.voiceClient) {
+                window.voiceClient.disconnect();
             }
 
             try {
