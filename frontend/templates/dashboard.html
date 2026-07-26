@@ -313,7 +313,7 @@
                     </form>
                 </div>
                 <div>
-                    <h4 class="font-extrabold text-slate-900 text-lg leading-tight">{{ user.full_name }}</h4>
+                    <h4 class="font-extrabold text-slate-900 text-lg leading-tight">{{ user.full_name if (user.full_name and user.full_name != 'None') else (user.email.split('@')[0]|capitalize if user.email else 'User') }}</h4>
                     <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mt-0.5">{{ user.role or 'Student' }}</p>
                     <span class="inline-block mt-2 px-2 py-0.5 bg-amber-50 text-amber-600 text-[10px] font-bold rounded-full uppercase">Assessment Pending</span>
                 </div>
@@ -404,7 +404,7 @@
                          class="w-20 h-20 rounded-2xl object-cover border border-slate-100">
                     <div class="flex-1 min-w-0">
                         <p class="text-[10px] font-black uppercase tracking-widest text-teal-600 mb-1">Student Profile</p>
-                        <h3 class="text-xl font-black text-slate-900 truncate">{{ user.full_name or 'Student' }}</h3>
+                        <h3 class="text-xl font-black text-slate-900 truncate">{{ user.full_name if (user.full_name and user.full_name != 'None') else (user.email.split('@')[0]|capitalize if user.email else 'Student') }}</h3>
                         <div class="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
                             <span class="inline-flex items-center gap-1.5 bg-slate-50 rounded-full px-3 py-1">
                                 <i class="fas fa-envelope"></i>{{ user.email }}
@@ -736,7 +736,7 @@
                     </form>
                 </div>
                 <div>
-                    <h4 class="font-extrabold text-slate-900 text-lg leading-tight">{{ user.full_name }}</h4>
+                    <h4 class="font-extrabold text-slate-900 text-lg leading-tight">{{ user.full_name if (user.full_name and user.full_name != 'None') else (user.email.split('@')[0]|capitalize if user.email else 'User') }}</h4>
                     <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mt-0.5">{{ user.role or 'Student' }}</p>
                     <p class="text-xs text-slate-500 font-semibold mt-1">
                         <i class="fas fa-phone-alt mr-1"></i>{{ user.contact_number or 'Phone not added' }}

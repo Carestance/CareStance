@@ -2795,6 +2795,17 @@ async def admin_dashboard(
             ).order_by(models.SimulationPayment.id.desc()).limit(50)
         )).scalars().all()
 
+        # Fetch counsellor session analytics map
+        counsellor_analytics_map = {}
+        try:
+            from app.services.admin_counsellor_service import get_counsellor_session_analytics
+            counsellor_analytics = await get_counsellor_session_analytics(db)
+            counsellor_analytics_map = {
+                row["counsellor_id"]: row for row in counsellor_analytics
+            }
+        except Exception as cae:
+            print(f"Counsellor analytics map error: {cae}")
+
         try:
             template = templates.get_template("admin_dashboard.html")
             content = template.render({
@@ -2812,6 +2823,7 @@ async def admin_dashboard(
                 "page_size": page_size,
                 "pending_counsellors": pending_counsellors,
                 "all_counsellors": all_counsellors,
+                "counsellor_session_analytics_map": counsellor_analytics_map,
                 "all_payments": all_payments,
                 "total_revenue": total_revenue,
                 "session_revenue": session_revenue,
