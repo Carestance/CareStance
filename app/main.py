@@ -191,6 +191,19 @@ def get_assessment_display_archetype(result) -> str:
     return "Explorer"
 
 def get_subscription_state(user) -> dict:
+    if not user:
+        return {"active": False, "plan": None, "expires_at": None}
+    
+    admin_email = os.getenv("ADMIN_EMAIL", "").strip()
+    is_admin = getattr(user, "role", None) == "admin" or (bool(admin_email) and getattr(user, "email", None) == admin_email)
+    if is_admin:
+        return {
+            "active": True,
+            "plan": "customised",
+            "expires_at": datetime.datetime.utcnow() + datetime.timedelta(days=3650),
+            "is_admin": True
+        }
+        
     now = datetime.datetime.utcnow()
     expires_at = getattr(user, "subscription_expires_at", None)
     is_active = (
@@ -202,6 +215,7 @@ def get_subscription_state(user) -> dict:
         "active": is_active,
         "plan": getattr(user, "subscription_plan", None) if is_active else None,
         "expires_at": expires_at if is_active else None,
+        "is_admin": False
     }
 
 def has_customised_subscription(user) -> bool:
@@ -2806,6 +2820,20 @@ async def admin_dashboard(
         except Exception as cae:
             print(f"Counsellor analytics map error: {cae}")
 
+        # Fetch assessment results map for admin dashboard user tables
+        assessments_map = {}
+        assessment_summaries_map = {}
+        try:
+            ar_res = await db.execute(select(models.AssessmentResult))
+            for ar in ar_res.scalars().all():
+                assessments_map[ar.user_id] = ar
+                summary_info = {}
+                if ar.raw_answers and isinstance(ar.raw_answers, dict):
+                    summary_info["groq_summary"] = ar.raw_answers.get("groq_summary", "")
+                assessment_summaries_map[ar.user_id] = summary_info
+        except Exception as are:
+            print(f"Assessments map error: {are}")
+
         try:
             template = templates.get_template("admin_dashboard.html")
             content = template.render({
@@ -2813,6 +2841,8 @@ async def admin_dashboard(
                 "user": current_user, 
                 "users": all_users,
                 "total_users": total_users,
+                "assessments": assessments_map,
+                "assessment_summaries": assessment_summaries_map,
                 "user_page": user_page,
                 "feedbacks": all_feedback,
                 "total_feedback": total_feedback,
@@ -3455,12 +3485,14 @@ async def book_free_counsellor(counsellor_id: int, request: Request, background_
     if not user:
          return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
          
-    # Verify counsellor is free
+    # Verify counsellor is free (or user is an admin exempt from payments)
+    admin_email = os.getenv("ADMIN_EMAIL", "").strip()
+    is_admin = getattr(user, "role", None) == "admin" or (bool(admin_email) and getattr(user, "email", None) == admin_email)
     counsellor_profile = (await db.execute(select(models.CounsellorProfile).where(models.CounsellorProfile.user_id == counsellor_id))).scalars().first()
-    if not counsellor_profile or (counsellor_profile.fee > 0):
-        # Allow a small margin for float comparison
-        if counsellor_profile and counsellor_profile.fee > 0.01:
-            raise HTTPException(status_code=400, detail="This counsellor is not free. Please use the payment booking flow.")
+    if not is_admin:
+        if not counsellor_profile or (counsellor_profile.fee > 0):
+            if counsellor_profile and counsellor_profile.fee > 0.01:
+                raise HTTPException(status_code=400, detail="This counsellor is not free. Please use the payment booking flow.")
     
     # Check availability before booking
     try:
@@ -4552,17 +4584,32 @@ async def subscription_create_order(request: Request, db: AsyncSession = Depends
     user = await get_current_user(request, db)
     if not user:
         raise HTTPException(status_code=401)
-    if not is_razorpay_configured():
-        raise HTTPException(
-            status_code=503,
-            detail="Payment gateway is not configured. Add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to .env."
-        )
 
     data = await request.json()
     plan = data.get("plan", "critical")
     plan_data = SUBSCRIPTION_PLANS.get(plan)
     if not plan_data:
         raise HTTPException(status_code=400, detail="Invalid subscription plan")
+
+    admin_email = os.getenv("ADMIN_EMAIL", "").strip()
+    is_admin = getattr(user, "role", None) == "admin" or (bool(admin_email) and getattr(user, "email", None) == admin_email)
+    if is_admin:
+        now = datetime.datetime.utcnow()
+        expires_at = now + datetime.timedelta(days=3650)
+        db_user = (await db.execute(select(models.User).where(models.User.id == user.id))).scalars().first()
+        if db_user:
+            db_user.subscription_plan = plan
+            db_user.subscription_status = "active"
+            db_user.subscription_started_at = now
+            db_user.subscription_expires_at = expires_at
+            await db.commit()
+        return {"free_for_admin": True, "status": "ok", "plan": plan}
+
+    if not is_razorpay_configured():
+        raise HTTPException(
+            status_code=503,
+            detail="Payment gateway is not configured. Add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to .env."
+        )
 
     # Razorpay subscriptions charge the configured plan every month.  A plan id
     # is intentionally configured in the dashboard/.env rather than created per
@@ -4698,6 +4745,10 @@ async def simulation_pay(career_title: str, request: Request, db: AsyncSession =
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     
+    if getattr(user, "role", None) == "admin":
+        # Admins have free simulations; redirect to start without payment
+        return RedirectResponse(url=f"/assessment/simulation/start/{career_title}", status_code=status.HTTP_302_FOUND)
+    # Existing behavior for non-admins
     return templates.TemplateResponse(request=request, name="simulation_payment.html", context={
         "user": user,
         "career_title": career_title,
@@ -4993,7 +5044,11 @@ async def simulation_start(career_title: str, request: Request, db: AsyncSession
     sims_completed = max(result.simulations_completed or 0, db_user.simulations_completed or 0 if db_user else 0)
     sim_credits = max(result.simulation_credits or 0, db_user.simulation_credits or 0 if db_user else 0)
 
-    if sims_completed >= 1 and sim_credits <= 0:
+    # Admin users have free simulations; skip credit check
+    if getattr(user, "role", None) == "admin":
+        # Proceed without checking credits
+        pass
+    elif sims_completed >= 1 and sim_credits <= 0:
         return RedirectResponse(url=f"/assessment/simulation/pay/{career_title}", status_code=status.HTTP_302_FOUND)
     
     # Generate questions based on class
