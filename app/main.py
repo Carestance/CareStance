@@ -5014,7 +5014,7 @@ async def live_simulation_start(
     sims_completed = max(result.simulations_completed or 0, (db_user.simulations_completed or 0) if db_user else 0)
     sim_credits = max(result.simulation_credits or 0, (db_user.simulation_credits or 0) if db_user else 0)
 
-    if sims_completed >= 1 and sim_credits <= 0:
+    if getattr(user, "role", None) != "admin" and sims_completed >= 1 and sim_credits <= 0:
         raise HTTPException(status_code=402, detail="Simulation payment required")
 
     scenarios = await simulation_service.build_live_simulation(career_title, difficulty)
@@ -5202,38 +5202,40 @@ async def simulation_start(career_title: str, request: Request, db: AsyncSession
     elif sims_completed >= 1 and sim_credits <= 0:
         return RedirectResponse(url=f"/assessment/simulation/pay/{career_title}", status_code=status.HTTP_302_FOUND)
     
-    # Generate questions based on class
+    # Handle Class 10th Academic Discovery simulation
     if result.selected_class == '10th':
         questions = await simulation_service.generate_academic_simulation_questions(career_title)
-    else:
-        questions = await simulation_service.generate_simulation_questions(career_title)
-
-    if not questions:
-        return RedirectResponse(url="/assessment/result?error=failed_to_generate_simulation", status_code=status.HTTP_302_FOUND)
-    
-    # Appwrite Update
-    update_assessment_simulation(user.id, career=career_title, questions=questions, answers=[], evaluation=None)
-    
-    # SQL Fallback
-    result.simulation_career = career_title
-    result.simulation_questions = questions
-    result.simulation_answers = [] # Reset answers
-    result.simulation_evaluation = None # Reset evaluation
-    
-    if sims_completed >= 1:
-        if result.simulation_credits > 0:
-            result.simulation_credits -= 1
-        if db_user and db_user.simulation_credits > 0:
-            db_user.simulation_credits -= 1
-
-    if result.simulation_paid:
-        result.simulation_paid = False
-    if db_user and db_user.simulation_paid:
-        db_user.simulation_paid = False
+        if not questions:
+            return RedirectResponse(url="/assessment/result?error=failed_to_generate_simulation", status_code=status.HTTP_302_FOUND)
         
-    await db.commit()
-    
-    return RedirectResponse(url="/assessment/simulation/question/0", status_code=status.HTTP_302_FOUND)
+        update_assessment_simulation(user.id, career=career_title, questions=questions, answers=[], evaluation=None)
+        
+        result.simulation_career = career_title
+        result.simulation_questions = questions
+        result.simulation_answers = [] # Reset answers
+        result.simulation_evaluation = None # Reset evaluation
+        
+        if sims_completed >= 1:
+            if result.simulation_credits > 0:
+                result.simulation_credits -= 1
+            if db_user and db_user.simulation_credits > 0:
+                db_user.simulation_credits -= 1
+
+        if result.simulation_paid:
+            result.simulation_paid = False
+        if db_user and db_user.simulation_paid:
+            db_user.simulation_paid = False
+            
+        await db.commit()
+        return RedirectResponse(url="/assessment/simulation/question/0", status_code=status.HTTP_302_FOUND)
+
+    # Standard 3-Phase Interactive Career Simulation (simulation.html)
+    return templates.TemplateResponse(request=request, name="simulation.html", context={
+        "request": request,
+        "user": user,
+        "career_title": career_title,
+        "difficulty": "Foundation"
+    })
 
 @app.get("/assessment/simulation/question/{index}", response_class=HTMLResponse)
 async def simulation_question(index: int, request: Request, db: AsyncSession = Depends(get_db)):
