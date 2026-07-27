@@ -4681,7 +4681,158 @@ async def subscription_verify_payment(request: Request, db: AsyncSession = Depen
     )
     db.add(payment)
     await db.commit()
-    return {"status": "ok", "plan": plan, "expires_at": expires_at.isoformat()}
+    return {"status": "ok", "plan": plan}
+
+
+# ─── Razorpay Standard Web Checkout API Endpoints ──────────────────────────────
+
+class StandardCreateOrderRequest(BaseModel):
+    amount: float
+    currency: Optional[str] = "INR"
+    receipt: Optional[str] = None
+    notes: Optional[dict] = None
+
+class StandardVerifyPaymentRequest(BaseModel):
+    razorpay_order_id: str
+    razorpay_payment_id: str
+    razorpay_signature: str
+
+@app.post("/api/create-order")
+async def api_create_order(request: Request, body: Optional[StandardCreateOrderRequest] = None):
+    """
+    Standard Razorpay order creation endpoint.
+    Call Razorpay API: POST https://api.razorpay.com/v1/orders
+    Return: { order_id, amount, currency, key_id }
+    """
+    if not is_razorpay_configured():
+        raise HTTPException(
+            status_code=530,
+            detail="Razorpay is not configured. Add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to .env."
+        )
+
+    amount = None
+    currency = "INR"
+    receipt = None
+    notes = {}
+
+    if body:
+        amount = body.amount
+        currency = body.currency or "INR"
+        receipt = body.receipt
+        notes = body.notes or {}
+    else:
+        try:
+            data = await request.json()
+            amount = data.get("amount")
+            currency = data.get("currency", "INR")
+            receipt = data.get("receipt")
+            notes = data.get("notes", {})
+        except Exception:
+            form = await request.form()
+            amount = form.get("amount")
+            currency = form.get("currency", "INR")
+            receipt = form.get("receipt")
+
+    if amount is None:
+        raise HTTPException(status_code=400, detail="Field 'amount' is required")
+
+    try:
+        amount_num = float(amount)
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=400, detail="Invalid amount value")
+
+    # Convert INR to paise if amount < 100
+    if amount_num < 100:
+        amount_paise = int(round(amount_num * 100))
+    else:
+        amount_paise = int(amount_num)
+
+    if amount_paise < 100:
+        raise HTTPException(status_code=400, detail="Minimum order amount is 100 paise (₹1.00)")
+
+    if not receipt:
+        receipt = f"rcpt_{uuid.uuid4().hex[:10]}"
+
+    try:
+        client = get_razorpay_client()
+        order = client.order.create(data={
+            "amount": amount_paise,
+            "currency": currency,
+            "receipt": receipt,
+            "notes": notes,
+            "payment_capture": 1
+        })
+        return {
+            "order_id": order["id"],
+            "id": order["id"],
+            "amount": order["amount"],
+            "currency": order["currency"],
+            "key_id": RAZORPAY_KEY_ID
+        }
+    except Exception as e:
+        print(f"Razorpay Order Creation Error: {e}")
+        raise HTTPException(status_code=500, detail=f"Razorpay API Error: {str(e)}")
+
+
+@app.post("/api/verify-payment")
+async def api_verify_payment(request: Request, body: Optional[StandardVerifyPaymentRequest] = None):
+    """
+    Standard Razorpay payment signature verification endpoint.
+    Algorithm: HMAC-SHA256(order_id + "|" + payment_id, KEY_SECRET)
+    """
+    razorpay_order_id = None
+    razorpay_payment_id = None
+    razorpay_signature = None
+
+    if body:
+        razorpay_order_id = body.razorpay_order_id
+        razorpay_payment_id = body.razorpay_payment_id
+        razorpay_signature = body.razorpay_signature
+    else:
+        try:
+            data = await request.json()
+            razorpay_order_id = data.get("razorpay_order_id")
+            razorpay_payment_id = data.get("razorpay_payment_id")
+            razorpay_signature = data.get("razorpay_signature")
+        except Exception:
+            form = await request.form()
+            razorpay_order_id = form.get("razorpay_order_id")
+            razorpay_payment_id = form.get("razorpay_payment_id")
+            razorpay_signature = form.get("razorpay_signature")
+
+    if not razorpay_order_id or not razorpay_payment_id or not razorpay_signature:
+        raise HTTPException(
+            status_code=400,
+            detail="Missing required parameters: razorpay_order_id, razorpay_payment_id, razorpay_signature"
+        )
+
+    msg = f"{razorpay_order_id}|{razorpay_payment_id}".encode("utf-8")
+    key = RAZORPAY_KEY_SECRET.encode("utf-8")
+    generated_signature = hmac.new(key, msg, hashlib.sha256).hexdigest()
+
+    if hmac.compare_digest(generated_signature, razorpay_signature):
+        return {
+            "status": "success",
+            "message": "Payment verified successfully",
+            "verified": True,
+            "order_id": razorpay_order_id,
+            "payment_id": razorpay_payment_id
+        }
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid payment signature. Verification failed."
+        )
+
+
+@app.get("/checkout-demo", response_class=HTMLResponse)
+async def checkout_demo_page(request: Request):
+    """Demo page for testing Razorpay Standard Web Checkout."""
+    return templates.TemplateResponse(request=request, name="checkout_demo.html", context={
+        "request": request,
+        "RAZORPAY_KEY_ID": RAZORPAY_KEY_ID,
+        "razorpay_configured": is_razorpay_configured()
+    })
 
 @app.post("/subscription/webhook")
 async def subscription_webhook(request: Request, db: AsyncSession = Depends(get_db)):
