@@ -16,5 +16,8 @@ COPY . .
 # Expose port 8000 for the FastAPI app
 EXPOSE 8000
 
-# Run the application using Gunicorn with Uvicorn workers for production
-CMD gunicorn -w 4 -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:${PORT:-8000}
+# Live simulation sessions are held in process memory.  Until those sessions
+# are moved to a shared store, all simulation requests must reach the same
+# process; multiple Gunicorn workers cause intermittent "workspace not found"
+# errors when the iframe is handled by a different worker.
+CMD gunicorn -w 1 -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:${PORT:-8000}
