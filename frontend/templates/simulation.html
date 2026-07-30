@@ -541,6 +541,32 @@
                 overflow-y: auto;
             }
         }
+
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.75rem;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+            font-family: inherit;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            filter: brightness(1.1);
+            transform: scale(1.02);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            transform: none;
+        }
     </style>
 </head>
 
@@ -646,20 +672,23 @@
                     </div>
                 </div>
 
-                <!-- Phase 1: five AI-generated MCQs -->
+                <!-- Phase 1: career-specific MCQs -->
                 <div class="workspace-panel" x-show="currentScenario?.type === 'mcq_quiz' && !loading" x-transition>
-                    <div class="metric-label">Question <span x-text="quizIndex + 1"></span> of 5</div>
-                    <h3 x-text="currentScenario?.mcqs?.[quizIndex]?.question" style="line-height:1.5"></h3>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
+                        <div class="metric-label" style="margin-bottom:0">Question <span x-text="quizIndex + 1"></span> of <span x-text="currentScenario?.mcqs?.length || 5"></span></div>
+                        <div style="font-size:0.75rem;color:var(--text-muted)">Select the best professional response</div>
+                    </div>
+                    <h3 x-text="currentScenario?.mcqs?.[quizIndex]?.question" style="line-height:1.6;margin-top:0"></h3>
                     <div class="options-grid">
                         <template x-for="(option, optionIndex) in (currentScenario?.mcqs?.[quizIndex]?.options || [])" :key="optionIndex">
-                            <button class="opt-btn" :class="{'selected-option': quizAnswers[quizIndex] === optionIndex}" @click="quizAnswers[quizIndex] = optionIndex">
-                                <span x-text="option"></span><i class="fas fa-check" x-show="quizAnswers[quizIndex] === optionIndex"></i>
+                            <button class="opt-btn" :class="{'selected-option': quizAnswers[quizIndex] === optionIndex}" @click="selectQuizAnswer(optionIndex)">
+                                <span style="flex:1" x-text="option"></span><i class="fas fa-check" x-show="quizAnswers[quizIndex] === optionIndex"></i>
                             </button>
                         </template>
                     </div>
-                    <div style="display:flex;justify-content:space-between;margin-top:1rem;gap:1rem">
+                    <div style="display:flex;justify-content:space-between;margin-top:1.25rem;gap:1rem">
                         <button class="btn-primary" @click="previousQuiz()" :disabled="quizIndex === 0" style="background:transparent;border:1px solid var(--accent);color:var(--text-main)">Back</button>
-                        <button class="btn-primary" @click="nextQuiz()" :disabled="quizAnswers[quizIndex] === undefined" style="background:var(--accent);color:#071419" x-text="quizIndex === 4 ? 'Submit five answers' : 'Next question'"></button>
+                        <button class="btn-primary" @click="nextQuiz()" :disabled="quizAnswers[quizIndex] === undefined || quizAnswers[quizIndex] === null" style="background:var(--accent);color:#071419" x-text="quizIndex >= (currentScenario?.mcqs?.length || 5) - 1 ? 'Submit all answers' : 'Next question'"></button>
                     </div>
                 </div>
 
@@ -670,13 +699,17 @@
                     <iframe x-show="sessionId" :src="'/simulation/workspace/' + sessionId" title="Simulation practical workspace" style="display:block;width:100%;height:640px;border:1px solid rgba(255,255,255,.14);border-radius:1rem;background:#020617"></iframe>
                 </div>
 
-                <!-- Phase 3: short chat with the student's five-years-later self -->
+                <!-- Phase 3: career-specific future-self reflection chat -->
                 <div class="workspace-panel" x-show="currentScenario?.type === 'future_role' && !loading" x-transition>
-                    <div class="metric-label">Future-self chat • <span x-text="futureQuestionIndex + 1"></span> of 3</div>
-                    <h3 x-text="currentScenario?.chat_questions?.[futureQuestionIndex]" style="line-height:1.5"></h3>
-                    <textarea x-model="futureText" placeholder="Write your answer thoughtfully..." style="width:100%;box-sizing:border-box;min-height:110px;resize:vertical;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);border-radius:1rem;padding:1rem;color:var(--text-main)"></textarea>
-                    <div style="display:flex;justify-content:flex-end;margin-top:1rem">
-                        <button class="btn-primary" @click="nextFutureQuestion()" :disabled="!futureText.trim()" style="background:var(--accent);color:#071419" x-text="futureQuestionIndex === 2 ? 'Finish future-self chat' : 'Continue chat'"></button>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
+                        <div class="metric-label" style="margin-bottom:0">Reflection Question <span x-text="futureQuestionIndex + 1"></span> of <span x-text="currentScenario?.chat_questions?.length || 3"></span></div>
+                        <div style="font-size:0.75rem;color:var(--text-muted)">Be honest and specific</div>
+                    </div>
+                    <h3 x-text="currentScenario?.chat_questions?.[futureQuestionIndex]" style="line-height:1.6;margin-top:0"></h3>
+                    <textarea x-model="futureText" placeholder="Write your answer here — the more specific you are, the more useful this reflection will be..." style="width:100%;box-sizing:border-box;min-height:120px;resize:vertical;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);border-radius:1rem;padding:1rem;color:var(--text-main);font-size:0.95rem;line-height:1.5"></textarea>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:1rem">
+                        <span style="font-size:0.8rem;color:var(--text-muted)" x-text="futureText.trim().length > 0 ? futureText.trim().split(/\\s+/).length + ' words' : ''"></span>
+                        <button class="btn-primary" @click="nextFutureQuestion()" :disabled="!futureText.trim()" style="background:var(--accent);color:#071419" x-text="futureQuestionIndex >= (currentScenario?.chat_questions?.length || 3) - 1 ? 'Complete simulation' : 'Next question'"></button>
                     </div>
                 </div>
 
@@ -833,12 +866,25 @@
                 },
 
                 nextQuiz() {
-                    if (this.quizAnswers[this.quizIndex] === undefined) return;
-                    if (this.quizIndex < 4) {
+                    if (this.quizAnswers[this.quizIndex] === undefined || this.quizAnswers[this.quizIndex] === null) return;
+                    const total = this.currentScenario?.mcqs?.length || 5;
+                    if (this.quizIndex < total - 1) {
                         this.quizIndex++;
                     } else {
-                        this.sendMove(JSON.stringify(this.quizAnswers));
+                        // All MCQs answered — submit as a JSON array of chosen option indices
+                        const answers = [];
+                        for (let i = 0; i < total; i++) {
+                            answers.push(this.quizAnswers[i] !== undefined ? this.quizAnswers[i] : 0);
+                        }
+                        this.sendMove(JSON.stringify(answers));
                     }
+                },
+
+                selectQuizAnswer(optionIndex) {
+                    // Use a new array copy to ensure Alpine.js reactivity
+                    const updated = [...this.quizAnswers];
+                    updated[this.quizIndex] = optionIndex;
+                    this.quizAnswers = updated;
                 },
 
                 previousQuiz() {
@@ -853,9 +899,12 @@
                 nextFutureQuestion() {
                     const answer = this.futureText.trim();
                     if (!answer) return;
-                    this.futureAnswers[this.futureQuestionIndex] = answer;
+                    const updated = [...this.futureAnswers];
+                    updated[this.futureQuestionIndex] = answer;
+                    this.futureAnswers = updated;
                     this.futureText = '';
-                    if (this.futureQuestionIndex < 2) {
+                    const total = this.currentScenario?.chat_questions?.length || 3;
+                    if (this.futureQuestionIndex < total - 1) {
                         this.futureQuestionIndex++;
                     } else {
                         this.sendMove(JSON.stringify(this.futureAnswers));

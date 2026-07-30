@@ -45,6 +45,7 @@ if __name__ == "__main__":
         cfg = Config()
         cfg.bind = [f"{host}:{port}"]
         cfg.reload = dev_reload
+        cfg.startup_timeout = 120
 
         print(f"DEBUG: Starting server on {host}:{port}", flush=True)
         asyncio.run(serve(app, cfg))
