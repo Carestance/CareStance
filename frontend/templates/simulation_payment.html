@@ -2,9 +2,314 @@
 
 {% block title %}Complete Payment to Start Your Next Simulation{% endblock %}
 
+{% block navbar %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Jersey+10&display=swap');
+
+    .hero-nav {
+        position: fixed;
+        top: 40px;
+        left: 0;
+        right: 0;
+        width: 100%;
+        z-index: 1100;
+        background: transparent;
+        box-shadow: none;
+    }
+
+    .hero-nav-inner {
+        max-width: 1500px;
+        margin: 0 auto;
+        padding: 0 2.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .hero-nav-logo {
+        display: flex;
+        align-items: center;
+        gap: 1.75rem;
+        text-decoration: none;
+    }
+
+    .hero-nav-logo-badge {
+        width: 156px; height: 156px;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 50%;
+        background: #0f172a;
+        flex-shrink: 0;
+    }
+
+    .hero-nav-logo-badge img {
+        width: 90px; height: 90px;
+        border-radius: 50%; object-fit: cover;
+        transform: scale(1.6);
+    }
+
+    .hero-nav-logo-text {
+        font-family: 'Jersey 10', 'Playfair Display', serif;
+        font-size: 2rem; font-weight: 700;
+        color: #12202b; white-space: nowrap;
+        letter-spacing: 0.02em;
+    }
+
+    .hero-nav-links {
+        display: flex;
+        align-items: center;
+        gap: 1.9rem;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .hero-nav-links a {
+        display: inline-block;
+        font-family: 'Jersey 10', sans-serif;
+        color: #fff;
+        font-size: 30px;
+        font-weight: 400;
+        white-space: nowrap;
+        text-decoration: none;
+        letter-spacing: 0.02em;
+        text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+        transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+
+    .hero-nav-links a:hover {
+        transform: scale(1.1);
+        opacity: 0.75;
+    }
+
+    .hero-nav-links a.nav-active {
+        text-decoration: underline;
+        text-underline-offset: 4px;
+    }
+
+    .hero-nav-user-name {
+        font-family: 'Jersey 10', sans-serif;
+        color: #fff;
+        opacity: 0.75;
+        font-size: 22px;
+        text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+    }
+
+    .hero-nav-logout {
+        font-family: 'Jersey 10', sans-serif;
+        background: #12202b;
+        color: #fff !important;
+        padding: 0.4rem 1.6rem;
+        border-radius: 999px;
+        font-size: 28px;
+        text-shadow: none;
+    }
+
+    .hero-nav-logout:hover {
+        transform: scale(1.08);
+        opacity: 1 !important;
+        background: #1e2f3d;
+    }
+
+    .hero-mobile-toggle {
+        display: none;
+        background: none; border: none;
+        color: #12202b; font-size: 1.35rem;
+        cursor: pointer;
+    }
+
+    .hero-mobile-menu {
+        display: none;
+        position: absolute; top: 100%; left: 1.5rem; right: 1.5rem;
+        margin-top: 0.75rem; padding: 1.5rem;
+        flex-direction: column; gap: 0.75rem;
+        background: #fff; border-radius: 1.25rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.15);
+    }
+
+    .hero-mobile-menu.open { display: flex; }
+
+    .hero-mobile-menu a {
+        padding: 0.8rem 0.5rem;
+        color: var(--text-main);
+        text-decoration: none;
+        font-weight: 500;
+        border-bottom: 1px solid var(--border-soft);
+        transition: color 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .hero-mobile-menu a:last-child { border-bottom: none; }
+    .hero-mobile-menu a:hover { color: #0d9488; }
+
+    @media (max-width: 768px) {
+        .hero-nav-links { display: none; }
+        .hero-mobile-toggle { display: block; }
+        .hero-nav-logo-badge { width: 64px; height: 64px; }
+        .hero-nav-logo-badge img { width: 36px; height: 36px; }
+        .hero-nav-logo-text { font-size: 1.4rem; }
+        .hero-nav-inner { padding: 0 1.25rem; }
+        .hero-nav { top: 20px; }
+    }
+
+    body { padding-top: 0 !important; }
+
+    :root {
+        --content-top-gap: calc(40px + 156px + 30px);
+    }
+    @media (max-width: 768px) {
+        :root { --content-top-gap: calc(20px + 64px + 30px); }
+    }
+</style>
+
+<nav class="hero-nav">
+    <div class="hero-nav-inner">
+        <a href="/" class="hero-nav-logo">
+            <span class="hero-nav-logo-badge">
+                <picture>
+                    <source srcset="/static/images/image.webp?v=101" type="image/webp">
+                    <img src="/static/images/image.png?v=101" alt="CareStance Logo" width="90" height="90">
+                </picture>
+            </span>
+            <span class="hero-nav-logo-text">Carestance</span>
+        </a>
+
+        <div class="hero-nav-links">
+            {% if user %}
+            <a href="/dashboard" class="nav-active">Dashboard</a>
+            {% if user.role != 'counsellor' %}
+            <a href="/chatbot">Chat AI</a>
+            {% endif %}
+            <a href="/community">Community</a>
+            <a href="/feedback">Feedback</a>
+            <a href="/ticket">Support</a>
+            {% if user.role == 'admin' %}
+            <a href="/admin" class="{% if request.url.path == '/admin' %}nav-active{% endif %}" style="font-weight:700;">Admin</a>
+            {% endif %}
+            {% if user.full_name and user.full_name != 'None' %}<span class="hero-nav-user-name">| {{ user.full_name }}</span>{% endif %}
+            <a href="/logout" class="hero-nav-logout">Logout</a>
+            {% else %}
+            <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}">Home</a>
+            <a href="/login" class="{% if request.url.path == '/login' %}nav-active{% endif %}">Log In</a>
+            {% endif %}
+        </div>
+
+        <button class="hero-mobile-toggle" id="base-menu-toggle" aria-label="Menu">
+            <i class="fa-solid fa-bars" id="base-menu-icon"></i>
+        </button>
+    </div>
+
+    <div class="hero-mobile-menu" id="base-mobile-menu">
+        {% if user %}
+        <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i class="fa-solid fa-house"></i>Home</a>
+        <a href="/dashboard" class="nav-active"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
+        {% if user.role != 'counsellor' %}
+        <a href="/chatbot"><i class="fa-solid fa-comment-dots"></i>Chat AI</a>
+        {% endif %}
+        <a href="/community"><i class="fa-solid fa-users"></i>Community</a>
+        <a href="/feedback"><i class="fa-solid fa-star"></i>Feedback</a>
+        <a href="/ticket"><i class="fa-solid fa-circle-question"></i>Support</a>
+        {% if user.role == 'admin' %}<a href="/admin"><i class="fa-solid fa-shield-halved"></i>Admin Panel</a>{% endif %}
+        <a href="/logout" style="color:#b45309;"><i class="fa-solid fa-right-from-bracket"></i>Logout</a>
+        {% else %}
+        <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i class="fa-solid fa-house"></i>Home</a>
+        <a href="/login"><i class="fa-solid fa-right-to-bracket"></i>Log In</a>
+        {% endif %}
+    </div>
+</nav>
+{% endblock %}
+
 {% block content %}
+<<<<<<< HEAD
 <div class="min-h-screen bg-slate-50/50 py-12 px-4 sm:px-6 lg:px-8">
     <div class="max-w-xl mx-auto bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-8 border border-slate-100 shadow-xl transition-all duration-300">
+=======
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+    :root {
+        --pink-accent: #e879a0;
+        --pink-border: rgba(255, 180, 200, 0.45);
+        --card-glass: rgba(255, 248, 252, 0.72);
+        --lavender: #a78bfa;
+        --gold-accent: #f59e0b;
+    }
+
+    .payment-page-wrap {
+        min-height: 100vh;
+        padding: var(--content-top-gap) 1.5rem 3rem;
+        background: url('/static/images/BG1.png') center top / cover no-repeat fixed;
+    }
+
+    .payment-card {
+        background: var(--card-glass);
+        backdrop-filter: blur(22px) saturate(180%);
+        -webkit-backdrop-filter: blur(22px) saturate(180%);
+        border: 1.5px solid var(--pink-border);
+        box-shadow: 0 24px 56px rgba(180, 60, 100, 0.13), 0 2px 0 rgba(255,255,255,0.6) inset;
+        border-radius: 28px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .payment-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--pink-accent), var(--lavender), #0d9488);
+        opacity: 0.7;
+    }
+
+    .payment-mascot {
+        width: 96px;
+        height: auto;
+        margin: -3.5rem auto 0.5rem;
+        display: block;
+        filter: drop-shadow(0 10px 18px rgba(180, 60, 100, 0.25));
+        animation: mascot-bob 3s ease-in-out infinite;
+        position: relative;
+        z-index: 2;
+    }
+
+    @keyframes mascot-bob {
+        0%, 100% { transform: translateY(0) rotate(-2deg); }
+        50% { transform: translateY(-8px) rotate(2deg); }
+    }
+
+    .tier-card {
+        border-radius: 20px !important;
+    }
+
+    input:checked ~ .tier-card {
+        border-color: var(--pink-accent) !important;
+        background: #fff5f8 !important;
+    }
+
+    input:checked ~ .tier-card .tier-label,
+    input:checked ~ .tier-card .tier-check {
+        color: var(--pink-accent) !important;
+    }
+
+    .pay-btn {
+        background: linear-gradient(135deg, var(--pink-accent), #d6577f);
+        box-shadow: 0 12px 28px rgba(180, 60, 100, 0.28);
+    }
+    .pay-btn:hover {
+        background: linear-gradient(135deg, #d6577f, var(--pink-accent));
+        box-shadow: 0 16px 36px rgba(180, 60, 100, 0.35);
+    }
+</style>
+
+<div class="payment-page-wrap">
+    <div class="max-w-xl mx-auto payment-card p-8">
+        <!-- Mascot -->
+        <img src="/static/images/point.png" alt="Point — your career guide mascot" class="payment-mascot"
+             onerror="this.style.display='none'">
+
+>>>>>>> 4978894 (latest)
         <!-- Badge -->
         <div class="flex justify-center mb-6">
             <span class="px-4 py-1 bg-amber-50 text-amber-700 text-xs font-bold rounded-full border border-amber-200 flex items-center gap-1.5 tracking-wider uppercase">
@@ -14,12 +319,12 @@
 
         <!-- Header -->
         <div class="text-center mb-8">
-            <div class="w-16 h-16 bg-[var(--teal-soft)] text-[var(--navy)] rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 shadow-inner">
+            <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 shadow-inner" style="background:rgba(232,121,160,0.12);color:var(--pink-accent);">
                 <i class="fas fa-rocket"></i>
             </div>
             <h1 class="text-2xl font-black text-slate-900 leading-tight mb-2">Unlock Career Simulations</h1>
             <p class="text-xs text-slate-500 font-medium leading-relaxed max-w-sm mx-auto">
-                You've already taken your first free simulation! Choose a package below to continue your journey for <strong class="text-[var(--teal)]">{{ career_title }}</strong>.
+                You've already taken your first free simulation! Choose a package below to continue your journey for <strong style="color: var(--pink-accent);">{{ career_title }}</strong>.
             </p>
         </div>
 
@@ -37,12 +342,12 @@
             <!-- Single Tier -->
             <label class="cursor-pointer group relative">
                 <input type="radio" name="package" value="single" class="peer sr-only" checked onchange="updateSelection()">
-                <div class="h-full p-6 bg-white border-2 border-slate-200 rounded-2xl peer-checked:border-[var(--navy)] peer-checked:bg-[#f4fafa] transition-all relative overflow-hidden group-hover:border-[var(--teal-light)]">
-                    <div class="absolute top-4 right-4 text-slate-300 peer-checked:text-[var(--navy)]">
+                <div class="tier-card h-full p-6 bg-white border-2 border-slate-200 transition-all relative overflow-hidden group-hover:border-[var(--pink-border)]" style="border-radius:20px;">
+                    <div class="absolute top-4 right-4 text-slate-300 tier-check">
                         <i class="fas fa-check-circle text-xl"></i>
                     </div>
                     <div class="mb-4">
-                        <span class="text-xs font-bold text-slate-500 uppercase tracking-widest peer-checked:text-[var(--teal)]">Single</span>
+                        <span class="tier-label text-xs font-bold text-slate-500 uppercase tracking-widest">Single</span>
                     </div>
                     <div class="mb-2">
                         <span class="text-3xl font-black text-slate-900">Rs. 15</span>
@@ -54,15 +359,15 @@
             <!-- Bundle Tier -->
             <label class="cursor-pointer group relative">
                 <input type="radio" name="package" value="bundle" class="peer sr-only" onchange="updateSelection()">
-                <div class="h-full p-6 bg-white border-2 border-slate-200 rounded-2xl peer-checked:border-[var(--navy)] peer-checked:bg-[#f4fafa] transition-all relative overflow-hidden group-hover:border-[var(--teal-light)]">
-                    <div class="absolute top-0 right-0 bg-[var(--navy)] text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl z-10">
+                <div class="tier-card h-full p-6 bg-white border-2 border-slate-200 transition-all relative overflow-hidden group-hover:border-[var(--pink-border)]" style="border-radius:20px;">
+                    <div class="absolute top-0 right-0 text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl z-10" style="background:var(--pink-accent);">
                         BEST VALUE
                     </div>
-                    <div class="absolute top-4 right-4 text-slate-300 peer-checked:text-[var(--navy)]">
+                    <div class="absolute top-4 right-4 text-slate-300 tier-check">
                         <i class="fas fa-check-circle text-xl"></i>
                     </div>
                     <div class="mb-4">
-                        <span class="text-xs font-bold text-slate-500 uppercase tracking-widest peer-checked:text-[var(--teal)]">Bundle</span>
+                        <span class="tier-label text-xs font-bold text-slate-500 uppercase tracking-widest">Bundle</span>
                     </div>
                     <div class="mb-2 flex items-baseline gap-2">
                         <span class="text-3xl font-black text-slate-900">Rs. 35</span>
@@ -76,11 +381,17 @@
 
         <!-- Payment Actions -->
         <div class="space-y-4">
+<<<<<<< HEAD
             <button id="pay-btn" onclick="startPayment()" 
                 class="w-full py-4 bg-[var(--navy)] hover:bg-[var(--teal)] text-white font-bold rounded-2xl transition shadow-lg shadow-[var(--teal-soft)] hover:shadow-xl flex items-center justify-center gap-2">
                 <i class="fas fa-credit-card"></i> <span id="pay-btn-text">Pay Rs. 15 & Start</span>
+=======
+            <button id="pay-btn" onclick="startPayment()"
+                class="pay-btn w-full py-4 text-white font-bold rounded-2xl transition flex items-center justify-center gap-2">
+                <i class="fas fa-credit-card"></i> <span id="pay-btn-text">Pay ₹15 & Start</span>
+>>>>>>> 4978894 (latest)
             </button>
-            <a href="/dashboard" 
+            <a href="/dashboard"
                 class="w-full py-4 bg-white hover:bg-slate-50 text-slate-600 font-bold rounded-2xl transition border border-slate-200 flex items-center justify-center gap-2 text-sm">
                 <i class="fas fa-arrow-left text-xs"></i> Back to Dashboard
             </a>
@@ -115,17 +426,17 @@ async function startPayment() {
     const pkg = getSelectedPackage();
     const payBtn = document.getElementById('pay-btn');
     const originalText = payBtn.innerHTML;
-    
+
     payBtn.disabled = true;
     payBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-    
+
     try {
         const response = await fetch('/assessment/simulation/create-order', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ package: pkg })
         });
-        
+
         if (!response.ok) {
             let message = 'Failed to create order';
             try {
@@ -134,9 +445,9 @@ async function startPayment() {
             } catch (e) {}
             throw new Error(message);
         }
-        
+
         const orderData = await response.json();
-        
+
         const options = {
             "key": "{{ RAZORPAY_KEY_ID }}",
             "amount": orderData.amount,
@@ -145,7 +456,6 @@ async function startPayment() {
             "description": pkg === 'single' ? "1x Career Simulation" : "3x Career Simulations",
             "order_id": orderData.id,
             "handler": async function (response) {
-                // Post verification to backend
                 const verifyRes = await fetch('/assessment/simulation/verify-payment', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -157,7 +467,7 @@ async function startPayment() {
                         package: pkg
                     })
                 });
-                
+
                 if (verifyRes.ok) {
                     window.location.href = `/assessment/simulation/start/{{ career_title }}`;
                 } else {
@@ -172,13 +482,13 @@ async function startPayment() {
                 }
             },
             "theme": {
-                "color": "var(--navy)"
+                "color": "#e879a0"
             }
         };
-        
+
         const rzp1 = new Razorpay(options);
         rzp1.open();
-        
+
         rzp1.on('payment.failed', function (response){
             payBtn.disabled = false;
             payBtn.innerHTML = originalText;
@@ -192,4 +502,3 @@ async function startPayment() {
 }
 </script>
 {% endblock %}
-

@@ -1,229 +1,680 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Career Simulation | {{ career_title }}</title>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap"
-        rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        :root {
-            --primary: var(--navy);
-            --primary-light: var(--teal);
-            --bg-deep: #0a1a1b;
-            --surface: #142a2b;
-            --accent: #f59e0b;
-            --danger: #ef4444;
-            --success: #10b981;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
+{% block title %}Career Simulation | {{ career_title }}{% endblock %}
+
+{% block navbar %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Jersey+10&display=swap');
+
+    .hero-nav {
+        position: fixed;
+        top: 40px;
+        left: 0;
+        right: 0;
+        width: 100%;
+        z-index: 1100;
+        background: transparent;
+        box-shadow: none;
+    }
+
+    .hero-nav-inner {
+        max-width: 1500px;
+        margin: 0 auto;
+        padding: 0 2.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .hero-nav-logo {
+        display: flex;
+        align-items: center;
+        gap: 1.75rem;
+        text-decoration: none;
+    }
+
+    .hero-nav-logo-badge {
+        width: 156px; height: 156px;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 50%;
+        background: #0f172a;
+        flex-shrink: 0;
+    }
+
+    .hero-nav-logo-badge img {
+        width: 90px; height: 90px;
+        border-radius: 50%; object-fit: cover;
+        transform: scale(1.6);
+    }
+
+    .hero-nav-logo-text {
+        font-family: 'Jersey 10', 'Playfair Display', serif;
+        font-size: 2rem; font-weight: 700;
+        color: #12202b; white-space: nowrap;
+        letter-spacing: 0.02em;
+    }
+
+    .hero-nav-links {
+        display: flex;
+        align-items: center;
+        gap: 1.9rem;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .hero-nav-links a {
+        display: inline-block;
+        font-family: 'Jersey 10', sans-serif;
+        color: #fff;
+        font-size: 30px;
+        font-weight: 400;
+        white-space: nowrap;
+        text-decoration: none;
+        letter-spacing: 0.02em;
+        text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+        transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+
+    .hero-nav-links a:hover {
+        transform: scale(1.1);
+        opacity: 0.75;
+    }
+
+    .hero-nav-links a.nav-active {
+        text-decoration: underline;
+        text-underline-offset: 4px;
+    }
+
+    .hero-nav-user-name {
+        font-family: 'Jersey 10', sans-serif;
+        color: #fff;
+        opacity: 0.75;
+        font-size: 22px;
+        text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+    }
+
+    .hero-nav-logout {
+        font-family: 'Jersey 10', sans-serif;
+        background: #12202b;
+        color: #fff !important;
+        padding: 0.4rem 1.6rem;
+        border-radius: 999px;
+        font-size: 28px;
+        text-shadow: none;
+    }
+
+    .hero-nav-logout:hover {
+        transform: scale(1.08);
+        opacity: 1 !important;
+        background: #1e2f3d;
+    }
+
+    .hero-mobile-toggle {
+        display: none;
+        background: none; border: none;
+        color: #12202b; font-size: 1.35rem;
+        cursor: pointer;
+    }
+
+    .hero-mobile-menu {
+        display: none;
+        position: absolute; top: 100%; left: 1.5rem; right: 1.5rem;
+        margin-top: 0.75rem; padding: 1.5rem;
+        flex-direction: column; gap: 0.75rem;
+        background: #fff; border-radius: 1.25rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.15);
+    }
+
+    .hero-mobile-menu.open { display: flex; }
+
+    .hero-mobile-menu a {
+        padding: 0.8rem 0.5rem;
+        color: var(--text-main);
+        text-decoration: none;
+        font-weight: 500;
+        border-bottom: 1px solid var(--border-soft);
+        transition: color 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .hero-mobile-menu a:last-child { border-bottom: none; }
+    .hero-mobile-menu a:hover { color: #0d9488; }
+
+    @media (max-width: 768px) {
+        .hero-nav-links { display: none; }
+        .hero-mobile-toggle { display: block; }
+        .hero-nav-logo-badge { width: 64px; height: 64px; }
+        .hero-nav-logo-badge img { width: 36px; height: 36px; }
+        .hero-nav-logo-text { font-size: 1.4rem; }
+        .hero-nav-inner { padding: 0 1.25rem; }
+        .hero-nav { top: 20px; }
+    }
+
+    body { padding-top: 0 !important; }
+
+    :root {
+        --content-top-gap: calc(40px + 156px + 30px);
+    }
+    @media (max-width: 768px) {
+        :root { --content-top-gap: calc(20px + 64px + 30px); }
+    }
+</style>
+
+<nav class="hero-nav">
+    <div class="hero-nav-inner">
+        <a href="/" class="hero-nav-logo">
+            <span class="hero-nav-logo-badge">
+                <picture>
+                    <source srcset="/static/images/image.webp?v=101" type="image/webp">
+                    <img src="/static/images/image.png?v=101" alt="CareStance Logo" width="90" height="90">
+                </picture>
+            </span>
+            <span class="hero-nav-logo-text">Carestance</span>
+        </a>
+
+        <div class="hero-nav-links">
+            {% if user %}
+            <a href="/dashboard" class="nav-active">Dashboard</a>
+            {% if user.role != 'counsellor' %}
+            <a href="/chatbot">Chat AI</a>
+            {% endif %}
+            <a href="/community">Community</a>
+            <a href="/feedback">Feedback</a>
+            <a href="/ticket">Support</a>
+            {% if user.role == 'admin' %}
+            <a href="/admin" class="{% if request.url.path == '/admin' %}nav-active{% endif %}" style="font-weight:700;">Admin</a>
+            {% endif %}
+            {% if user.full_name and user.full_name != 'None' %}<span class="hero-nav-user-name">| {{ user.full_name }}</span>{% endif %}
+            <a href="/logout" class="hero-nav-logout">Logout</a>
+            {% else %}
+            <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}">Home</a>
+            <a href="/login" class="{% if request.url.path == '/login' %}nav-active{% endif %}">Log In</a>
+            {% endif %}
+        </div>
+
+        <button class="hero-mobile-toggle" id="base-menu-toggle" aria-label="Menu">
+            <i class="fa-solid fa-bars" id="base-menu-icon"></i>
+        </button>
+    </div>
+
+    <div class="hero-mobile-menu" id="base-mobile-menu">
+        {% if user %}
+        <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i class="fa-solid fa-house"></i>Home</a>
+        <a href="/dashboard" class="nav-active"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
+        {% if user.role != 'counsellor' %}
+        <a href="/chatbot"><i class="fa-solid fa-comment-dots"></i>Chat AI</a>
+        {% endif %}
+        <a href="/community"><i class="fa-solid fa-users"></i>Community</a>
+        <a href="/feedback"><i class="fa-solid fa-star"></i>Feedback</a>
+        <a href="/ticket"><i class="fa-solid fa-circle-question"></i>Support</a>
+        {% if user.role == 'admin' %}<a href="/admin"><i class="fa-solid fa-shield-halved"></i>Admin Panel</a>{% endif %}
+        <a href="/logout" style="color:#b45309;"><i class="fa-solid fa-right-from-bracket"></i>Logout</a>
+        {% else %}
+        <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i class="fa-solid fa-house"></i>Home</a>
+        <a href="/login"><i class="fa-solid fa-right-to-bracket"></i>Log In</a>
+        {% endif %}
+    </div>
+</nav>
+{% endblock %}
+
+{% block extra_head %}
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap"
+    rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+    :root {
+        --primary: #e879a0;
+        --primary-light: #a78bfa;
+        --bg-deep: #fdf6f8;
+        --surface: rgba(255, 255, 255, 0.78);
+        --accent: #f59e0b;
+        --danger: #ef4444;
+        --success: #10b981;
+        --text-main: #1e293b;
+        --text-muted: #64748b;
+        --pink-border: rgba(255, 180, 200, 0.45);
+    }
+
+    body {
+        background: url('/static/images/BG1.png') center top / cover no-repeat fixed;
+        color: var(--text-main);
+        font-family: 'Inter', sans-serif;
+        margin: 0;
+        overflow: hidden;
+        height: 100vh;
+        padding-top: 0 !important;
+    }
+
+    .sim-container {
+        display: grid;
+        grid-template-columns: 350px 1fr 300px;
+        height: calc(100vh - var(--content-top-gap));
+        margin-top: var(--content-top-gap);
+        gap: 1.5rem;
+        padding: 0 1.5rem 1.5rem;
+    }
+
+    /* Sidebar Dashboard */
+    .sidebar {
+        background: var(--surface);
+        backdrop-filter: blur(18px) saturate(160%);
+        -webkit-backdrop-filter: blur(18px) saturate(160%);
+        border-radius: 1.5rem;
+        padding: 1.5rem;
+        border: 1.5px solid var(--pink-border);
+        box-shadow: 0 16px 36px rgba(180, 60, 100, 0.1);
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        overflow-y: auto;
+        min-height: 0;
+    }
+
+    .sim-mascot-wrap {
+        text-align: center;
+        margin-bottom: -0.5rem;
+    }
+
+    .sim-mascot {
+        width: 84px;
+        height: auto;
+        filter: drop-shadow(0 8px 14px rgba(180, 60, 100, 0.22));
+        animation: mascot-bob 3s ease-in-out infinite;
+    }
+
+    @keyframes mascot-bob {
+        0%, 100% { transform: translateY(0) rotate(-2deg); }
+        50% { transform: translateY(-6px) rotate(2deg); }
+    }
+
+    .sim-mascot-caption {
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: var(--primary);
+        margin-top: 0.35rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+    }
+
+    .metric-card {
+        background: rgba(255, 248, 252, 0.6);
+        border-radius: 1rem;
+        padding: 1.2rem;
+        border: 1px solid var(--pink-border);
+    }
+
+    .metric-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--text-muted);
+        margin-bottom: 0.5rem;
+    }
+
+    .metric-value {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: var(--primary);
+    }
+
+    .progress-track {
+        height: 8px;
+        background: rgba(232, 121, 160, 0.12);
+        border-radius: 4px;
+        margin-top: 0.8rem;
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--primary), var(--primary-light));
+        transition: width 0.5s ease;
+    }
+
+    /* Main Chat/Scenario Area */
+    .main-stage {
+        background: var(--surface);
+        backdrop-filter: blur(22px) saturate(180%);
+        -webkit-backdrop-filter: blur(22px) saturate(180%);
+        border-radius: 2rem;
+        border: 1.5px solid var(--pink-border);
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        box-shadow: 0 24px 56px rgba(180, 60, 100, 0.13);
+        min-height: 0;
+        max-height: 100%;
+        overflow: hidden;
+    }
+
+    .main-stage::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--primary), var(--primary-light), #0d9488);
+        opacity: 0.8;
+        z-index: 2;
+    }
+
+    .chat-header {
+        padding: 1.5rem 2rem;
+        border-bottom: 1px solid var(--pink-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .chat-history {
+        flex: 1;
+        padding: 2rem;
+        overflow-y: auto;
+        scroll-behavior: smooth;
+    }
+
+    .msg {
+        margin-bottom: 1.5rem;
+        max-width: 80%;
+        animation: fadeIn 0.4s ease;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
         }
 
-        body {
-            background-color: var(--bg-deep);
-            color: var(--text-main);
-            font-family: 'Inter', sans-serif;
-            margin: 0;
-            overflow: hidden;
-            height: 100vh;
+        to {
+            opacity: 1;
+            transform: translateY(0);
         }
+    }
 
-        .sim-container {
-            display: grid;
-            grid-template-columns: 350px 1fr 300px;
-            height: 100vh;
-            gap: 1.5rem;
-            padding: 1.5rem;
-        }
+    .msg-ai {
+        background: rgba(255, 248, 252, 0.85);
+        padding: 1.2rem;
+        border-radius: 0 1.5rem 1.5rem 1.5rem;
+        border-left: 3px solid var(--primary);
+        display: flex;
+        gap: 0.9rem;
+        align-items: flex-start;
+    }
 
-        /* Sidebar Dashboard */
-        .sidebar {
-            background: var(--surface);
-            border-radius: 1.5rem;
-            padding: 1.5rem;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            display: flex;
-            flex-direction: column;
-            gap: 2rem;
-            overflow-y: auto;
-            min-height: 0;
-        }
+    .msg-ai-avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        object-fit: cover;
+        flex-shrink: 0;
+        box-shadow: 0 2px 8px rgba(180, 60, 100, 0.25);
+    }
 
-        .metric-card {
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 1rem;
-            padding: 1.2rem;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
+    .msg-user {
+        margin-left: auto;
+        background: linear-gradient(135deg, var(--primary), #d6577f);
+        padding: 1.2rem;
+        border-radius: 1.5rem 0 1.5rem 1.5rem;
+        color: white;
+        text-align: right;
+    }
 
-        .metric-label {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: var(--text-muted);
-            margin-bottom: 0.5rem;
-        }
+    .controls {
+        padding: 2rem;
+        background: rgba(255, 248, 252, 0.55);
+        border-radius: 0 0 2rem 2rem;
+        flex-shrink: 0;
+        border-top: 1px solid var(--pink-border);
+    }
 
-        .metric-value {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            font-size: 1.5rem;
-            font-weight: 800;
-            color: var(--accent);
-        }
+    .options-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.8rem;
+    }
 
-        .progress-track {
-            height: 8px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 4px;
-            margin-top: 0.8rem;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: var(--accent);
-            transition: width 0.5s ease;
-        }
-
-        /* Main Chat/Scenario Area */
-        .main-stage {
-            background: var(--surface);
-            border-radius: 2rem;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            display: flex;
-            flex-direction: column;
-            position: relative;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            min-height: 0;
-            /* CRITICAL for internal scrolling */
-            max-height: 100%;
-        }
-
-        .chat-header {
-            padding: 1.5rem 2rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .chat-history {
-            flex: 1;
-            padding: 2rem;
-            overflow-y: auto;
-            scroll-behavior: smooth;
-        }
-
-        .msg {
-            margin-bottom: 1.5rem;
-            max-width: 80%;
-            animation: fadeIn 0.4s ease;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .msg-ai {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 1.2rem;
-            border-radius: 0 1.5rem 1.5rem 1.5rem;
-            border-left: 3px solid var(--accent);
-        }
-
-        .msg-user {
-            margin-left: auto;
-            background: var(--primary);
-            padding: 1.2rem;
-            border-radius: 1.5rem 0 1.5rem 1.5rem;
-            color: white;
-            text-align: right;
-        }
-
-        .controls {
-            padding: 2rem;
-            background: rgba(0, 0, 0, 0.4);
-            border-radius: 0 0 2rem 2rem;
-            flex-shrink: 0;
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
+    @media (min-width: 1200px) {
         .options-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 0.8rem;
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    .opt-btn {
+        background: rgba(255, 255, 255, 0.75);
+        border: 1px solid var(--pink-border);
+        color: var(--text-main);
+        padding: 1.2rem;
+        border-radius: 1rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: left;
+        font-size: 0.95rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .opt-btn:hover:not(:disabled) {
+        background: #fff5f8;
+        transform: scale(1.02);
+        border-color: var(--primary);
+    }
+
+    .opt-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    /* Timer */
+    .timer-ring {
+        position: absolute;
+        top: 1.5rem;
+        right: 2rem;
+        width: 60px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(245, 158, 11, 0.1);
+        border-radius: 50%;
+        border: 2px solid var(--accent);
+        font-weight: 800;
+        color: var(--accent);
+    }
+
+    /* Feedback Ticker */
+    .right-pane {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        min-height: 0;
+        max-height: 100%;
+    }
+
+    .log-card {
+        background: var(--surface);
+        backdrop-filter: blur(18px) saturate(160%);
+        -webkit-backdrop-filter: blur(18px) saturate(160%);
+        border-radius: 1.5rem;
+        padding: 1.5rem;
+        flex: 1;
+        border: 1.5px solid var(--pink-border);
+        box-shadow: 0 16px 36px rgba(180, 60, 100, 0.1);
+        overflow-y: auto;
+    }
+
+    .log-entry {
+        font-size: 0.85rem;
+        padding: 0.8rem;
+        border-radius: 0.5rem;
+        background: rgba(255, 248, 252, 0.7);
+        margin-bottom: 0.8rem;
+        border-left: 2px solid var(--accent);
+        color: var(--text-main);
+    }
+
+    [x-cloak] {
+        display: none !important;
+    }
+
+    /* Custom Scrollbar */
+    .chat-history::-webkit-scrollbar,
+    .sidebar::-webkit-scrollbar,
+    .log-card::-webkit-scrollbar {
+        width: 5px;
+    }
+
+    .chat-history::-webkit-scrollbar-track,
+    .sidebar::-webkit-scrollbar-track,
+    .log-card::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.04);
+        border-radius: 10px;
+    }
+
+    .chat-history::-webkit-scrollbar-thumb,
+    .sidebar::-webkit-scrollbar-thumb,
+    .log-card::-webkit-scrollbar-thumb {
+        background: var(--primary);
+        border-radius: 10px;
+        opacity: 1;
+    }
+
+    .chat-history::-webkit-scrollbar-thumb:hover,
+    .sidebar::-webkit-scrollbar-thumb:hover,
+    .log-card::-webkit-scrollbar-thumb:hover {
+        background: var(--primary-light);
+    }
+
+    /* Dynamic Themes (server-supplied theme_hint) — light tints, no dark mode */
+    .theme-tech-neon {
+        --primary: #0ea5e9;
+        --accent: #0ea5e9;
+    }
+
+    .theme-finance-sapphire {
+        --primary: #334155;
+        --accent: #d97706;
+    }
+
+    .theme-creative-vibrant {
+        --primary: #db2777;
+        --primary-light: #f472b6;
+        --accent: #db2777;
+    }
+
+    .theme-medical-clean {
+        --primary: #0284c7;
+        --accent: #0ea5e9;
+    }
+
+    /* Animations for Cues */
+    .shake {
+        animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
+    }
+
+    @keyframes shake {
+
+        10%,
+        90% {
+            transform: translate3d(-1px, 0, 0);
         }
 
-        @media (min-width: 1200px) {
-            .options-grid {
-                grid-template-columns: 1fr 1fr;
-            }
+        20%,
+        80% {
+            transform: translate3d(2px, 0, 0);
         }
 
-        .opt-btn {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: var(--text-main);
-            padding: 1.2rem;
-            border-radius: 1rem;
-            cursor: pointer;
-            transition: all 0.2s;
-            text-align: left;
-            font-size: 0.95rem;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
+        30%,
+        50%,
+        70% {
+            transform: translate3d(-4px, 0, 0);
         }
 
-        .opt-btn:hover:not(:disabled) {
-            background: rgba(255, 255, 255, 0.1);
-            transform: scale(1.02);
-            border-color: var(--accent);
+        40%,
+        60% {
+            transform: translate3d(4px, 0, 0);
+        }
+    }
+
+    .flash-red {
+        animation: flash-red 1s ease-out;
+    }
+
+    @keyframes flash-red {
+        0% {
+            background-color: rgba(239, 68, 68, 0.3);
         }
 
-        .opt-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+        100% {
+            background-color: transparent;
+        }
+    }
+
+    .pulse-green {
+        animation: pulse-green 1s ease-out;
+    }
+
+    @keyframes pulse-green {
+        0% {
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
         }
 
-        /* Timer */
-        .timer-ring {
-            position: absolute;
-            top: 1.5rem;
-            right: 2rem;
-            width: 60px;
-            height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(245, 158, 11, 0.1);
-            border-radius: 50%;
-            border: 2px solid var(--accent);
-            font-weight: 800;
-            color: var(--accent);
+        70% {
+            box-shadow: 0 0 0 20px rgba(16, 185, 129, 0);
         }
 
-        /* Feedback Ticker */
-        .right-pane {
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-            min-height: 0;
-            max-height: 100%;
+        100% {
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+        }
+    }
+
+    #trauma-overlay {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 999;
+        transition: opacity 0.3s;
+    }
+
+    /* Report Overlay */
+    .overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(30, 20, 25, 0.75);
+        backdrop-filter: blur(10px);
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+    }
+
+    .report-card {
+        background: #fffbfd;
+        max-width: 800px;
+        width: 100%;
+        border-radius: 2.5rem;
+        padding: 3rem;
+        border: 1.5px solid var(--pink-border);
+        box-shadow: 0 30px 60px rgba(180, 60, 100, 0.25);
+        text-align: center;
+        color: var(--text-main);
+        animation: zoomIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes zoomIn {
+        from {
+            transform: scale(0.8);
+            opacity: 0;
         }
 
+<<<<<<< HEAD
         .log-card {
             background: var(--surface);
             border-radius: 1.5rem;
@@ -300,23 +751,56 @@
         .log-card::-webkit-scrollbar-thumb {
             background: var(--accent);
             border-radius: 10px;
+=======
+        to {
+            transform: scale(1);
+>>>>>>> 4978894 (latest)
             opacity: 1;
         }
+    }
 
-        .chat-history::-webkit-scrollbar-thumb:hover,
-        .sidebar::-webkit-scrollbar-thumb:hover,
-        .log-card::-webkit-scrollbar-thumb:hover {
-            background: var(--primary-light);
+    .report-mascot {
+        width: 90px;
+        height: auto;
+        margin: 0 auto 1rem;
+        display: block;
+        filter: drop-shadow(0 8px 16px rgba(180, 60, 100, 0.25));
+        animation: mascot-bob 3s ease-in-out infinite;
+    }
+
+    .score-circle {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        border: 8px solid var(--accent);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        font-weight: 800;
+        margin: 0 auto 2rem;
+        color: var(--accent);
+    }
+
+    .skeleton {
+        background: linear-gradient(90deg, rgba(0, 0, 0, 0.04) 25%, rgba(0, 0, 0, 0.08) 50%, rgba(0, 0, 0, 0.04) 75%);
+        background-size: 200% 100%;
+        animation: loading 1.5s infinite;
+    }
+
+    @keyframes loading {
+        0% {
+            background-position: 200% 0;
         }
 
-        /* Dynamic Themes */
-        .theme-tech-neon {
-            --bg-deep: #020617;
-            --surface: #0f172a;
-            --accent: #22d3ee;
-            --primary: #0ea5e9;
+        100% {
+            background-position: -200% 0;
         }
+    }
+</style>
+{% endblock %}
 
+<<<<<<< HEAD
         .theme-finance-sapphire {
             --bg-deep: #0f172a;
             --surface: #1e293b;
@@ -541,14 +1025,19 @@
 
 <body x-data="simApp()">
 
+=======
+{% block content %}
+<div x-data="simApp()">
+>>>>>>> 4978894 (latest)
     <div id="trauma-overlay" :class="visualCueClass"></div>
 
     <div class="sim-container" :class="'theme-' + currentTheme" x-show="!isCompleted">
         <!-- Sidebar: Status & Metrics -->
         <aside class="sidebar">
-            <div class="nav-logo">
-                <img src="/static/images/image.webp" height="40" alt="Logo">
-                <span style="font-weight: 800; font-size: 1.2rem;">CareStance Sim</span>
+            <div class="sim-mascot-wrap">
+                <img src="/static/images/point.png" alt="Point — your career guide mascot" class="sim-mascot"
+                     onerror="this.style.display='none'">
+                <div class="sim-mascot-caption">Point is watching</div>
             </div>
 
             <div class="metric-card">
@@ -587,7 +1076,7 @@
         <main class="main-stage">
             <div class="chat-header">
                 <div>
-                    <h2 style="margin:0; font-family: 'Plus Jakarta Sans';">Live Situation</h2>
+                    <h2 style="margin:0; font-family: 'Plus Jakarta Sans'; color: var(--text-main);">Live Situation</h2>
                     <p style="margin:0; font-size: 0.8rem; color: var(--text-muted);"
                         x-text="'Objective: ' + (currentScenario?.objective || 'Analyze and Respond')"></p>
                 </div>
@@ -606,7 +1095,8 @@
                 <template x-for="item in history">
                     <div>
                         <div class="msg msg-ai">
-                            <p x-text="item.scenario"></p>
+                            <img src="/static/images/point.png" alt="Point" class="msg-ai-avatar" onerror="this.style.display='none'">
+                            <p x-text="item.scenario" style="margin:0;"></p>
                         </div>
                         <div class="msg msg-user">
                             <p x-text="item.user_input"></p>
@@ -616,6 +1106,7 @@
 
                 <!-- Current Scenario -->
                 <div class="msg msg-ai" x-show="currentScenario" x-transition>
+<<<<<<< HEAD
                     <div style="display: flex; gap: 1rem; align-items: flex-start;">
                         <span
                             style="background: var(--accent); padding: 0.4rem; border-radius: 0.5rem; color: black;"><i
@@ -639,12 +1130,18 @@
                             </div>
                         </div>
                     </div>
+=======
+                    <img src="/static/images/point.png" alt="Point" class="msg-ai-avatar" onerror="this.style.display='none'">
+                    <p x-text="currentScenario?.scenario" style="margin:0; line-height: 1.6;"></p>
+>>>>>>> 4978894 (latest)
                 </div>
 
                 <!-- AI Typing Indicator -->
                 <div class="msg msg-ai" x-show="loading" x-transition>
-                    <div class="skeleton" style="height: 20px; width: 60%; border-radius: 4px;"></div>
-                    <div class="skeleton" style="height: 20px; width: 40%; border-radius: 4px; margin-top: 5px;"></div>
+                    <div style="flex:1;">
+                        <div class="skeleton" style="height: 20px; width: 60%; border-radius: 4px;"></div>
+                        <div class="skeleton" style="height: 20px; width: 40%; border-radius: 4px; margin-top: 5px;"></div>
+                    </div>
                 </div>
             </div>
 
@@ -660,9 +1157,13 @@
                 <div x-show="!loading && !currentScenario?.options" style="display: flex; gap: 1rem;">
                     <textarea x-model="textInput"
                         placeholder="Type your response..."
+<<<<<<< HEAD
                         style="flex:1; min-height: 74px; resize: vertical; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 1rem; padding: 1rem; color: white;"></textarea>
+=======
+                        style="flex:1; background: rgba(255,255,255,0.75); border: 1px solid var(--pink-border); border-radius: 1rem; padding: 1rem; color: var(--text-main);">
+>>>>>>> 4978894 (latest)
                     <button @click="sendMove(textInput)" class="btn-primary"
-                        style="border-radius: 1rem; background: var(--accent); color: black;">Send <i
+                        style="border-radius: 1rem; background: linear-gradient(135deg, var(--primary), #d6577f); color: white; padding: 1rem 1.5rem; border:none; cursor:pointer; font-weight:700;">Send <i
                             class="fas fa-paper-plane"></i></button>
                 </div>
             </div>
@@ -670,7 +1171,7 @@
 
         <!-- Right Pane: Analysis & Dashboard -->
         <aside class="right-pane">
-            <div class="metric-card" style="margin: 0; background: var(--surface);">
+            <div class="metric-card" style="margin: 0;">
                 <div class="metric-label">Dashboard Telemetry</div>
                 <div style="display: flex; justify-content: space-between; margin-top: 1rem;">
                     <span x-text="currentScenario?.visual_dashboard?.metric_name || 'System Load'"></span>
@@ -697,6 +1198,7 @@
     <!-- Final Evaluation Overlay -->
     <div class="overlay" x-show="isCompleted" x-cloak>
         <div class="report-card">
+            <img src="/static/images/point.png" alt="Point" class="report-mascot" onerror="this.style.display='none'">
             <h1 style="font-family: 'Plus Jakarta Sans'; font-size: 2.5rem; margin-bottom: 0.5rem;">Simulation Complete
             </h1>
             <p style="color: var(--text-muted); margin-bottom: 2rem;">{{ career_title }} Evaluation for {{
@@ -704,7 +1206,7 @@
 
             <div class="score-circle" x-text="report?.overall_score || '0%'"></div>
 
-            <h2 style="color: var(--accent);" x-text="report?.persona"></h2>
+            <h2 style="color: var(--primary);" x-text="report?.persona"></h2>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin: 2rem 0; text-align: left;">
                 <div>
@@ -726,7 +1228,7 @@
             </div>
 
             <div
-                style="background: rgba(255,255,255,0.03); padding: 1.5rem; border-radius: 1rem; margin-bottom: 2rem; text-align: left;">
+                style="background: rgba(232,121,160,0.06); padding: 1.5rem; border-radius: 1rem; margin-bottom: 2rem; text-align: left; border: 1px solid var(--pink-border);">
                 <h4 style="margin-top:0;">Mentor's Verdict</h4>
                 <p x-text="report?.career_readiness"
                     style="font-size: 0.95rem; line-height: 1.6; color: var(--text-main);"></p>
@@ -734,40 +1236,87 @@
 
             <div style="display: flex; gap: 1rem; justify-content: center;">
                 <a href="/dashboard" class="btn-primary"
-                    style="background: white; color: black; border-radius: 2rem;">Return to Dashboard</a>
+                    style="background: white; color: var(--text-main); border-radius: 2rem; padding: 1rem 1.75rem; text-decoration:none; font-weight:700; border: 1px solid var(--pink-border); display:inline-flex; align-items:center;">Return to Dashboard</a>
                 <button @click="location.reload()" class="btn-primary"
-                    style="background: var(--accent); color: black; border-radius: 2rem;">Try Again</button>
+                    style="background: linear-gradient(135deg, var(--primary), #d6577f); color: white; border-radius: 2rem; padding: 1rem 1.75rem; border:none; cursor:pointer; font-weight:700;">Try Again</button>
             </div>
         </div>
     </div>
+</div>
 
-    <script>
-        function simApp() {
-            return {
-                sessionId: null,
-                currentScenario: null,
-                history: [],
-                metrics: { eq: 0.5, problem_solving: 0.5, clarity: 0.5 },
-                logs: [],
-                loading: true,
-                isCompleted: false,
-                report: null,
-                timeLeft: 30,
-                timerInterval: null,
-                textInput: '',
-                startTime: null,
-                currentTheme: 'default',
-                visualCueClass: '',
+<script>
+    function simApp() {
+        return {
+            sessionId: null,
+            currentScenario: null,
+            history: [],
+            metrics: { eq: 0.5, problem_solving: 0.5, clarity: 0.5 },
+            logs: [],
+            loading: true,
+            isCompleted: false,
+            report: null,
+            timeLeft: 30,
+            timerInterval: null,
+            textInput: '',
+            startTime: null,
+            currentTheme: 'default',
+            visualCueClass: '',
 
-                init() {
-                    this.startSim();
-                },
+            init() {
+                this.startSim();
+            },
 
-                async startSim() {
-                    const formData = new FormData();
-                    formData.append('career_title', '{{ career_title }}');
-                    formData.append('difficulty', '{{ difficulty }}');
+            async startSim() {
+                const formData = new FormData();
+                formData.append('career_title', '{{ career_title }}');
+                formData.append('difficulty', '{{ difficulty }}');
 
+                const res = await fetch('/simulation/start', { method: 'POST', body: formData });
+                const data = await res.json();
+                this.sessionId = data.session_id;
+                this.currentScenario = data.initial_state;
+                this.currentTheme = data.initial_state.theme_hint || 'default';
+                this.loading = false;
+                this.startTimer();
+                this.startTime = Date.now();
+            },
+
+            async sendMove(input) {
+                if (!input || this.loading) return;
+
+                const timeTaken = (Date.now() - this.startTime) / 1000;
+                this.loading = true;
+                this.history.push({ scenario: this.currentScenario.scenario, user_input: input });
+                this.textInput = '';
+                this.stopTimer();
+
+                const formData = new FormData();
+                formData.append('session_id', this.sessionId);
+                formData.append('user_input', input);
+                formData.append('response_time', timeTaken);
+
+                const res = await fetch('/simulation/step', { method: 'POST', body: formData });
+                const data = await res.json();
+
+                if (data.analysis) {
+                    this.metrics.eq = Math.max(0, Math.min(1, this.metrics.eq + data.analysis.eq_impact));
+                    this.metrics.problem_solving = (this.metrics.problem_solving + data.analysis.problem_solving_score) / 2;
+                    this.metrics.clarity = (this.metrics.clarity + data.analysis.clarity_score) / 2;
+                    this.logs.unshift(data.analysis.feedback);
+                }
+
+                if (data.is_last_step) {
+                    this.finalize();
+                } else {
+                    this.currentScenario = data.next_state;
+
+                    // Handle Visual Cues
+                    if (data.next_state.visual_cue) {
+                        this.visualCueClass = data.next_state.visual_cue;
+                        setTimeout(() => this.visualCueClass = '', 1000);
+                    }
+
+<<<<<<< HEAD
                     const res = await fetch('/simulation/start', { method: 'POST', body: formData });
                     if (res.status === 402) {
                         window.location.href = `/assessment/simulation/pay/{{ career_title }}`;
@@ -782,11 +1331,13 @@
                     this.sessionId = data.session_id;
                     this.currentScenario = data.initial_state;
                     this.currentTheme = data.initial_state.theme_hint || 'default';
+=======
+>>>>>>> 4978894 (latest)
                     this.loading = false;
                     this.startTimer();
                     this.startTime = Date.now();
-                },
 
+<<<<<<< HEAD
                 async sendMove(input) {
                     if (!input || this.loading) return;
 
@@ -826,51 +1377,45 @@
                         if (data.next_state.visual_cue) {
                             this.visualCueClass = data.next_state.visual_cue;
                             setTimeout(() => this.visualCueClass = '', 1000);
+=======
+                    // Stronger scroll to bottom
+                    setTimeout(() => {
+                        const cb = document.getElementById('chatbox');
+                        if (cb) {
+                            cb.scrollTo({
+                                top: cb.scrollHeight,
+                                behavior: 'smooth'
+                            });
+>>>>>>> 4978894 (latest)
                         }
-
-                        this.loading = false;
-                        this.startTimer();
-                        this.startTime = Date.now();
-
-                        // Stronger scroll to bottom
-                        setTimeout(() => {
-                            const cb = document.getElementById('chatbox');
-                            if (cb) {
-                                cb.scrollTo({
-                                    top: cb.scrollHeight,
-                                    behavior: 'smooth'
-                                });
-                            }
-                        }, 200);
-                    }
-                },
-
-                async finalize() {
-                    this.loading = true;
-                    // Wait for the server to finish final report processing
-                    const res = await fetch(`/simulation/session/${this.sessionId}`);
-                    const data = await res.json();
-                    this.report = data.final_evaluation;
-                    this.isCompleted = true;
-                    this.loading = false;
-                },
-
-                startTimer() {
-                    this.timeLeft = 30;
-                    this.timerInterval = setInterval(() => {
-                        this.timeLeft--;
-                        if (this.timeLeft <= 0) {
-                            this.sendMove("I hesitated too long to make a clear decision.");
-                        }
-                    }, 1000);
-                },
-
-                stopTimer() {
-                    clearInterval(this.timerInterval);
+                    }, 200);
                 }
+            },
+
+            async finalize() {
+                this.loading = true;
+                // Wait for the server to finish final report processing
+                const res = await fetch(`/simulation/session/${this.sessionId}`);
+                const data = await res.json();
+                this.report = data.final_evaluation;
+                this.isCompleted = true;
+                this.loading = false;
+            },
+
+            startTimer() {
+                this.timeLeft = 30;
+                this.timerInterval = setInterval(() => {
+                    this.timeLeft--;
+                    if (this.timeLeft <= 0) {
+                        this.sendMove("I hesitated too long to make a clear decision.");
+                    }
+                }, 1000);
+            },
+
+            stopTimer() {
+                clearInterval(this.timerInterval);
             }
         }
-    </script>
-</body>
-
-</html>
+    }
+</script>
+{% endblock %}
