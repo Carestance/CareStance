@@ -906,12 +906,6 @@ async def get_current_user(request: Request, db: AsyncSession = Depends(get_db))
     user_id = decode_access_token(token)
     if not user_id: return None
     try:
-        # Try fetching from Appwrite first
-        user = get_user_by_id(user_id)
-        if user:
-             return user
-        
-        # Fallback to local SQL if not found in Appwrite
         uid = int(user_id)
         stmt = select(models.User).options(selectinload(models.User.assessment)).where(models.User.id == uid)
         result = await db.execute(stmt)
@@ -1044,7 +1038,7 @@ async def signup(
     role: str = Form("student"),
     db: AsyncSession = Depends(get_db)
 ):
-    # 1. Check existing user local
+    # 1. Check existing user
     stmt = select(models.User).where(models.User.email == email)
     result = await db.execute(stmt)
     user = result.scalars().first()
@@ -1056,44 +1050,13 @@ async def signup(
         return templates.TemplateResponse(request=request, name="signup.html", context={"error": "Invalid phone number. It must include a country code (e.g., +91) followed by a 10-digit number."})
     
     try:
-        # 2. Create User in Appwrite Auth
-        user_id = str(uuid.uuid4())[:20] # Appwrite ID limit
-        try:
-            appwrite_user = account.create(
-                user_id=user_id,
-                email=email,
-                password=password,
-                name=full_name
-            )
-        except Exception as ae:
-            print(f"Appwrite Signup Error: {ae}")
-            return templates.TemplateResponse(request=request, name="signup.html", context={"error": f"Appwrite error: {ae}"})
-
-        # 3. Create User in Local DB
+        # 2. Create User in Local DB
         hashed_pw = get_password_hash(password)
         new_user = models.User(id=None, email=email, hashed_password=hashed_pw, full_name=full_name, contact_number=contact_number, role=role)
         db.add(new_user)
         await db.flush()
-        
-        # 4. Create User Metadata in Appwrite DB
-        try:
-            tables_db.create_row(
-                database_id=DB_ID,
-                table_id=COLLECTIONS["users"],
-                row_id=user_id,
-                data={
-                    "email": email,
-                    "full_name": full_name,
-                    "contact_number": contact_number,
-                    "role": role,
-                    "local_id": new_user.id
-                }
-            )
-        except Exception as de:
-            print(f"Appwrite DB Error: {de}")
-            # Non-critical for now as we have local DB, but should be logged
 
-        # Create Counsellor Profile
+        # Create Counsellor Profile if applicable
         if role == "counsellor":
             c_profile = models.CounsellorProfile(user_id=new_user.id)
             db.add(c_profile)
@@ -1104,7 +1067,7 @@ async def signup(
         await db.rollback()
         return templates.TemplateResponse(request=request, name="signup.html", context={"error": "An error occurred during signup. Please try again."})
     
-    return RedirectResponse(url="/login?message=Account created with Appwrite! Please login.", status_code=status.HTTP_302_FOUND)
+    return RedirectResponse(url="/login?message=Account created! Please login.", status_code=status.HTTP_302_FOUND)
 
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
@@ -1123,70 +1086,34 @@ async def login(
     password: str = Form(...),
     db: AsyncSession = Depends(get_db)
 ):
-    # 1. Try Appwrite Login first
-    appwrite_user = None
-    try:
-        session = account.create_email_password_session(email, password)
-        appwrite_user = get_user_by_email(email)
-        print(f"Appwrite Login Success: {email}")
-    except Exception as ae:
-        print(f"Appwrite Login Failed: {ae}")
-    
-    # 2. Local verify (for transition/legacy fallback)
+    # Verify credentials against local DB
     stmt = select(models.User).where(models.User.email == email)
     result = await db.execute(stmt)
     user = result.scalars().first()
     
-    # If not in Appwrite and not local, error
-    if not appwrite_user and (not user or not verify_password(password, user.hashed_password)):
-         return templates.TemplateResponse(request=request, name="login.html", context={"error": "Invalid credentials"})
-    
-    # Use local user if present; Appwrite user only if no local record exists.
-    effective_user = user if user else appwrite_user
-    effective_user_id = None
-    if user:
-        effective_user_id = user.id
-    elif appwrite_user:
-        effective_user_id = getattr(appwrite_user, "local_id", None)
-        if effective_user_id is not None:
-            try:
-                effective_user_id = int(effective_user_id)
-            except ValueError:
-                pass
+    if not user or not verify_password(password, user.hashed_password):
+        return templates.TemplateResponse(request=request, name="login.html", context={"error": "Invalid credentials"})
 
+    # Update last_login timestamp
     try:
-        # 2. Create Appwrite Session (Server-side)
-        # Note: In a production app, you might want to handle sessions differently
-        # but for now, we ensure the user exists and can authenticate in Appwrite.
-        try:
-            # We don't necessarily need to store the session on the server for every request
-            # if we use local sessions, but we should verify the user can log in to Appwrite.
-            session = account.create_email_password_session(email, password)
-            print(f"Appwrite Session Created: {session['$id']}")
-        except Exception as ae:
-            print(f"Appwrite Login Error: {ae}")
-            # If user exists locally but not in Appwrite (e.g. legacy user), we might need to sync them
-            # For now, we'll just log it.
-    except Exception as e:
-        print(f"Login/Appwrite error: {e}")
-
-    if effective_user_id is None and effective_user is not None:
-        effective_user_id = getattr(effective_user, "id", None)
+        user.last_login = datetime.datetime.utcnow()
+        await db.commit()
+    except Exception:
+        pass
 
     # Pre-populate suspension cache
-    user_cache.set_user_status(effective_user_id, {"is_suspended": getattr(effective_user, 'is_suspended', False)})
+    user_cache.set_user_status(user.id, {"is_suspended": getattr(user, 'is_suspended', False)})
     
     response = RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
     # 30 day persistent session
-    if effective_user_id is not None:
-        token = create_access_token(str(effective_user_id))
-        response.set_cookie(
-            key="user_id", 
-            value=token, 
-            max_age=30 * 24 * 60 * 60,
-            httponly=True,
-            samesite="lax"
-        )
+    token = create_access_token(str(user.id))
+    response.set_cookie(
+        key="user_id", 
+        value=token, 
+        max_age=30 * 24 * 60 * 60,
+        httponly=True,
+        samesite="lax"
+    )
     return response
 
 @app.get("/logout")
