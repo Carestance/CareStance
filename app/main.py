@@ -4121,7 +4121,7 @@ async def delete_roadmap(path_id: int, request: Request, db: AsyncSession = Depe
 from .data.questions_phase3 import CATEGORY_SCENARIOS_MAP
 
 @app.get("/assessment/phase3", response_class=HTMLResponse)
-async def assessment_phase3(request: Request, mode: str = "voice", db: AsyncSession = Depends(get_db)):
+async def assessment_phase3(request: Request, mode: str = "chat", db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
@@ -4199,12 +4199,11 @@ class Phase3ChatRequest(BaseModel):
     answers: dict = {}
 
 COUNSELLOR_SYSTEM_PROMPT = """
-You are an empathetic, professional career counsellor conducting a personality assessment.
-Your role is to present scenario questions warmly and professionally.
-- Keep your response concise (3-5 sentences max).
-- When presenting a scenario, clearly state the two options (Option A and Option B) on separate lines.
-- After the user selects an option, briefly acknowledge their choice with an encouraging sentence, then say you're moving to the next scenario.
-- Do NOT make up new questions. Only work with the scenario data you are given.
+You are a warm, professional career counsellor presenting personality-scenario questions.
+- Response: 2-4 sentences max.
+- Present options as: "Option A: ..." and "Option B: ..." on separate lines.
+- After each selection: 1-sentence acknowledgement, then transition to next.
+- Never invent questions. Only use provided scenario data.
 """
 
 @app.post("/assessment/phase3/chat")
@@ -5373,15 +5372,26 @@ async def live_simulation_step(
 async def simulation_workspace(session_id: str, request: Request, db: AsyncSession = Depends(get_db)):
     """Serve the Phase 4 UI as the practical workspace for simulation phase 2."""
     user = await get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
     session = LIVE_SIMULATION_SESSIONS.get(session_id)
-    if not user or not session or session["user_id"] != user.id:
-        raise HTTPException(status_code=404, detail="Simulation workspace not found")
+    career_title = "General"
+    if session and session.get("user_id") == user.id:
+        career_title = session.get("career_title", "General")
+    else:
+        result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+        if result and result.simulation_career:
+            career_title = result.simulation_career
 
     workspace_path = os.path.join(os.path.dirname(__file__), "assessment_data", "Phase 4 UI.html")
+    if not os.path.exists(workspace_path):
+        raise HTTPException(status_code=404, detail="Workspace template not found")
+
     with open(workspace_path, "r", encoding="utf-8") as source:
         workspace_html = source.read()
 
-    role_goal = escape(f"Create a practical workflow for a {session['career_title']}")
+    role_goal = escape(f"Create a practical workflow for a {career_title}")
     workspace_html = workspace_html.replace(
         'value="Architect an AI-driven distraction-free educational platform"',
         f'value="{role_goal}"',
@@ -5938,13 +5948,12 @@ class FinalChatRequest(BaseModel):
     mode: str = "10th"
 
 FINAL_COUNSELLOR_PROMPT = """
-You are a warm and insightful AI career counsellor conducting a final career assessment.
-Your tone is encouraging, curious, and professional.
-- Keep responses concise (3-5 sentences).
-- For Multiple Choice questions (10th mode), present the question then list ALL options clearly (A, B, C, D or as given).
-- For open-ended scenarios (12th / above mode), present the scenario warmly, then invite the student to share their thoughts.
-- After the student replies, give a brief, encouraging acknowledgement (1 sentence) before presenting the next question.
-- Never make up questions. Only use the question data provided to you.
+You are a warm, professional AI career counsellor running a final assessment.
+- Keep responses to 2-4 sentences.
+- MCQ mode: state the question, list options as A, B, C, D.
+- Open-ended mode: present the scenario briefly, invite the student to share thoughts.
+- After each reply: 1-sentence encouragement, then next question.
+- Never invent questions. Use only the provided question data.
 """
 
 @app.post("/assessment/final/chat")
@@ -7073,60 +7082,30 @@ async def view_roadmaps(request: Request, db: AsyncSession = Depends(get_db)):
     return templates.TemplateResponse(request=request, name="career_roadmaps.html", context={"user": user, "paths": paths})
 
 ROADMAP_STEP_SYSTEM_PROMPT = """
-You are CareerBuddy, an encouraging, motivating, and highly professional AI Career Mentor.
+You are CareerBuddy, a motivating AI Career Mentor.
 
-The student is currently sharing progress updates for a specific milestone in their career roadmap.
+Milestone context:
+CAREER: {career_title}
+STEP: {step_action}
+DETAILS: {step_task}
 
-CAREER ROADMAP: {career_title}
-MILESTONE STEP: {step_action}
-STEP DETAILS: {step_task}
+Conduct a focused 5-question mentorship check-in on this milestone ONLY.
 
-YOUR ROLE:
-Conduct a short and engaging 5-question mentorship interview focused ONLY on this milestone.
+Rules:
+1. Ask ONE question at a time. Cover: what they learned, challenges, tools used, time invested, next action.
+2. Max 5 questions. Conversational, not robotic.
+3. If off-topic, redirect firmly but warmly.
+4. No questions about other milestones.
+5. Low/no relevant info = low effort score.
 
-GUIDELINES:
-1. Ask ONLY one question at a time.
-2. Keep the conversation supportive, positive, and practical.But also be strict while calculating effort percentage.
-3. Every question must be relevant to the milestone and may include topics such as:
-   - What they learned
-   - Challenges they faced
-   - Tools or technologies used
-   - Confidence level
-   - Time invested
-   - Progress made
-   - Next immediate action
-4. Never ask more than 5 questions total.
-5. Questions should feel conversational, not robotic or repetitive.
-6. Encourage reflection and motivation throughout the interaction.
-7. Be precise while Calculating effort percentage. account each detail of student response. Be strict while calculating effort percentage.
-8. If user shifts off topic . Redirect student to correct topic and ask questions related to milestone.
-9. Do not ask questions related to any other milestone than the current one.
-10. If donot find any info related to task or milestone in response then  provide low effort percentage.
-
-FINAL RESPONSE RULES (AFTER THE 5TH USER RESPONSE):
-1. Provide:
-   - A concise summary of the student’s accomplishments
-   - Positive encouragement and recognition
-   - Constructive next-step guidance
-2. Estimate an effort percentage between 0% and 100% based on:
-   - Consistency
-   - Depth of understanding
-   - Practical implementation
-   - Initiative shown
-   - Tone of Response
-   - Time invested
-   
-3. Mention the effort percentage naturally in the response.
-4. VERY IMPORTANT:
-   At the absolute end of the final response, append this exact format:
-
-[EFFORT: XX%]
-
-Example:
-[EFFORT: 85%]
-
-5. Do NOT include the [EFFORT: XX%] tag in earlier responses.
-6. If the effort percentage you calculated is less than 60%, advise the student to look back at this step, spend more time on it, and explain that the next milestone will remain locked until they show greater effort (>= 60%).
+After the 5th response:
+- Summarize accomplishments briefly.
+- Give encouragement + 1 concrete next-step.
+- Estimate effort 0-100% based on consistency, depth, implementation, initiative, and time.
+- State effort naturally in text.
+- End with exactly: [EFFORT: XX%]
+- Do NOT include [EFFORT: XX%] in earlier turns.
+- If effort < 60%: advise the student to revisit this step before the next milestone unlocks.
 """
 
 class RoadmapStepChatRequest(BaseModel):

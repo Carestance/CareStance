@@ -923,7 +923,7 @@
                 <div class="workspace-panel" x-show="currentScenario?.type === 'workspace_activity' && !loading" x-transition>
                     <div class="metric-label">Practical workspace</div>
                     <p style="color:var(--text-muted);line-height:1.5">Build the workflow inside the workspace: drag in resources, configure them, connect the important steps, then click <strong>Export</strong> to continue.</p>
-                    <iframe x-show="sessionId" :src="'/simulation/workspace/' + sessionId" title="Simulation practical workspace" style="display:block;width:100%;height:640px;border:1px solid rgba(255,255,255,.14);border-radius:1rem;background:#020617"></iframe>
+                    <iframe x-show="sessionId" :src="sessionId ? '/simulation/workspace/' + sessionId : ''" title="Simulation practical workspace" style="display:block;width:100%;height:640px;border:1px solid rgba(255,255,255,.14);border-radius:1rem;background:#020617"></iframe>
                 </div>
 
                 <!-- Phase 3: career-specific future-self reflection chat -->
@@ -935,7 +935,7 @@
                     <h3 x-text="currentScenario?.chat_questions?.[futureQuestionIndex]" style="line-height:1.6;margin-top:0"></h3>
                     <textarea x-model="futureText" placeholder="Write your answer here — the more specific you are, the more useful this reflection will be..." style="width:100%;box-sizing:border-box;min-height:120px;resize:vertical;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);border-radius:1rem;padding:1rem;color:var(--text-main);font-size:0.95rem;line-height:1.5"></textarea>
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:1rem">
-                        <span style="font-size:0.8rem;color:var(--text-muted)" x-text="futureText.trim().length > 0 ? futureText.trim().split(/\\s+/).length + ' words' : ''"></span>
+                        <span style="font-size:0.8rem;color:var(--text-muted)" x-text="futureText.trim().length > 0 ? futureText.trim().split(/\s+/).length + ' words' : ''"></span>
                         <button class="btn-primary" @click="nextFutureQuestion()" :disabled="!futureText.trim()" style="background:var(--accent);color:#071419" x-text="futureQuestionIndex >= (currentScenario?.chat_questions?.length || 3) - 1 ? 'Complete simulation' : 'Next question'"></button>
                     </div>
                 </div>
@@ -951,7 +951,7 @@
 
             <div class="controls">
                 <div class="options-grid" x-show="!loading && currentScenario?.options">
-                    <template x-for="opt in currentScenario.options">
+                    <template x-for="opt in (currentScenario?.options || [])">
                         <button class="opt-btn" @click="sendMove(opt.text)" :disabled="loading">
                             <span x-text="opt.text"></span>
                             <i class="fas fa-arrow-right" style="margin-left: auto; opacity: 0.5;"></i>
@@ -1062,8 +1062,62 @@
             currentTheme: 'default',
             visualCueClass: '',
 
+            // Phase 1 (MCQ) State
+            quizIndex: 0,
+            quizAnswers: [],
+
+            // Phase 3 (Future Reflection) State
+            futureQuestionIndex: 0,
+            futureText: '',
+            futureAnswers: [],
+
             init() {
                 this.startSim();
+                window.addEventListener('message', (event) => {
+                    if (event.data && event.data.source === 'carestance-simulation-workspace' && event.data.type === 'complete') {
+                        this.sendMove(JSON.stringify(event.data.payload || { status: 'completed' }));
+                    }
+                });
+            },
+
+            selectQuizAnswer(optionIndex) {
+                this.quizAnswers[this.quizIndex] = optionIndex;
+                this.quizAnswers = [...this.quizAnswers];
+            },
+
+            previousQuiz() {
+                if (this.quizIndex > 0) {
+                    this.quizIndex--;
+                }
+            },
+
+            nextQuiz() {
+                const totalQs = this.currentScenario?.mcqs?.length || 5;
+                if (this.quizIndex < totalQs - 1) {
+                    this.quizIndex++;
+                } else {
+                    const answersToSubmit = JSON.stringify(this.quizAnswers);
+                    this.quizIndex = 0;
+                    this.quizAnswers = [];
+                    this.sendMove(answersToSubmit);
+                }
+            },
+
+            nextFutureQuestion() {
+                const totalQs = this.currentScenario?.chat_questions?.length || 3;
+                if (!this.futureAnswers) this.futureAnswers = [];
+                this.futureAnswers[this.futureQuestionIndex] = this.futureText.trim();
+
+                if (this.futureQuestionIndex < totalQs - 1) {
+                    this.futureQuestionIndex++;
+                    this.futureText = this.futureAnswers[this.futureQuestionIndex] || '';
+                } else {
+                    const answersToSubmit = JSON.stringify(this.futureAnswers);
+                    this.futureQuestionIndex = 0;
+                    this.futureText = '';
+                    this.futureAnswers = [];
+                    this.sendMove(answersToSubmit);
+                }
             },
 
             async startSim() {
@@ -1071,14 +1125,28 @@
                 formData.append('career_title', '{{ career_title }}');
                 formData.append('difficulty', '{{ difficulty }}');
 
-                const res = await fetch('/simulation/start', { method: 'POST', body: formData });
-                const data = await res.json();
-                this.sessionId = data.session_id;
-                this.currentScenario = data.initial_state;
-                this.currentTheme = data.initial_state.theme_hint || 'default';
-                this.loading = false;
-                this.startTimer();
-                this.startTime = Date.now();
+                try {
+                    const res = await fetch('/simulation/start', { method: 'POST', body: formData });
+                    if (!res.ok) {
+                        if (res.status === 402) {
+                            window.location.href = `/assessment/simulation/pay/${encodeURIComponent('{{ career_title }}')}`;
+                            return;
+                        }
+                        console.error('Simulation start failed:', res.status, await res.text());
+                        this.loading = false;
+                        return;
+                    }
+                    const data = await res.json();
+                    this.sessionId = data.session_id;
+                    this.currentScenario = data.initial_state;
+                    this.currentTheme = data.initial_state.theme_hint || 'default';
+                    this.loading = false;
+                    this.startTimer();
+                    this.startTime = Date.now();
+                } catch (err) {
+                    console.error('Failed to start simulation:', err);
+                    this.loading = false;
+                }
             },
 
             async sendMove(input) {
@@ -1095,50 +1163,73 @@
                 formData.append('user_input', input);
                 formData.append('response_time', timeTaken);
 
-                const res = await fetch('/simulation/step', { method: 'POST', body: formData });
-                const data = await res.json();
+                try {
+                    const res = await fetch('/simulation/step', { method: 'POST', body: formData });
+                    if (!res.ok) {
+                        console.error('Simulation step error:', res.status, await res.text());
+                        this.loading = false;
+                        return;
+                    }
+                    const data = await res.json();
 
-                if (data.analysis) {
-                    this.metrics.eq = Math.max(0, Math.min(1, this.metrics.eq + data.analysis.eq_impact));
-                    this.metrics.problem_solving = (this.metrics.problem_solving + data.analysis.problem_solving_score) / 2;
-                    this.metrics.clarity = (this.metrics.clarity + data.analysis.clarity_score) / 2;
-                    this.logs.unshift(data.analysis.feedback);
-                }
-
-                if (data.is_last_step) {
-                    this.finalize();
-                } else {
-                    this.currentScenario = data.next_state;
-
-                    // Handle Visual Cues
-                    if (data.next_state.visual_cue) {
-                        this.visualCueClass = data.next_state.visual_cue;
-                        setTimeout(() => this.visualCueClass = '', 1000);
+                    if (data.analysis) {
+                        this.metrics.eq = Math.max(0, Math.min(1, this.metrics.eq + data.analysis.eq_impact));
+                        this.metrics.problem_solving = (this.metrics.problem_solving + data.analysis.problem_solving_score) / 2;
+                        this.metrics.clarity = (this.metrics.clarity + data.analysis.clarity_score) / 2;
+                        this.logs.unshift(data.analysis.feedback);
                     }
 
-                    this.loading = false;
-                    this.startTimer();
-                    this.startTime = Date.now();
+                    if (data.is_last_step) {
+                        this.finalize();
+                    } else {
+                        this.currentScenario = data.next_state;
 
-                    // Stronger scroll to bottom
-                    setTimeout(() => {
-                        const cb = document.getElementById('chatbox');
-                        if (cb) {
-                            cb.scrollTo({
-                                top: cb.scrollHeight,
-                                behavior: 'smooth'
-                            });
+                        // Reset phase indices if moving to phase 2 or 3
+                        this.quizIndex = 0;
+                        this.quizAnswers = [];
+                        this.futureQuestionIndex = 0;
+                        this.futureText = '';
+                        this.futureAnswers = [];
+
+                        // Handle Visual Cues
+                        if (data.next_state.visual_cue) {
+                            this.visualCueClass = data.next_state.visual_cue;
+                            setTimeout(() => this.visualCueClass = '', 1000);
                         }
-                    }, 200);
+
+                        this.loading = false;
+                        this.startTimer();
+                        this.startTime = Date.now();
+
+                        // Stronger scroll to bottom
+                        setTimeout(() => {
+                            const cb = document.getElementById('chatbox');
+                            if (cb) {
+                                cb.scrollTo({
+                                    top: cb.scrollHeight,
+                                    behavior: 'smooth'
+                                });
+                            }
+                        }, 200);
+                    }
+                } catch (err) {
+                    console.error('Failed to send move:', err);
+                    this.loading = false;
                 }
             },
 
             async finalize() {
                 this.loading = true;
-                // Wait for the server to finish final report processing
-                const res = await fetch(`/simulation/session/${this.sessionId}`);
-                const data = await res.json();
-                this.report = data.final_evaluation;
+                try {
+                    // Wait for the server to finish final report processing
+                    const res = await fetch(`/simulation/session/${this.sessionId}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        this.report = data.final_evaluation;
+                    }
+                } catch (err) {
+                    console.error('Failed to finalize simulation:', err);
+                }
                 this.isCompleted = true;
                 this.loading = false;
             },
