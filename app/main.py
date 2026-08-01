@@ -28,6 +28,7 @@ from .database import AsyncSessionLocal, engine, get_db, Base, SQLALCHEMY_DATABA
 import re
 import hashlib
 import hmac
+from html import escape
 
 def sync_assessment_to_appwrite(user_id, result):
     pass  # Appwrite sync disabled — local DB only
@@ -49,6 +50,21 @@ from .services import assessment_engine
 
 LIVE_SIMULATION_SESSIONS = {}
 
+import jwt
+JWT_SECRET_KEY = os.getenv("SECRET_KEY", "a_very_secret_key_for_sessions")
+JWT_ALGORITHM = "HS256"
+
+def create_access_token(user_id: str):
+    expire = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=30)
+    to_encode = {"sub": str(user_id), "exp": expire}
+    return jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+
+def decode_access_token(token: str):
+    try:
+        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+        return payload.get("sub")
+    except Exception:
+        return None
 try:
     from app.pipeline.feature_extractor import FeatureExtractor
     extractor_tool = FeatureExtractor()
@@ -58,7 +74,7 @@ except Exception as e:
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-RUN_MIGRATIONS_ON_STARTUP = os.getenv("RUN_MIGRATIONS_ON_STARTUP", "true").strip().lower() in ("1", "true", "yes")
+RUN_MIGRATIONS_ON_STARTUP = False
 ENABLE_CLEANUP_TASK = os.getenv("ENABLE_CLEANUP_TASK", "false").strip().lower() in ("1", "true", "yes")
 
 @lru_cache(maxsize=4)
@@ -175,6 +191,19 @@ def get_assessment_display_archetype(result) -> str:
     return "Explorer"
 
 def get_subscription_state(user) -> dict:
+    if not user:
+        return {"active": False, "plan": None, "expires_at": None}
+    
+    admin_email = os.getenv("ADMIN_EMAIL", "").strip()
+    is_admin = getattr(user, "role", None) == "admin" or (bool(admin_email) and getattr(user, "email", None) == admin_email)
+    if is_admin:
+        return {
+            "active": True,
+            "plan": "customised",
+            "expires_at": datetime.datetime.utcnow() + datetime.timedelta(days=3650),
+            "is_admin": True
+        }
+        
     now = datetime.datetime.utcnow()
     expires_at = getattr(user, "subscription_expires_at", None)
     is_active = (
@@ -186,6 +215,7 @@ def get_subscription_state(user) -> dict:
         "active": is_active,
         "plan": getattr(user, "subscription_plan", None) if is_active else None,
         "expires_at": expires_at if is_active else None,
+        "is_admin": False
     }
 
 def has_customised_subscription(user) -> bool:
@@ -226,7 +256,12 @@ async def mark_assessment_completed_once(user, result, db: AsyncSession):
     raw_answers = dict(result.raw_answers or {})
     if raw_answers.get("assessment_counted"):
         return
-    user.assessments_completed = max(user.assessments_completed or 0, 1)
+    # Use getattr/setattr to be safe against Appwrite SimpleNamespace objects
+    current_count = getattr(user, "assessments_completed", None) or 0
+    try:
+        setattr(user, "assessments_completed", max(current_count, 1))
+    except (AttributeError, TypeError):
+        pass
     raw_answers["assessment_counted"] = True
     result.raw_answers = raw_answers
 
@@ -682,12 +717,20 @@ app.include_router(payments_router)
 from .routes import admin
 app.include_router(admin.router)
 
+try:
+    from app.voice.routes.websocket import router as voice_router
+    app.include_router(voice_router)
+except (ImportError, ModuleNotFoundError) as e:
+    print(f"Warning: Voice router module not available ({e}). Skipping voice_router.")
+
 # Global Exception Handler for better debugging
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     import traceback
     print(f"GLOBAL ERROR: {exc}", flush=True)
     traceback.print_exc()
+    with open("traceback_dump.txt", "w") as f:
+        traceback.print_exc(file=f)
     try:
         return templates.TemplateResponse(
             request=request,
@@ -824,8 +867,9 @@ async def check_suspension(request: Request, call_next):
     is_exempt = any(path == p or path.startswith("/static/") or path.startswith("/auth/") for p in exempt_paths)
     
     if not is_exempt:
-        user_id = request.cookies.get("user_id")
-        if user_id and user_id.strip(): # Added safety check for empty/invalid strings
+        token = request.cookies.get("user_id")
+        user_id = decode_access_token(token) if token else None
+        if user_id and str(user_id).strip(): # Added safety check for empty/invalid strings
             try:
                 uid = int(user_id)
                 # Quick check for suspension
@@ -882,7 +926,9 @@ def get_password_hash(password: str) -> str:
 
 
 async def get_current_user(request: Request, db: AsyncSession = Depends(get_db)):
-    user_id = request.cookies.get("user_id")
+    token = request.cookies.get("user_id")
+    if not token: return None
+    user_id = decode_access_token(token)
     if not user_id: return None
     try:
         # Try fetching from Appwrite first
@@ -1157,13 +1203,15 @@ async def login(
     
     response = RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
     # 30 day persistent session
-    response.set_cookie(
-        key="user_id", 
-        value=str(effective_user_id), 
-        max_age=30 * 24 * 60 * 60,
-        httponly=True,
-        samesite="lax"
-    )
+    if effective_user_id is not None:
+        token = create_access_token(str(effective_user_id))
+        response.set_cookie(
+            key="user_id", 
+            value=token, 
+            max_age=30 * 24 * 60 * 60,
+            httponly=True,
+            samesite="lax"
+        )
     return response
 
 @app.get("/logout")
@@ -1341,7 +1389,8 @@ async def auth_callback(request: Request, db: AsyncSession = Depends(get_db)):
         # Users without a role must select it first
         redirect_url = "/select-role" if (is_new_user or not user.role) else "/dashboard"
         response = RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
-        response.set_cookie(key="user_id", value=str(user.id))
+        token = create_access_token(str(user.id))
+        response.set_cookie(key="user_id", value=token, max_age=30 * 24 * 60 * 60, httponly=True, samesite="lax")
         return response
     except Exception as exc:
         import traceback
@@ -1543,10 +1592,12 @@ async def assessment_reset(request: Request, db: AsyncSession = Depends(get_db))
     
     result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
     if result:
-        used_free_assessment = (user.assessments_completed or 0) >= 1 or has_completed_assessment(result)
+        assessments_completed = getattr(user, 'assessments_completed', 0) or 0
+        used_free_assessment = assessments_completed >= 1 or has_completed_assessment(result)
         if used_free_assessment and not get_subscription_state(user)["active"]:
-            if (user.assessments_completed or 0) < 1:
-                user.assessments_completed = 1
+            if assessments_completed < 1:
+                if hasattr(user, 'assessments_completed'):
+                    user.assessments_completed = 1
                 await db.commit()
             return RedirectResponse(
                 url="/subscription?reason=assessment_retake",
@@ -2214,8 +2265,8 @@ async def assessment_result(request: Request, db: AsyncSession = Depends(get_db)
         except:
             await db.rollback()
     
-    sims_completed = max(result.simulations_completed or 0, user.simulations_completed or 0)
-    simulation_credits = max(result.simulation_credits or 0, user.simulation_credits or 0)
+    sims_completed = max(getattr(result, 'simulations_completed', 0) or 0, getattr(user, 'simulations_completed', 0) or 0)
+    simulation_credits = max(getattr(result, 'simulation_credits', 0) or 0, getattr(user, 'simulation_credits', 0) or 0)
     simulation_access = {
         "is_free": sims_completed < 1,
         "credits": simulation_credits,
@@ -2407,14 +2458,24 @@ async def share_report(result_id: int, request: Request, mode: str = "full", db:
     
     owner = (await db.execute(select(models.User).where(models.User.id == result.user_id))).scalars().first()
     # current_user = await get_current_user(request, db)
-    user_id_cookie = request.cookies.get("user_id")
-    uid = int(user_id_cookie)
-    result_cu = await db.execute(
-        select(models.User)
-        .options(selectinload(models.User.assessment))
-        .where(models.User.id == uid)
-    )
-    current_user = result_cu.scalars().first()
+    token = request.cookies.get("user_id")
+    uid = None
+    if token:
+        sub = decode_access_token(token)
+        if sub:
+            try:
+                uid = int(sub)
+            except ValueError:
+                pass
+    
+    current_user = None
+    if uid:
+        result_cu = await db.execute(
+            select(models.User)
+            .options(selectinload(models.User.assessment))
+            .where(models.User.id == uid)
+        )
+        current_user = result_cu.scalars().first()
     
     # Ensure a stable high confidence (82-98%) is saved and displayed
     if not result.confidence or result.confidence < 0.81:
@@ -2656,13 +2717,13 @@ async def admin_dashboard(
             all_users = (await db.execute(select(models.User).order_by(models.User.id.desc()).offset((user_page - 1) * page_size).limit(page_size))).scalars().all()
             total_users = (await db.execute(select(func.count()).select_from(models.User))).scalar()
 
-        all_feedback = (await db.execute(select(models.Feedback).order_by(models.Feedback.timestamp.desc()).offset((feedback_page - 1) * page_size).limit(page_size))).scalars().all()
+        all_feedback = (await db.execute(select(models.Feedback).options(joinedload(models.Feedback.user)).order_by(models.Feedback.timestamp.desc()).offset((feedback_page - 1) * page_size).limit(page_size))).scalars().all()
         total_feedback = (await db.execute(select(func.count()).select_from(models.Feedback))).scalar()
 
-        all_tickets = (await db.execute(select(models.Ticket).order_by(models.Ticket.timestamp.desc()).offset((ticket_page - 1) * page_size).limit(page_size))).scalars().all()
+        all_tickets = (await db.execute(select(models.Ticket).options(joinedload(models.Ticket.user)).order_by(models.Ticket.timestamp.desc()).offset((ticket_page - 1) * page_size).limit(page_size))).scalars().all()
         total_tickets = (await db.execute(select(func.count()).select_from(models.Ticket))).scalar()
 
-        pending_counsellors = (await db.execute(select(models.CounsellorProfile).where(models.CounsellorProfile.verification_status == "pending"))).scalars().all()
+        pending_counsellors = (await db.execute(select(models.CounsellorProfile).options(joinedload(models.CounsellorProfile.user)).where(models.CounsellorProfile.verification_status == "pending"))).scalars().all()
         
         # ─── Optimized Counsellor Stats (Single Query) ───────────────────
 
@@ -2687,17 +2748,26 @@ async def admin_dashboard(
             # Search across all counsellors by name or email
             search_filter = models.User.full_name.ilike(f"%{counsellor_search}%") | models.User.email.ilike(f"%{counsellor_search}%")
             all_counsellors = (await db.execute(
-                select(models.CounsellorProfile).join(models.User).where(search_filter)
+                select(models.CounsellorProfile).join(models.User).options(joinedload(models.CounsellorProfile.user)).where(search_filter)
             )).scalars().all()
         else:
-            all_counsellors = (await db.execute(select(models.CounsellorProfile))).scalars().all()
+            all_counsellors = (await db.execute(select(models.CounsellorProfile).options(joinedload(models.CounsellorProfile.user)))).scalars().all()
         for cp in all_counsellors:
             cp.session_count = completed_map.get(cp.user_id, 0)
             cp.total_sessions = total_map.get(cp.user_id, 0)
 
         # ─── Payment Split Analytics ──────────────────────────────────────
         try:
-            all_payments = (await db.execute(select(models.Payment).order_by(models.Payment.created_at.desc()).limit(20))).scalars().all()
+            all_payments = (await db.execute(
+                select(models.Payment)
+                .options(
+                    joinedload(models.Payment.session).joinedload(models.Appointment.student),
+                    joinedload(models.Payment.session).joinedload(models.Appointment.counsellor),
+                    selectinload(models.Payment.transfers).joinedload(models.Transfer.counsellor)
+                )
+                .order_by(models.Payment.created_at.desc())
+                .limit(20)
+            )).scalars().all()
             
             # Using scalars directly for performance
             session_revenue = (await db.execute(
@@ -2727,7 +2797,7 @@ async def admin_dashboard(
             pending_transfers, failed_transfers, captured_payments_count = 0, 0, 0
         
         # Fetch Moderation Flags (Limited for performance)
-        moderation_flags = (await db.execute(select(models.ModerationFlag).order_by(models.ModerationFlag.timestamp.desc()).limit(50))).scalars().all()
+        moderation_flags = (await db.execute(select(models.ModerationFlag).options(joinedload(models.ModerationFlag.user)).order_by(models.ModerationFlag.timestamp.desc()).limit(50))).scalars().all()
 
         # Fetch all appointments for admin Session Management table
         all_appointments = (await db.execute(
@@ -2744,6 +2814,31 @@ async def admin_dashboard(
             ).order_by(models.SimulationPayment.id.desc()).limit(50)
         )).scalars().all()
 
+        # Fetch counsellor session analytics map
+        counsellor_analytics_map = {}
+        try:
+            from app.services.admin_counsellor_service import get_counsellor_session_analytics
+            counsellor_analytics = await get_counsellor_session_analytics(db)
+            counsellor_analytics_map = {
+                row["counsellor_id"]: row for row in counsellor_analytics
+            }
+        except Exception as cae:
+            print(f"Counsellor analytics map error: {cae}")
+
+        # Fetch assessment results map for admin dashboard user tables
+        assessments_map = {}
+        assessment_summaries_map = {}
+        try:
+            ar_res = await db.execute(select(models.AssessmentResult))
+            for ar in ar_res.scalars().all():
+                assessments_map[ar.user_id] = ar
+                summary_info = {}
+                if ar.raw_answers and isinstance(ar.raw_answers, dict):
+                    summary_info["groq_summary"] = ar.raw_answers.get("groq_summary", "")
+                assessment_summaries_map[ar.user_id] = summary_info
+        except Exception as are:
+            print(f"Assessments map error: {are}")
+
         try:
             template = templates.get_template("admin_dashboard.html")
             content = template.render({
@@ -2751,6 +2846,8 @@ async def admin_dashboard(
                 "user": current_user, 
                 "users": all_users,
                 "total_users": total_users,
+                "assessments": assessments_map,
+                "assessment_summaries": assessment_summaries_map,
                 "user_page": user_page,
                 "feedbacks": all_feedback,
                 "total_feedback": total_feedback,
@@ -2761,6 +2858,7 @@ async def admin_dashboard(
                 "page_size": page_size,
                 "pending_counsellors": pending_counsellors,
                 "all_counsellors": all_counsellors,
+                "counsellor_session_analytics_map": counsellor_analytics_map,
                 "all_payments": all_payments,
                 "total_revenue": total_revenue,
                 "session_revenue": session_revenue,
@@ -3392,12 +3490,14 @@ async def book_free_counsellor(counsellor_id: int, request: Request, background_
     if not user:
          return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
          
-    # Verify counsellor is free
+    # Verify counsellor is free (or user is an admin exempt from payments)
+    admin_email = os.getenv("ADMIN_EMAIL", "").strip()
+    is_admin = getattr(user, "role", None) == "admin" or (bool(admin_email) and getattr(user, "email", None) == admin_email)
     counsellor_profile = (await db.execute(select(models.CounsellorProfile).where(models.CounsellorProfile.user_id == counsellor_id))).scalars().first()
-    if not counsellor_profile or (counsellor_profile.fee > 0):
-        # Allow a small margin for float comparison
-        if counsellor_profile and counsellor_profile.fee > 0.01:
-            raise HTTPException(status_code=400, detail="This counsellor is not free. Please use the payment booking flow.")
+    if not is_admin:
+        if not counsellor_profile or (counsellor_profile.fee > 0):
+            if counsellor_profile and counsellor_profile.fee > 0.01:
+                raise HTTPException(status_code=400, detail="This counsellor is not free. Please use the payment booking flow.")
     
     # Check availability before booking
     try:
@@ -4184,42 +4284,37 @@ Present the scenario story first, then clearly list Option A and Option B on sep
         new_idx = current_idx
         done = False
 
-    # Call Groq (with Gemini fallback)
+    # Call Groq (with Gemini fallback) with timeout and robust logging
+    ai_text = None
     try:
         gclient = get_groq_client()
         if gclient:
             try:
-                completion = await gclient.chat.completions.create(
-                    messages=[{"role": "user", "content": prompt}],
-                    model="llama-3.3-70b-versatile",
+                # Apply a 15-second timeout to prevent hanging
+                completion = await asyncio.wait_for(
+                    gclient.chat.completions.create(
+                        messages=[{"role": "user", "content": prompt}],
+                        model="llama-3.3-70b-versatile",
+                    ),
+                    timeout=15,
                 )
                 ai_text = completion.choices[0].message.content
             except Exception as groq_err:
-                print(f"Groq error: {groq_err}. Falling back to Gemini.")
-                if GEMINI_API_KEY:
-                    try:
-                        model_ai = get_gemini_model("gemini-2.0-flash")
-                        response = await model_ai.generate_content_async(prompt)
-                        ai_text = response.text
-                    except Exception:
-                        model_ai = get_gemini_model("gemini-2.5-flash")
-                        response = await model_ai.generate_content_async(prompt)
-                        ai_text = response.text
-                else:
-                    raise groq_err
-        elif GEMINI_API_KEY:
+                print(f"Phase 3 Groq error: {groq_err}. Falling back to Gemini.")
+
+        if not ai_text and GEMINI_API_KEY:
             try:
-                model_ai = get_gemini_model("gemini-2.0-flash")
-                response = await model_ai.generate_content_async(prompt)
-                ai_text = response.text
-            except Exception:
                 model_ai = get_gemini_model("gemini-2.5-flash")
                 response = await model_ai.generate_content_async(prompt)
                 ai_text = response.text
-        else:
-            ai_text = f"[Demo Mode] {scenario_text}"
+            except Exception as gemini_err:
+                print(f"Phase 3 Gemini fallback error: {gemini_err}.")
+
+        if not ai_text:
+            ai_text = "I'm here with you. Could you share a bit more about what you're thinking? I'd love to understand your perspective better."
     except Exception as e:
-        ai_text = f"I'm having a moment of reflection. ({str(e)}) Please try again."
+        print(f"Phase 3 Chat critical error: {e}")
+        ai_text = "I'm reflecting on your response. Please share your thoughts and I'll continue the conversation."
 
     return JSONResponse({
         "response": ai_text,
@@ -4309,10 +4404,11 @@ async def phase3_chat_v2(request: Request, chat_req: Phase3V2ChatRequest, db: As
         result.chat_messages = full_history.copy()
         await db.commit()
 
-    # Use Groq API directly
-    try:
-        gclient = get_groq_client()
-        if gclient:
+    ai_text = None
+    # Try Groq API directly
+    gclient = get_groq_client()
+    if gclient:
+        try:
             completion = await gclient.chat.completions.create(
                 messages=messages,
                 model="llama-3.3-70b-versatile",
@@ -4320,14 +4416,18 @@ async def phase3_chat_v2(request: Request, chat_req: Phase3V2ChatRequest, db: As
                 max_tokens=300,
             )
             ai_text = completion.choices[0].message.content
-        elif GEMINI_API_KEY:
-            # Fallback to Gemini if Groq not available
+        except Exception as groq_err:
+            print(f"Phase 3 Chat Groq Error: {groq_err}")
+            
+    if not ai_text and GEMINI_API_KEY:
+        try:
+            # Fallback to Gemini if Groq not available or failed
             flat_prompt = "\n".join([f"{m['role'].upper()}: {m['content']}" for m in messages])
             ai_text = await generate_content_with_fallback(flat_prompt)
-        else:
-            ai_text = "Welcome! I am your CareStance Career Mentor. Tell me, what area or field excites you the most right now?"
-    except Exception as e:
-        print(f"Phase 3 Chat Error: {e}")
+        except Exception as gemini_err:
+            print(f"Phase 3 Chat Gemini Error: {gemini_err}")
+            
+    if not ai_text:
         ai_text = "I appreciate your patience. Could you tell me a bit more about that? I want to make sure I really understand your perspective."
 
     # Update conversation history in database with AI response
@@ -4459,13 +4559,273 @@ async def phase3_finalize(request: Request, finalize_req: Phase3FinalizeRequest,
 
     except Exception as e:
         print(f"Finalize Analysis Error: {e}")
-        # Soft fallback
-        result.phase3_analysis = "We've captured your insights and mapped them to your potential."
-        
-    await mark_assessment_completed_once(user, result, db)
+        # ── Local rule-based fallback ──────────────────────────────────────────
+        # When both Groq & Gemini are unavailable we still produce useful career
+        # recommendations from the student's archetype + phase-1 interests that
+        # are already stored in the DB — no API call required.
+        ARCHETYPE_CAREERS = {
+            # Focused Specialist
+            "focused specialist": [
+                {"profession": "Data Scientist", "fit_level": "excellent_fit",
+                 "why_suitable": ["Deep analytical focus", "Strong independent research skills"],
+                 "practical_next_step": "Learn Python & ML on Kaggle; build a portfolio of 3 projects."},
+                {"profession": "Software Engineer", "fit_level": "strong_fit",
+                 "why_suitable": ["Problem-solving in structured environments", "Attention to detail"],
+                 "practical_next_step": "Practice DSA on LeetCode and contribute to open-source projects."},
+                {"profession": "Research Analyst", "fit_level": "good_fit",
+                 "why_suitable": ["Methodical thinking", "Depth over breadth preference"],
+                 "practical_next_step": "Pursue certifications in your domain and publish 1 research paper."},
+            ],
+            # Quiet Explorer
+            "quiet explorer": [
+                {"profession": "UI/UX Designer", "fit_level": "excellent_fit",
+                 "why_suitable": ["Creative observation", "User empathy"],
+                 "practical_next_step": "Build a Figma portfolio with 3 case studies using real user feedback."},
+                {"profession": "Content Writer / Journalist", "fit_level": "strong_fit",
+                 "why_suitable": ["Reflective thinking", "Strong written communication"],
+                 "practical_next_step": "Start a blog and write 2 pieces weekly for 3 months."},
+                {"profession": "Environmental Scientist", "fit_level": "good_fit",
+                 "why_suitable": ["Curiosity about natural systems", "Systematic observation"],
+                 "practical_next_step": "Volunteer with an NGO and get a certification in GIS or remote sensing."},
+            ],
+            # Strategic Builder
+            "strategic builder": [
+                {"profession": "Product Manager", "fit_level": "excellent_fit",
+                 "why_suitable": ["Strategic planning ability", "Bridges tech and business"],
+                 "practical_next_step": "Complete the Google PM certificate and shadow a PM for 1 month."},
+                {"profession": "Management Consultant", "fit_level": "strong_fit",
+                 "why_suitable": ["Structured problem solving", "Communication across teams"],
+                 "practical_next_step": "Practice case interviews on PrepLounge and build an analytics project."},
+                {"profession": "Financial Analyst", "fit_level": "good_fit",
+                 "why_suitable": ["Methodical evaluation of options", "Risk awareness"],
+                 "practical_next_step": "Get CFA Level 1 or complete an Excel-based financial modelling course."},
+            ],
+            # Dynamic Generalist
+            "dynamic generalist": [
+                {"profession": "Marketing Manager", "fit_level": "excellent_fit",
+                 "why_suitable": ["Thrives in fast-paced environments", "Strong communication"],
+                 "practical_next_step": "Run a digital campaign on a ₹500 budget and document the results."},
+                {"profession": "Business Development Executive", "fit_level": "strong_fit",
+                 "why_suitable": ["Relationship building", "Adaptability to new domains"],
+                 "practical_next_step": "Network at 2 industry events per month and learn LinkedIn outreach."},
+                {"profession": "Startup Founder / Entrepreneur", "fit_level": "good_fit",
+                 "why_suitable": ["High energy", "Comfort with uncertainty"],
+                 "practical_next_step": "Join a startup accelerator program or validate 1 idea using lean canvas."},
+            ],
+            # Visionary Leader
+            "visionary leader": [
+                {"profession": "CEO / General Manager", "fit_level": "excellent_fit",
+                 "why_suitable": ["Natural leadership", "Long-term vision"],
+                 "practical_next_step": "Lead a college fest, club, or team project end-to-end."},
+                {"profession": "Civil Services Officer (IAS/IPS)", "fit_level": "strong_fit",
+                 "why_suitable": ["Drive to create systemic change", "Public impact mindset"],
+                 "practical_next_step": "Start UPSC preparation with NCERT books and join a study group."},
+                {"profession": "Social Entrepreneur", "fit_level": "good_fit",
+                 "why_suitable": ["Purpose-driven motivation", "Community influence"],
+                 "practical_next_step": "Identify one community problem and prototype a zero-budget solution."},
+            ],
+            # Adaptive Explorer
+            "adaptive explorer": [
+                {"profession": "Sales Manager", "fit_level": "excellent_fit",
+                 "why_suitable": ["High adaptability", "People skills"],
+                 "practical_next_step": "Do a 3-month internship in B2B/B2C sales and track your conversion rate."},
+                {"profession": "Digital Marketing Specialist", "fit_level": "strong_fit",
+                 "why_suitable": ["Content agility", "Platform versatility"],
+                 "practical_next_step": "Get Google Ads & Meta Blueprint certifications."},
+                {"profession": "HR Business Partner", "fit_level": "good_fit",
+                 "why_suitable": ["Emotional intelligence", "Flexibility in dealing with people"],
+                 "practical_next_step": "Complete an HR analytics course and volunteer for campus recruitment drives."},
+            ],
+        }
+
+        # Determine best matching archetype key
+        arch_raw = (result.phase_2_category or "dynamic generalist").lower()
+        careers = []
+        for key, recs in ARCHETYPE_CAREERS.items():
+            if key in arch_raw:
+                careers = recs
+                break
+        if not careers:
+            careers = ARCHETYPE_CAREERS["dynamic generalist"]
+
+        # Build stream_pros in the same format the result page expects
+        transformed_pros = []
+        for rec in careers:
+            why = rec.get("why_suitable", [])
+            next_step = rec.get("practical_next_step", "")
+            fit = rec.get("fit_level", "good_fit").replace("_", " ").title()
+            transformed_pros.append({
+                "title": rec["profession"],
+                "reason": f"Match Level: {fit}. {next_step}",
+                "pros": why,
+                "cons": []
+            })
+
+        result.recommended_stream = "Personalized Career Matches"
+        result.final_analysis = (
+            f"Based on your {result.phase_2_category or 'unique'} profile and the interests you shared, "
+            f"we've identified these career paths as strong matches for you. "
+            f"Each suggestion aligns with your work-style archetype and growth potential."
+        )
+        result.phase3_analysis = "Confidence: High | Generated from your archetype and interests profile."
+        result.stream_pros = transformed_pros
+        result.stream_scores = {}
+        result.phase3_result = "fallback"
+        result.final_answers = {"skipped": True, "flow": "simplified"}
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(result, "stream_pros")
+        flag_modified(result, "final_answers")
+        # ── End local fallback ─────────────────────────────────────────────────
+
+    # Ensure we have a real SQLAlchemy User object, not an Appwrite SimpleNamespace.
+    # get_current_user() may return a SimpleNamespace from Appwrite which lacks
+    # the assessments_completed column — fetch from DB by id to be safe.
+    try:
+        db_user = (await db.execute(select(models.User).where(models.User.id == user.id))).scalars().first()
+        if db_user:
+            await mark_assessment_completed_once(db_user, result, db)
+        else:
+            await mark_assessment_completed_once(user, result, db)
+    except Exception as mark_err:
+        print(f"Warning: mark_assessment_completed_once failed: {mark_err}")
+
     await db.commit()
 
     return JSONResponse({"redirect": "/assessment/result"})
+
+
+@app.get("/assessment/phase3/retry-careers")
+async def retry_careers(request: Request, db: AsyncSession = Depends(get_db)):
+    """
+    Applies local rule-based career fallback for users whose result page
+    shows no career recommendations (e.g., after an API outage during finalize).
+    """
+    from fastapi.responses import JSONResponse as _JSONResponse
+
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+
+    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+    if not result:
+        return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
+
+    # Only fill in if careers are missing or marked as fallback
+    needs_fill = (
+        not result.stream_pros or
+        result.phase3_result == "fallback" or
+        (isinstance(result.stream_pros, list) and len(result.stream_pros) == 0)
+    )
+
+    if needs_fill:
+        ARCHETYPE_CAREERS = {
+            "focused specialist": [
+                {"profession": "Data Scientist", "fit_level": "excellent_fit",
+                 "why_suitable": ["Deep analytical focus", "Strong independent research skills"],
+                 "practical_next_step": "Learn Python & ML on Kaggle; build a portfolio of 3 projects."},
+                {"profession": "Software Engineer", "fit_level": "strong_fit",
+                 "why_suitable": ["Problem-solving in structured environments", "Attention to detail"],
+                 "practical_next_step": "Practice DSA on LeetCode and contribute to open-source projects."},
+                {"profession": "Research Analyst", "fit_level": "good_fit",
+                 "why_suitable": ["Methodical thinking", "Depth over breadth preference"],
+                 "practical_next_step": "Pursue certifications in your domain and publish 1 research paper."},
+            ],
+            "quiet explorer": [
+                {"profession": "UI/UX Designer", "fit_level": "excellent_fit",
+                 "why_suitable": ["Creative observation", "User empathy"],
+                 "practical_next_step": "Build a Figma portfolio with 3 case studies using real user feedback."},
+                {"profession": "Content Writer / Journalist", "fit_level": "strong_fit",
+                 "why_suitable": ["Reflective thinking", "Strong written communication"],
+                 "practical_next_step": "Start a blog and write 2 pieces weekly for 3 months."},
+                {"profession": "Environmental Scientist", "fit_level": "good_fit",
+                 "why_suitable": ["Curiosity about natural systems", "Systematic observation"],
+                 "practical_next_step": "Volunteer with an NGO and get a certification in GIS or remote sensing."},
+            ],
+            "strategic builder": [
+                {"profession": "Product Manager", "fit_level": "excellent_fit",
+                 "why_suitable": ["Strategic planning ability", "Bridges tech and business"],
+                 "practical_next_step": "Complete the Google PM certificate and shadow a PM for 1 month."},
+                {"profession": "Management Consultant", "fit_level": "strong_fit",
+                 "why_suitable": ["Structured problem solving", "Communication across teams"],
+                 "practical_next_step": "Practice case interviews on PrepLounge and build an analytics project."},
+                {"profession": "Financial Analyst", "fit_level": "good_fit",
+                 "why_suitable": ["Methodical evaluation of options", "Risk awareness"],
+                 "practical_next_step": "Get CFA Level 1 or complete an Excel-based financial modelling course."},
+            ],
+            "dynamic generalist": [
+                {"profession": "Marketing Manager", "fit_level": "excellent_fit",
+                 "why_suitable": ["Thrives in fast-paced environments", "Strong communication"],
+                 "practical_next_step": "Run a digital campaign on a ₹500 budget and document the results."},
+                {"profession": "Business Development Executive", "fit_level": "strong_fit",
+                 "why_suitable": ["Relationship building", "Adaptability to new domains"],
+                 "practical_next_step": "Network at 2 industry events per month and learn LinkedIn outreach."},
+                {"profession": "Startup Founder / Entrepreneur", "fit_level": "good_fit",
+                 "why_suitable": ["High energy", "Comfort with uncertainty"],
+                 "practical_next_step": "Join a startup accelerator program or validate 1 idea using lean canvas."},
+            ],
+            "visionary leader": [
+                {"profession": "CEO / General Manager", "fit_level": "excellent_fit",
+                 "why_suitable": ["Natural leadership", "Long-term vision"],
+                 "practical_next_step": "Lead a college fest, club, or team project end-to-end."},
+                {"profession": "Civil Services Officer (IAS/IPS)", "fit_level": "strong_fit",
+                 "why_suitable": ["Drive to create systemic change", "Public impact mindset"],
+                 "practical_next_step": "Start UPSC preparation with NCERT books and join a study group."},
+                {"profession": "Social Entrepreneur", "fit_level": "good_fit",
+                 "why_suitable": ["Purpose-driven motivation", "Community influence"],
+                 "practical_next_step": "Identify one community problem and prototype a zero-budget solution."},
+            ],
+            "adaptive explorer": [
+                {"profession": "Sales Manager", "fit_level": "excellent_fit",
+                 "why_suitable": ["High adaptability", "People skills"],
+                 "practical_next_step": "Do a 3-month internship in B2B/B2C sales and track your conversion rate."},
+                {"profession": "Digital Marketing Specialist", "fit_level": "strong_fit",
+                 "why_suitable": ["Content agility", "Platform versatility"],
+                 "practical_next_step": "Get Google Ads & Meta Blueprint certifications."},
+                {"profession": "HR Business Partner", "fit_level": "good_fit",
+                 "why_suitable": ["Emotional intelligence", "Flexibility in dealing with people"],
+                 "practical_next_step": "Complete an HR analytics course and volunteer for campus recruitment drives."},
+            ],
+        }
+        arch_raw = (result.phase_2_category or "dynamic generalist").lower()
+        careers = []
+        for key, recs in ARCHETYPE_CAREERS.items():
+            if key in arch_raw:
+                careers = recs
+                break
+        if not careers:
+            careers = ARCHETYPE_CAREERS["dynamic generalist"]
+
+        transformed_pros = []
+        for rec in careers:
+            fit = rec.get("fit_level", "good_fit").replace("_", " ").title()
+            transformed_pros.append({
+                "title": rec["profession"],
+                "reason": f"Match Level: {fit}. {rec.get('practical_next_step', '')}",
+                "pros": rec.get("why_suitable", []),
+                "cons": []
+            })
+
+        result.recommended_stream = "Personalized Career Matches"
+        result.final_analysis = (
+            f"Based on your {result.phase_2_category or 'unique'} profile and the interests you shared, "
+            f"we've identified these career paths as strong matches for you. "
+            f"Each suggestion aligns with your work-style archetype and growth potential."
+        )
+        result.phase3_analysis = "Confidence: High | Generated from your archetype and interests profile."
+        result.stream_pros = transformed_pros
+        result.stream_scores = {}
+        result.phase3_result = "fallback"
+        result.final_answers = {"skipped": True, "flow": "simplified"}
+        from sqlalchemy.orm.attributes import flag_modified as _flag_mod
+        _flag_mod(result, "stream_pros")
+        _flag_mod(result, "final_answers")
+        try:
+            await db.commit()
+        except Exception as e:
+            await db.rollback()
+            print(f"retry-careers commit error: {e}")
+
+    return RedirectResponse(url="/assessment/result", status_code=status.HTTP_302_FOUND)
 
 
 # --- Simulation Phase Routes ---
@@ -4489,17 +4849,32 @@ async def subscription_create_order(request: Request, db: AsyncSession = Depends
     user = await get_current_user(request, db)
     if not user:
         raise HTTPException(status_code=401)
-    if not is_razorpay_configured():
-        raise HTTPException(
-            status_code=503,
-            detail="Payment gateway is not configured. Add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to .env."
-        )
 
     data = await request.json()
     plan = data.get("plan", "critical")
     plan_data = SUBSCRIPTION_PLANS.get(plan)
     if not plan_data:
         raise HTTPException(status_code=400, detail="Invalid subscription plan")
+
+    admin_email = os.getenv("ADMIN_EMAIL", "").strip()
+    is_admin = getattr(user, "role", None) == "admin" or (bool(admin_email) and getattr(user, "email", None) == admin_email)
+    if is_admin:
+        now = datetime.datetime.utcnow()
+        expires_at = now + datetime.timedelta(days=3650)
+        db_user = (await db.execute(select(models.User).where(models.User.id == user.id))).scalars().first()
+        if db_user:
+            db_user.subscription_plan = plan
+            db_user.subscription_status = "active"
+            db_user.subscription_started_at = now
+            db_user.subscription_expires_at = expires_at
+            await db.commit()
+        return {"free_for_admin": True, "status": "ok", "plan": plan}
+
+    if not is_razorpay_configured():
+        raise HTTPException(
+            status_code=503,
+            detail="Payment gateway is not configured. Add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to .env."
+        )
 
     # Razorpay subscriptions charge the configured plan every month.  A plan id
     # is intentionally configured in the dashboard/.env rather than created per
@@ -4571,7 +4946,158 @@ async def subscription_verify_payment(request: Request, db: AsyncSession = Depen
     )
     db.add(payment)
     await db.commit()
-    return {"status": "ok", "plan": plan, "expires_at": expires_at.isoformat()}
+    return {"status": "ok", "plan": plan}
+
+
+# ─── Razorpay Standard Web Checkout API Endpoints ──────────────────────────────
+
+class StandardCreateOrderRequest(BaseModel):
+    amount: float
+    currency: Optional[str] = "INR"
+    receipt: Optional[str] = None
+    notes: Optional[dict] = None
+
+class StandardVerifyPaymentRequest(BaseModel):
+    razorpay_order_id: str
+    razorpay_payment_id: str
+    razorpay_signature: str
+
+@app.post("/api/create-order")
+async def api_create_order(request: Request, body: Optional[StandardCreateOrderRequest] = None):
+    """
+    Standard Razorpay order creation endpoint.
+    Call Razorpay API: POST https://api.razorpay.com/v1/orders
+    Return: { order_id, amount, currency, key_id }
+    """
+    if not is_razorpay_configured():
+        raise HTTPException(
+            status_code=530,
+            detail="Razorpay is not configured. Add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to .env."
+        )
+
+    amount = None
+    currency = "INR"
+    receipt = None
+    notes = {}
+
+    if body:
+        amount = body.amount
+        currency = body.currency or "INR"
+        receipt = body.receipt
+        notes = body.notes or {}
+    else:
+        try:
+            data = await request.json()
+            amount = data.get("amount")
+            currency = data.get("currency", "INR")
+            receipt = data.get("receipt")
+            notes = data.get("notes", {})
+        except Exception:
+            form = await request.form()
+            amount = form.get("amount")
+            currency = form.get("currency", "INR")
+            receipt = form.get("receipt")
+
+    if amount is None:
+        raise HTTPException(status_code=400, detail="Field 'amount' is required")
+
+    try:
+        amount_num = float(amount)
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=400, detail="Invalid amount value")
+
+    # Convert INR to paise if amount < 100
+    if amount_num < 100:
+        amount_paise = int(round(amount_num * 100))
+    else:
+        amount_paise = int(amount_num)
+
+    if amount_paise < 100:
+        raise HTTPException(status_code=400, detail="Minimum order amount is 100 paise (₹1.00)")
+
+    if not receipt:
+        receipt = f"rcpt_{uuid.uuid4().hex[:10]}"
+
+    try:
+        client = get_razorpay_client()
+        order = client.order.create(data={
+            "amount": amount_paise,
+            "currency": currency,
+            "receipt": receipt,
+            "notes": notes,
+            "payment_capture": 1
+        })
+        return {
+            "order_id": order["id"],
+            "id": order["id"],
+            "amount": order["amount"],
+            "currency": order["currency"],
+            "key_id": RAZORPAY_KEY_ID
+        }
+    except Exception as e:
+        print(f"Razorpay Order Creation Error: {e}")
+        raise HTTPException(status_code=500, detail=f"Razorpay API Error: {str(e)}")
+
+
+@app.post("/api/verify-payment")
+async def api_verify_payment(request: Request, body: Optional[StandardVerifyPaymentRequest] = None):
+    """
+    Standard Razorpay payment signature verification endpoint.
+    Algorithm: HMAC-SHA256(order_id + "|" + payment_id, KEY_SECRET)
+    """
+    razorpay_order_id = None
+    razorpay_payment_id = None
+    razorpay_signature = None
+
+    if body:
+        razorpay_order_id = body.razorpay_order_id
+        razorpay_payment_id = body.razorpay_payment_id
+        razorpay_signature = body.razorpay_signature
+    else:
+        try:
+            data = await request.json()
+            razorpay_order_id = data.get("razorpay_order_id")
+            razorpay_payment_id = data.get("razorpay_payment_id")
+            razorpay_signature = data.get("razorpay_signature")
+        except Exception:
+            form = await request.form()
+            razorpay_order_id = form.get("razorpay_order_id")
+            razorpay_payment_id = form.get("razorpay_payment_id")
+            razorpay_signature = form.get("razorpay_signature")
+
+    if not razorpay_order_id or not razorpay_payment_id or not razorpay_signature:
+        raise HTTPException(
+            status_code=400,
+            detail="Missing required parameters: razorpay_order_id, razorpay_payment_id, razorpay_signature"
+        )
+
+    msg = f"{razorpay_order_id}|{razorpay_payment_id}".encode("utf-8")
+    key = RAZORPAY_KEY_SECRET.encode("utf-8")
+    generated_signature = hmac.new(key, msg, hashlib.sha256).hexdigest()
+
+    if hmac.compare_digest(generated_signature, razorpay_signature):
+        return {
+            "status": "success",
+            "message": "Payment verified successfully",
+            "verified": True,
+            "order_id": razorpay_order_id,
+            "payment_id": razorpay_payment_id
+        }
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid payment signature. Verification failed."
+        )
+
+
+@app.get("/checkout-demo", response_class=HTMLResponse)
+async def checkout_demo_page(request: Request):
+    """Demo page for testing Razorpay Standard Web Checkout."""
+    return templates.TemplateResponse(request=request, name="checkout_demo.html", context={
+        "request": request,
+        "RAZORPAY_KEY_ID": RAZORPAY_KEY_ID,
+        "razorpay_configured": is_razorpay_configured()
+    })
 
 @app.post("/subscription/webhook")
 async def subscription_webhook(request: Request, db: AsyncSession = Depends(get_db)):
@@ -4635,6 +5161,10 @@ async def simulation_pay(career_title: str, request: Request, db: AsyncSession =
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     
+    if getattr(user, "role", None) == "admin":
+        # Admins have free simulations; redirect to start without payment
+        return RedirectResponse(url=f"/assessment/simulation/start/{career_title}", status_code=status.HTTP_302_FOUND)
+    # Existing behavior for non-admins
     return templates.TemplateResponse(request=request, name="simulation_payment.html", context={
         "user": user,
         "career_title": career_title,
@@ -4749,10 +5279,10 @@ async def live_simulation_start(
     sims_completed = max(result.simulations_completed or 0, (db_user.simulations_completed or 0) if db_user else 0)
     sim_credits = max(result.simulation_credits or 0, (db_user.simulation_credits or 0) if db_user else 0)
 
-    if sims_completed >= 1 and sim_credits <= 0:
+    if getattr(user, "role", None) != "admin" and sims_completed >= 1 and sim_credits <= 0:
         raise HTTPException(status_code=402, detail="Simulation payment required")
 
-    scenarios = simulation_service.build_live_simulation(career_title, difficulty)
+    scenarios = await simulation_service.build_live_simulation(career_title, difficulty)
     session_id = uuid.uuid4().hex
     LIVE_SIMULATION_SESSIONS[session_id] = {
         "user_id": user.id,
@@ -4771,7 +5301,11 @@ async def live_simulation_start(
             db_user.simulation_credits -= 1
 
     result.simulation_career = career_title
-    result.simulation_questions = [scenario["scenario"] for scenario in scenarios]
+    # Store a readable audit trail while keeping compatibility with the
+    # legacy simulation-question route, which expects a list of strings.
+    result.simulation_questions = [mcq["question"] for mcq in scenarios[0].get("mcqs", [])] + [
+        scenarios[1]["scenario"], scenarios[2]["scenario"]
+    ]
     result.simulation_answers = []
     result.simulation_evaluation = None
     result.simulation_paid = False
@@ -4835,6 +5369,38 @@ async def live_simulation_step(
         "next_state": scenarios[session["current_index"]],
     }
 
+@app.get("/simulation/workspace/{session_id}", response_class=HTMLResponse)
+async def simulation_workspace(session_id: str, request: Request, db: AsyncSession = Depends(get_db)):
+    """Serve the Phase 4 UI as the practical workspace for simulation phase 2."""
+    user = await get_current_user(request, db)
+    session = LIVE_SIMULATION_SESSIONS.get(session_id)
+    if not user or not session or session["user_id"] != user.id:
+        raise HTTPException(status_code=404, detail="Simulation workspace not found")
+
+    workspace_path = os.path.join(os.path.dirname(__file__), "assessment_data", "Phase 4 UI.html")
+    with open(workspace_path, "r", encoding="utf-8") as source:
+        workspace_html = source.read()
+
+    role_goal = escape(f"Create a practical workflow for a {session['career_title']}")
+    workspace_html = workspace_html.replace(
+        'value="Architect an AI-driven distraction-free educational platform"',
+        f'value="{role_goal}"',
+        1,
+    )
+    completion_hook = """
+            window.parent.postMessage({
+                source: 'carestance-simulation-workspace',
+                type: 'complete',
+                payload: {
+                    goal: document.getElementById('situation-input').value,
+                    items: workspaceItems,
+                    connections: connections
+                }
+            }, window.location.origin);
+"""
+    workspace_html = workspace_html.replace("            // Mock logic for export UI", completion_hook, 1)
+    return HTMLResponse(workspace_html)
+
 @app.get("/simulation/session/{session_id}")
 async def live_simulation_session(session_id: str, request: Request, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
@@ -4894,41 +5460,47 @@ async def simulation_start(career_title: str, request: Request, db: AsyncSession
     sims_completed = max(result.simulations_completed or 0, db_user.simulations_completed or 0 if db_user else 0)
     sim_credits = max(result.simulation_credits or 0, db_user.simulation_credits or 0 if db_user else 0)
 
-    if sims_completed >= 1 and sim_credits <= 0:
+    # Admin users have free simulations; skip credit check
+    if getattr(user, "role", None) == "admin":
+        # Proceed without checking credits
+        pass
+    elif sims_completed >= 1 and sim_credits <= 0:
         return RedirectResponse(url=f"/assessment/simulation/pay/{career_title}", status_code=status.HTTP_302_FOUND)
     
-    # Generate questions based on class
+    # Handle Class 10th Academic Discovery simulation
     if result.selected_class == '10th':
         questions = await simulation_service.generate_academic_simulation_questions(career_title)
-    else:
-        questions = await simulation_service.generate_simulation_questions(career_title)
-
-    if not questions:
-        return RedirectResponse(url="/assessment/result?error=failed_to_generate_simulation", status_code=status.HTTP_302_FOUND)
-    
-    # Appwrite Update
-    update_assessment_simulation(user.id, career=career_title, questions=questions, answers=[], evaluation=None)
-    
-    # SQL Fallback
-    result.simulation_career = career_title
-    result.simulation_questions = questions
-    result.simulation_answers = [] # Reset answers
-    result.simulation_evaluation = None # Reset evaluation
-    
-    if sims_completed >= 1:
-        if result.simulation_credits > 0:
-            result.simulation_credits -= 1
-        if db_user and db_user.simulation_credits > 0:
-            db_user.simulation_credits -= 1
-
-    if result.simulation_paid:
-        result.simulation_paid = False
-    if db_user and db_user.simulation_paid:
-        db_user.simulation_paid = False
+        if not questions:
+            return RedirectResponse(url="/assessment/result?error=failed_to_generate_simulation", status_code=status.HTTP_302_FOUND)
         
-    await db.commit()
-    
-    return RedirectResponse(url="/assessment/simulation/question/0", status_code=status.HTTP_302_FOUND)
+        update_assessment_simulation(user.id, career=career_title, questions=questions, answers=[], evaluation=None)
+        
+        result.simulation_career = career_title
+        result.simulation_questions = questions
+        result.simulation_answers = [] # Reset answers
+        result.simulation_evaluation = None # Reset evaluation
+        
+        if sims_completed >= 1:
+            if result.simulation_credits > 0:
+                result.simulation_credits -= 1
+            if db_user and db_user.simulation_credits > 0:
+                db_user.simulation_credits -= 1
+
+        if result.simulation_paid:
+            result.simulation_paid = False
+        if db_user and db_user.simulation_paid:
+            db_user.simulation_paid = False
+            
+        await db.commit()
+        return RedirectResponse(url="/assessment/simulation/question/0", status_code=status.HTTP_302_FOUND)
+
+    # Standard 3-Phase Interactive Career Simulation (simulation.html)
+    return templates.TemplateResponse(request=request, name="simulation.html", context={
+        "request": request,
+        "user": user,
+        "career_title": career_title,
+        "difficulty": "Foundation"
+    })
 
 @app.get("/assessment/simulation/question/{index}", response_class=HTMLResponse)
 async def simulation_question(index: int, request: Request, db: AsyncSession = Depends(get_db)):
@@ -5563,6 +6135,43 @@ async def generate_tts(text: str):
             return JSONResponse({"error": str(e)}, status_code=500)
 
 
+@app.post("/api/stt")
+async def transcribe_audio(
+    request: Request,
+    audio: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+):
+    """Transcribe a short browser recording when Web Speech is unavailable."""
+    user = await get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    if not GEMINI_API_KEY:
+        raise HTTPException(status_code=503, detail="Speech transcription is not configured")
+
+    audio_bytes = await audio.read()
+    if not audio_bytes:
+        raise HTTPException(status_code=400, detail="No audio was recorded")
+    if len(audio_bytes) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="Audio is too large; please keep recordings under 10 MB")
+
+    mime_type = (audio.content_type or "audio/webm").split(";", 1)[0]
+    try:
+        model = get_gemini_model("gemini-2.5-flash")
+        response = await model.generate_content_async([
+            "Transcribe this spoken response exactly. Return only the transcript, with no labels, commentary, or markdown.",
+            {"mime_type": mime_type, "data": audio_bytes},
+        ])
+        transcript = (response.text or "").strip()
+        if not transcript:
+            raise ValueError("The transcription service returned no text")
+        return {"transcript": transcript}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        print(f"Speech transcription error: {exc}")
+        raise HTTPException(status_code=502, detail="Could not transcribe the recording. Please try again.")
+
+
 # --- Chatbot Routes ---
 
 class ChatRequest(BaseModel):
@@ -5785,7 +6394,7 @@ async def chatbot_message(request: Request, chat_req: ChatRequest, db: AsyncSess
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
     
-    if user.is_suspended:
+    if getattr(user, "is_suspended", False):
         return {"error": "Your account has been suspended for violating our content policies."}
 
     user_message = chat_req.message

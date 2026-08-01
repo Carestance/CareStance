@@ -364,9 +364,18 @@
                     </div>
                     {% endfor %}
                 {% else %}
-                    <div class="text-center py-12 bg-white border border-slate-200 rounded-2xl shadow-sm">
-                        <i class="fas fa-sync fa-spin text-2xl mb-3 text-teal-500"></i>
-                        <p class="text-sm text-slate-500">Compiling top matching career tracks...</p>
+                    <div class="text-center py-16 bg-white border border-slate-200 rounded-2xl shadow-sm">
+                        <div class="w-16 h-16 mx-auto mb-4 bg-teal-50 rounded-full flex items-center justify-center">
+                            <i class="fas fa-map-signs text-2xl text-teal-500"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-slate-800 mb-2">Career Recommendations Not Generated Yet</h3>
+                        <p class="text-sm text-slate-500 mb-6 max-w-sm mx-auto">
+                            This can happen when AI services are temporarily unavailable. Click below to generate your personalized career matches instantly.
+                        </p>
+                        <a href="/assessment/phase3/retry-careers"
+                           class="inline-flex items-center gap-2 px-6 py-3 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl transition shadow-md shadow-teal-500/20">
+                            <i class="fas fa-sync"></i> Generate My Career Paths
+                        </a>
                     </div>
                 {% endif %}
             </div>

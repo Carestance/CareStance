@@ -121,7 +121,9 @@ pytest -q
 ## Project Structure (short)
 
 - `app/` — application code (routes, services, templates, models)
-- `scripts/` — maintenance scripts (migrations, seeds, verification)
+- `frontend/` — frontend assets (HTML templates, CSS, JS, static files)
+- `scripts/` — maintenance and utility scripts (organized into backups, debug, maintenance, migrations, seeds, verification)
+- `tests/` — unit and integration tests
 - `data/` — static question sets and other data used by assessments
 - `archive/` — legacy helpers and old migration files (do not change)
 - `run.py` — simple runner for local development

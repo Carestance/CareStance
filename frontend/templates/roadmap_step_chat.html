@@ -104,6 +104,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="/static/js/voice_client.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         const chatBox = document.getElementById('chat-box');
@@ -122,70 +123,45 @@
         const milestoneMcq = {{ (step.mcq_assessment or {})|tojson }};
 
         let chatHistory = [];
-        let isProcessing = false;
-        let voiceUnlocked = false;
-        let currentAudio = null;
         let selectedMcqIndex = null;
 
-        // Ensure voices are loaded
-        window.speechSynthesis.getVoices();
-        window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
-
-        function setMentorStatus(text) {
-            if (mentorStatusSidebar) mentorStatusSidebar.textContent = text;
-        }
-
-        async function speakText(text) {
-            if (!voiceUnlocked) return;
-
-            console.log("Attempting TTS for:", text.substring(0, 30));
+        function setMentorStatus(state) {
+            const stateLabels = {
+                'IDLE': 'Waiting...',
+                'CONNECTING': 'Connecting...',
+                'LISTENING': 'Listening...',
+                'TRANSCRIBING': 'Transcribing...',
+                'THINKING': 'Thinking...',
+                'GENERATING_RESPONSE': 'Generating Response...',
+                'SPEAKING': 'Speaking...',
+                'INTERRUPTED': 'Interrupted',
+                'COMPLETED': 'Completed',
+                'DISCONNECTED': 'Disconnected',
+                'ERROR': 'Error - Check Mic'
+            };
+            if (mentorStatusSidebar) mentorStatusSidebar.textContent = stateLabels[state] || state;
+            
             const orb = document.getElementById('talking-buddy-orb');
             const rings = document.querySelectorAll('.pulse-ring');
             const emoji = document.getElementById('buddy-emoji');
 
-            const startAnim = () => {
+            if (state === 'SPEAKING') {
                 if (orb) orb.classList.add('scale-110', 'shadow-[0_0_40px_rgba(139,92,246,0.6)]');
                 rings.forEach(r => r.classList.add('animate-pulse-slow'));
                 if (emoji) emoji.classList.add('scale-125');
-                setMentorStatus('Speaking...');
-            };
-
-            const stopAnim = () => {
+            } else {
                 if (orb) orb.classList.remove('scale-110', 'shadow-[0_0_40px_rgba(139,92,246,0.6)]');
                 rings.forEach(r => r.classList.remove('animate-pulse-slow'));
                 if (emoji) emoji.classList.remove('scale-125');
-                setMentorStatus('Listening...');
-            };
-
-            try {
-                const response = await fetch(`/api/tts?text=${encodeURIComponent(text.replace(/[*_#]/g, ''))}`);
-                if (response.ok && response.headers.get('Content-Type')?.includes('audio')) {
-                    const blob = await response.blob();
-                    if (currentAudio) { currentAudio.pause(); currentAudio = null; }
-                    currentAudio = new Audio(URL.createObjectURL(blob));
-                    currentAudio.onplay = startAnim;
-                    currentAudio.onended = () => { stopAnim(); currentAudio = null; };
-                    await currentAudio.play();
-                    return;
-                }
-            } catch (e) {
-                console.warn("API TTS failed, falling back to browser...");
             }
 
-            // Browser Fallback
-            try {
-                window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance(text.replace(/[*_#]/g, ''));
-                const voices = window.speechSynthesis.getVoices();
-                const bestVoice = voices.find(v => v.lang.startsWith('en') && v.name.includes('Google')) ||
-                    voices.find(v => v.lang.startsWith('en')) ||
-                    voices[0];
-                if (bestVoice) utterance.voice = bestVoice;
-                utterance.onstart = startAnim;
-                utterance.onend = stopAnim;
-                window.speechSynthesis.speak(utterance);
-            } catch (e) {
-                stopAnim();
+            if (state === 'LISTENING' || state === 'SPEAKING' || state === 'THINKING') {
+                micIcon.innerText = '🛑';
+                micPulse.classList.add('animate-ping', 'opacity-30');
+                if(transcriptDisplay) transcriptDisplay.textContent = stateLabels[state] || state;
+            } else {
+                micIcon.innerText = '🎙️';
+                micPulse.classList.remove('animate-ping', 'opacity-30');
             }
         }
 
@@ -203,7 +179,12 @@
             chatBox.appendChild(div);
             chatBox.scrollTop = chatBox.scrollHeight;
             chatHistory.push({ role: "assistant", content: text });
-            speakText(text);
+            
+            // Show MCQ automatically after a few messages
+            if (chatHistory.length >= 2 && finishBtn) {
+                finishBtn.classList.remove('hidden');
+                showMilestoneMcq();
+            }
         }
 
         function appendUserTranscript(text) {
@@ -242,77 +223,27 @@
             });
         }
 
-        async function getAIResponse(userMsg = "") {
-            if (isProcessing) return;
-            isProcessing = true;
-            micBtn.disabled = true;
-            micBtn.classList.add('opacity-50');
-            setMentorStatus('Thinking...');
-
-            try {
-                const resp = await fetch(`/career/roadmap/{{ path.id }}/step/{{ step_index }}/chat/message`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: userMsg, answers: chatHistory })
-                });
-                const data = await resp.json();
-                appendMentorMessage(data.response);
-                if (data.recommendation_ready && finishBtn) {
-                    finishBtn.classList.remove('hidden');
-                    showMilestoneMcq();
-                }
-            } catch (e) {
-                appendMentorMessage("Connection issue. Please check your internet.");
-            } finally {
-                isProcessing = false;
-                micBtn.disabled = false;
-                micBtn.classList.remove('opacity-50');
-            }
-        }
-
         startSessionBtn.onclick = () => {
-            voiceUnlocked = true;
             sessionOverlay.classList.add('hidden');
-            const v = new SpeechSynthesisUtterance("");
-            window.speechSynthesis.speak(v);
-
-            getAIResponse(""); // Start first greeting
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${wsProtocol}//${window.location.host}/ws/voice`;
+            
+            window.voiceClient = new VoiceClient(wsUrl, setMentorStatus, (text, role) => {
+                if (role === 'user') appendUserTranscript(text);
+                else appendMentorMessage(text);
+            });
+            window.voiceClient.connect();
         };
 
-        // Speech Recognition Setup
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (SpeechRecognition) {
-            const recognition = new SpeechRecognition();
-            recognition.continuous = false;
-            recognition.interimResults = true;
-            recognition.lang = 'en-US';
-
-            recognition.onstart = () => {
-                micIcon.innerText = '🛑';
-                micPulse.classList.add('animate-ping', 'opacity-30');
-            };
-
-            recognition.onresult = (event) => {
-                let finalT = '';
-                for (let i = event.resultIndex; i < event.results.length; i++) {
-                    if (event.results[i].isFinal) finalT += event.results[i][0].transcript;
+        micBtn.onclick = () => {
+            if (window.voiceClient) {
+                if (['LISTENING', 'SPEAKING', 'THINKING'].includes(window.voiceClient.state)) {
+                    window.voiceClient.disconnect();
+                } else {
+                    window.voiceClient.connect();
                 }
-                if (finalT.trim()) {
-                    appendUserTranscript(finalT.trim());
-                    setTimeout(() => getAIResponse(finalT.trim()), 300);
-                }
-            };
-
-            recognition.onend = () => {
-                micIcon.innerText = '🎙️';
-                micPulse.classList.remove('animate-ping', 'opacity-30');
-            };
-
-            micBtn.onclick = () => {
-                if (isProcessing) return;
-                try { recognition.start(); } catch (e) { recognition.stop(); }
-            };
-        }
+            }
+        };
 
         window.finishReporting = async function () {
             if (selectedMcqIndex === null) {

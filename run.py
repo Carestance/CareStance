@@ -1,5 +1,17 @@
 import os
 import asyncio
+import ssl
+
+import certifi
+os.environ["SSL_CERT_FILE"] = certifi.where()
+
+# Patch for macOS Python SSL Certificate verification issue
+try:
+    _create_unverified_https_context = ssl._create_unverified_context
+except AttributeError:
+    pass
+else:
+    ssl._create_default_https_context = _create_unverified_https_context
 
 def _get_app():
     # Import here so app package can use env vars set before run
@@ -33,6 +45,7 @@ if __name__ == "__main__":
         cfg = Config()
         cfg.bind = [f"{host}:{port}"]
         cfg.reload = dev_reload
+        cfg.startup_timeout = 120
 
         print(f"DEBUG: Starting server on {host}:{port}", flush=True)
         asyncio.run(serve(app, cfg))
