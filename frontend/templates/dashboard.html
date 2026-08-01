@@ -2,145 +2,541 @@
 
 {% block title %}Dashboard{% endblock %}
 
+{# ── Standalone navbar for this page only ──
+   Deliberately does NOT reuse #base-nav / .nav-links / .nav-logo etc from
+   base.html — new class names under .hero-nav so nothing from base.html's
+   CSS (or any other stylesheet targeting those selectors) can touch it.
+   Element IDs (base-menu-toggle / base-mobile-menu / base-menu-icon) are
+   kept the same so the existing mobile-toggle JS in base.html still wires
+   up automatically — no extra script needed. #}
+{% block navbar %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Jersey+10&display=swap');
+
+    .hero-nav {
+        position: fixed;
+        top: 40px;
+        left: 0;
+        right: 0;
+        width: 100%;
+        z-index: 1000;
+        background: transparent;
+        box-shadow: none;
+    }
+
+    .hero-nav-inner {
+        max-width: 1500px;
+        margin: 0 auto;
+        padding: 0 2.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .hero-nav-logo {
+        display: flex;
+        align-items: center;
+        gap: 1.75rem;
+        text-decoration: none;
+    }
+
+    .hero-nav-logo-badge {
+        width: 156px; height: 156px;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 50%;
+        background: #0f172a;
+        flex-shrink: 0;
+    }
+
+    .hero-nav-logo-badge img {
+        width: 90px; height: 90px;
+        border-radius: 50%; object-fit: cover;
+        transform: scale(1.6);
+    }
+
+    .hero-nav-logo-text {
+        font-family: 'Jersey 10', 'Playfair Display', serif;
+        font-size: 2rem; font-weight: 700;
+        color: #12202b; white-space: nowrap;
+        letter-spacing: 0.02em;
+    }
+
+    .hero-nav-links {
+        display: flex;
+        align-items: center;
+        gap: 1.9rem;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .hero-nav-links a {
+        display: inline-block;
+        font-family: 'Jersey 10', sans-serif;
+        color: #fff;
+        font-size: 30px;
+        font-weight: 400;
+        white-space: nowrap;
+        text-decoration: none;
+        letter-spacing: 0.02em;
+        text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+        transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+
+    .hero-nav-links a:hover {
+        transform: scale(1.1);
+        opacity: 0.75;
+    }
+
+    .hero-nav-links a.nav-active {
+        text-decoration: underline;
+        text-underline-offset: 4px;
+    }
+
+    .hero-nav-user-name {
+        font-family: 'Jersey 10', sans-serif;
+        color: #fff;
+        opacity: 0.75;
+        font-size: 22px;
+        text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+    }
+
+    .hero-nav-logout {
+        font-family: 'Jersey 10', sans-serif;
+        background: #12202b;
+        color: #fff !important;
+        padding: 0.4rem 1.6rem;
+        border-radius: 999px;
+        font-size: 28px;
+        text-shadow: none;
+    }
+
+    .hero-nav-logout:hover {
+        transform: scale(1.08);
+        opacity: 1 !important;
+        background: #1e2f3d;
+    }
+
+    .hero-mobile-toggle {
+        display: none;
+        background: none; border: none;
+        color: #12202b; font-size: 1.35rem;
+        cursor: pointer;
+    }
+
+    .hero-mobile-menu {
+        display: none;
+        position: absolute; top: 100%; left: 1.5rem; right: 1.5rem;
+        margin-top: 0.75rem; padding: 1.5rem;
+        flex-direction: column; gap: 0.75rem;
+        background: #fff; border-radius: 1.25rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.15);
+    }
+
+    .hero-mobile-menu.open { display: flex; }
+
+    .hero-mobile-menu a {
+        padding: 0.8rem 0.5rem;
+        color: var(--text-main);
+        text-decoration: none;
+        font-weight: 500;
+        border-bottom: 1px solid var(--border-soft);
+        transition: color 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .hero-mobile-menu a.nav-active {
+        color: var(--primary);
+        font-weight: 700;
+        background: var(--primary-soft);
+        border-radius: 0.5rem;
+    }
+
+    .hero-mobile-menu a:last-child { border-bottom: none; }
+    .hero-mobile-menu a:hover { color: #0d9488; }
+
+    @media (max-width: 768px) {
+        .hero-nav-links { display: none; }
+        .hero-mobile-toggle { display: block; }
+        .hero-nav-logo-badge { width: 64px; height: 64px; }
+        .hero-nav-logo-badge img { width: 36px; height: 36px; }
+        .hero-nav-logo-text { font-size: 1.4rem; }
+        .hero-nav-inner { padding: 0 1.25rem; }
+        .hero-nav { top: 20px; }
+    }
+</style>
+
+<nav class="hero-nav">
+    <div class="hero-nav-inner">
+        <a href="/" class="hero-nav-logo">
+            <span class="hero-nav-logo-badge">
+                <picture>
+                    <source srcset="/static/images/image.webp?v=101" type="image/webp">
+                    <img src="/static/images/image.png?v=101" alt="CareStance Logo" width="90" height="90">
+                </picture>
+            </span>
+            <span class="hero-nav-logo-text">Carestance</span>
+        </a>
+
+        <div class="hero-nav-links">
+            {% if user %}
+            <a href="/dashboard" class="nav-active">Dashboard</a>
+            {% if user.role != 'counsellor' %}
+            <a href="/chatbot">Chat AI</a>
+            {% endif %}
+            <a href="/community">Community</a>
+            <a href="/feedback">Feedback</a>
+            <a href="/ticket">Support</a>
+            {% if user.role == 'admin' %}
+            <a href="/admin" class="{% if request.url.path == '/admin' %}nav-active{% endif %}" style="font-weight:700;">Admin</a>
+            {% endif %}
+            {% if user.full_name and user.full_name != 'None' %}<span class="hero-nav-user-name">| {{ user.full_name }}</span>{% endif %}
+            <a href="/logout" class="hero-nav-logout">Logout</a>
+            {% else %}
+            <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}">Home</a>
+            <a href="/login" class="{% if request.url.path == '/login' %}nav-active{% endif %}">Log In</a>
+            {% endif %}
+        </div>
+
+        <button class="hero-mobile-toggle" id="base-menu-toggle" aria-label="Menu">
+            <i class="fa-solid fa-bars" id="base-menu-icon"></i>
+        </button>
+    </div>
+
+    <div class="hero-mobile-menu" id="base-mobile-menu">
+        {% if user %}
+        <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i class="fa-solid fa-house"></i>Home</a>
+        <a href="/dashboard" class="nav-active"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
+        {% if user.role != 'counsellor' %}
+        <a href="/chatbot"><i class="fa-solid fa-comment-dots"></i>Chat AI</a>
+        {% endif %}
+        <a href="/community"><i class="fa-solid fa-users"></i>Community</a>
+        <a href="/feedback"><i class="fa-solid fa-star"></i>Feedback</a>
+        <a href="/ticket"><i class="fa-solid fa-circle-question"></i>Support</a>
+        {% if user.role == 'admin' %}<a href="/admin"><i class="fa-solid fa-shield-halved"></i>Admin Panel</a>{% endif %}
+        <a href="/logout" style="color:#b45309;"><i class="fa-solid fa-right-from-bracket"></i>Logout</a>
+        {% else %}
+        <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i class="fa-solid fa-house"></i>Home</a>
+        <a href="/login"><i class="fa-solid fa-right-to-bracket"></i>Log In</a>
+        {% endif %}
+    </div>
+</nav>
+{% endblock %}
+
 {% block extra_head %}
 <style>
+    /* ── Background override ── */
+    body {
+        background: url('/static/images/BG1.png') center top / cover no-repeat fixed !important;
+    }
+
     /* Dashboard page padding & container */
-    main>* {
-        padding: 1.5rem;
+    main>* { padding: 1.5rem; }
+    @media(min-width: 768px) { main>* { padding: 2rem; } }
+    .db-page { max-width: 1280px; margin: 0 auto; }
+
+    /* ── Pink glass token palette ── */
+    :root {
+        --db-pink-glass: rgba(255, 248, 252, 0.55);
+        --db-pink-border: rgba(255, 180, 200, 0.45);
+        --db-pink-accent: #e879a0;
+        --db-lavender: rgba(220, 210, 255, 0.35);
+        --db-lavender-border: rgba(190, 175, 255, 0.4);
+        --db-gold: #f59e0b;
     }
 
-    @media(min-width: 768px) {
-        main>* {
-            padding: 2rem;
-        }
-    }
-
-    .db-page {
-        max-width: 1280px;
-        margin: 0 auto;
-    }
-
-    /* Premium Theme Styles */
+    /* ── Gamified dashboard card ── */
     .db-card {
-        background: white;
-        border: 1px solid var(--border-light);
-        border-radius: 2rem;
-        box-shadow: var(--shadow-sm);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background: var(--db-pink-glass);
+        backdrop-filter: blur(18px) saturate(160%);
+        -webkit-backdrop-filter: blur(18px) saturate(160%);
+        border: 1.5px solid var(--db-pink-border);
+        border-radius: 1.75rem;
+        box-shadow: 0 16px 40px rgba(180, 60, 100, 0.1), 0 2px 0 rgba(255,255,255,0.5) inset;
+        transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
     }
 
     .db-card:hover {
-        box-shadow: var(--shadow-md);
+        box-shadow: 0 24px 56px rgba(180, 60, 100, 0.15), 0 2px 0 rgba(255,255,255,0.6) inset;
+        transform: translateY(-2px);
     }
 
-    /* Floating mascot animation */
+    /* Top accent line on cards */
+    .db-card-accent::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--db-pink-accent), #a78bfa, #0d9488);
+        opacity: 0.7;
+    }
+
+    /* ── Quest / XP badge ── */
+    .db-xp-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: linear-gradient(135deg, #fef3c7, #fde68a);
+        border: 1.5px solid #fbbf24;
+        color: #92400e;
+        border-radius: 20px;
+        padding: 3px 10px;
+        font-size: 0.68rem;
+        font-weight: 800;
+        box-shadow: 0 2px 8px rgba(245,158,11,0.2);
+    }
+
+    /* ── Phase badge (pink) ── */
+    .db-phase-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: linear-gradient(135deg, rgba(232,121,160,0.14), rgba(167,139,250,0.14));
+        border: 1px solid rgba(232,121,160,0.3);
+        color: #be185d;
+        border-radius: 20px;
+        padding: 4px 12px;
+        font-size: 0.68rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    /* ── Achievement row ── */
+    .db-achievement-row {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 1rem;
+        background: linear-gradient(135deg, rgba(255,243,199,0.55), rgba(254,215,170,0.3));
+        border: 1px solid rgba(251,191,36,0.3);
+        border-radius: 14px;
+    }
+
+    /* ── Progress bar ── */
+    .db-progress-bg {
+        height: 8px;
+        background: rgba(255, 220, 235, 0.5);
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 180, 200, 0.3);
+    }
+
+    .db-progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--db-pink-accent), #a78bfa, #0d9488);
+        border-radius: 10px;
+        transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+        position: relative;
+    }
+    .db-progress-fill::after {
+        content: '';
+        position: absolute;
+        top: 0; left: -100%; width: 100%; height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+        animation: db-shimmer 2.5s infinite;
+    }
+    @keyframes db-shimmer { to { left: 200%; } }
+
+    /* ── Tool grid card ── */
+    .db-tool-card {
+        background: rgba(255,255,255,0.65);
+        border: 1.5px solid rgba(255,200,225,0.4);
+        border-radius: 18px;
+        padding: 1.1rem 0.75rem;
+        text-align: center;
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        text-decoration: none;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        position: relative;
+        overflow: hidden;
+    }
+    .db-tool-card:hover {
+        border-color: var(--db-pink-accent);
+        box-shadow: 0 8px 24px rgba(232,121,160,0.18);
+        transform: translateY(-4px) scale(1.03);
+    }
+
+    /* ── Stat pill ── */
+    .db-stat-pill {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        padding: 0.75rem 1rem;
+        background: rgba(255,255,255,0.6);
+        border: 1px solid rgba(255,200,225,0.4);
+        border-radius: 14px;
+        text-align: center;
+        flex: 1;
+        min-width: 80px;
+    }
+
+    /* ── Floating mascot animation ── */
     @keyframes floatMascot {
         0%, 100% { transform: translateY(0) rotate(0deg); }
-        50% { transform: translateY(-8px) rotate(1deg); }
+        50%       { transform: translateY(-8px) rotate(1deg); }
     }
-    
-    .mascot-container {
-        animation: floatMascot 4s ease-in-out infinite;
-    }
-    
-    /* Elegant Speech Bubble */
+    .mascot-container { animation: floatMascot 4s ease-in-out infinite; }
+
+    /* ── Speech Bubble ── */
     .speech-bubble {
         position: relative;
-        background: white;
-        border: 2px solid var(--primary-light);
+        background: rgba(255, 248, 252, 0.95);
+        border: 2px solid rgba(232,121,160,0.35);
         border-radius: 1.5rem;
-        box-shadow: 0 10px 25px -5px rgba(13, 148, 136, 0.1);
+        box-shadow: 0 10px 25px -5px rgba(232,121,160,0.12);
     }
-    
     .speech-bubble::after {
         content: '';
         position: absolute;
-        bottom: -12px;
-        left: 50%;
+        bottom: -12px; left: 50%;
         transform: translateX(-50%);
         border-width: 12px 12px 0;
         border-style: solid;
-        border-color: white transparent;
-        display: block;
-        width: 0;
+        border-color: rgba(255,248,252,0.95) transparent;
+        display: block; width: 0;
     }
-    
     .speech-bubble::before {
         content: '';
         position: absolute;
-        bottom: -15px;
-        left: 50%;
+        bottom: -15px; left: 50%;
         transform: translateX(-50%);
         border-width: 13px 13px 0;
         border-style: solid;
-        border-color: var(--primary-light) transparent;
-        display: block;
-        width: 0;
-        z-index: -1;
+        border-color: rgba(232,121,160,0.35) transparent;
+        display: block; width: 0; z-index: -1;
     }
-    
     @media(min-width: 768px) {
         .speech-bubble::after {
-            bottom: auto;
-            left: -12px;
-            top: 50%;
-            transform: translateY(-50%);
+            bottom: auto; left: -12px; top: 50%; transform: translateY(-50%);
             border-width: 12px 12px 12px 0;
-            border-color: transparent white;
+            border-color: transparent rgba(255,248,252,0.95);
         }
         .speech-bubble::before {
-            bottom: auto;
-            left: -15px;
-            top: 50%;
-            transform: translateY(-50%);
+            bottom: auto; left: -15px; top: 50%; transform: translateY(-50%);
             border-width: 13px 13px 13px 0;
-            border-color: transparent var(--primary-light);
+            border-color: transparent rgba(232,121,160,0.35);
         }
     }
 
-    /* Glassmorphism backgrounds */
+    /* ── Glassmorphism override ── */
     .glass-card {
-        background: rgba(255, 255, 255, 0.85);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.5);
+        background: rgba(255, 248, 252, 0.72);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border: 1.5px solid rgba(255, 200, 225, 0.45);
     }
-    
-    .theme-gradient {
-        background: radial-gradient(circle at 10% 20%, rgba(240, 253, 250, 0.6) 0%, rgba(254, 243, 199, 0.4) 90%);
-    }
-    
-    /* Purged Tailwind Utility Overrides */
-    .bg-\[var\(--navy\)\] {
-        background-color: var(--navy) !important;
-    }
-    .hover\:bg-\[var\(--teal\)\]:hover {
-        background-color: var(--teal) !important;
-    }
-    .bg-\[var\(--teal\)\] {
-        background-color: var(--teal) !important;
-    }
-    .bg-\[var\(--teal-soft\)\] {
-        background-color: var(--teal-soft) !important;
-    }
-    .text-\[var\(--teal\)\] {
-        color: var(--teal) !important;
-    }
-    .text-\[var\(--navy\)\] {
-        color: var(--navy) !important;
-    }
-    .hover\:bg-\[var\(--teal-light\)\]:hover {
-        background-color: var(--teal-light) !important;
-    }
-    
-    /* Primary button style (ensures color shows correctly without Tailwind purging issues) */
+
+    /* ── Tailwind color overrides (Tailwind purge safety) ── */
+    .bg-\[var\(--navy\)\]            { background-color: var(--navy) !important; }
+    .hover\:bg-\[var\(--teal\)\]:hover { background-color: var(--teal) !important; }
+    .bg-\[var\(--teal\)\]            { background-color: var(--teal) !important; }
+    .bg-\[var\(--teal-soft\)\]       { background-color: var(--teal-soft) !important; }
+    .text-\[var\(--teal\)\]          { color: var(--teal) !important; }
+    .text-\[var\(--navy\)\]          { color: var(--navy) !important; }
+    .hover\:bg-\[var\(--teal-light\)\]:hover { background-color: var(--teal-light) !important; }
+
     .btn-teal-primary {
-        background-color: var(--teal) !important;
+        background: linear-gradient(135deg, #0d9488, #0b7a70) !important;
         color: white !important;
+        border: 2px solid rgba(15, 23, 42, 0.7) !important;
+        box-shadow: 3px 3px 0 rgba(15,23,42,0.5) !important;
+        border-radius: 0.75rem !important;
     }
-    
     .btn-teal-primary:hover {
-        background-color: var(--teal-light) !important;
+        background: linear-gradient(135deg, #0b7a70, #065f46) !important;
+        transform: translateY(-1px) !important;
+    }
+
+    /* ── Mascot Scene Banner ── */
+    .mascot-scene-card {
+        position: fixed;
+        top: 0; left: 0;
+        width: 100vw; height: 100vh;
+        margin: 0; z-index: 1;
+        background-image: url('/static/images/BG1.png');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        display: flex;
+        align-items: center;
+        overflow: hidden;
+    }
+
+    body:has(.mascot-scene-card) { overflow: hidden; }
+
+    .mascot-scene-inner {
+        width: 100%;
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 2.5rem 2.25rem 3rem;
+        display: flex;
+        align-items: flex-end;
+        gap: 1.5rem;
+    }
+
+    .mascot-scene-char {
+        height: min(420px, 46vw);
+        width: auto; flex-shrink: 0;
+        margin-right: -0.5rem;
+        margin-bottom: -0.5rem;
+        transform: translateY(75px);
+        filter: drop-shadow(0 14px 18px rgba(0, 0, 0, 0.3));
+    }
+
+    .mascot-scene-panel {
+        flex: 1; min-width: 0;
+        padding: 2rem 2.25rem;
+        background: rgba(255, 248, 252, 0.96);
+        border: 3px solid var(--navy, #0f172a);
+        border-radius: 1.25rem;
+        box-shadow: 6px 6px 0 rgba(15, 23, 42, 0.85);
+        margin-bottom: 3.5rem;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    }
+
+    .mascot-scene-text {
+        font-size: 1.15rem; font-weight: 700;
+        color: var(--navy, #0f172a);
+        line-height: 1.5; min-height: 3.3rem;
+    }
+
+    .mascot-scene-panel button,
+    .mascot-scene-panel a.btn-teal-primary { border-radius: 0.75rem; }
+
+    @media (min-width: 768px) { .mascot-scene-text { font-size: 1.4rem; } }
+
+    @media (max-width: 768px) {
+        .mascot-scene-inner {
+            flex-direction: column; align-items: center; justify-content: center;
+            padding: 1.75rem 1.25rem; gap: 0.75rem; height: 100%; overflow-y: auto;
+        }
+        .mascot-scene-char { height: 220px; margin-right: 0; margin-bottom: 0; transform: none; }
+        .mascot-scene-panel { width: 100%; padding: 1.5rem; margin-bottom: 0; }
+    }
+
+    /* ── Stagger entrance ── */
+    .db-stagger {
+        opacity: 0;
+        transform: translateY(14px);
+        animation: db-stagger-in 0.5s cubic-bezier(0.4,0,0.2,1) forwards;
+    }
+    @keyframes db-stagger-in { to { opacity:1; transform:translateY(0); } }
+
+    /* ── Shared keyframes ── */
+    @keyframes journey-pulse {
+        0%, 100% { opacity: 0.5; transform: scale(1); }
+        50%       { opacity: 0.15; transform: scale(1.05); }
     }
     
     /* CTA card gradient (pre-assessment state) */
@@ -199,252 +595,107 @@
                 this.step--;
             }
         }
-    }" class="max-w-4xl mx-auto py-8">
-        
-        <!-- Interactive Mascot Welcome Row -->
-        <div class="flex flex-col md:flex-row items-center gap-8 mb-12">
-            <!-- Mascot Image -->
-            <div class="w-48 h-48 md:w-56 md:h-56 mascot-container flex-shrink-0 relative">
-                <div class="absolute inset-0 bg-teal-500/10 rounded-full blur-2xl"></div>
-                <img src="/static/images/careo.png?v=101" alt="Careo Mascot" class="w-full h-full object-contain relative z-10">
-            </div>
-            
-            <!-- Speech Bubble -->
-            <div class="flex-1 w-full">
-                <div class="speech-bubble p-6 md:p-8 bg-white/95 glass-card">
-                    <p class="text-lg md:text-xl font-bold text-slate-800 leading-relaxed min-h-[4.5rem]" x-text="currentText"></p>
-                    
-                    <div class="flex items-center justify-between mt-6">
-                        <!-- Navigation Dots / Steps -->
-                        <div class="flex gap-2">
-                            <template x-for="i in 3">
-                                <span class="w-2.5 h-2.5 rounded-full transition-all duration-300"
-                                      :class="step === i ? 'bg-[var(--teal)] scale-125' : 'bg-slate-200'"></span>
+    }" class="py-2">
+
+        <!-- Mascot Scene Banner (single full-bleed background, 3 slides via step) -->
+        <div class="mascot-scene-card">
+            <div class="mascot-scene-inner">
+
+                <img src="/static/images/G1.png" alt="Careo Mascot" class="mascot-scene-char mascot-container">
+
+                <div class="mascot-scene-panel">
+
+                    <!-- Slides 1 & 2: dialogue + dots + skip/back/next -->
+                    <template x-if="step < 3">
+                        <div>
+                            <p class="mascot-scene-text" x-text="currentText"></p>
+
+                            <div class="flex items-center justify-between mt-6">
+                                <!-- Navigation Dots / Steps -->
+                                <div class="flex gap-2">
+                                    <template x-for="i in 3">
+                                        <span class="w-2.5 h-2.5 rounded-full transition-all duration-300"
+                                              :class="step === i ? 'bg-[var(--teal)] scale-125' : 'bg-slate-200'"></span>
+                                    </template>
+                                </div>
+
+                                <!-- Navigation Buttons -->
+                                <div class="flex items-center gap-2">
+                                    <button x-show="step < 3" @click="step = 3" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors mr-2">
+                                        Skip Intro
+                                    </button>
+
+                                    <button x-show="step > 1" @click="prevStep()" class="px-4 py-2 text-sm font-bold text-slate-500 hover:text-slate-800 transition-colors">
+                                        Back
+                                    </button>
+
+                                    <button x-show="step < 3" @click="nextStep()" class="px-6 py-2.5 btn-teal-primary text-white text-sm font-bold rounded-xl shadow-md transition-all">
+                                        Next <i class="fas fa-arrow-right ml-1"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- Slide 3: action panel (same banner, no separate box below) -->
+                    <template x-if="step === 3">
+                        <div x-transition:enter="transition ease-out duration-500" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0">
+
+                            <!-- CASE A: NEW USER (No Assessment started yet) -->
+                            <template x-if="!isReturning">
+                                <div class="flex flex-col gap-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="h-12 w-12 bg-[var(--teal-soft)] text-[var(--teal)] rounded-2xl flex items-center justify-center text-2xl flex-shrink-0">
+                                            <i class="fas fa-rocket"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-xl font-bold text-slate-900">Start Your Assessment</h4>
+                                            <p class="text-slate-500 text-sm leading-relaxed">Discover your ideal career path and strengths.</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center justify-between">
+                                        <button @click="step = 1" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors">
+                                            <i class="fas fa-arrow-left mr-1"></i> Back
+                                        </button>
+                                        <a href="/assessment/start?class_level=12th" class="px-6 py-3 bg-[var(--navy)] hover:bg-[var(--teal)] text-white text-center font-bold rounded-2xl shadow-lg shadow-[var(--teal-soft)] transition-all">
+                                            Start Assessment <i class="fas fa-arrow-right ml-1.5"></i>
+                                        </a>
+                                    </div>
+                                </div>
                             </template>
+
+                            <!-- CASE B: RETURNING USER (Assessment in progress) -->
+                            <template x-if="isReturning">
+                                <div class="flex flex-col gap-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="h-12 w-12 bg-[var(--teal-soft)] text-[var(--teal)] rounded-2xl flex items-center justify-center text-2xl flex-shrink-0">
+                                            <i class="fas fa-play"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-xl font-bold text-slate-900">Your Assessment is Waiting</h4>
+                                            <p class="text-slate-500 text-sm leading-relaxed">Let's continue where you left off and finish discovering your best-suited careers.</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex flex-col sm:flex-row items-center gap-3">
+                                        <button @click="step = 1" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors sm:mr-auto">
+                                            <i class="fas fa-arrow-left mr-1"></i> Back
+                                        </button>
+                                        <a href="/assessment" class="w-full sm:w-auto px-6 py-3 bg-[var(--navy)] hover:bg-[var(--teal)] text-white text-center font-bold rounded-2xl shadow-lg shadow-[var(--teal-soft)] transition-all">
+                                            Continue Assessment <i class="fas fa-arrow-right ml-1"></i>
+                                        </a>
+                                        <a href="/assessment/reset" onclick="return confirm('Are you sure you want to start fresh? This will clear your current assessment progress.')" class="w-full sm:w-auto px-6 py-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 text-center font-bold rounded-2xl transition-all">
+                                            Start Fresh / Reset
+                                        </a>
+                                    </div>
+                                </div>
+                            </template>
+
                         </div>
-                        
-                        <!-- Navigation Buttons -->
-                        <div class="flex items-center gap-2">
-                            <button x-show="step < 3" @click="step = 3" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors mr-2">
-                                Skip Intro
-                            </button>
-                            
-                            <button x-show="step > 1" @click="prevStep()" class="px-4 py-2 text-sm font-bold text-slate-500 hover:text-slate-800 transition-colors">
-                                Back
-                            </button>
-                            
-                            <button x-show="step < 3" @click="nextStep()" class="px-6 py-2.5 btn-teal-primary text-white text-sm font-bold rounded-xl shadow-md transition-all">
-                                Next <i class="fas fa-arrow-right ml-1"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <div class="flex-1 text-center md:text-left">
-                    {% if assessment %}
-                    <span class="inline-block px-3 py-1 bg-amber-100 text-amber-800 text-xs font-bold rounded-full uppercase tracking-wider mb-3">
-                        <i class="fas fa-clock mr-1"></i> Assessment In Progress
-                    </span>
-                    <h2 class="text-2xl font-bold mb-2 cta-heading">Welcome back! Your assessment is waiting.</h2>
-                    <p class="text-slate-500 mb-6 text-sm leading-relaxed">Pick up where you left off — your career blueprint is almost ready.</p>
-                    <div class="flex flex-col sm:flex-row gap-3">
-                        <a href="/assessment" class="w-full sm:w-auto text-center px-6 py-3.5 rounded-xl font-bold transition shadow-lg shadow-teal-100 btn-gradient-primary">
-                            <i class="fas fa-play mr-2"></i>Continue Assessment
-                        </a>
-                        <a href="/assessment/reset"
-                           onclick="return confirm('Are you sure you want to start fresh? This will clear your current assessment progress.')"
-                           class="w-full sm:w-auto text-center px-6 py-3.5 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-slate-50 transition text-sm">
-                            Start Fresh
-                        </a>
-                    </div>
-                    {% else %}
-                    <span class="inline-block px-3 py-1 bg-teal-100 text-teal-800 text-xs font-bold rounded-full uppercase tracking-wider mb-3">
-                        <i class="fas fa-rocket mr-1"></i> Get Started
-                    </span>
-                    <h2 class="text-2xl font-bold mb-2 cta-heading">Discover your ideal career path</h2>
-                    <p class="text-slate-500 mb-6 text-sm leading-relaxed">Our AI-powered assessment analyses your personality, skills, and goals to generate a personalised career blueprint.</p>
-                    <a href="/assessment/start?class_level=12th" class="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl font-bold transition shadow-lg shadow-teal-100 btn-gradient-primary">
-                        Start Assessment <i class="fas fa-arrow-right"></i>
-                    </a>
-                    {% endif %}
-                </div>
-            </div>
+                    </template>
 
-            <!-- Quick Feature Cards -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div class="db-card p-5 text-center">
-                    <div class="w-12 h-12 mx-auto bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center text-xl mb-3">
-                        <i class="fas fa-brain"></i>
-                    </div>
-                    <h4 class="font-bold text-slate-800 text-sm">AI-Powered Analysis</h4>
-                    <p class="text-slate-400 text-xs mt-1">Multi-phase psychometric assessment</p>
                 </div>
-                <div class="db-card p-5 text-center">
-                    <div class="w-12 h-12 mx-auto bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center text-xl mb-3">
-                        <i class="fas fa-route"></i>
-                    </div>
-                    <h4 class="font-bold text-slate-800 text-sm">Career Roadmaps</h4>
-                    <p class="text-slate-400 text-xs mt-1">Step-by-step personalised guidance</p>
-                </div>
-                <div class="db-card p-5 text-center">
-                    <div class="w-12 h-12 mx-auto bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center text-xl mb-3">
-                        <i class="fas fa-video"></i>
-                    </div>
-                    <h4 class="font-bold text-slate-800 text-sm">Expert Counsellors</h4>
-                    <p class="text-slate-400 text-xs mt-1">Book 1-on-1 guidance sessions</p>
-                </div>
-            </div>
-
-        </div>
-
-        <!-- Right Column: Profile & Tools -->
-        <div class="space-y-6">
-
-            <!-- Profile Card -->
-            <div class="db-card p-6 flex items-center gap-4">
-                <div class="relative group flex-shrink-0">
-                    <img src="{{ user.profile_photo if user.profile_photo else 'https://ui-avatars.com/api/?name=' ~ (user.full_name or 'User') ~ '&background=random' }}"
-                        alt="Profile" class="w-16 h-16 rounded-2xl object-cover border-2 border-[var(--primary)] shadow-md">
-                    <button onclick="document.getElementById('photo-upload-pre').click()" title="Change profile photo"
-                        class="absolute -bottom-1 -right-1 text-white p-1.5 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity bg-[var(--navy)] hover:bg-[var(--teal)]">
-                        <i class="fas fa-camera text-[10px]"></i>
-                    </button>
-                    <form id="photo-form-pre" action="/profile/upload-photo" method="POST" enctype="multipart/form-data" class="hidden">
-                        <input type="file" id="photo-upload-pre" name="file" aria-label="Upload profile photo" onchange="handleImageUpload(event, 'photo-form-pre')" accept="image/*">
-                    </form>
-                </div>
-                <div>
-                    <h4 class="font-extrabold text-slate-900 text-lg leading-tight">{{ user.full_name }}</h4>
-                    <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mt-0.5">{{ user.role or 'Student' }}</p>
-                    <span class="inline-block mt-2 px-2 py-0.5 bg-amber-50 text-amber-600 text-[10px] font-bold rounded-full uppercase">Assessment Pending</span>
-                </div>
-            </div>
-
-            <!-- Tools Grid -->
-            <div class="grid grid-cols-2 gap-4">
-                <a href="/career/roadmaps" class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:border-[var(--teal)] hover:-translate-y-0.5 transition-all text-center">
-                    <div class="w-10 h-10 mx-auto bg-[var(--teal-soft)] text-[var(--navy)] rounded-full flex items-center justify-center mb-2">
-                        <i class="fas fa-route"></i>
-                    </div>
-                    <span class="text-xs font-bold text-slate-700 block">My Roadmaps</span>
-                </a>
-                <a href="/career/colleges" class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:border-[var(--teal)] hover:-translate-y-0.5 transition-all text-center">
-                    <div class="w-10 h-10 mx-auto bg-[var(--teal-soft)] text-[var(--navy)] rounded-full flex items-center justify-center mb-2">
-                        <i class="fas fa-university"></i>
-                    </div>
-                    <span class="text-xs font-bold text-slate-700 block">Colleges</span>
-                </a>
-                <a href="/counsellors" class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:border-[var(--teal)] hover:-translate-y-0.5 transition-all text-center">
-                    <div class="w-10 h-10 mx-auto bg-[var(--teal-soft)] text-[var(--teal)] rounded-full flex items-center justify-center mb-2">
-                        <i class="fas fa-video"></i>
-                    </div>
-                    <span class="text-xs font-bold text-slate-700 block">Talk to Expert</span>
-                </a>
-                <a href="/chatbot" class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:border-[var(--teal)] hover:-translate-y-0.5 transition-all text-center">
-                    <div class="w-10 h-10 mx-auto bg-[var(--teal-soft)] text-[var(--teal)] rounded-full flex items-center justify-center mb-2">
-                        <i class="fas fa-comments"></i>
-                    </div>
-                    <span class="text-xs font-bold text-slate-700 block">CareerBuddy AI</span>
-                </a>
-                {% if subscription_state and subscription_state.active and subscription_state.plan == 'customised' %}
-                <a href="/weekly-checkin" class="bg-white p-4 rounded-2xl border border-teal-100 shadow-sm hover:border-[var(--teal)] hover:-translate-y-0.5 transition-all text-center">
-                    <div class="w-10 h-10 mx-auto bg-teal-50 text-teal-600 rounded-full flex items-center justify-center mb-2">
-                        <i class="fas fa-calendar-check"></i>
-                    </div>
-                    <span class="text-xs font-bold text-slate-700 block">Weekly AI</span>
-                </a>
-                {% endif %}
-            </div>
-
-            <!-- Community Prompt -->
-            <div class="db-card p-5 text-center">
-                <p class="text-xs text-slate-400 mb-2.5">Connect with fellow students</p>
-                <a href="/community" class="inline-flex items-center gap-1.5 px-4 py-2 bg-[var(--teal-soft)] text-[var(--teal)] rounded-xl text-xs font-bold hover:bg-teal-100 transition">
-                    <i class="fas fa-users"></i> Visit Community
-                </a>
-            </div>
-
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-10">
-            <a href="/assessment/start?class_level=12th" class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:border-[var(--teal)] hover:-translate-y-0.5 transition-all">
-                <div class="w-11 h-11 bg-[var(--teal-soft)] text-[var(--teal)] rounded-xl flex items-center justify-center mb-3">
-                    <i class="fas fa-clipboard-check"></i>
-                </div>
-                <h4 class="font-black text-slate-900 text-sm">{{ 'Retake Assessment' if user.assessments_completed and user.assessments_completed > 0 else 'Start Assessment' }}</h4>
-                <p class="text-xs text-slate-500 mt-1">{{ 'Requires an active Guidance Plan.' if user.assessments_completed and user.assessments_completed > 0 else 'Get your first career direction.' }}</p>
-            </a>
-            <a href="/counsellors" class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:border-[var(--teal)] hover:-translate-y-0.5 transition-all">
-                <div class="w-11 h-11 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-3">
-                    <i class="fas fa-user-tie"></i>
-                </div>
-                <h4 class="font-black text-slate-900 text-sm">Talk to Expert</h4>
-                <p class="text-xs text-slate-500 mt-1">Book guidance when you need it.</p>
-            </a>
-            <a href="/chatbot" class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:border-[var(--teal)] hover:-translate-y-0.5 transition-all">
-                <div class="w-11 h-11 bg-slate-100 text-slate-700 rounded-xl flex items-center justify-center mb-3">
-                    <i class="fas fa-comments"></i>
-                </div>
-                <h4 class="font-black text-slate-900 text-sm">CareerBuddy</h4>
-                <p class="text-xs text-slate-500 mt-1">Ask a quick career question.</p>
-            </a>
-            <a href="/subscription" class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:border-amber-300 hover:-translate-y-0.5 transition-all">
-                <div class="w-11 h-11 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center mb-3">
-                    <i class="fas fa-crown"></i>
-                </div>
-                <h4 class="font-black text-slate-900 text-sm">Guidance Plans</h4>
-                <p class="text-xs text-slate-500 mt-1">Reports, roadmap, resources.</p>
-            </a>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
-            <div class="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 lg:col-span-2">
-                <div class="flex flex-col sm:flex-row gap-5 sm:items-center">
-                    <img src="{{ user.profile_photo if user.profile_photo else 'https://ui-avatars.com/api/?name=' ~ (user.full_name or 'User') ~ '&background=0d9488&color=fff' }}"
-                         alt="Profile photo"
-                         class="w-20 h-20 rounded-2xl object-cover border border-slate-100">
-                    <div class="flex-1 min-w-0">
-                        <p class="text-[10px] font-black uppercase tracking-widest text-teal-600 mb-1">Student Profile</p>
-                        <h3 class="text-xl font-black text-slate-900 truncate">{{ user.full_name or 'Student' }}</h3>
-                        <div class="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
-                            <span class="inline-flex items-center gap-1.5 bg-slate-50 rounded-full px-3 py-1">
-                                <i class="fas fa-envelope"></i>{{ user.email }}
-                            </span>
-                            <span class="inline-flex items-center gap-1.5 bg-slate-50 rounded-full px-3 py-1">
-                                <i class="fas fa-phone"></i>{{ user.contact_number or 'Phone not added' }}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-                <div class="mt-5 pt-5 border-t border-slate-100">
-                    <div class="flex items-center justify-between gap-3 mb-2">
-                        <h4 class="font-black text-sm text-slate-900">Bio</h4>
-                        <button type="button" onclick="document.getElementById('empty-bio-form').classList.toggle('hidden')" class="text-xs font-bold text-teal-700 hover:text-teal-800">
-                            {{ 'Edit Bio' if user.bio else 'Add Bio' }}
-                        </button>
-                    </div>
-                    <p class="text-sm text-slate-600 leading-relaxed {% if not user.bio %}italic text-slate-400{% endif %}">
-                        {{ user.bio if user.bio else 'Add a short bio so your profile does not feel empty.' }}
-                    </p>
-                    <form id="empty-bio-form" action="/profile/update-bio" method="POST" class="hidden mt-4 space-y-3">
-                        <textarea name="bio" rows="3" maxlength="500" class="w-full rounded-xl border border-slate-200 p-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[var(--teal)] focus:border-transparent resize-none" placeholder="Tell other students about yourself...">{{ user.bio or '' }}</textarea>
-                        <button type="submit" class="px-4 py-2 rounded-xl bg-teal-600 text-white text-xs font-black">Save Bio</button>
-                    </form>
-                </div>
-            </div>
-
-            <div class="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
-                <p class="text-[10px] font-black uppercase tracking-widest text-amber-600 mb-2">Assessment Access</p>
-                <h3 class="text-lg font-black text-slate-900">Free assessment status</h3>
-                <p class="text-sm text-slate-500 mt-2">
-                    {% if user.assessments_completed and user.assessments_completed > 0 %}
-                        Your free full assessment has been used. A Guidance Plan unlocks retakes.
-                    {% else %}
-                        Your first full assessment is available for free.
-                    {% endif %}
-                </p>
-                <a href="/subscription" class="inline-flex mt-5 items-center gap-2 px-4 py-2 rounded-xl bg-amber-50 text-amber-700 border border-amber-100 text-xs font-black hover:bg-amber-100 transition">
-                    <i class="fas fa-crown"></i> View Guidance Plans
-                </a>
             </div>
         </div>
 
@@ -460,36 +711,44 @@
         <!-- Left Column: Main Results, Action and Sessions -->
         <div class="lg:col-span-2 space-y-6">
 
-            <!-- Result Summary Card -->
-            <div class="db-card p-8 flex flex-col md:flex-row gap-8 items-center">
-                <div class="flex-shrink-0 relative">
-                    <!-- Circular Progress Score -->
-                    <div class="w-32 h-32 rounded-full p-1" style="background: var(--gradient-primary);">
-                        <div class="w-full h-full bg-white rounded-full flex flex-col items-center justify-center">
-                            <span class="text-3xl font-extrabold text-slate-900">
+            <!-- ── Career Unlocked Summary Card ── -->
+            <div class="db-card db-card-accent p-7 flex flex-col md:flex-row gap-6 items-center db-stagger">
+                <!-- Circular match score -->
+                <div class="flex-shrink-0 relative" style="width:112px;height:112px;">
+                    <div style="width:112px;height:112px;border-radius:50%;padding:4px;background:linear-gradient(135deg,var(--db-pink-accent),#a78bfa,#0d9488);">
+                        <div style="width:100%;height:100%;background:rgba(255,248,252,0.95);border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                            <span style="font-size:1.75rem;font-weight:900;color:#1e293b;line-height:1;">
                                 {{ ((assessment.confidence or 0.85) * 100) | int }}%
                             </span>
-                            <span class="text-xs text-slate-500 font-medium">Match</span>
+                            <span style="font-size:0.65rem;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Match</span>
                         </div>
                     </div>
+                    <!-- Orbit ring animation -->
+                    <div style="position:absolute;inset:-6px;border-radius:50%;border:2px solid rgba(232,121,160,0.2);animation:journey-pulse 3s infinite;"></div>
                 </div>
                 
                 <div class="flex-1 text-center md:text-left">
-                    <h2 class="text-2xl font-bold mb-2" style="color: var(--text-main);">Top Recommendation: <span
-                            style="color: var(--primary);">{{ assessment.phase_2_category or display_archetype }}</span></h2>
-                    <p class="text-slate-500 mb-6">Based on your assessment profile ({{ display_archetype }}),
-                        goal status, and <strong>{{ ((assessment.confidence or 0.85) * 100) | int }}% AI match
-                            confidence</strong>.</p>
+                    <!-- Phase badge -->
+                    <span class="db-phase-badge" style="margin-bottom:0.6rem;">
+                        <i class="fas fa-trophy" style="font-size:0.55rem;"></i>
+                        Career Unlocked
+                    </span>
+                    <h2 style="font-size:1.4rem;font-weight:900;color:#1e293b;margin:0.3rem 0;">
+                        {{ assessment.phase_2_category }}
+                    </h2>
+                    <p style="color:#64748b;font-size:0.82rem;margin-bottom:1rem;">
+                        Personality: <strong style="color:#0d9488;">{{ assessment.personality }}</strong> &nbsp;·&nbsp;
+                        <strong style="color:#be185d;">{{ ((assessment.confidence or 0.85) * 100) | int }}% AI match confidence</strong>
+                    </p>
                     
-                    <div class="flex flex-col sm:flex-row flex-wrap gap-3 w-full justify-center md:justify-start">
+                    <div style="display:flex;flex-wrap:wrap;gap:0.6rem;justify-content:center;" class="md:justify-start">
                         <a href="/assessment/result"
-                            class="w-full sm:w-auto text-center px-6 py-3.5 text-white rounded-xl font-bold transition shadow-lg shadow-[var(--teal-soft)]"
-                            style="background: var(--gradient-primary);">
-                            View Full Report
+                           style="padding:0.7rem 1.5rem;background:linear-gradient(135deg,var(--db-pink-accent),#a78bfa);color:white;border-radius:14px;font-weight:800;font-size:0.82rem;text-decoration:none;display:inline-flex;align-items:center;gap:0.4rem;box-shadow:0 6px 18px rgba(232,121,160,0.3);transition:all 0.3s;">
+                            <i class="fas fa-scroll"></i> View Full Report
                         </a>
                         <a href="/chatbot"
-                            class="w-full sm:w-auto text-center px-6 py-3.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold hover:bg-slate-50 transition">
-                            Ask CareerBuddy (AI)
+                           style="padding:0.7rem 1.5rem;background:rgba(255,255,255,0.75);border:1.5px solid rgba(255,200,225,0.5);color:#1e293b;border-radius:14px;font-weight:700;font-size:0.82rem;text-decoration:none;display:inline-flex;align-items:center;gap:0.4rem;transition:all 0.3s;">
+                            <i class="fas fa-comment-dots" style="color:#0d9488;"></i> Ask CareerBuddy AI
                         </a>
                         <a href="/assessment/simulation/start/{{ dashboard_sim_career | urlencode }}"
                             class="w-full sm:w-auto text-center px-6 py-3.5 bg-amber-500 text-white rounded-xl font-bold hover:bg-amber-600 transition shadow-lg shadow-amber-100">
@@ -499,16 +758,16 @@
                 </div>
             </div>
 
-            <!-- Scheduled Sessions -->
+            <!-- ── Scheduled Sessions ── -->
             {% if appointments %}
-            <div x-data="{ ratingModal: false, selectedAppt: null }" class="db-card p-8">
-                <h3 class="text-xl font-bold mb-6 flex items-center gap-2" style="color:var(--text-main);">
-                    <i class="fas fa-calendar-alt" style="color:var(--primary);"></i> Your Sessions
-                </h3>
+            <div x-data="{ ratingModal: false, selectedAppt: null }" class="db-card p-7">
+                <div style="font-size:0.68rem;font-weight:800;color:#be185d;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:1rem;display:flex;align-items:center;gap:6px;">
+                    <i class="fas fa-calendar-alt"></i> Your Sessions
+                </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                     {% for appt in appointments %}
-                    <div class="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm hover:shadow-md transition-all"
+                    <div style="background:rgba(255,255,255,0.65);border-radius:18px;padding:1.25rem;border:1.5px solid rgba(255,200,225,0.4);transition:all 0.3s;"
                         x-data="{
                             aptTime: new Date('{{ appt.appointment_time.strftime('%Y-%m-%dT%H:%M:%S') }}'),
                             now: new Date(),
@@ -687,12 +946,12 @@
             </script>
             {% endif %}
 
-            <!-- Support Tickets -->
+            <!-- ── Support Tickets ── -->
             {% if tickets %}
-            <div class="db-card p-8">
-                <h3 class="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-                    <i class="fas fa-ticket-alt" style="color: var(--primary);"></i> Support Tickets
-                </h3>
+            <div class="db-card p-7">
+                <div style="font-size:0.68rem;font-weight:800;color:#be185d;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:1rem;display:flex;align-items:center;gap:6px;">
+                    <i class="fas fa-ticket-alt"></i> Support Tickets
+                </div>
                 <div class="space-y-4">
                     {% for ticket in tickets %}
                     <div class="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
@@ -719,83 +978,85 @@
 
         </div>
 
-        <!-- Right Column: Tools & Bio -->
-        <div class="space-y-6">
+        <!-- ── Right Column: Explorer Profile + Tools + Bio ── -->
+        <div class="space-y-5">
 
-            <!-- Profile Photo Box -->
-            <div class="db-card p-6 flex items-center gap-4">
+            <!-- ── Explorer Profile Card ── -->
+            <div class="db-card db-card-accent p-5 flex items-center gap-4 db-stagger" style="animation-delay:0.1s;">
                 <div class="relative group flex-shrink-0">
                     <img src="{{ user.profile_photo if user.profile_photo else 'https://ui-avatars.com/api/?name=' ~ (user.full_name or 'User') ~ '&background=random' }}"
-                        alt="Profile" class="w-16 h-16 rounded-2xl object-cover border-2 border-[var(--primary)] shadow-md">
+                         alt="Profile"
+                         style="width:60px;height:60px;border-radius:18px;object-fit:cover;border:2.5px solid var(--db-pink-accent);box-shadow:0 4px 14px rgba(232,121,160,0.25);">
                     <button onclick="document.getElementById('photo-upload').click()"
-                        class="absolute -bottom-1 -right-1 text-white p-1.5 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity bg-[var(--navy)] hover:bg-[var(--teal)]">
-                        <i class="fas fa-camera text-[10px]"></i>
+                            style="position:absolute;bottom:-4px;right:-4px;background:var(--navy);color:white;padding:0.3rem;border-radius:8px;border:none;cursor:pointer;opacity:0;transition:opacity 0.2s;"
+                            class="group-hover:opacity-100">
+                        <i class="fas fa-camera" style="font-size:0.6rem;"></i>
                     </button>
                     <form id="photo-form" action="/profile/upload-photo" method="POST" enctype="multipart/form-data" class="hidden">
                         <input type="file" id="photo-upload" name="file" onchange="handleImageUpload(event, 'photo-form')" accept="image/*">
                     </form>
                 </div>
-                <div>
-                    <h4 class="font-extrabold text-slate-900 text-lg leading-tight">{{ user.full_name }}</h4>
-                    <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mt-0.5">{{ user.role or 'Student' }}</p>
-                    <p class="text-xs text-slate-500 font-semibold mt-1">
-                        <i class="fas fa-phone-alt mr-1"></i>{{ user.contact_number or 'Phone not added' }}
-                    </p>
+                <div style="flex:1;min-width:0;">
+                    <div style="font-size:1rem;font-weight:900;color:#1e293b;line-height:1.2;">{{ user.full_name }}</div>
+                    <div style="font-size:0.68rem;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-top:2px;">{{ user.role or 'Explorer' }}</div>
                 </div>
+                <span class="db-xp-badge">
+                    <i class="fas fa-bolt" style="font-size:0.55rem;"></i> Active
+                </span>
             </div>
 
-            <!-- Insights Widget -->
-            <div class="db-card p-6">
-                <h4 class="font-bold mb-4 flex items-center gap-2" style="color:var(--text-main);">
-                    <i class="fas fa-chart-pie" style="color:var(--primary);"></i> Insights
-                </h4>
-                <div class="space-y-4">
+            <!-- ── Quest Stats ── -->
+            <div class="db-card p-5 db-stagger" style="animation-delay:0.15s;">
+                <div style="font-size:0.68rem;font-weight:800;color:#be185d;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:0.875rem;display:flex;align-items:center;gap:6px;">
+                    <i class="fas fa-chart-line"></i> Quest Insights
+                </div>
+                <div style="display:flex;flex-direction:column;gap:0.75rem;">
                     <div>
-                        <div class="flex justify-between text-sm mb-1">
-                            <span class="text-slate-500">AI Match Confidence</span>
-                            <span class="font-bold text-slate-900">{{ (assessment.confidence * 100)|int if assessment.confidence else 0 }}%</span>
+                        <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:4px;">
+                            <span style="color:#64748b;">AI Match Confidence</span>
+                            <span style="font-weight:800;color:#1e293b;">{{ (assessment.confidence * 100)|int if assessment.confidence else 0 }}%</span>
                         </div>
-                        <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
-                            <div class="h-full bg-emerald-500 confidence-bar" data-width="{{ (assessment.confidence * 100)|int if assessment.confidence else 0 }}"></div>
+                        <div class="db-progress-bg">
+                            <div class="db-progress-fill confidence-bar" data-width="{{ (assessment.confidence * 100)|int if assessment.confidence else 0 }}"></div>
                         </div>
                     </div>
                     <div>
-                        <div class="flex justify-between text-sm mb-1">
-                            <span class="text-slate-500">Interest Clarity</span>
-                            <span class="font-bold text-slate-900">{{ assessment.goal_status or 'High' }}</span>
+                        <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:4px;">
+                            <span style="color:#64748b;">Interest Clarity</span>
+                            <span style="font-weight:800;color:#1e293b;">{{ assessment.goal_status or 'High' }}</span>
                         </div>
-                        <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
-                            <div class="h-full bg-[var(--teal)] w-2/3"></div>
+                        <div class="db-progress-bg">
+                            <div class="db-progress-fill" style="width:68%;"></div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Simplified Tools Grid -->
-            <div class="grid grid-cols-2 gap-4">
-                <a href="/career/roadmaps" class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:border-[var(--teal)] hover:-translate-y-0.5 transition-all text-center">
-                    <div class="w-10 h-10 mx-auto bg-[var(--teal-soft)] text-[var(--navy)] rounded-full flex items-center justify-center mb-2">
+            <!-- ── Quest Tools Grid ── -->
+            <div class="grid grid-cols-2 gap-3 db-stagger" style="animation-delay:0.2s;">
+                <a href="/career/roadmaps" class="db-tool-card">
+                    <div style="width:38px;height:38px;background:rgba(13,148,136,0.1);color:#0d9488;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1rem;">
                         <i class="fas fa-route"></i>
                     </div>
-                    <span class="text-xs font-bold text-slate-700 block">My Roadmaps</span>
+                    <span style="font-size:0.72rem;font-weight:800;color:#1e293b;">My Roadmaps</span>
                 </a>
-                <a href="/career/colleges" class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:border-[var(--teal)] hover:-translate-y-0.5 transition-all text-center">
-                    <div class="w-10 h-10 mx-auto bg-[var(--teal-soft)] text-[var(--navy)] rounded-full flex items-center justify-center mb-2">
+                <a href="/career/colleges" class="db-tool-card">
+                    <div style="width:38px;height:38px;background:rgba(99,102,241,0.1);color:#6366f1;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1rem;">
                         <i class="fas fa-university"></i>
                     </div>
-                    <span class="text-xs font-bold text-slate-700 block">Colleges</span>
+                    <span style="font-size:0.72rem;font-weight:800;color:#1e293b;">Colleges</span>
                 </a>
-                <a href="/counsellors" class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:border-[var(--teal)] hover:-translate-y-0.5 transition-all text-center">
-                    <div class="w-10 h-10 mx-auto bg-[var(--teal-soft)] text-[var(--teal)] rounded-full flex items-center justify-center mb-2">
+                <a href="/counsellors" class="db-tool-card">
+                    <div style="width:38px;height:38px;background:rgba(232,121,160,0.1);color:var(--db-pink-accent);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1rem;">
                         <i class="fas fa-video"></i>
                     </div>
-                    <span class="text-xs font-bold text-slate-700 block">Talk to Expert</span>
+                    <span style="font-size:0.72rem;font-weight:800;color:#1e293b;">Talk to Expert</span>
                 </a>
-                <a href="/chatbot" class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:border-[var(--teal)] hover:-translate-y-0.5 transition-all text-center">
-                    <div class="w-10 h-10 mx-auto bg-[var(--teal-soft)] text-[var(--teal)] rounded-full flex items-center justify-center mb-2">
+                <a href="/chatbot" class="db-tool-card">
+                    <div style="width:38px;height:38px;background:rgba(245,158,11,0.1);color:#f59e0b;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1rem;">
                         <i class="fas fa-comments"></i>
                     </div>
-                    <span class="text-xs font-bold text-slate-700 block">CareerBuddy AI</span>
+                    <span style="font-size:0.72rem;font-weight:800;color:#1e293b;">CareerBuddy AI</span>
                 </a>
                 <a href="/assessment/simulation/start/{{ dashboard_sim_career | urlencode }}" class="bg-white p-4 rounded-2xl border border-amber-100 shadow-sm hover:border-amber-300 hover:-translate-y-0.5 transition-all text-center">
                     <div class="w-10 h-10 mx-auto bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mb-2">
@@ -819,36 +1080,44 @@
                 {% endif %}
             </div>
 
-            <!-- Bio Section -->
-            <div class="db-card p-5">
-                <h4 class="font-bold mb-3 flex items-center gap-2 text-sm" style="color:var(--text-main);">
-                    <i class="fas fa-user-circle" style="color:var(--primary);"></i> Your Bio
-                </h4>
+            <!-- ── Bio Section ── -->
+            <div class="db-card p-5 db-stagger" style="animation-delay:0.25s;">
+                <div style="font-size:0.68rem;font-weight:800;color:#be185d;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:0.75rem;display:flex;align-items:center;gap:6px;">
+                    <i class="fas fa-user-circle"></i> Your Bio
+                </div>
                 <div x-data="{ editing: false }">
                     <div x-show="!editing">
-                        <p class="text-sm text-slate-600 leading-relaxed {% if not user.bio %}italic text-slate-400{% endif %}">
+                        <p style="font-size:0.82rem;color:#475569;line-height:1.55;" class="{% if not user.bio %}italic{% endif %}">
                             {{ user.bio if user.bio else 'Add a bio to let other students know about you.' }}
                         </p>
-                        <button @click="editing = true" class="mt-3 text-xs text-[var(--navy)] font-bold hover:text-[var(--teal)] transition-colors flex items-center gap-1">
-                            <i class="fas fa-pen text-[10px]"></i> {{ 'Edit Bio' if user.bio else 'Add Bio' }}
+                        <button @click="editing = true"
+                                style="margin-top:0.6rem;font-size:0.72rem;font-weight:700;color:#0d9488;display:inline-flex;align-items:center;gap:4px;background:none;border:none;cursor:pointer;padding:0;">
+                            <i class="fas fa-pen" style="font-size:0.65rem;"></i>
+                            {{ 'Edit Bio' if user.bio else 'Add Bio' }}
                         </button>
                     </div>
                     <div x-show="editing" style="display: none;">
                         <form action="/profile/update-bio" method="POST">
-                            <textarea name="bio" rows="3" maxlength="500" class="w-full rounded-xl border border-slate-200 p-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[var(--teal)] focus:border-transparent resize-none" placeholder="Tell other students about yourself...">{{ user.bio or '' }}</textarea>
-                            <div class="flex items-center gap-2 mt-2">
-                                <button type="submit" class="px-3 py-1.5 bg-[var(--navy)] text-white rounded-lg text-xs font-bold hover:bg-[var(--teal)] transition-all">Save</button>
-                                <button type="button" @click="editing = false" class="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-200 transition-all">Cancel</button>
+                            <textarea name="bio" rows="3" maxlength="500"
+                                      style="width:100%;border-radius:12px;border:1.5px solid rgba(255,200,225,0.5);padding:0.6rem 0.75rem;font-size:0.82rem;color:#1e293b;outline:none;resize:none;background:rgba(255,255,255,0.8);"
+                                      placeholder="Tell other students about yourself...">{{ user.bio or '' }}</textarea>
+                            <div style="display:flex;gap:0.5rem;margin-top:0.5rem;">
+                                <button type="submit"
+                                        style="padding:0.4rem 1rem;background:var(--navy);color:white;border-radius:10px;font-size:0.75rem;font-weight:700;border:none;cursor:pointer;">Save</button>
+                                <button type="button" @click="editing = false"
+                                        style="padding:0.4rem 1rem;background:rgba(255,255,255,0.6);color:#64748b;border-radius:10px;font-size:0.75rem;font-weight:700;border:1px solid rgba(255,200,225,0.4);cursor:pointer;">Cancel</button>
                             </div>
                         </form>
                     </div>
                 </div>
             </div>
 
-            <!-- Retake Option (Sleek card footer replacement) -->
-            <div class="db-card p-5 text-center">
-                <p class="text-xs text-slate-400 mb-2.5">Want to map a different academic stage?</p>
-                <a href="/assessment/reset" onclick="return confirm('Are you sure you want to retake the assessment? This will clear your current results.')" class="inline-flex items-center gap-1 text-xs font-bold text-red-500 hover:text-red-600 transition-colors">
+            <!-- ── Retake ── -->
+            <div class="db-card p-4 text-center db-stagger" style="animation-delay:0.3s;">
+                <p style="font-size:0.72rem;color:#94a3b8;margin-bottom:0.5rem;">Want to map a different academic stage?</p>
+                <a href="/assessment/reset"
+                   onclick="return confirm('Are you sure you want to retake the assessment? This will clear your current results.')"
+                   style="font-size:0.75rem;font-weight:700;color:#f87171;display:inline-flex;align-items:center;gap:4px;text-decoration:none;transition:color 0.2s;">
                     <i class="fas fa-undo"></i> Retake Assessment
                 </a>
             </div>

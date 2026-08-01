@@ -339,7 +339,7 @@
 
                                 <!-- Sessions -->
                                 <td class="px-5 py-4 text-center">
-                                    {% set stats = counsellor_session_analytics_map.get(cp.user_id, {}) %}
+                                    {% set stats = counsellor_session_analytics_map.get(cp.user_id, {}) if (counsellor_session_analytics_map is defined and counsellor_session_analytics_map) else {} %}
                                     <div class="grid grid-cols-2 gap-1 text-[10px] font-bold text-slate-600 min-w-28">
                                         <span class="rounded-lg bg-slate-50 px-2 py-1 border border-slate-100">Total {{ stats.get('total', 0) }}</span>
                                         <span class="rounded-lg bg-emerald-50 px-2 py-1 border border-emerald-100 text-emerald-700">Done {{ stats.get('completed', 0) }}</span>
@@ -1016,7 +1016,7 @@
                             </thead>
                             <tbody class="bg-white divide-y divide-slate-200">
                                 {% for user in users %}
-                                {% set assessment = assessments.get(user.id) %}
+                                {% set assessment = assessments.get(user.id) if (assessments is defined and assessments) else None %}
                                 <tr class="hover:bg-slate-50 transition-colors">
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                                         {{ ((user_page - 1) * page_size) + loop.index }}
@@ -1325,8 +1325,8 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-slate-200">
                     {% for user in users %}
-                    {% set ar = assessments.get(user.id) %}
-                    {% set assessment_summary = assessment_summaries.get(user.id, {}) %}
+                    {% set ar = assessments.get(user.id) if (assessments is defined and assessments) else None %}
+                    {% set assessment_summary = assessment_summaries.get(user.id, {}) if (assessment_summaries is defined and assessment_summaries) else {} %}
                     <tr class="hover:bg-slate-50 transition-colors">
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{{ loop.index }}</td>
                         <td class="px-6 py-4 whitespace-nowrap">

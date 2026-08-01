@@ -2,8 +2,24 @@
 
 {% block title %}Advanced Assessment – Phase 3{% endblock %}
 
+{% block extra_head %}
+<style>
+    body {
+        background: url('/static/images/BG1.png') center top / cover no-repeat fixed !important;
+        padding-top: 0 !important;
+    }
+    .phase3-page-wrap {
+        padding-top: calc(35px + 90px + 30px); /* base-nav top(35px) + nav height(~90px) + 30px gap */
+    }
+    @media (max-width: 768px) {
+        .phase3-page-wrap { padding-top: calc(20px + 72px + 30px); }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="max-w-4xl mx-auto py-12 px-4 sm:px-6 lg:px-8 relative z-10">
+<div class="phase3-page-wrap">
+<div class="max-w-4xl mx-auto py-6 px-4 sm:px-6 lg:px-8 relative z-10">
 
     <!-- ===================== CLASSIC MODE ===================== -->
     <div id="classic-panel">
@@ -144,6 +160,7 @@
         </div>
     </div>
 </div>
+</div><!-- /.phase3-page-wrap -->
 
 <!-- Floating Premium AI Buddy Orb -->
 <div id="talking-buddy" onclick="window.location.href='/chatbot'"

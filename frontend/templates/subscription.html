@@ -19,7 +19,13 @@
             {% endif %}
         </div>
 
-        {% if not razorpay_configured %}
+        {% if user and user.role == 'admin' %}
+        <div class="rounded-2xl border border-teal-300 bg-teal-50 px-5 py-4 text-sm text-teal-900 font-bold flex items-center gap-2">
+            <i class="fas fa-crown text-amber-500"></i> Admin Exemption: All subscription plans & premium features are 100% Free for Admin users.
+        </div>
+        {% endif %}
+
+        {% if not razorpay_configured and not (user and user.role == 'admin') %}
         <div class="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800">
             Payment gateway is not configured. Add <strong>RAZORPAY_KEY_ID</strong> and <strong>RAZORPAY_KEY_SECRET</strong> to <code>.env</code> before testing paid subscriptions.
         </div>
@@ -47,8 +53,13 @@
                 </div>
 
                 <div class="mt-6">
+                    {% if user and user.role == 'admin' %}
+                    <span class="text-3xl font-black text-emerald-600">FREE</span>
+                    <span class="text-sm text-slate-400 font-normal"> (Admin Pass)</span>
+                    {% else %}
                     <span class="text-4xl font-black text-slate-950">Rs. {{ plan.amount }}</span>
                     <span class="text-sm text-slate-500">/ month</span>
+                    {% endif %}
                 </div>
 
                 <ul class="mt-6 space-y-3 flex-1">
@@ -63,7 +74,9 @@
                 <button
                     onclick="subscribe('{{ key }}')"
                     class="mt-8 w-full rounded-xl px-5 py-3 font-black text-sm transition {% if key == 'customised' %}bg-teal-600 hover:bg-teal-700 text-white{% else %}bg-slate-900 hover:bg-slate-800 text-white{% endif %}">
-                    {% if subscription_state and subscription_state.active and subscription_state.plan == key %}
+                    {% if user and user.role == 'admin' %}
+                        Activate {{ plan.name }} (Free for Admin)
+                    {% elif subscription_state and subscription_state.active and subscription_state.plan == key %}
                         Current Plan
                     {% else %}
                         Start {{ plan.name }}
@@ -79,6 +92,7 @@
 <script>
 const plans = {{ plans | tojson }};
 const razorpayConfigured = {{ razorpay_configured | tojson }};
+const isAdmin = {{ 'true' if (user and user.role == 'admin') else 'false' }};
 
 function showSubscriptionError(message) {
     const box = document.getElementById('subscription-error');
@@ -87,7 +101,7 @@ function showSubscriptionError(message) {
 }
 
 async function subscribe(plan) {
-    if (!razorpayConfigured) {
+    if (!razorpayConfigured && !isAdmin) {
         showSubscriptionError('Payment gateway is not configured yet.');
         return;
     }
@@ -101,6 +115,11 @@ async function subscribe(plan) {
         const order = await response.json();
         if (!response.ok) {
             showSubscriptionError(order.detail || 'Could not create subscription order.');
+            return;
+        }
+
+        if (order.free_for_admin) {
+            window.location.href = '/dashboard?msg=Admin+Subscription+Activated';
             return;
         }
 
