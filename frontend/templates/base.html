@@ -397,7 +397,8 @@
         }
 
         .nav-links a {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
             background: transparent;
             color: #0a2730;
             font-size: 0.92rem;
@@ -414,6 +415,16 @@
             background: #2ba4b5;
             transform: scale(1.08);
             box-shadow: 0 8px 16px rgba(10, 39, 48, 0.25);
+        }
+
+        /* Icons on the sides of the nav buttons get their own subtle hover pop */
+        .nav-links a i {
+            display: inline-block;
+            transition: transform 0.25s ease;
+        }
+
+        .nav-links a:hover i {
+            transform: scale(1.2) rotate(-6deg);
         }
 
         .nav-links a.nav-active {
@@ -907,26 +918,22 @@
         <div class="nav-inner">
             <a href="/" class="nav-logo">
                 <span class="nav-logo-badge">
-                    <img src="/static/images/logo.png" alt="CareStance" width="42" height="42">
+                    <picture>
+                        <source srcset="/static/images/image.webp?v=101" type="image/webp">
+                        <img src="/static/images/image.png?v=101" alt="CareStance Logo" width="42" height="42">
+                    </picture>
                 </span>
             </a>
 
             <div class="nav-links">
                 {% if user %}
-                <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i
-                        class="fa-solid fa-house"></i>Home</a>
-                <a href="/dashboard" class="{% if request.url.path == '/dashboard' %}nav-active{% endif %}"><i
-                        class="fa-solid fa-gauge-high"></i>Dashboard</a>
+                <a href="/dashboard"><i class="fa-solid fa-house" style="margin-right:0.25rem;"></i>Dashboard</a>
                 {% if user.role != 'counsellor' %}
-                <a href="/chatbot" class="{% if request.url.path == '/chatbot' %}nav-active{% endif %}"><i
-                        class="fa-solid fa-comment-dots"></i>Chat AI</a>
+                <a href="/chatbot"><i class="fa-solid fa-comment-dots" style="margin-right:0.25rem;"></i>Chat AI</a>
                 {% endif %}
-                <a href="/community" class="{% if request.url.path == '/community' %}nav-active{% endif %}"><i
-                        class="fa-solid fa-users"></i>Community</a>
-                <a href="/feedback" class="{% if request.url.path == '/feedback' %}nav-active{% endif %}"><i
-                        class="fa-solid fa-star"></i>Feedback</a>
-                <a href="/ticket" class="{% if request.url.path == '/ticket' %}nav-active{% endif %}"><i
-                        class="fa-solid fa-circle-question"></i>Support</a>
+                <a href="/community"><i class="fa-solid fa-users" style="margin-right:0.25rem;"></i>Community</a>
+                <a href="/feedback"><i class="fa-regular fa-star" style="margin-right:0.25rem;"></i>Feedback</a>
+                <a href="/ticket"><i class="fa-solid fa-life-ring" style="margin-right:0.25rem;"></i>Support</a>
                 {% if user.role == 'admin' %}
                 <a href="/admin" class="{% if request.url.path == '/admin' %}nav-active{% endif %}"
                     style="font-weight:700;"><i class="fa-solid fa-shield-halved"></i>Admin</a>

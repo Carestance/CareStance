@@ -41,19 +41,31 @@ def send_email(to_email: str, subject: str, body_html: str, attachments: list = 
                 msg.attach(part)
 
         if mail_port == 465:
-            with smtplib.SMTP_SSL(mail_server, mail_port) as server:
+            with smtplib.SMTP_SSL(mail_server, mail_port, timeout=15) as server:
                 server.login(mail_username, mail_password)
                 server.send_message(msg)
         else:
-            with smtplib.SMTP(mail_server, mail_port) as server:
+            with smtplib.SMTP(mail_server, mail_port, timeout=15) as server:
                 server.starttls()
                 server.login(mail_username, mail_password)
                 server.send_message(msg)
         
         print(f"EMAIL SENT: '{subject}' to {to_email}")
         return True
+    except smtplib.SMTPDataError as e:
+        print(f"EMAIL ERROR (Daily Limit / Data Error): Failed to send email to {to_email}. Code: {e.smtp_code}, Msg: {e.smtp_error}")
+        if e.smtp_code in (550, 554):
+            print("DIAGNOSTIC: Daily sending limit may have been exceeded or email content flagged by provider.")
+        return False
+    except smtplib.SMTPAuthenticationError as e:
+        print(f"EMAIL ERROR (Authentication Failed): Failed to send email to {to_email}. Code: {e.smtp_code}, Msg: {e.smtp_error}")
+        print("DIAGNOSTIC: Authentication blocked. Check if App Password is required or login from new device/server was blocked by provider.")
+        return False
+    except smtplib.SMTPResponseException as e:
+        print(f"EMAIL ERROR (SMTP Response Exception): Code: {e.smtp_code}, Msg: {e.smtp_error}")
+        return False
     except Exception as e:
-        print(f"EMAIL ERROR: Failed to send email to {to_email}. Error: {e}")
+        print(f"EMAIL ERROR: Unexpected failure sending email to {to_email}. Error: {e}")
         return False
 
 def get_booking_template(user_name, other_name, appointment_time, meeting_link, role="student"):
