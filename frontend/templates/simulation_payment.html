@@ -222,94 +222,8 @@
 {% endblock %}
 
 {% block content %}
-<<<<<<< HEAD
 <div class="min-h-screen bg-slate-50/50 py-12 px-4 sm:px-6 lg:px-8">
     <div class="max-w-xl mx-auto bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-8 border border-slate-100 shadow-xl transition-all duration-300">
-=======
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-
-<style>
-    :root {
-        --pink-accent: #e879a0;
-        --pink-border: rgba(255, 180, 200, 0.45);
-        --card-glass: rgba(255, 248, 252, 0.72);
-        --lavender: #a78bfa;
-        --gold-accent: #f59e0b;
-    }
-
-    .payment-page-wrap {
-        min-height: 100vh;
-        padding: var(--content-top-gap) 1.5rem 3rem;
-        background: url('/static/images/BG1.png') center top / cover no-repeat fixed;
-    }
-
-    .payment-card {
-        background: var(--card-glass);
-        backdrop-filter: blur(22px) saturate(180%);
-        -webkit-backdrop-filter: blur(22px) saturate(180%);
-        border: 1.5px solid var(--pink-border);
-        box-shadow: 0 24px 56px rgba(180, 60, 100, 0.13), 0 2px 0 rgba(255,255,255,0.6) inset;
-        border-radius: 28px;
-        position: relative;
-        overflow: hidden;
-    }
-
-    .payment-card::before {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0;
-        height: 3px;
-        background: linear-gradient(90deg, var(--pink-accent), var(--lavender), #0d9488);
-        opacity: 0.7;
-    }
-
-    .payment-mascot {
-        width: 96px;
-        height: auto;
-        margin: -3.5rem auto 0.5rem;
-        display: block;
-        filter: drop-shadow(0 10px 18px rgba(180, 60, 100, 0.25));
-        animation: mascot-bob 3s ease-in-out infinite;
-        position: relative;
-        z-index: 2;
-    }
-
-    @keyframes mascot-bob {
-        0%, 100% { transform: translateY(0) rotate(-2deg); }
-        50% { transform: translateY(-8px) rotate(2deg); }
-    }
-
-    .tier-card {
-        border-radius: 20px !important;
-    }
-
-    input:checked ~ .tier-card {
-        border-color: var(--pink-accent) !important;
-        background: #fff5f8 !important;
-    }
-
-    input:checked ~ .tier-card .tier-label,
-    input:checked ~ .tier-card .tier-check {
-        color: var(--pink-accent) !important;
-    }
-
-    .pay-btn {
-        background: linear-gradient(135deg, var(--pink-accent), #d6577f);
-        box-shadow: 0 12px 28px rgba(180, 60, 100, 0.28);
-    }
-    .pay-btn:hover {
-        background: linear-gradient(135deg, #d6577f, var(--pink-accent));
-        box-shadow: 0 16px 36px rgba(180, 60, 100, 0.35);
-    }
-</style>
-
-<div class="payment-page-wrap">
-    <div class="max-w-xl mx-auto payment-card p-8">
-        <!-- Mascot -->
-        <img src="/static/images/point.png" alt="Point — your career guide mascot" class="payment-mascot"
-             onerror="this.style.display='none'">
-
->>>>>>> 4978894 (latest)
         <!-- Badge -->
         <div class="flex justify-center mb-6">
             <span class="px-4 py-1 bg-amber-50 text-amber-700 text-xs font-bold rounded-full border border-amber-200 flex items-center gap-1.5 tracking-wider uppercase">
@@ -381,15 +295,9 @@
 
         <!-- Payment Actions -->
         <div class="space-y-4">
-<<<<<<< HEAD
             <button id="pay-btn" onclick="startPayment()" 
                 class="w-full py-4 bg-[var(--navy)] hover:bg-[var(--teal)] text-white font-bold rounded-2xl transition shadow-lg shadow-[var(--teal-soft)] hover:shadow-xl flex items-center justify-center gap-2">
                 <i class="fas fa-credit-card"></i> <span id="pay-btn-text">Pay Rs. 15 & Start</span>
-=======
-            <button id="pay-btn" onclick="startPayment()"
-                class="pay-btn w-full py-4 text-white font-bold rounded-2xl transition flex items-center justify-center gap-2">
-                <i class="fas fa-credit-card"></i> <span id="pay-btn-text">Pay ₹15 & Start</span>
->>>>>>> 4978894 (latest)
             </button>
             <a href="/dashboard"
                 class="w-full py-4 bg-white hover:bg-slate-50 text-slate-600 font-bold rounded-2xl transition border border-slate-200 flex items-center justify-center gap-2 text-sm">
