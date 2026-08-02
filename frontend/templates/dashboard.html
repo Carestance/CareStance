@@ -343,26 +343,101 @@
     }
     @keyframes db-shimmer { to { left: 200%; } }
 
-    /* ── Tool grid card ── */
+    /* ── Hover scale utility for CTA buttons ── */
+    .db-hover-scale { will-change: transform; }
+    .db-hover-scale:hover {
+        transform: scale(1.06) translateY(-2px);
+        box-shadow: 0 10px 24px -6px rgba(232,121,160,0.4);
+    }
+    .db-hover-scale:active { transform: scale(0.97); }
+
+    /* ── Tool grid: circular quest badges, not boxes ── */
     .db-tool-card {
-        background: rgba(255,255,255,0.65);
-        border: 1.5px solid rgba(255,200,225,0.4);
-        border-radius: 18px;
-        padding: 1.1rem 0.75rem;
+        --tool-c: var(--db-pink-accent);
+        --tool-glow: rgba(232,121,160,0.35);
+        background: transparent;
+        border: none;
+        border-radius: 20px;
+        padding: 0.6rem 0.35rem 0.75rem;
         text-align: center;
-        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.35s ease, box-shadow 0.35s ease;
         text-decoration: none;
         display: flex;
         flex-direction: column;
         align-items: center;
         gap: 0.5rem;
         position: relative;
-        overflow: hidden;
     }
+
+    /* Gentle wave so the row doesn't read as a flat grid of boxes */
+    .db-tool-card:nth-child(3n+2) { transform: translateY(10px); }
+    .db-tool-card:nth-child(3n+3) { transform: translateY(4px); }
+
+    /* Soft glow bloom behind the badge on hover */
+    .db-tool-card::before {
+        content: '';
+        position: absolute;
+        top: 50%; left: 50%;
+        width: 94px; height: 94px;
+        border-radius: 50%;
+        background: radial-gradient(circle, var(--tool-c) 0%, transparent 72%);
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.6);
+        transition: opacity 0.4s ease, transform 0.4s ease;
+        pointer-events: none;
+        z-index: 0;
+    }
+
     .db-tool-card:hover {
-        border-color: var(--db-pink-accent);
-        box-shadow: 0 8px 24px rgba(232,121,160,0.18);
-        transform: translateY(-4px) scale(1.03);
+        background: rgba(255,255,255,0.4);
+        box-shadow: 0 10px 24px -8px var(--tool-glow), 0 1px 0 rgba(255,255,255,0.6) inset;
+        transform: translateY(-6px) scale(1.04);
+    }
+    .db-tool-card:nth-child(3n+2):hover { transform: translateY(4px) scale(1.04); }
+    .db-tool-card:nth-child(3n+3):hover { transform: translateY(-2px) scale(1.04); }
+    .db-tool-card:hover::before { opacity: 0.28; transform: translate(-50%, -50%) scale(1); }
+    .db-tool-card:active { transform: translateY(-2px) scale(0.97); }
+
+    /* Ring: circular gradient border like the match-score badge */
+    .db-tool-ring {
+        width: 76px; height: 76px;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        padding: 3px;
+        background: conic-gradient(from 180deg, var(--tool-c), rgba(255,255,255,0.15) 65%, var(--tool-c));
+        position: relative; z-index: 1;
+        animation: db-tool-float 3.4s ease-in-out infinite;
+        animation-delay: var(--float-delay, 0s);
+        transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), padding 0.3s ease;
+    }
+    .db-tool-inner {
+        width: 100%; height: 100%;
+        border-radius: 50%;
+        background: rgba(255,251,253,0.92);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.4rem;
+        color: var(--tool-c);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.06) inset;
+    }
+    .db-tool-card:hover .db-tool-ring {
+        transform: scale(1.14) rotate(-8deg);
+        padding: 3.5px;
+    }
+    .db-tool-label {
+        font-size: 0.72rem;
+        font-weight: 800;
+        color: #1e293b;
+        line-height: 1.2;
+        transition: color 0.3s ease;
+    }
+    .db-tool-card:hover .db-tool-label { color: var(--tool-c); }
+
+    @keyframes db-tool-float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-4px); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .db-tool-ring { animation: none; }
     }
 
     /* ── Stat pill ── */
@@ -717,7 +792,7 @@
                 <div class="flex-shrink-0 relative" style="width:112px;height:112px;">
                     <div style="width:112px;height:112px;border-radius:50%;padding:4px;background:linear-gradient(135deg,var(--db-pink-accent),#a78bfa,#0d9488);">
                         <div style="width:100%;height:100%;background:rgba(255,248,252,0.95);border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;">
-                            <span style="font-size:1.75rem;font-weight:900;color:#1e293b;line-height:1;">
+                            <span style="font-family:'Jersey 10','Playfair Display',serif;font-weight:400;font-size:2.4rem;color:#1e293b;line-height:1;">
                                 {{ ((assessment.confidence or 0.85) * 100) | int }}%
                             </span>
                             <span style="font-size:0.65rem;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Match</span>
@@ -733,29 +808,63 @@
                         <i class="fas fa-trophy" style="font-size:0.55rem;"></i>
                         Career Unlocked
                     </span>
-                    <h2 style="font-size:1.4rem;font-weight:900;color:#1e293b;margin:0.3rem 0;">
+                    <h2 style="font-family:'Jersey 10','Playfair Display',serif;font-weight:400;font-size:2.1rem;letter-spacing:0.03em;color:#1e293b;margin:0.15rem 0;">
                         {{ assessment.phase_2_category }}
                     </h2>
-                    <p style="color:#64748b;font-size:0.82rem;margin-bottom:1rem;">
-                        Personality: <strong style="color:#0d9488;">{{ assessment.personality }}</strong> &nbsp;·&nbsp;
-                        <strong style="color:#be185d;">{{ ((assessment.confidence or 0.85) * 100) | int }}% AI match confidence</strong>
+                    <p style="font-family:'Jersey 10',sans-serif;font-weight:400;letter-spacing:0.02em;color:#8b93a1;font-size:1.05rem;margin-bottom:1rem;">
+                        Personality: <strong style="color:#5eb8ad;font-weight:400;">{{ assessment.personality }}</strong> &nbsp;·&nbsp;
+                        <strong style="color:#1e293b;font-weight:700;">{{ ((assessment.confidence or 0.85) * 100) | int }}% AI match confidence</strong>
                     </p>
                     
                     <div style="display:flex;flex-wrap:wrap;gap:0.6rem;justify-content:center;" class="md:justify-start">
-                        <a href="/assessment/result"
-                           style="padding:0.7rem 1.5rem;background:linear-gradient(135deg,var(--db-pink-accent),#a78bfa);color:white;border-radius:14px;font-weight:800;font-size:0.82rem;text-decoration:none;display:inline-flex;align-items:center;gap:0.4rem;box-shadow:0 6px 18px rgba(232,121,160,0.3);transition:all 0.3s;">
+                        <a href="/assessment/result" class="db-hover-scale"
+                           style="padding:0.7rem 1.5rem;background:linear-gradient(135deg,var(--db-pink-accent),#a78bfa);color:white;border-radius:14px;font-weight:800;font-size:0.82rem;text-decoration:none;display:inline-flex;align-items:center;gap:0.4rem;box-shadow:0 6px 18px rgba(232,121,160,0.3);transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1),box-shadow 0.3s ease;">
                             <i class="fas fa-scroll"></i> View Full Report
                         </a>
-                        <a href="/chatbot"
-                           style="padding:0.7rem 1.5rem;background:rgba(255,255,255,0.75);border:1.5px solid rgba(255,200,225,0.5);color:#1e293b;border-radius:14px;font-weight:700;font-size:0.82rem;text-decoration:none;display:inline-flex;align-items:center;gap:0.4rem;transition:all 0.3s;">
+                        <a href="/chatbot" class="db-hover-scale"
+                           style="padding:0.7rem 1.5rem;background:rgba(255,255,255,0.75);border:1.5px solid rgba(255,200,225,0.5);color:#1e293b;border-radius:14px;font-weight:700;font-size:0.82rem;text-decoration:none;display:inline-flex;align-items:center;gap:0.4rem;transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1),box-shadow 0.3s ease;">
                             <i class="fas fa-comment-dots" style="color:#0d9488;"></i> Ask CareerBuddy AI
                         </a>
                         <a href="/assessment/simulation/start/{{ dashboard_sim_career | urlencode }}"
-                            class="w-full sm:w-auto text-center px-6 py-3.5 bg-amber-500 text-white rounded-xl font-bold hover:bg-amber-600 transition shadow-lg shadow-amber-100">
+                            class="w-full sm:w-auto text-center px-6 py-3.5 bg-amber-500 text-white rounded-xl font-bold hover:bg-amber-600 transition shadow-lg shadow-amber-100 db-hover-scale">
                             Try Career Simulation
                         </a>
                     </div>
                 </div>
+            </div>
+
+            <!-- ── Quest Tools Grid ── -->
+            <div class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-2 db-stagger" style="animation-delay:0.15s;">
+                <a href="/career/roadmaps" class="db-tool-card" style="--tool-c:#0d9488;--tool-glow:rgba(13,148,136,0.35);--float-delay:0s;">
+                    <span class="db-tool-ring"><span class="db-tool-inner"><i class="fas fa-route"></i></span></span>
+                    <span class="db-tool-label">My Roadmaps</span>
+                </a>
+                <a href="/career/colleges" class="db-tool-card" style="--tool-c:#6366f1;--tool-glow:rgba(99,102,241,0.35);--float-delay:0.2s;">
+                    <span class="db-tool-ring"><span class="db-tool-inner"><i class="fas fa-university"></i></span></span>
+                    <span class="db-tool-label">Colleges</span>
+                </a>
+                <a href="/counsellors" class="db-tool-card" style="--tool-c:var(--db-pink-accent);--tool-glow:rgba(232,121,160,0.35);--float-delay:0.4s;">
+                    <span class="db-tool-ring"><span class="db-tool-inner"><i class="fas fa-video"></i></span></span>
+                    <span class="db-tool-label">Talk to Expert</span>
+                </a>
+                <a href="/chatbot" class="db-tool-card" style="--tool-c:#f59e0b;--tool-glow:rgba(245,158,11,0.35);--float-delay:0.6s;">
+                    <span class="db-tool-ring"><span class="db-tool-inner"><i class="fas fa-comments"></i></span></span>
+                    <span class="db-tool-label">CareerBuddy AI</span>
+                </a>
+                <a href="/assessment/simulation/start/{{ dashboard_sim_career | urlencode }}" class="db-tool-card" style="--tool-c:#a78bfa;--tool-glow:rgba(167,139,250,0.35);--float-delay:0.8s;">
+                    <span class="db-tool-ring"><span class="db-tool-inner"><i class="fas fa-vr-cardboard"></i></span></span>
+                    <span class="db-tool-label">Simulation</span>
+                </a>
+                <a href="/subscription" class="db-tool-card" style="--tool-c:#eab308;--tool-glow:rgba(234,179,8,0.35);--float-delay:1s;">
+                    <span class="db-tool-ring"><span class="db-tool-inner"><i class="fas fa-crown"></i></span></span>
+                    <span class="db-tool-label">Plans</span>
+                </a>
+                {% if subscription_state and subscription_state.active and subscription_state.plan == 'customised' %}
+                <a href="/weekly-checkin" class="db-tool-card" style="--tool-c:#10b981;--tool-glow:rgba(16,185,129,0.35);--float-delay:1.2s;">
+                    <span class="db-tool-ring"><span class="db-tool-inner"><i class="fas fa-calendar-check"></i></span></span>
+                    <span class="db-tool-label">Weekly AI</span>
+                </a>
+                {% endif %}
             </div>
 
             <!-- ── Scheduled Sessions ── -->
@@ -998,7 +1107,7 @@
                 </div>
                 <div style="flex:1;min-width:0;">
                     <div style="font-size:1rem;font-weight:900;color:#1e293b;line-height:1.2;">{{ user.full_name }}</div>
-                    <div style="font-size:0.68rem;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-top:2px;">{{ user.role or 'Explorer' }}</div>
+                    <div style="font-size:0.68rem;color:#475569;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-top:2px;">{{ user.role or 'Explorer' }}</div>
                 </div>
                 <span class="db-xp-badge">
                     <i class="fas fa-bolt" style="font-size:0.55rem;"></i> Active
@@ -1030,54 +1139,6 @@
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <!-- ── Quest Tools Grid ── -->
-            <div class="grid grid-cols-2 gap-3 db-stagger" style="animation-delay:0.2s;">
-                <a href="/career/roadmaps" class="db-tool-card">
-                    <div style="width:38px;height:38px;background:rgba(13,148,136,0.1);color:#0d9488;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1rem;">
-                        <i class="fas fa-route"></i>
-                    </div>
-                    <span style="font-size:0.72rem;font-weight:800;color:#1e293b;">My Roadmaps</span>
-                </a>
-                <a href="/career/colleges" class="db-tool-card">
-                    <div style="width:38px;height:38px;background:rgba(99,102,241,0.1);color:#6366f1;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1rem;">
-                        <i class="fas fa-university"></i>
-                    </div>
-                    <span style="font-size:0.72rem;font-weight:800;color:#1e293b;">Colleges</span>
-                </a>
-                <a href="/counsellors" class="db-tool-card">
-                    <div style="width:38px;height:38px;background:rgba(232,121,160,0.1);color:var(--db-pink-accent);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1rem;">
-                        <i class="fas fa-video"></i>
-                    </div>
-                    <span style="font-size:0.72rem;font-weight:800;color:#1e293b;">Talk to Expert</span>
-                </a>
-                <a href="/chatbot" class="db-tool-card">
-                    <div style="width:38px;height:38px;background:rgba(245,158,11,0.1);color:#f59e0b;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1rem;">
-                        <i class="fas fa-comments"></i>
-                    </div>
-                    <span style="font-size:0.72rem;font-weight:800;color:#1e293b;">CareerBuddy AI</span>
-                </a>
-                <a href="/assessment/simulation/start/{{ dashboard_sim_career | urlencode }}" class="bg-white p-4 rounded-2xl border border-amber-100 shadow-sm hover:border-amber-300 hover:-translate-y-0.5 transition-all text-center">
-                    <div class="w-10 h-10 mx-auto bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mb-2">
-                        <i class="fas fa-vr-cardboard"></i>
-                    </div>
-                    <span class="text-xs font-bold text-slate-700 block">Simulation</span>
-                </a>
-                <a href="/subscription" class="bg-white p-4 rounded-2xl border border-amber-100 shadow-sm hover:border-amber-300 hover:-translate-y-0.5 transition-all text-center">
-                    <div class="w-10 h-10 mx-auto bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mb-2">
-                        <i class="fas fa-crown"></i>
-                    </div>
-                    <span class="text-xs font-bold text-slate-700 block">Plans</span>
-                </a>
-                {% if subscription_state and subscription_state.active and subscription_state.plan == 'customised' %}
-                <a href="/weekly-checkin" class="bg-white p-4 rounded-2xl border border-teal-100 shadow-sm hover:border-[var(--teal)] hover:-translate-y-0.5 transition-all text-center">
-                    <div class="w-10 h-10 mx-auto bg-teal-50 text-teal-600 rounded-full flex items-center justify-center mb-2">
-                        <i class="fas fa-calendar-check"></i>
-                    </div>
-                    <span class="text-xs font-bold text-slate-700 block">Weekly AI</span>
-                </a>
-                {% endif %}
             </div>
 
             <!-- ── Bio Section ── -->
@@ -1114,13 +1175,17 @@
 
             <!-- ── Retake ── -->
             <div class="db-card p-4 text-center db-stagger" style="animation-delay:0.3s;">
-                <p style="font-size:0.72rem;color:#94a3b8;margin-bottom:0.5rem;">Want to map a different academic stage?</p>
+                <p style="font-size:0.72rem;color:#475569;margin-bottom:0.5rem;">Want to map a different academic stage?</p>
                 <a href="/assessment/reset"
                    onclick="return confirm('Are you sure you want to retake the assessment? This will clear your current results.')"
                    style="font-size:0.75rem;font-weight:700;color:#f87171;display:inline-flex;align-items:center;gap:4px;text-decoration:none;transition:color 0.2s;">
                     <i class="fas fa-undo"></i> Retake Assessment
                 </a>
             </div>
+
+            <!-- ── Sleeping mascot: sits in the open background space below the panels ── -->
+            <img src="/static/images/mascot_sleeping.png" alt="Sleeping mascot" class="mascot-container"
+                 style="width:200px;height:auto;display:block;margin:1.5rem auto 0 auto;filter:drop-shadow(0 10px 18px rgba(0,0,0,0.25));">
 
         </div>
     </div>

@@ -2,21 +2,241 @@
 
 {% block title %}AI Career Guide{% endblock %}
 
+{% block navbar %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Jersey+10&display=swap');
+
+    .hero-nav {
+        position: fixed;
+        top: 40px;
+        left: 0;
+        right: 0;
+        width: 100%;
+        z-index: 1000;
+        background: transparent;
+        box-shadow: none;
+    }
+
+    .hero-nav-inner {
+        max-width: 1500px;
+        margin: 0 auto;
+        padding: 0 2.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .hero-nav-logo {
+        display: flex;
+        align-items: center;
+        gap: 1.75rem;
+        text-decoration: none;
+    }
+
+    .hero-nav-logo-badge {
+        width: 156px; height: 156px;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 50%;
+        background: #0f172a;
+        flex-shrink: 0;
+    }
+
+    .hero-nav-logo-badge img {
+        width: 90px; height: 90px;
+        border-radius: 50%; object-fit: cover;
+        transform: scale(1.6);
+    }
+
+    .hero-nav-logo-text {
+        font-family: 'Jersey 10', 'Playfair Display', serif;
+        font-size: 2rem; font-weight: 700;
+        color: #12202b; white-space: nowrap;
+        letter-spacing: 0.02em;
+    }
+
+    .hero-nav-links {
+        display: flex;
+        align-items: center;
+        gap: 1.9rem;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .hero-nav-links a {
+        display: inline-block;
+        font-family: 'Jersey 10', sans-serif;
+        color: #fff;
+        font-size: 30px;
+        font-weight: 400;
+        white-space: nowrap;
+        text-decoration: none;
+        letter-spacing: 0.02em;
+        text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+        transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+
+    .hero-nav-links a:hover {
+        transform: scale(1.1);
+        opacity: 0.75;
+    }
+
+    .hero-nav-links a.nav-active {
+        text-decoration: underline;
+        text-underline-offset: 4px;
+    }
+
+    .hero-nav-user-name {
+        font-family: 'Jersey 10', sans-serif;
+        color: #fff;
+        opacity: 0.75;
+        font-size: 22px;
+        text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+    }
+
+    .hero-nav-logout {
+        font-family: 'Jersey 10', sans-serif;
+        background: #12202b;
+        color: #fff !important;
+        padding: 0.4rem 1.6rem;
+        border-radius: 999px;
+        font-size: 28px;
+        text-shadow: none;
+    }
+
+    .hero-nav-logout:hover {
+        transform: scale(1.08);
+        opacity: 1 !important;
+        background: #1e2f3d;
+    }
+
+    .hero-mobile-toggle {
+        display: none;
+        background: none; border: none;
+        color: #12202b; font-size: 1.35rem;
+        cursor: pointer;
+    }
+
+    .hero-mobile-menu {
+        display: none;
+        position: absolute; top: 100%; left: 1.5rem; right: 1.5rem;
+        margin-top: 0.75rem; padding: 1.5rem;
+        flex-direction: column; gap: 0.75rem;
+        background: #fff; border-radius: 1.25rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.15);
+    }
+
+    .hero-mobile-menu.open { display: flex; }
+
+    .hero-mobile-menu a {
+        padding: 0.8rem 0.5rem;
+        color: var(--text-main);
+        text-decoration: none;
+        font-weight: 500;
+        border-bottom: 1px solid var(--border-soft);
+        transition: color 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .hero-mobile-menu a.nav-active {
+        color: var(--primary);
+        font-weight: 700;
+        background: var(--primary-soft);
+        border-radius: 0.5rem;
+    }
+
+    .hero-mobile-menu a:last-child { border-bottom: none; }
+    .hero-mobile-menu a:hover { color: #0d9488; }
+
+    @media (max-width: 768px) {
+        .hero-nav-links { display: none; }
+        .hero-mobile-toggle { display: block; }
+        .hero-nav-logo-badge { width: 64px; height: 64px; }
+        .hero-nav-logo-badge img { width: 36px; height: 36px; }
+        .hero-nav-logo-text { font-size: 1.4rem; }
+        .hero-nav-inner { padding: 0 1.25rem; }
+        .hero-nav { top: 20px; }
+    }
+</style>
+
+<nav class="hero-nav">
+    <div class="hero-nav-inner">
+        <a href="/" class="hero-nav-logo">
+            <span class="hero-nav-logo-badge">
+                <picture>
+                    <source srcset="/static/images/image.webp?v=101" type="image/webp">
+                    <img src="/static/images/image.png?v=101" alt="CareStance Logo" width="90" height="90">
+                </picture>
+            </span>
+            <span class="hero-nav-logo-text">Carestance</span>
+        </a>
+
+        <div class="hero-nav-links">
+            {% if user %}
+            <a href="/dashboard" class="{% if request.url.path == '/dashboard' %}nav-active{% endif %}">Dashboard</a>
+            {% if user.role != 'counsellor' %}
+            <a href="/chatbot" class="{% if request.url.path == '/chatbot' %}nav-active{% endif %}">Chat AI</a>
+            {% endif %}
+            <a href="/community">Community</a>
+            <a href="/feedback">Feedback</a>
+            <a href="/ticket">Support</a>
+            {% if user.role == 'admin' %}
+            <a href="/admin" class="{% if request.url.path == '/admin' %}nav-active{% endif %}" style="font-weight:700;">Admin</a>
+            {% endif %}
+            {% if user.full_name and user.full_name != 'None' %}<span class="hero-nav-user-name">| {{ user.full_name }}</span>{% endif %}
+            <a href="/logout" class="hero-nav-logout">Logout</a>
+            {% else %}
+            <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}">Home</a>
+            <a href="/login" class="{% if request.url.path == '/login' %}nav-active{% endif %}">Log In</a>
+            {% endif %}
+        </div>
+
+        <button class="hero-mobile-toggle" id="base-menu-toggle" aria-label="Menu">
+            <i class="fa-solid fa-bars" id="base-menu-icon"></i>
+        </button>
+    </div>
+
+    <div class="hero-mobile-menu" id="base-mobile-menu">
+        {% if user %}
+        <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i class="fa-solid fa-house"></i>Home</a>
+        <a href="/dashboard" class="{% if request.url.path == '/dashboard' %}nav-active{% endif %}"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
+        {% if user.role != 'counsellor' %}
+        <a href="/chatbot" class="{% if request.url.path == '/chatbot' %}nav-active{% endif %}"><i class="fa-solid fa-comment-dots"></i>Chat AI</a>
+        {% endif %}
+        <a href="/community"><i class="fa-solid fa-users"></i>Community</a>
+        <a href="/feedback"><i class="fa-solid fa-star"></i>Feedback</a>
+        <a href="/ticket"><i class="fa-solid fa-circle-question"></i>Support</a>
+        {% if user.role == 'admin' %}<a href="/admin"><i class="fa-solid fa-shield-halved"></i>Admin Panel</a>{% endif %}
+        <a href="/logout" style="color:#b45309;"><i class="fa-solid fa-right-from-bracket"></i>Logout</a>
+        {% else %}
+        <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i class="fa-solid fa-house"></i>Home</a>
+        <a href="/login"><i class="fa-solid fa-right-to-bracket"></i>Log In</a>
+        {% endif %}
+    </div>
+</nav>
+{% endblock %}
+
 {% block content %}
 <!-- Adventure Sky Backdrop -->
 <div class="quest-sky">
     <div class="quest-sky-overlay"></div>
 </div>
 
+<!-- Fixed, non-scrolling viewport shell that clears the hero-nav above -->
+<div class="quest-page-shell">
+
 <!-- Main Layout Container -->
-<div class="quest-ui max-w-7xl mx-auto h-[calc(100vh-5rem)] md:h-[calc(100vh-8rem)] min-h-[500px] flex gap-6">
+<div class="quest-ui max-w-7xl mx-auto h-full flex gap-6">
 
     <!-- SIDEBAR: Context & Profile (Hidden on Mobile) -->
     <div class="hidden lg:flex flex-col w-80 gap-4 h-full shrink-0">
         <!-- Profile Card -->
         <div class="pixel-frame">
             <div class="pixel-frame-inner flex flex-col items-center text-center p-6">
-                <div class="relative w-24 h-24 mb-4">
+                <div class="relative w-20 h-20 mb-3">
                     <!-- Animated Orb Background -->
                     <div
                         class="absolute inset-0 bg-[var(--teal)] rounded-full blur-xl opacity-40 animate-pulse">
@@ -24,10 +244,11 @@
                     <!-- The Orb -->
                     <div id="talking-buddy"
                         class="relative w-full h-full bg-[var(--navy)] rounded-full border-4 border-[var(--parchment)] shadow-xl flex items-center justify-center overflow-hidden transition-transform duration-300 quest-ring">
+                        <video src="/static/images/peek.mp4" autoplay muted loop playsinline
+                               class="absolute inset-0 w-full h-full object-cover rounded-full"></video>
                         <div
-                            class="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.35),transparent)]">
+                            class="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.35),transparent)] pointer-events-none">
                         </div>
-                        <span class="text-4xl relative z-10">🎓</span>
                     </div>
                     <!-- Status Dot -->
                     <div id="buddy-status"
@@ -126,7 +347,7 @@
             <!-- Welcome Message -->
             <div class="flex items-start gap-4 animate-fade-in-up">
                 <div class="quest-avatar quest-avatar--ai">
-                    <span class="text-lg text-white">🤖</span>
+                    <img src="/static/images/pfp.png" alt="AI" class="w-full h-full object-cover rounded-[0.85rem]">
                 </div>
                 <div class="bubble bubble--ai max-w-[90%] sm:max-w-[80%]">
                     <p class="leading-relaxed text-sm sm:text-base">Hello! I'm your personal AI career guide. I have
@@ -153,7 +374,7 @@
                 {% else %}
                 <!-- AI Avatar -->
                 <div class="quest-avatar quest-avatar--ai">
-                    <span class="text-lg">🤖</span>
+                    <img src="/static/images/pfp.png" alt="AI" class="w-full h-full object-cover rounded-[0.85rem]">
                 </div>
                 <!-- AI Bubble -->
                 <div class="bubble bubble--ai max-w-[90%] sm:max-w-[80%]">
@@ -219,6 +440,8 @@
     </div>
 </div>
 
+</div><!-- /.quest-page-shell -->
+
 <!-- STYLES -->
 <style>
     /* ===== CareStance Adventure Theme — Quest UI ===== */
@@ -230,6 +453,32 @@
         --ink: #2a2140;
         --teal-deep: #0d7d72;
         font-family: 'Baloo 2', 'Nunito', sans-serif;
+    }
+
+    /* Lock the whole page to the viewport — no outer scrollbar.
+       Panels below (chat history, sidebar) still scroll internally. */
+    html:has(.quest-page-shell),
+    body:has(.quest-page-shell) {
+        height: 100vh;
+        overflow: hidden;
+    }
+
+    .quest-page-shell {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        box-sizing: border-box;
+        padding: 200px 2.5rem 1.25rem;
+        overflow: hidden;
+    }
+
+    @media (max-width: 1024px) {
+        .quest-page-shell { padding: 150px 1.5rem 1rem; }
+    }
+
+    @media (max-width: 768px) {
+        .quest-page-shell { padding: 95px 0.75rem 0.75rem; }
     }
 
     .quest-heading,
@@ -731,7 +980,7 @@
             </div>
         ` : `
             <div class="quest-avatar quest-avatar--ai">
-                <span class="text-lg text-white">🤖</span>
+                <img src="/static/images/pfp.png" alt="AI" class="w-full h-full object-cover rounded-[0.85rem]">
             </div>
         `;
 
@@ -774,7 +1023,7 @@
         div.className = 'flex items-start gap-4 animate-fade-in-up';
         div.innerHTML = `
             <div class="quest-avatar quest-avatar--ai">
-                <span class="text-lg text-white">🤖</span>
+                <img src="/static/images/pfp.png" alt="AI" class="w-full h-full object-cover rounded-[0.85rem]">
             </div>
             <div class="bubble bubble--ai max-w-[90%] sm:max-w-[80%]">
                 <div id="ai-response-content" class="prose prose-emerald prose-sm max-w-none">
