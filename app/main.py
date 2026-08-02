@@ -2607,6 +2607,344 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
         import traceback
         return HTMLResponse(content=f"Template Error: {e}<br><pre>{traceback.format_exc()}</pre>", status_code=500)
 
+
+@app.get("/my-growth-profile", response_class=HTMLResponse)
+async def my_growth_profile(request: Request, db: AsyncSession = Depends(get_db)):
+    """Private foundation for the student's monthly growth journey."""
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    if user.role != "student":
+        raise HTTPException(status_code=403, detail="This page is only available to students")
+
+    assessment = (await db.execute(
+        select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id)
+    )).scalars().first()
+    from .services.growth_profile_service import build_growth_profile
+
+    return templates.TemplateResponse(request=request, name="my_growth_profile.html", context={
+        "user": user,
+        "assessment": assessment,
+        "growth_profile": build_growth_profile(assessment),
+    })
+
+
+async def _get_monthly_plan(user, db: AsyncSession):
+    """Load the student's current plan, creating it once per calendar month."""
+    from .services.growth_profile_service import build_growth_profile
+    from .services.monthly_plan_service import build_monthly_plan
+
+    assessment = (await db.execute(
+        select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id)
+    )).scalars().first()
+    growth_profile = build_growth_profile(assessment)
+    month_key = datetime.date.today().strftime("%Y-%m")
+    plan_record = (await db.execute(
+        select(models.MonthlyGrowthPlan).where(
+            models.MonthlyGrowthPlan.user_id == user.id,
+            models.MonthlyGrowthPlan.month_key == month_key,
+        )
+    )).scalars().first()
+
+    if growth_profile["is_ready"] and plan_record is None:
+        previous_record = (await db.execute(
+            select(models.MonthlyGrowthPlan)
+            .where(models.MonthlyGrowthPlan.user_id == user.id, models.MonthlyGrowthPlan.month_key < month_key)
+            .order_by(models.MonthlyGrowthPlan.month_key.desc())
+            .limit(1)
+        )).scalars().first()
+        previous_summary = None
+        if previous_record and isinstance(previous_record.plan_data, dict):
+            previous_review = previous_record.plan_data.get("month_end_review") or {}
+            previous_summary = previous_review.get("summary")
+        plan_data = build_monthly_plan(growth_profile, month_key, previous_summary)
+        if plan_record is None:
+            plan_record = models.MonthlyGrowthPlan(
+                user_id=user.id,
+                month_key=month_key,
+                milestone=plan_data["milestone"],
+                plan_data=plan_data,
+            )
+            db.add(plan_record)
+        await db.commit()
+        await db.refresh(plan_record)
+
+    if plan_record:
+        from .services.monthly_plan_service import ensure_monthly_plan_structure
+        normalised_plan, changed = ensure_monthly_plan_structure(plan_record.plan_data)
+        if changed:
+            plan_record.plan_data = normalised_plan
+            await db.commit()
+        return growth_profile, normalised_plan
+    return growth_profile, None
+
+
+@app.get("/my-monthly-path", response_class=HTMLResponse)
+async def my_monthly_path(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    if user.role != "student":
+        raise HTTPException(status_code=403, detail="This page is only available to students")
+
+    from .services.monthly_plan_service import (
+        build_weekend_quiz,
+        get_encouragement_message,
+        get_monthly_cycle_status,
+        get_monthly_plan_progress,
+        get_week_task_states,
+    )
+    growth_profile, plan = await _get_monthly_plan(user, db)
+    progress = get_monthly_plan_progress(plan)
+    return templates.TemplateResponse(request=request, name="monthly_path.html", context={
+        "user": user,
+        "growth_profile": growth_profile,
+        "plan": plan,
+        "progress": progress,
+        "current_task_states": get_week_task_states(plan or {}, progress["current_week"] or 1),
+        "cycle": get_monthly_cycle_status(plan),
+        "weekend_quiz": build_weekend_quiz(plan or {}),
+        "encouragement_message": get_encouragement_message(plan or {}),
+    })
+
+
+@app.post("/my-monthly-path/week/{week_number}/toggle")
+async def toggle_monthly_path_week(week_number: int, request: Request, db: AsyncSession = Depends(get_db)):
+    """Persist completion of a single weekly action for the signed-in student."""
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    if user.role != "student":
+        raise HTTPException(status_code=403, detail="This action is only available to students")
+    if week_number not in range(1, 5):
+        raise HTTPException(status_code=404, detail="Weekly action not found")
+
+    month_key = datetime.date.today().strftime("%Y-%m")
+    plan_record = (await db.execute(
+        select(models.MonthlyGrowthPlan).where(
+            models.MonthlyGrowthPlan.user_id == user.id,
+            models.MonthlyGrowthPlan.month_key == month_key,
+        )
+    )).scalars().first()
+    if not plan_record:
+        raise HTTPException(status_code=404, detail="Monthly path not found")
+
+    plan_data = dict(plan_record.plan_data or {})
+    completed_weeks = {
+        week for week in plan_data.get("completed_week_numbers", [])
+        if isinstance(week, int) and 1 <= week <= 4
+    }
+    if week_number in completed_weeks:
+        completed_weeks.remove(week_number)
+    else:
+        completed_weeks.add(week_number)
+    plan_data["completed_week_numbers"] = sorted(completed_weeks)
+    plan_record.plan_data = plan_data
+    await db.commit()
+    return RedirectResponse(url="/my-monthly-path", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@app.post("/my-monthly-path/week/{week_number}/task/{task_id}/toggle")
+async def toggle_monthly_path_task(
+    week_number: int, task_id: str, request: Request, response: str = Form(...), db: AsyncSession = Depends(get_db)
+):
+    """Save evidence for the next unlocked task in the current week."""
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    if user.role != "student":
+        raise HTTPException(status_code=403, detail="This action is only available to students")
+    if week_number not in range(1, 5):
+        raise HTTPException(status_code=404, detail="Weekly task not found")
+
+    response = response.strip()
+    if len(response) < 10 or len(response) > 1500:
+        raise HTTPException(status_code=400, detail="Please write a response between 10 and 1500 characters")
+
+    from .services.monthly_plan_service import (
+        ensure_monthly_plan_structure,
+        get_monthly_plan_progress,
+        get_week_task_states,
+    )
+    plan_record = await _get_current_monthly_plan_record(user, db)
+    plan_data, _ = ensure_monthly_plan_structure(plan_record.plan_data)
+    progress = get_monthly_plan_progress(plan_data)
+    if progress["current_week"] != week_number:
+        raise HTTPException(status_code=403, detail="Complete the current week before unlocking this week")
+    selected_week = next((week for week in plan_data.get("weeks", []) if week.get("week") == week_number), None)
+    if not selected_week or task_id not in {task.get("id") for task in selected_week.get("tasks", [])}:
+        raise HTTPException(status_code=404, detail="Weekly task not found")
+
+    open_task = next((task for task in get_week_task_states(plan_data, week_number) if task["is_open"]), None)
+    if not open_task or open_task["id"] != task_id:
+        raise HTTPException(status_code=403, detail="Complete the current subtask before unlocking the next one")
+
+    task_responses = dict(plan_data.get("task_responses") or {})
+    task_responses[task_id] = {
+        "text": response,
+        "completed_on": datetime.date.today().isoformat(),
+    }
+    plan_data["task_responses"] = task_responses
+    plan_record.plan_data = plan_data
+    await db.commit()
+    return RedirectResponse(url=f"/my-monthly-path/week/{week_number}", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@app.get("/my-monthly-path/week/{week_number}", response_class=HTMLResponse)
+async def monthly_path_week(week_number: int, request: Request, db: AsyncSession = Depends(get_db)):
+    """Dedicated workspace for the student's current unlocked week."""
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    if user.role != "student":
+        raise HTTPException(status_code=403, detail="This page is only available to students")
+    if week_number not in range(1, 5):
+        raise HTTPException(status_code=404, detail="Week not found")
+
+    from .services.monthly_plan_service import (
+        build_weekend_quiz,
+        get_monthly_cycle_status,
+        get_monthly_plan_progress,
+        get_week_task_states,
+    )
+    growth_profile, plan = await _get_monthly_plan(user, db)
+    if not growth_profile["is_ready"] or not plan:
+        return RedirectResponse(url="/my-monthly-path", status_code=status.HTTP_303_SEE_OTHER)
+    progress = get_monthly_plan_progress(plan)
+    if week_number != progress["current_week"] and week_number not in progress["completed_week_numbers"]:
+        raise HTTPException(status_code=403, detail="Complete the earlier week before opening this workspace")
+    week = next((item for item in plan.get("weeks", []) if item.get("week") == week_number), None)
+    if not week:
+        raise HTTPException(status_code=404, detail="Week not found")
+    cycle = get_monthly_cycle_status(plan)
+    return templates.TemplateResponse(request=request, name="monthly_week.html", context={
+        "user": user,
+        "plan": plan,
+        "week": week,
+        "progress": progress,
+        "task_states": get_week_task_states(plan, week_number),
+        "cycle": cycle,
+        "weekend_quiz": build_weekend_quiz(plan),
+    })
+
+
+async def _get_current_monthly_plan_record(user, db: AsyncSession):
+    month_key = datetime.date.today().strftime("%Y-%m")
+    plan_record = (await db.execute(
+        select(models.MonthlyGrowthPlan).where(
+            models.MonthlyGrowthPlan.user_id == user.id,
+            models.MonthlyGrowthPlan.month_key == month_key,
+        )
+    )).scalars().first()
+    if not plan_record:
+        raise HTTPException(status_code=404, detail="Monthly path not found")
+    return plan_record
+
+
+@app.post("/my-monthly-path/check-in")
+async def submit_monthly_checkin(
+    request: Request, message: str = Form(...), return_week: int = Form(0), db: AsyncSession = Depends(get_db)
+):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    if user.role != "student":
+        raise HTTPException(status_code=403, detail="This action is only available to students")
+    message = message.strip()
+    if not message or len(message) > 1500:
+        raise HTTPException(status_code=400, detail="Please write an update between 1 and 1500 characters")
+
+    from .services.monthly_plan_service import build_weekly_reflection_response
+    plan_record = await _get_current_monthly_plan_record(user, db)
+    plan_data = dict(plan_record.plan_data or {})
+    checkins = list(plan_data.get("weekly_checkins", []))
+    checkins.append({
+        "date": datetime.date.today().isoformat(),
+        "message": message,
+        "response": build_weekly_reflection_response(plan_data, message),
+    })
+    plan_data["weekly_checkins"] = checkins[-8:]
+    plan_record.plan_data = plan_data
+    await db.commit()
+    destination = f"/my-monthly-path/week/{return_week}" if return_week in range(1, 5) else "/my-monthly-path"
+    return RedirectResponse(url=destination, status_code=status.HTTP_303_SEE_OTHER)
+
+
+@app.post("/my-monthly-path/encouragement/read")
+async def acknowledge_monthly_encouragement(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    if user.role != "student":
+        raise HTTPException(status_code=403, detail="This action is only available to students")
+    plan_record = await _get_current_monthly_plan_record(user, db)
+    plan_data = dict(plan_record.plan_data or {})
+    plan_data["last_encouragement_seen_on"] = datetime.date.today().isoformat()
+    plan_record.plan_data = plan_data
+    await db.commit()
+    return RedirectResponse(url="/my-monthly-path", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@app.post("/my-monthly-path/weekend-quiz")
+async def submit_monthly_weekend_quiz(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    if user.role != "student":
+        raise HTTPException(status_code=403, detail="This action is only available to students")
+    form_data = await request.form()
+    plan_record = await _get_current_monthly_plan_record(user, db)
+    plan_data = dict(plan_record.plan_data or {})
+    from .services.monthly_plan_service import build_weekend_quiz
+    questions = build_weekend_quiz(plan_data)
+    answers = []
+    for index, question in enumerate(questions):
+        try:
+            answer = int(form_data.get(f"answer_{index}", ""))
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=400, detail="Please answer all five questions")
+        if answer not in range(len(question["options"])):
+            raise HTTPException(status_code=400, detail="Please answer all five questions")
+        answers.append(answer)
+    score = sum(answer == question["correct_index"] for answer, question in zip(answers, questions))
+    quizzes = list(plan_data.get("weekend_quizzes", []))
+    quizzes.append({"date": datetime.date.today().isoformat(), "score": score, "total": len(questions)})
+    plan_data["weekend_quizzes"] = quizzes[-8:]
+    plan_record.plan_data = plan_data
+    await db.commit()
+    try:
+        return_week = int(form_data.get("return_week", 0))
+    except (TypeError, ValueError):
+        return_week = 0
+    destination = f"/my-monthly-path/week/{return_week}" if return_week in range(1, 5) else "/my-monthly-path"
+    return RedirectResponse(url=destination, status_code=status.HTTP_303_SEE_OTHER)
+
+
+@app.post("/my-monthly-path/month-end-review")
+async def submit_month_end_review(
+    request: Request, reflection: str = Form(...), db: AsyncSession = Depends(get_db)
+):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    if user.role != "student":
+        raise HTTPException(status_code=403, detail="This action is only available to students")
+    reflection = reflection.strip()
+    if not reflection or len(reflection) > 1500:
+        raise HTTPException(status_code=400, detail="Please write a reflection between 1 and 1500 characters")
+    from .services.monthly_plan_service import build_month_end_summary
+    plan_record = await _get_current_monthly_plan_record(user, db)
+    plan_data = dict(plan_record.plan_data or {})
+    plan_data["month_end_review"] = {
+        "date": datetime.date.today().isoformat(),
+        "reflection": reflection,
+        "summary": build_month_end_summary(plan_data, reflection),
+    }
+    plan_record.plan_data = plan_data
+    await db.commit()
+    return RedirectResponse(url="/my-monthly-path", status_code=status.HTTP_303_SEE_OTHER)
+
+
 @app.get("/admin", response_class=HTMLResponse)
 async def admin_dashboard(
     request: Request, 
