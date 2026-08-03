@@ -184,6 +184,10 @@
         <div class="hero-nav-links">
             {% if user %}
             <a href="/dashboard" class="nav-active">Dashboard</a>
+            {% if user.role == 'student' %}
+            <a href="/my-growth-profile" class="{% if request.url.path == '/my-growth-profile' %}nav-active{% endif %}">Growth Profile</a>
+            <a href="/my-monthly-path" class="{% if request.url.path == '/my-monthly-path' %}nav-active{% endif %}">Monthly Path</a>
+            {% endif %}
             {% if user.role != 'counsellor' %}
             <a href="/chatbot">Chat AI</a>
             {% endif %}
@@ -210,6 +214,10 @@
         {% if user %}
         <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i class="fa-solid fa-house"></i>Home</a>
         <a href="/dashboard" class="nav-active"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
+        {% if user.role == 'student' %}
+        <a href="/my-growth-profile" class="{% if request.url.path == '/my-growth-profile' %}nav-active{% endif %}"><i class="fa-solid fa-compass"></i>Growth Profile</a>
+        <a href="/my-monthly-path" class="{% if request.url.path == '/my-monthly-path' %}nav-active{% endif %}"><i class="fa-solid fa-route"></i>Monthly Path</a>
+        {% endif %}
         {% if user.role != 'counsellor' %}
         <a href="/chatbot"><i class="fa-solid fa-comment-dots"></i>Chat AI</a>
         {% endif %}
@@ -892,29 +900,63 @@
                 </div>
             </div>
 
+            <!-- ── Student Growth Map & Milestone Card ── -->
+            {% if user.role == 'student' %}
+            <div class="db-card p-6 db-stagger" style="animation-delay:0.1s;">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div class="flex items-center gap-3.5">
+                        <div class="h-12 w-12 rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-600 text-white flex items-center justify-center text-xl font-black shadow-md flex-shrink-0">
+                            <i class="fas fa-compass"></i>
+                        </div>
+                        <div>
+                            <span class="text-[10px] font-black uppercase tracking-widest text-teal-700">Student Growth Map & Milestones</span>
+                            <h3 class="text-lg font-black text-slate-900 leading-tight">My Growth Journey</h3>
+                            <p class="text-xs text-slate-500 mt-0.5">Explore your personalized monthly path, weekly tasks, and skill profile.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <a href="/my-growth-profile" class="px-4 py-2 bg-white border border-teal-200 text-teal-800 text-xs font-extrabold rounded-xl hover:bg-teal-50 transition-all">
+                            <i class="fas fa-id-card mr-1"></i> Growth Profile
+                        </a>
+                        <a href="/my-monthly-path" class="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white text-xs font-extrabold rounded-xl shadow-md transition-all">
+                            <i class="fas fa-map-location-dot mr-1"></i> Monthly Path →
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
             <!-- ── Quest Tools Grid ── -->
-            <div class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-2 db-stagger" style="animation-delay:0.15s;">
-                <a href="/career/roadmaps" class="db-tool-card" style="--tool-c:#0d9488;--tool-glow:rgba(13,148,136,0.35);--float-delay:0s;">
+            <div class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-8 gap-2 db-stagger" style="animation-delay:0.15s;">
+                <a href="/my-growth-profile" class="db-tool-card" style="--tool-c:#0d9488;--tool-glow:rgba(13,148,136,0.35);--float-delay:0s;">
+                    <span class="db-tool-ring"><span class="db-tool-inner"><i class="fas fa-compass"></i></span></span>
+                    <span class="db-tool-label">Growth Profile</span>
+                </a>
+                <a href="/my-monthly-path" class="db-tool-card" style="--tool-c:#10b981;--tool-glow:rgba(16,185,129,0.35);--float-delay:0.15s;">
+                    <span class="db-tool-ring"><span class="db-tool-inner"><i class="fas fa-map-location-dot"></i></span></span>
+                    <span class="db-tool-label">Monthly Path</span>
+                </a>
+                <a href="/career/roadmaps" class="db-tool-card" style="--tool-c:#3b82f6;--tool-glow:rgba(59,130,246,0.35);--float-delay:0.3s;">
                     <span class="db-tool-ring"><span class="db-tool-inner"><i class="fas fa-route"></i></span></span>
                     <span class="db-tool-label">My Roadmaps</span>
                 </a>
-                <a href="/career/colleges" class="db-tool-card" style="--tool-c:#6366f1;--tool-glow:rgba(99,102,241,0.35);--float-delay:0.2s;">
+                <a href="/career/colleges" class="db-tool-card" style="--tool-c:#6366f1;--tool-glow:rgba(99,102,241,0.35);--float-delay:0.45s;">
                     <span class="db-tool-ring"><span class="db-tool-inner"><i class="fas fa-university"></i></span></span>
                     <span class="db-tool-label">Colleges</span>
                 </a>
-                <a href="/counsellors" class="db-tool-card" style="--tool-c:var(--db-pink-accent);--tool-glow:rgba(232,121,160,0.35);--float-delay:0.4s;">
+                <a href="/counsellors" class="db-tool-card" style="--tool-c:var(--db-pink-accent);--tool-glow:rgba(232,121,160,0.35);--float-delay:0.6s;">
                     <span class="db-tool-ring"><span class="db-tool-inner"><i class="fas fa-video"></i></span></span>
                     <span class="db-tool-label">Talk to Expert</span>
                 </a>
-                <a href="/chatbot" class="db-tool-card" style="--tool-c:#f59e0b;--tool-glow:rgba(245,158,11,0.35);--float-delay:0.6s;">
+                <a href="/chatbot" class="db-tool-card" style="--tool-c:#f59e0b;--tool-glow:rgba(245,158,11,0.35);--float-delay:0.75s;">
                     <span class="db-tool-ring"><span class="db-tool-inner"><i class="fas fa-comments"></i></span></span>
                     <span class="db-tool-label">CareerBuddy AI</span>
                 </a>
-                <a href="/assessment/simulation/start/{{ dashboard_sim_career | urlencode }}" class="db-tool-card" style="--tool-c:#a78bfa;--tool-glow:rgba(167,139,250,0.35);--float-delay:0.8s;">
+                <a href="/assessment/simulation/start/{{ dashboard_sim_career | urlencode }}" class="db-tool-card" style="--tool-c:#a78bfa;--tool-glow:rgba(167,139,250,0.35);--float-delay:0.9s;">
                     <span class="db-tool-ring"><span class="db-tool-inner"><i class="fas fa-vr-cardboard"></i></span></span>
                     <span class="db-tool-label">Simulation</span>
                 </a>
-                <a href="/subscription" class="db-tool-card" style="--tool-c:#eab308;--tool-glow:rgba(234,179,8,0.35);--float-delay:1s;">
+                <a href="/subscription" class="db-tool-card" style="--tool-c:#eab308;--tool-glow:rgba(234,179,8,0.35);--float-delay:1.05s;">
                     <span class="db-tool-ring"><span class="db-tool-inner"><i class="fas fa-crown"></i></span></span>
                     <span class="db-tool-label">Plans</span>
                 </a>
