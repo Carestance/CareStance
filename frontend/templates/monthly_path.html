@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}My Monthly Path | CareStance{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto py-4 space-y-6">
+    <section class="rounded-3xl bg-gradient-to-br from-emerald-950 via-teal-900 to-slate-900 text-white p-8 md:p-10 shadow-xl">
+        <p class="text-xs font-black tracking-[0.18em] uppercase text-emerald-200">Student Growth Map · Step 2</p>
+        <h1 class="mt-3 text-3xl md:text-4xl font-black">My Monthly Path</h1>
+        <p class="mt-3 max-w-2xl text-slate-200 leading-relaxed">One focused milestone and four small actions, personalised from your current growth profile.</p>
+    </section>
+
+    {% if not growth_profile.is_ready %}
+    <section class="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-950">
+        <h2 class="font-black text-lg">Set up your growth profile first</h2>
+        <p class="mt-2 text-sm">Complete the assessment before generating a monthly path.</p>
+        <a href="/my-growth-profile" class="inline-flex mt-4 items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-700"><i class="fas fa-compass"></i> Open Growth Profile</a>
+    </section>
+    {% else %}
+    <section class="rounded-2xl border border-emerald-100 bg-white p-6 md:p-8 shadow-sm">
+        <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-5">
+            <div>
+                <p class="text-xs font-black tracking-widest uppercase text-emerald-700">{{ plan.month_label }} milestone</p>
+                <h2 class="mt-2 text-2xl font-black text-slate-900">{{ plan.title }}</h2>
+                <p class="mt-3 text-slate-600 leading-relaxed max-w-2xl">{{ plan.milestone }}</p>
+            </div>
+            <span class="shrink-0 rounded-full bg-emerald-50 px-4 py-2 text-sm font-black text-emerald-800"><i class="fas fa-bullseye mr-2"></i>{{ plan.focus_skill }}</span>
+        </div>
+        <div class="mt-6 rounded-xl bg-slate-50 p-4 text-sm text-slate-600"><strong class="text-slate-800">Why this path:</strong> {{ plan.why_this_path }}</div>
+        <div class="mt-3 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-900"><strong>Current progress assessed:</strong> {{ plan.progress_summary }}</div>
+        <div class="mt-5">
+            <div class="flex items-center justify-between text-sm font-bold text-slate-700"><span>Monthly path progress</span><span>{{ progress.completed_weeks }}/{{ progress.total_weeks }} weeks complete · {{ progress.percent }}%</span></div>
+            <div class="mt-2 h-3 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all" style="width: {{ progress.percent }}%"></div></div>
+        </div>
+    </section>
+
+    {% if plan.previous_month_summary %}
+    <section class="rounded-2xl border border-violet-200 bg-violet-50 p-6 text-violet-950">
+        <p class="text-xs font-black uppercase tracking-widest text-violet-700">From last month</p>
+        <p class="mt-2 text-sm leading-relaxed">{{ plan.previous_month_summary }}</p>
+    </section>
+    {% endif %}
+
+    {% if cycle.encouragement_due %}
+    <section class="rounded-2xl border border-amber-200 bg-amber-50 p-6 flex flex-col sm:flex-row sm:items-center gap-4">
+        <div class="flex-1"><p class="text-xs font-black uppercase tracking-widest text-amber-700">Two-day encouragement</p><p class="mt-2 text-sm font-semibold text-amber-950">{{ encouragement_message }}</p></div>
+        <form action="/my-monthly-path/encouragement/read" method="post"><button class="rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-black text-white hover:bg-amber-600"><i class="fas fa-heart mr-2"></i>Got it</button></form>
+    </section>
+    {% endif %}
+
+    <section>
+        <div class="flex items-center justify-between mb-4"><h2 class="text-xl font-black text-slate-900">Your four-week path</h2><span class="text-sm text-slate-500">Complete one week before the next opens</span></div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% for week in plan.weeks %}
+            {% set is_complete = week.week in progress["completed_week_numbers"] %}
+            {% set is_current = week.week == progress["current_week"] %}
+            <article class="rounded-2xl border {% if is_complete %}border-emerald-300 bg-emerald-50/40{% elif is_current %}border-teal-300 bg-white{% else %}border-slate-200 bg-slate-50{% endif %} p-6 shadow-sm">
+                <p class="text-xs font-black uppercase tracking-widest text-teal-700">Week {{ week.week }}</p>
+                <div class="mt-2 flex items-start justify-between gap-3"><h3 class="font-black text-slate-900">{{ week.title }}</h3>{% if is_complete %}<span class="shrink-0 rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-black uppercase text-emerald-800"><i class="fas fa-check mr-1"></i>Complete</span>{% elif not is_current %}<span class="shrink-0 rounded-full bg-slate-200 px-2 py-1 text-[10px] font-black uppercase text-slate-600"><i class="fas fa-lock mr-1"></i>Locked</span>{% endif %}</div>
+                {% if is_current %}
+                <a href="/my-monthly-path/week/{{ week.week }}" class="mt-4 inline-flex items-center gap-2 rounded-xl bg-teal-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-teal-800"><i class="fas fa-arrow-right"></i> Open Week {{ week.week }} workspace</a>
+                {% if false %}
+                <details class="mt-4"><summary class="cursor-pointer text-sm font-bold text-teal-800">Click to open Week {{ week.week }} tasks</summary><p class="mt-3 text-sm text-slate-600">{{ week.goal }}</p><div class="mt-4 space-y-3">{% for task in current_task_states %}{% if task.is_complete %}<div class="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-950"><p class="font-bold"><i class="fas fa-check-circle mr-2"></i>{{ task.text }}</p><p class="mt-2 border-t border-emerald-200 pt-2 text-emerald-800">{{ task.response.text }}</p></div>{% elif task.is_open %}<form action="/my-monthly-path/week/{{ week.week }}/task/{{ task.id }}/toggle" method="post" class="rounded-xl border border-teal-200 bg-teal-50 p-4"><p class="font-bold text-slate-900"><i class="fas fa-pen-to-square text-teal-700 mr-2"></i>{{ task.text }}</p><label class="mt-3 block text-sm font-semibold text-slate-700">{{ task.prompt }}</label><textarea name="response" required minlength="10" maxlength="1500" rows="3" class="mt-2 w-full rounded-lg border border-slate-300 p-3 text-sm" placeholder="Write your response here..."></textarea><button class="mt-3 rounded-lg bg-teal-700 px-4 py-2 text-sm font-bold text-white hover:bg-teal-800">Save and unlock next task</button></form>{% else %}<div class="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-500"><i class="fas fa-lock mr-2"></i>{{ task.text }} — complete the previous subtask first.</div>{% endif %}{% endfor %}</div><p class="mt-4 text-xs font-semibold text-slate-500"><i class="fas fa-flag-checkered text-emerald-600 mr-1"></i>{{ week.outcome }}</p></details>
+                <div class="mt-5 space-y-4 border-t border-slate-200 pt-5">
+                    <div class="rounded-xl border border-teal-100 bg-teal-50 p-4"><div class="flex items-center justify-between gap-3"><div><p class="text-[10px] font-black uppercase tracking-widest text-teal-700">Weekly · 3–4 minute conversation</p><h4 class="mt-1 font-black text-slate-900">Weekly AI reflection</h4></div><span class="text-xs font-bold text-teal-800">{% if cycle.weekly_checkin_due %}Due now{% else %}Logged this week{% endif %}</span></div><form action="/my-monthly-path/check-in" method="post" class="mt-3"><textarea name="message" required maxlength="1500" rows="3" class="w-full rounded-lg border border-slate-200 p-3 text-sm" placeholder="What did you complete, where were you stuck, and what is your next action?"></textarea><button class="mt-2 rounded-lg bg-teal-700 px-3 py-2 text-xs font-bold text-white hover:bg-teal-800">Save weekly reflection</button></form></div>
+                    <div class="rounded-xl border border-blue-100 bg-blue-50 p-4"><div class="flex items-center justify-between gap-3"><div><p class="text-[10px] font-black uppercase tracking-widest text-blue-700">Weekend · 5 MCQs</p><h4 class="mt-1 font-black text-slate-900">Week {{ week.week }} progress check</h4></div>{% if cycle.latest_quiz %}<span class="text-xs font-bold text-blue-800">{{ cycle.latest_quiz.score }}/{{ cycle.latest_quiz.total }}</span>{% endif %}</div>{% if cycle.weekend_quiz_due %}<form action="/my-monthly-path/weekend-quiz" method="post" class="mt-3 space-y-3">{% for question in weekend_quiz %}{% set question_index = loop.index0 %}<fieldset><legend class="text-sm font-semibold text-slate-800">{{ loop.index }}. {{ question.question }}</legend>{% for option in question.options %}<label class="mt-1 flex items-center gap-2 rounded border border-blue-100 bg-white p-2 text-xs"><input required type="radio" name="answer_{{ question_index }}" value="{{ loop.index0 }}">{{ option }}</label>{% endfor %}</fieldset>{% endfor %}<button class="rounded-lg bg-blue-700 px-3 py-2 text-xs font-bold text-white hover:bg-blue-800">Submit weekend check</button></form>{% elif cycle.latest_quiz %}<p class="mt-3 text-sm text-blue-900">This week’s check is complete. A new one appears next weekend.</p>{% else %}<p class="mt-3 text-sm text-blue-900">Available on Saturday or Sunday.</p>{% endif %}</div>
+                </div>
+                {% endif %}
+                {% elif is_complete %}<a href="/my-monthly-path/week/{{ week.week }}" class="mt-4 inline-flex items-center gap-2 text-sm font-bold text-emerald-800 hover:text-emerald-950"><i class="fas fa-check-circle"></i> View completed Week {{ week.week }}</a>
+                {% else %}<p class="mt-4 text-sm text-slate-500">Complete the earlier week to reveal this week’s tasks.</p>{% endif %}
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="rounded-2xl border border-indigo-100 bg-white p-6 shadow-sm">
+        <h2 class="font-black text-slate-900"><i class="fas fa-book-open text-indigo-600 mr-2"></i>Suggested resources</h2>
+        <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">{% for resource in plan.resources %}<div class="rounded-xl bg-indigo-50 p-4"><p class="font-bold text-indigo-950">{{ resource.title }}</p><p class="mt-1 text-sm text-indigo-800">{{ resource.detail }}</p></div>{% endfor %}</div>
+    </section>
+
+    {% if false %}
+    <section class="rounded-2xl border border-teal-100 bg-white p-6 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"><div><p class="text-xs font-black uppercase tracking-widest text-teal-700">Weekly · 3–4 minute conversation</p><h2 class="mt-1 text-xl font-black text-slate-900">Weekly AI reflection</h2></div><span class="rounded-full bg-teal-50 px-3 py-1 text-xs font-bold text-teal-800">{% if cycle.weekly_checkin_due %}Due now{% else %}Logged this week{% endif %}</span></div>
+        <p class="mt-3 text-sm text-slate-600">Share what you completed, where you got stuck, and your next small action. Your update stays attached to this month’s path.</p>
+        <form action="/my-monthly-path/check-in" method="post" class="mt-4"><textarea name="message" required maxlength="1500" rows="3" class="w-full rounded-xl border border-slate-200 p-3 text-sm" placeholder="This week I completed…, my blocker was…, and next I will…"></textarea><button class="mt-3 rounded-xl bg-teal-700 px-4 py-2.5 text-sm font-black text-white hover:bg-teal-800"><i class="fas fa-comment-dots mr-2"></i>Send weekly reflection</button></form>
+        {% for entry in cycle.latest_checkins|reverse %}<div class="mt-4 rounded-xl bg-slate-50 p-4 text-sm"><p class="font-bold text-slate-800">You · {{ entry.date }}</p><p class="mt-1 text-slate-600">{{ entry.message }}</p><p class="mt-3 border-t border-slate-200 pt-3 text-teal-900"><i class="fas fa-sparkles mr-1"></i>{{ entry.response }}</p></div>{% endfor %}
+    </section>
+
+    <section class="rounded-2xl border border-blue-100 bg-white p-6 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"><div><p class="text-xs font-black uppercase tracking-widest text-blue-700">Every weekend · 5 MCQs</p><h2 class="mt-1 text-xl font-black text-slate-900">Progress check</h2></div>{% if cycle.latest_quiz %}<span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-800">Latest score: {{ cycle.latest_quiz.score }}/{{ cycle.latest_quiz.total }}</span>{% endif %}</div>
+        <p class="mt-3 text-sm text-slate-600">A short check to reinforce the habits behind your monthly milestone.</p>
+        {% if cycle.weekend_quiz_due %}
+        <form action="/my-monthly-path/weekend-quiz" method="post" class="mt-5 space-y-5">{% for question in weekend_quiz %}{% set question_index = loop.index0 %}<fieldset><legend class="font-bold text-slate-800 text-sm">{{ loop.index }}. {{ question.question }}</legend><div class="mt-2 grid gap-2">{% for option in question.options %}<label class="flex items-center gap-2 rounded-lg border border-slate-200 p-2 text-sm text-slate-700 hover:bg-blue-50"><input required type="radio" name="answer_{{ question_index }}" value="{{ loop.index0 }}">{{ option }}</label>{% endfor %}</div></fieldset>{% endfor %}<button class="rounded-xl bg-blue-700 px-4 py-2.5 text-sm font-black text-white hover:bg-blue-800">Submit 5-question check</button></form>
+        {% elif cycle.latest_quiz %}<p class="mt-5 rounded-xl bg-blue-50 p-4 text-sm font-semibold text-blue-900"><i class="fas fa-check-circle mr-1"></i>This week’s progress check is complete. A new one will be available next weekend.</p>{% else %}<p class="mt-5 rounded-xl bg-blue-50 p-4 text-sm font-semibold text-blue-900"><i class="fas fa-calendar-day mr-1"></i>Your first five-question check will be available on Saturday or Sunday.</p>{% endif %}
+    </section>
+
+    {% endif %}
+
+    <section class="rounded-2xl border border-rose-100 bg-white p-6 shadow-sm">
+        <p class="text-xs font-black uppercase tracking-widest text-rose-700">End of month</p><h2 class="mt-1 text-xl font-black text-slate-900">Reflect and prepare the next path</h2>
+        {% if cycle.month_end_review %}<p class="mt-4 rounded-xl bg-rose-50 p-4 text-sm text-rose-950">{{ cycle.month_end_review.summary }}</p>{% else %}<p class="mt-3 text-sm text-slate-600">At the end of the month, record what worked and what needs to change. The next month’s path will use this reflection.</p><form action="/my-monthly-path/month-end-review" method="post" class="mt-4"><textarea name="reflection" required maxlength="1500" rows="3" class="w-full rounded-xl border border-slate-200 p-3 text-sm" placeholder="What did you complete, what was difficult, and what should the next path focus on?"></textarea><button class="mt-3 rounded-xl bg-rose-700 px-4 py-2.5 text-sm font-black text-white hover:bg-rose-800">Save month-end reflection</button></form>{% endif %}
+    </section>
+
+    {% endif %}
+</div>
+{% endblock %}

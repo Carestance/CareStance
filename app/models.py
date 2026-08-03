@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Text, ForeignKey, JSON, Boolean, DateTime, func
+from sqlalchemy import Column, Integer, String, Float, Text, ForeignKey, JSON, Boolean, DateTime, UniqueConstraint, func
 from sqlalchemy.orm import relationship
 from .database import Base
 
@@ -134,11 +134,28 @@ class CareerPath(Base):
 
     user = relationship("User", back_populates="career_paths")
 
+
+class MonthlyGrowthPlan(Base):
+    """One saved, personalised growth path per student per calendar month."""
+    __tablename__ = "monthly_growth_plans"
+    __table_args__ = (UniqueConstraint("user_id", "month_key", name="uq_monthly_growth_plan_user_month"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    month_key = Column(String(7), nullable=False, index=True)  # YYYY-MM
+    milestone = Column(String, nullable=False)
+    plan_data = Column(JSON, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
+
+    user = relationship("User", back_populates="monthly_growth_plans")
+
 # Update User model to include messages, feedback, and career paths relationships
 User.messages = relationship("ChatMessage", back_populates="user", order_by="ChatMessage.timestamp")
 User.feedbacks = relationship("Feedback", back_populates="user", order_by="Feedback.timestamp")
 User.tickets = relationship("Ticket", back_populates="user", order_by="Ticket.timestamp")
 User.career_paths = relationship("CareerPath", back_populates="user", order_by="CareerPath.created_at.desc()")
+User.monthly_growth_plans = relationship("MonthlyGrowthPlan", back_populates="user", order_by="MonthlyGrowthPlan.month_key.desc()")
 
 class CounsellorProfile(Base):
     __tablename__ = "counsellor_profiles"
