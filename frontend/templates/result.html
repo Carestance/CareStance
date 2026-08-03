@@ -314,10 +314,6 @@
                                         class="px-4 py-2 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 text-xs font-bold transition flex items-center gap-2">
                                     <i class="fas fa-university"></i> Institutes
                                 </button>
-                                <button type="button" onclick='generateRoadmap({{ career_title|tojson }})'
-                                        class="px-4 py-2 rounded-xl bg-teal-600 text-slate-900 hover:bg-teal-700 text-xs font-bold transition shadow-md shadow-teal-500/20 flex items-center gap-2">
-                                    Roadmap <i class="fas fa-arrow-right"></i>
-                                </button>
                             </div>
                         </div>
 
@@ -424,7 +420,7 @@
     <div class="bg-white p-8 rounded-3xl text-center max-w-sm mx-4 shadow-2xl">
         <div class="w-16 h-16 border-4 border-teal-100 border-t-teal-500 rounded-full animate-spin mx-auto mb-6"></div>
         <h3 id="loadingTitle" class="text-xl font-bold text-slate-900 mb-2 font-outfit">Synthesizing Path</h3>
-        <p id="loadingDesc" class="text-sm text-slate-500">Designing a custom, multi-milestone career path roadmap...</p>
+        <p id="loadingDesc" class="text-sm text-slate-500">Preparing your personalised recommendation...</p>
     </div>
 </div>
 
@@ -443,33 +439,6 @@
         }
 
         return data;
-    }
-
-    async function generateRoadmap(careerTitle) {
-        const overlay = document.getElementById('loadingOverlay');
-        overlay.classList.remove('hidden');
-        document.getElementById('loadingTitle').textContent = 'Architecting Roadmap';
-        document.getElementById('loadingDesc').textContent = 'Designing a custom, multi-milestone career path roadmap...';
-
-        try {
-            const response = await fetch('/assessment/generate_path', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ career_title: careerTitle }),
-            });
-
-            const data = await readJsonResponse(response);
-            if (data.success) {
-                window.location.href = data.path_id ? `/career/roadmap/${data.path_id}` : '/career/roadmaps';
-            } else {
-                alert(data.detail || 'Roadmap synthesis failed. Please try again.');
-                overlay.classList.add('hidden');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            alert(error.message || 'An error occurred. Please try again.');
-            overlay.classList.add('hidden');
-        }
     }
 
     async function generateCollegeRecs(careerTitle) {
