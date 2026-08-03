@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}Razorpay Standard Web Checkout Demo{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md mx-auto bg-white rounded-3xl p-8 border border-slate-200 shadow-xl">
+        <div class="text-center mb-8">
+            <div class="w-16 h-16 bg-teal-100 text-teal-700 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4">
+                <i class="fas fa-credit-card"></i>
+            </div>
+            <h1 class="text-2xl font-black text-slate-900 leading-tight">Razorpay Checkout Demo</h1>
+            <p class="text-xs text-slate-500 font-medium mt-2">Test Standard Web Integration Endpoints</p>
+        </div>
+
+        {% if not razorpay_configured %}
+        <div class="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-800 font-medium">
+            <i class="fas fa-exclamation-triangle mr-1"></i> Razorpay keys are missing or invalid in <code>.env</code>.
+        </div>
+        {% endif %}
+
+        <div id="status-box" class="hidden mb-6 p-4 rounded-2xl text-xs font-medium"></div>
+
+        <div class="space-y-4">
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Select Amount (INR)</label>
+                <select id="amount-select" class="w-full px-4 py-3 rounded-xl border border-slate-200 font-bold text-slate-800">
+                    <option value="10">₹10.00 (Test Payment)</option>
+                    <option value="50">₹50.00 (Standard Payment)</option>
+                    <option value="100">₹100.00 (Premium Payment)</option>
+                </select>
+            </div>
+
+            <button id="pay-btn" onclick="startRazorpayCheckout()"
+                class="w-full py-4 bg-slate-900 hover:bg-teal-600 text-white font-bold rounded-2xl transition shadow-lg flex items-center justify-center gap-2">
+                <i class="fas fa-lock"></i> Pay Now with Razorpay
+            </button>
+        </div>
+    </div>
+</div>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+async function startRazorpayCheckout() {
+    const amountInr = parseFloat(document.getElementById('amount-select').value);
+    const payBtn = document.getElementById('pay-btn');
+    const statusBox = document.getElementById('status-box');
+    
+    payBtn.disabled = true;
+    payBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Creating Order...';
+    statusBox.classList.add('hidden');
+
+    try {
+        // Step 1: Create Order on Backend
+        const res = await fetch('/api/create-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ amount: amountInr, currency: 'INR' })
+        });
+
+        const order = await res.json();
+        if (!res.ok) {
+            throw new Error(order.detail || 'Could not create payment order');
+        }
+
+        // Step 2: Open Razorpay Standard Checkout Modal
+        const options = {
+            "key": "{{ RAZORPAY_KEY_ID }}",
+            "amount": order.amount,
+            "currency": order.currency || "INR",
+            "name": "CareStance",
+            "description": "Standard Web Checkout Demo",
+            "order_id": order.order_id || order.id,
+            "handler": async function (response) {
+                // Step 3: Verify Payment Signature on Backend
+                payBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Verifying Payment...';
+                
+                try {
+                    const verifyRes = await fetch('/api/verify-payment', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_signature: response.razorpay_signature
+                        })
+                    });
+
+                    const verifyData = await verifyRes.json();
+
+                    if (verifyRes.ok && verifyData.status === 'success') {
+                        statusBox.className = "mb-6 p-4 rounded-2xl text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200";
+                        statusBox.innerHTML = `✅ Payment Verified Successfully!<br>Payment ID: ${response.razorpay_payment_id}`;
+                        statusBox.classList.remove('hidden');
+                    } else {
+                        throw new Error(verifyData.detail || 'Payment verification failed.');
+                    }
+                } catch (vErr) {
+                    statusBox.className = "mb-6 p-4 rounded-2xl text-xs font-bold bg-red-50 text-red-800 border border-red-200";
+                    statusBox.textContent = `❌ Verification Error: ${vErr.message}`;
+                    statusBox.classList.remove('hidden');
+                } finally {
+                    payBtn.disabled = false;
+                    payBtn.innerHTML = '<i class="fas fa-lock mr-2"></i> Pay Now with Razorpay';
+                }
+            },
+            "modal": {
+                "ondismiss": function() {
+                    payBtn.disabled = false;
+                    payBtn.innerHTML = '<i class="fas fa-lock mr-2"></i> Pay Now with Razorpay';
+                }
+            },
+            "theme": { "color": "#0d9488" }
+        };
+
+        const rzp = new Razorpay(options);
+        rzp.on('payment.failed', function(resp) {
+            statusBox.className = "mb-6 p-4 rounded-2xl text-xs font-bold bg-red-50 text-red-800 border border-red-200";
+            statusBox.textContent = `❌ Payment Failed: ${resp.error.description || 'Transaction cancelled or failed.'}`;
+            statusBox.classList.remove('hidden');
+            payBtn.disabled = false;
+            payBtn.innerHTML = '<i class="fas fa-lock mr-2"></i> Pay Now with Razorpay';
+        });
+
+        rzp.open();
+    } catch (err) {
+        statusBox.className = "mb-6 p-4 rounded-2xl text-xs font-bold bg-red-50 text-red-800 border border-red-200";
+        statusBox.textContent = `❌ Error: ${err.message}`;
+        statusBox.classList.remove('hidden');
+        payBtn.disabled = false;
+        payBtn.innerHTML = '<i class="fas fa-lock mr-2"></i> Pay Now with Razorpay';
+    }
+}
+</script>
+{% endblock %}

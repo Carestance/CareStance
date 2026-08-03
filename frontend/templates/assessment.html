@@ -2,6 +2,241 @@
 
 {% block title %}Assessment{% endblock %}
 
+{% block navbar %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Jersey+10&display=swap');
+
+    .hero-nav {
+        position: fixed;
+        top: 40px;
+        left: 0;
+        right: 0;
+        width: 100%;
+        z-index: 1100;
+        background: transparent;
+        box-shadow: none;
+    }
+
+    .hero-nav-inner {
+        max-width: 1500px;
+        margin: 0 auto;
+        padding: 0 2.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .hero-nav-logo {
+        display: flex;
+        align-items: center;
+        gap: 1.75rem;
+        text-decoration: none;
+    }
+
+    .hero-nav-logo-badge {
+        width: 156px; height: 156px;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 50%;
+        background: #0f172a;
+        flex-shrink: 0;
+    }
+
+    .hero-nav-logo-badge img {
+        width: 90px; height: 90px;
+        border-radius: 50%; object-fit: cover;
+        transform: scale(1.6);
+    }
+
+    .hero-nav-logo-text {
+        font-family: 'Jersey 10', 'Playfair Display', serif;
+        font-size: 2rem; font-weight: 700;
+        color: #12202b; white-space: nowrap;
+        letter-spacing: 0.02em;
+    }
+
+    .hero-nav-links {
+        display: flex;
+        align-items: center;
+        gap: 1.9rem;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .hero-nav-links a {
+        display: inline-block;
+        font-family: 'Jersey 10', sans-serif;
+        color: #fff;
+        font-size: 30px;
+        font-weight: 400;
+        white-space: nowrap;
+        text-decoration: none;
+        letter-spacing: 0.02em;
+        text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+        transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+
+    .hero-nav-links a:hover {
+        transform: scale(1.1);
+        opacity: 0.75;
+    }
+
+    .hero-nav-links a.nav-active {
+        text-decoration: underline;
+        text-underline-offset: 4px;
+    }
+
+    .hero-nav-user-name {
+        font-family: 'Jersey 10', sans-serif;
+        color: #fff;
+        opacity: 0.75;
+        font-size: 22px;
+        text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+    }
+
+    .hero-nav-logout {
+        font-family: 'Jersey 10', sans-serif;
+        background: #12202b;
+        color: #fff !important;
+        padding: 0.4rem 1.6rem;
+        border-radius: 999px;
+        font-size: 28px;
+        text-shadow: none;
+    }
+
+    .hero-nav-logout:hover {
+        transform: scale(1.08);
+        opacity: 1 !important;
+        background: #1e2f3d;
+    }
+
+    .hero-mobile-toggle {
+        display: none;
+        background: none; border: none;
+        color: #12202b; font-size: 1.35rem;
+        cursor: pointer;
+    }
+
+    .hero-mobile-menu {
+        display: none;
+        position: absolute; top: 100%; left: 1.5rem; right: 1.5rem;
+        margin-top: 0.75rem; padding: 1.5rem;
+        flex-direction: column; gap: 0.75rem;
+        background: #fff; border-radius: 1.25rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.15);
+    }
+
+    .hero-mobile-menu.open { display: flex; }
+
+    .hero-mobile-menu a {
+        padding: 0.8rem 0.5rem;
+        color: var(--text-main);
+        text-decoration: none;
+        font-weight: 500;
+        border-bottom: 1px solid var(--border-soft);
+        transition: color 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .hero-mobile-menu a.nav-active {
+        color: var(--primary);
+        font-weight: 700;
+        background: var(--primary-soft);
+        border-radius: 0.5rem;
+    }
+
+    .hero-mobile-menu a:last-child { border-bottom: none; }
+    .hero-mobile-menu a:hover { color: #0d9488; }
+
+    @media (max-width: 768px) {
+        .hero-nav-links { display: none; }
+        .hero-mobile-toggle { display: block; }
+        .hero-nav-logo-badge { width: 64px; height: 64px; }
+        .hero-nav-logo-badge img { width: 36px; height: 36px; }
+        .hero-nav-logo-text { font-size: 1.4rem; }
+        .hero-nav-inner { padding: 0 1.25rem; }
+        .hero-nav { top: 20px; }
+    }
+
+    /* Assessment page: reset base body padding; use margin-top on wrapper instead */
+    body { padding-top: 0 !important; }
+
+    :root {
+        /* nav top(40px) + badge circle(156px) + 30px gap */
+        --content-top-gap: calc(40px + 156px + 30px);
+    }
+    @media (max-width: 768px) {
+        :root {
+            /* nav top(20px) + badge circle(64px) + 30px gap */
+            --content-top-gap: calc(20px + 64px + 30px);
+        }
+    }
+
+    .assessment-page-wrap {
+        padding-top: var(--content-top-gap);
+    }
+</style>
+
+<nav class="hero-nav">
+    <div class="hero-nav-inner">
+        <a href="/" class="hero-nav-logo">
+            <span class="hero-nav-logo-badge">
+                <picture>
+                    <source srcset="/static/images/image.webp?v=101" type="image/webp">
+                    <img src="/static/images/image.png?v=101" alt="CareStance Logo" width="90" height="90">
+                </picture>
+            </span>
+            <span class="hero-nav-logo-text">Carestance</span>
+        </a>
+
+        <div class="hero-nav-links">
+            {% if user %}
+            <a href="/dashboard" class="nav-active">Dashboard</a>
+            {% if user.role != 'counsellor' %}
+            <a href="/chatbot">Chat AI</a>
+            {% endif %}
+            <a href="/community">Community</a>
+            <a href="/feedback">Feedback</a>
+            <a href="/ticket">Support</a>
+            {% if user.role == 'admin' %}
+            <a href="/admin" class="{% if request.url.path == '/admin' %}nav-active{% endif %}" style="font-weight:700;">Admin</a>
+            {% endif %}
+            {% if user.full_name and user.full_name != 'None' %}<span class="hero-nav-user-name">| {{ user.full_name }}</span>{% endif %}
+            <a href="/logout" class="hero-nav-logout">Logout</a>
+            {% else %}
+            <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}">Home</a>
+            <a href="/login" class="{% if request.url.path == '/login' %}nav-active{% endif %}">Log In</a>
+            {% endif %}
+        </div>
+
+        <button class="hero-mobile-toggle" id="base-menu-toggle" aria-label="Menu">
+            <i class="fa-solid fa-bars" id="base-menu-icon"></i>
+        </button>
+    </div>
+
+    <div class="hero-mobile-menu" id="base-mobile-menu">
+        {% if user %}
+        <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i class="fa-solid fa-house"></i>Home</a>
+        <a href="/dashboard" class="nav-active"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
+        {% if user.role != 'counsellor' %}
+        <a href="/chatbot"><i class="fa-solid fa-comment-dots"></i>Chat AI</a>
+        {% endif %}
+        <a href="/community"><i class="fa-solid fa-users"></i>Community</a>
+        <a href="/feedback"><i class="fa-solid fa-star"></i>Feedback</a>
+        <a href="/ticket"><i class="fa-solid fa-circle-question"></i>Support</a>
+        {% if user.role == 'admin' %}<a href="/admin"><i class="fa-solid fa-shield-halved"></i>Admin Panel</a>{% endif %}
+        <a href="/logout" style="color:#b45309;"><i class="fa-solid fa-right-from-bracket"></i>Logout</a>
+        {% else %}
+        <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i class="fa-solid fa-house"></i>Home</a>
+        <a href="/login"><i class="fa-solid fa-right-to-bracket"></i>Log In</a>
+        {% endif %}
+    </div>
+</nav>
+{% endblock %}
+
 {% block content %}
 <!-- Premium Fonts and Icons -->
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
@@ -19,52 +254,107 @@
         --border-neon: rgba(13, 148, 136, 0.12);
         --border-purple: rgba(99, 102, 241, 0.12);
         --glass-border: rgba(15, 23, 42, 0.08);
+        /* Pink/lavender gamified palette */
+        --pink-glass: rgba(255, 220, 230, 0.38);
+        --pink-border: rgba(255, 180, 200, 0.45);
+        --pink-accent: #e879a0;
+        --lavender-glass: rgba(220, 210, 255, 0.32);
+        --lavender-border: rgba(190, 175, 255, 0.4);
+        --card-glass: rgba(255, 248, 252, 0.52);
+        --gold-accent: #f59e0b;
+        --xp-green: #10b981;
     }
 
     body {
         font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
-        background: radial-gradient(circle at 10% 20%, rgba(240, 253, 250, 0.7) 0%, rgba(254, 243, 199, 0.2) 90%) !important;
+        background: url('/static/images/BG1.png') center top / cover no-repeat fixed !important;
         color: var(--text-bright);
     }
 
-    /* Outer Glowing Backgrounds - Softened for light theme */
-    .cyber-bg-glow {
+    /* ── Floating particles decoration ── */
+    .particle {
         position: fixed;
-        width: 40vw;
-        height: 40vw;
         border-radius: 50%;
-        background: radial-gradient(circle, var(--glow-purple) 0%, transparent 70%);
-        filter: blur(120px);
-        opacity: 0.15;
-        z-index: 0;
-        top: -10%;
-        right: -10%;
         pointer-events: none;
+        z-index: 0;
+        animation: particle-float linear infinite;
+        opacity: 0;
+    }
+    @keyframes particle-float {
+        0%   { transform: translateY(100vh) scale(0); opacity: 0; }
+        10%  { opacity: 0.5; }
+        90%  { opacity: 0.3; }
+        100% { transform: translateY(-10vh) scale(1); opacity: 0; }
     }
 
-    .cyber-bg-glow-2 {
-        position: fixed;
-        width: 40vw;
-        height: 40vw;
-        border-radius: 50%;
-        background: radial-gradient(circle, var(--glow-cyan) 0%, transparent 70%);
-        filter: blur(120px);
-        opacity: 0.15;
-        z-index: 0;
-        bottom: -10%;
-        left: -10%;
-        pointer-events: none;
-    }
-
+    /* ── PREMIUM GLASS CARD ── */
     .premium-assessment-card {
-        background: var(--dark-card);
-        border: 1px solid var(--glass-border);
-        box-shadow: 0 20px 40px rgba(15, 23, 42, 0.04);
+        background: var(--card-glass);
+        backdrop-filter: blur(22px) saturate(180%);
+        -webkit-backdrop-filter: blur(22px) saturate(180%);
+        border: 1.5px solid var(--pink-border);
+        box-shadow: 0 24px 56px rgba(180, 60, 100, 0.13), 0 2px 0 rgba(255,255,255,0.6) inset;
         border-radius: 28px;
         position: relative;
         overflow: hidden;
         z-index: 10;
         transition: all 0.4s ease;
+    }
+    .premium-assessment-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--pink-accent), #a78bfa, var(--neon-cyan));
+        opacity: 0.7;
+    }
+
+    /* ── MISSION PANEL (gamified inner cards) ── */
+    .mission-panel {
+        background: rgba(255, 255, 255, 0.72);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 220, 235, 0.5);
+        border-radius: 20px;
+        box-shadow: 0 8px 24px rgba(180, 60, 100, 0.07);
+        transition: all 0.3s ease;
+    }
+    .mission-panel:hover {
+        border-color: rgba(232, 121, 160, 0.35);
+        box-shadow: 0 12px 32px rgba(180, 60, 100, 0.1);
+        transform: translateY(-2px);
+    }
+
+    /* ── XP BADGE ── */
+    .xp-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: linear-gradient(135deg, #fef3c7, #fde68a);
+        border: 1.5px solid #fbbf24;
+        color: #92400e;
+        border-radius: 20px;
+        padding: 4px 10px;
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+        box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);
+    }
+
+    /* ── PHASE INDICATOR BANNER ── */
+    .phase-banner {
+        background: linear-gradient(135deg, rgba(232, 121, 160, 0.18), rgba(167, 139, 250, 0.18));
+        border: 1px solid rgba(232, 121, 160, 0.3);
+        border-radius: 14px;
+        padding: 6px 14px;
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: #be185d;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
     }
 
     /* Swipe Deck Structure */
@@ -81,7 +371,7 @@
         position: absolute;
         width: 100%;
         height: 100%;
-        background: #ffffff;
+        background: rgba(255,255,255,0.9);
         border: 1px solid var(--glass-border);
         border-radius: 24px;
         padding: 32px 24px;
@@ -138,17 +428,9 @@
         padding-right: 8px;
     }
 
-    .chat-container::-webkit-scrollbar {
-        width: 6px;
-    }
-    .chat-container::-webkit-scrollbar-track {
-        background: rgba(0, 0, 0, 0.01);
-        border-radius: 10px;
-    }
-    .chat-container::-webkit-scrollbar-thumb {
-        background: rgba(0, 0, 0, 0.06);
-        border-radius: 10px;
-    }
+    .chat-container::-webkit-scrollbar { width: 6px; }
+    .chat-container::-webkit-scrollbar-track { background: rgba(0,0,0,0.01); border-radius: 10px; }
+    .chat-container::-webkit-scrollbar-thumb { background: rgba(232,121,160,0.2); border-radius: 10px; }
 
     .chat-bubble {
         max-width: 85%;
@@ -161,12 +443,12 @@
     }
 
     .chat-bubble.mentor {
-        background: #f1f5f9;
-        border: 1px solid var(--glass-border);
+        background: rgba(255, 245, 250, 0.95);
+        border: 1px solid rgba(255, 180, 200, 0.35);
         color: var(--text-bright);
         border-bottom-left-radius: 4px;
         align-self: flex-start;
-        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.02);
+        box-shadow: 0 4px 12px rgba(180, 60, 100, 0.05);
     }
 
     .chat-bubble.user {
@@ -174,16 +456,15 @@
         color: white;
         border-bottom-right-radius: 4px;
         align-self: flex-end;
-        box-shadow: 0 4px 12px rgba(13, 148, 136, 0.1);
+        box-shadow: 0 4px 12px rgba(13, 148, 136, 0.15);
     }
 
-    /* Fira Code Style for Console logs (Phase 0) */
     .console-bubble {
         font-family: 'Fira Code', 'Courier New', monospace;
         font-size: 0.85rem;
-        background: #f8fafc !important;
-        border: 1px solid var(--border-neon) !important;
-        color: var(--neon-cyan) !important;
+        background: #fdf4ff !important;
+        border: 1px solid rgba(167,139,250,0.25) !important;
+        color: #7c3aed !important;
     }
     .console-bubble.user {
         border-color: var(--border-purple) !important;
@@ -201,17 +482,16 @@
         align-items: center;
         gap: 4px;
         padding: 12px 18px;
-        background: #f1f5f9;
-        border: 1px solid var(--glass-border);
+        background: rgba(255, 245, 250, 0.95);
+        border: 1px solid rgba(255, 180, 200, 0.35);
         border-radius: 18px;
         align-self: flex-start;
         margin-bottom: 16px;
     }
 
     .typing-indicator-dots .dot {
-        width: 6px;
-        height: 6px;
-        background-color: var(--text-dim);
+        width: 6px; height: 6px;
+        background-color: var(--pink-accent);
         border-radius: 50%;
         animation: typing-wave 1.4s infinite ease-in-out both;
     }
@@ -223,10 +503,10 @@
         40% { transform: scale(1); opacity: 1; }
     }
 
-    /* Option buttons */
+    /* ── QUEST OPTION BUTTONS ── */
     .premium-option-btn {
-        background: #ffffff;
-        border: 1px solid var(--glass-border);
+        background: rgba(255, 255, 255, 0.85);
+        border: 1.5px solid rgba(255, 200, 220, 0.4);
         border-radius: 16px;
         padding: 16px 20px;
         color: var(--text-bright);
@@ -234,77 +514,100 @@
         text-align: left;
         cursor: pointer;
         outline: none;
-        box-shadow: 0 2px 4px rgba(15, 23, 42, 0.01);
+        box-shadow: 0 2px 8px rgba(180, 60, 100, 0.04);
     }
 
     .premium-option-btn:hover {
-        background: rgba(13, 148, 136, 0.04);
-        border-color: var(--neon-cyan);
-        box-shadow: 0 4px 12px rgba(13, 148, 136, 0.04);
-        transform: translateY(-2px);
+        background: rgba(253, 242, 248, 0.95);
+        border-color: var(--pink-accent);
+        box-shadow: 0 6px 20px rgba(232, 121, 160, 0.15);
+        transform: translateY(-3px);
     }
 
     .premium-option-btn.selected {
-        background: rgba(13, 148, 136, 0.08);
-        border-color: var(--neon-cyan);
-        box-shadow: 0 4px 12px rgba(13, 148, 136, 0.06);
+        background: rgba(232, 121, 160, 0.1);
+        border-color: var(--pink-accent);
+        box-shadow: 0 4px 16px rgba(232, 121, 160, 0.2);
         transform: scale(0.98);
     }
 
-    /* Custom Cyber UI Elements */
+    /* ── CYBER / QUEST BADGE ── */
     .cyber-badge {
         font-family: 'Outfit', sans-serif;
-        letter-spacing: 2px;
-        font-size: 0.7rem;
-        background: rgba(13, 148, 136, 0.08);
-        border: 1px solid rgba(13, 148, 136, 0.15);
-        color: var(--neon-cyan);
+        letter-spacing: 1.5px;
+        font-size: 0.68rem;
+        background: linear-gradient(135deg, rgba(232,121,160,0.12), rgba(167,139,250,0.12));
+        border: 1px solid rgba(232,121,160,0.3);
+        color: #be185d;
         border-radius: 20px;
         padding: 4px 12px;
         text-transform: uppercase;
-        display: inline-block;
-        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-weight: 800;
     }
 
-    /* Custom Progress bar */
+    /* ── PROGRESS BAR ── */
     .cyber-progress-bg {
-        height: 6px;
-        background: #e2e8f0;
+        height: 8px;
+        background: rgba(255, 220, 235, 0.5);
         border-radius: 10px;
         overflow: hidden;
+        border: 1px solid rgba(255, 180, 200, 0.3);
     }
 
     .cyber-progress-fill {
         height: 100%;
-        background: linear-gradient(90deg, var(--neon-cyan) 0%, #0b7a70 100%);
+        background: linear-gradient(90deg, var(--pink-accent) 0%, #a78bfa 50%, var(--neon-cyan) 100%);
         border-radius: 10px;
-        transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+    }
+    .cyber-progress-fill::after {
+        content: '';
+        position: absolute;
+        top: 0; left: -100%; width: 100%; height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+        animation: progress-shimmer 2s infinite;
+    }
+    @keyframes progress-shimmer {
+        to { left: 200%; }
     }
 
-    /* Oblique trigger animations */
+    /* ── STAGGER ENTRANCE ── */
     .stagger-in {
         opacity: 0;
         transform: translateY(16px);
-        animation: cyber-stagger 0.45s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        animation: cyber-stagger 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
     }
 
     @keyframes cyber-stagger {
         to { opacity: 1; transform: translateY(0); }
     }
 
+    /* ── Additional keyframes ── */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes ping {
+        75%, 100% { transform: scale(2); opacity: 0; }
+    }
+
     #intake-submit-btn, #chat-send-btn, #compile-btn {
-        background-color: #0d9488 !important;
+        background: linear-gradient(135deg, #0d9488, #0b7a70) !important;
         color: #ffffff !important;
+        box-shadow: 0 4px 16px rgba(13, 148, 136, 0.3) !important;
     }
     #intake-submit-btn:hover, #chat-send-btn:hover, #compile-btn:hover {
-        background-color: #0f766e !important;
+        background: linear-gradient(135deg, #0f766e, #065f46) !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 8px 24px rgba(13, 148, 136, 0.4) !important;
     }
 
     /* --- ENHANCED SEQUENCE PLANNER STYLES --- */
     .workspace-grid {
         background: linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(248, 250, 252, 0.95) 100%);
-        background-image: 
-            radial-gradient(rgba(148, 163, 184, 0.1) 1px, transparent 1px);
+        background-image: radial-gradient(rgba(148, 163, 184, 0.1) 1px, transparent 1px);
         background-size: 32px 32px;
     }
 
@@ -337,91 +640,739 @@
     }
 
     .connection-path {
-        stroke: #0d9488;
-        stroke-width: 2;
-        fill: none;
+        stroke: #0d9488; stroke-width: 2; fill: none;
         stroke-dasharray: 5, 5;
         animation: dash-flow 0.5s linear infinite;
     }
 
-    @keyframes dash-flow {
-        to { stroke-dashoffset: -10; }
-    }
+    @keyframes dash-flow { to { stroke-dashoffset: -10; } }
 
     .node-connector {
-        width: 10px;
-        height: 10px;
+        width: 10px; height: 10px;
         background: #0d9488;
         border-radius: 50%;
         position: absolute;
-        bottom: -5px;
-        left: 50%;
+        bottom: -5px; left: 50%;
         transform: translateX(-50%);
         cursor: crosshair;
         border: 2px solid white;
     }
+
+    /* ══════════════════════════════════════════════
+       PAGE LAYOUT: LEFT ADVENTURE SIDEBAR + RIGHT MISSION PANEL
+       ══════════════════════════════════════════════ */
+    .assessment-layout {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        align-items: stretch;
+    }
+
+    .assessment-sidebar { min-width: 0; }
+    .assessment-main { min-width: 0; flex: 1 1 auto; }
+
+    @media (min-width: 1100px) {
+        .assessment-layout {
+            flex-direction: row;
+            align-items: flex-start;
+            gap: 1.5rem;
+        }
+        .assessment-sidebar {
+            width: 260px;
+            flex: 0 0 260px;
+            position: sticky;
+            top: 120px;
+            align-self: flex-start;
+        }
+    }
+
+    /* ── ADVENTURE JOURNEY PANEL (left sidebar) ── */
+    .journey-panel {
+        background: var(--card-glass);
+        backdrop-filter: blur(20px) saturate(160%);
+        -webkit-backdrop-filter: blur(20px) saturate(160%);
+        border: 1.5px solid var(--pink-border);
+        border-radius: 24px;
+        padding: 1.75rem;
+        box-shadow: 0 20px 48px rgba(180, 60, 100, 0.12);
+        position: relative;
+        overflow: hidden;
+    }
+    .journey-panel::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--pink-accent), #a78bfa, var(--neon-cyan));
+        opacity: 0.7;
+    }
+
+    .journey-panel-title {
+        font-size: 0.65rem;
+        font-weight: 900;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: #be185d;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .journey-rail-wrap {
+        position: relative;
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .journey-mascot {
+        position: absolute;
+        top: 40px;
+        right: calc(100% + 4px);
+        width: 640px;
+        max-width: 46vw;
+        pointer-events: none;
+        z-index: 1;
+        filter: drop-shadow(0 14px 30px rgba(15, 23, 42, 0.22));
+    }
+
+    .journey-rail {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+
+    .journey-node {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        padding-bottom: 60px;
+        min-width: 0;
+        width: 100%;
+    }
+
+    .journey-node:last-child { padding-bottom: 0; }
+
+    .journey-node::before {
+        content: '';
+        position: absolute;
+        top: 80px; left: 38px;
+        width: 5px;
+        height: calc(100% - 80px);
+        background: rgba(255, 200, 225, 0.4);
+        border-radius: 6px;
+        transition: background 0.5s ease;
+    }
+
+    .journey-node:last-child::before { display: none; }
+
+    .journey-node.done::before {
+        background: linear-gradient(180deg, var(--pink-accent), #a78bfa);
+    }
+
+    .journey-dot {
+        position: relative;
+        z-index: 2;
+        width: 80px;
+        height: 80px;
+        flex-shrink: 0;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.8rem;
+        background: rgba(255, 255, 255, 0.8);
+        border: 4px solid rgba(255, 200, 225, 0.6);
+        color: #94a3b8;
+        transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        box-shadow: 0 4px 12px rgba(180, 60, 100, 0.08);
+    }
+
+    .journey-node.done .journey-dot {
+        background: linear-gradient(135deg, var(--pink-accent), #a78bfa);
+        border-color: var(--pink-accent);
+        color: #fff;
+        box-shadow: 0 6px 20px rgba(232, 121, 160, 0.35);
+    }
+
+    .journey-node.active .journey-dot {
+        background: rgba(255, 255, 255, 0.95);
+        border-color: var(--pink-accent);
+        border-width: 3px;
+        color: var(--pink-accent);
+        transform: scale(1.12);
+        box-shadow: 0 0 0 8px rgba(232, 121, 160, 0.12), 0 8px 24px rgba(232, 121, 160, 0.25);
+        animation: journey-pulse 1.8s infinite ease-in-out;
+    }
+
+    @keyframes journey-pulse {
+        0%, 100% { box-shadow: 0 0 0 8px rgba(232, 121, 160, 0.12), 0 8px 24px rgba(232, 121, 160, 0.25); }
+        50%       { box-shadow: 0 0 0 14px rgba(232, 121, 160, 0.06), 0 8px 24px rgba(232, 121, 160, 0.25); }
+    }
+
+    .journey-label {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+
+    .journey-label .jl-title {
+        font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif;
+        font-size: 1.05rem;
+        font-weight: 800;
+        color: #1e293b;
+        transition: color 0.3s ease;
+    }
+
+    .journey-label .jl-sub {
+        font-size: 0.78rem;
+        color: #374151;
+        font-weight: 500;
+    }
+
+    .journey-node.done .jl-title,
+    .journey-node.active .jl-title { color: var(--text-bright); }
+
+    .journey-node.active .jl-sub { color: var(--pink-accent); font-weight: 700; }
+    .journey-node.done .jl-sub  { color: #a78bfa; }
+
+    /* Mobile: horizontal mini strip */
+    @media (max-width: 1023px) {
+        .journey-mascot { display: none; }
+        .journey-panel { padding: 1rem; }
+        .journey-rail {
+            flex-direction: row;
+            justify-content: space-between;
+            width: 100%;
+            padding: 0;
+        }
+        .journey-node {
+            flex-direction: column;
+            padding-bottom: 0;
+            padding-right: 4px;
+            flex: 1;
+            align-items: center;
+        }
+        .journey-node::before {
+            top: 19px; left: 54%;
+            width: calc(100% - 16px);
+            height: 3px;
+        }
+        .journey-label { display: none; }
+        .journey-dot { width: 38px; height: 38px; font-size: 0.95rem; }
+    }
+
+    /* ── QUEST STATS ROW (xp / progress summary) ── */
+    .quest-stats-row {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.85rem 1rem;
+        background: rgba(255, 240, 248, 0.6);
+        border: 1px solid rgba(255, 200, 225, 0.4);
+        border-radius: 14px;
+        margin-top: 1rem;
+    }
+
+    /* ── SEARCHABLE INTEREST DROPDOWN ── */
+    .interest-select-trigger {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 12px 16px;
+        border-radius: 12px;
+        border: 1.5px solid rgba(255, 200, 225, 0.45);
+        background: rgba(255, 255, 255, 0.85);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 0.875rem;
+        color: var(--text-dim);
+    }
+
+    .interest-select-trigger:hover,
+    .interest-select-trigger.open {
+        border-color: var(--pink-accent);
+        box-shadow: 0 0 0 3px rgba(232, 121, 160, 0.1);
+    }
+
+    .interest-dropdown-panel {
+        position: absolute;
+        bottom: calc(100% + 6px);
+        top: auto;
+        left: 0;
+        right: 0;
+        background: rgba(255, 255, 255, 0.99);
+        border: 1.5px solid rgba(255, 200, 225, 0.45);
+        border-radius: 16px;
+        box-shadow: 0 20px 40px rgba(180, 60, 100, 0.18);
+        z-index: 9999;
+        overflow: hidden;
+        display: none;
+    }
+
+    .interest-dropdown-panel.open {
+        display: block;
+        animation: cyber-stagger 0.2s ease forwards;
+    }
+
+    /* Sibling question rows use backdrop-filter, which creates its own
+       stacking context — that traps a descendant's z-index inside that row
+       no matter how high it is. Lifting the whole row above its siblings
+       while the dropdown is open is what actually makes it paint on top. */
+    .mission-panel.interest-row-active {
+        position: relative;
+        z-index: 500;
+    }
+
+    .interest-search-box {
+        padding: 10px;
+        border-bottom: 1px solid rgba(255, 220, 235, 0.5);
+    }
+
+    .interest-search-box input {
+        width: 100%;
+        padding: 9px 12px 9px 34px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 200, 225, 0.4);
+        font-size: 0.85rem;
+        outline: none;
+        background: #fdf4f8 url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="%2394a3b8" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>') no-repeat 12px center;
+    }
+
+    .interest-search-box input:focus {
+        border-color: var(--pink-accent);
+        background-color: #fff;
+    }
+
+    .interest-options-list {
+        max-height: 220px;
+        overflow-y: auto;
+        padding: 6px;
+    }
+
+    .interest-option-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 10px;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        color: var(--text-bright);
+        transition: background 0.15s ease;
+    }
+
+    .interest-option-row:hover { background: rgba(255, 240, 248, 0.8); }
+
+    .interest-option-row .iop-check {
+        width: 18px; height: 18px;
+        border-radius: 6px;
+        border: 2px solid #cbd5e1;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+        font-size: 0.6rem;
+        color: transparent;
+        transition: all 0.15s ease;
+    }
+
+    .interest-option-row.picked .iop-check {
+        background: var(--pink-accent);
+        border-color: var(--pink-accent);
+        color: #fff;
+    }
+
+    .interest-option-row.picked { color: #be185d; font-weight: 700; }
+
+    .interest-option-row.disabled { opacity: 0.35; cursor: not-allowed; }
+
+    .interest-no-results {
+        padding: 18px 10px;
+        text-align: center;
+        color: #94a3b8;
+        font-size: 0.8rem;
+    }
+
+    .interest-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 6px 5px 12px;
+        background: rgba(232, 121, 160, 0.1);
+        border: 1px solid rgba(232, 121, 160, 0.3);
+        color: #be185d;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 700;
+    }
+
+    .interest-chip button {
+        width: 16px; height: 16px;
+        border-radius: 50%;
+        background: rgba(232, 121, 160, 0.15);
+        border: none;
+        color: #be185d;
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer;
+        font-size: 0.6rem;
+        line-height: 1;
+    }
+
+    .interest-chip button:hover { background: var(--pink-accent); color: #fff; }
+
+    /* ── FORM INPUT GLASSMORPHISM OVERRIDE ── */
+    .mission-input {
+        background: rgba(255, 255, 255, 0.85) !important;
+        border: 1.5px solid rgba(255, 200, 225, 0.5) !important;
+        border-radius: 12px !important;
+        transition: all 0.2s ease !important;
+    }
+    .mission-input:focus {
+        border-color: var(--pink-accent) !important;
+        background: rgba(255, 255, 255, 0.98) !important;
+        box-shadow: 0 0 0 3px rgba(232, 121, 160, 0.12) !important;
+        outline: none !important;
+    }
+
+    /* ── ACHIEVEMENT / UNLOCK ROW ── */
+    .achievement-row {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 1rem;
+        background: linear-gradient(135deg, rgba(255, 243, 199, 0.5), rgba(254, 215, 170, 0.3));
+        border: 1px solid rgba(251, 191, 36, 0.3);
+        border-radius: 14px;
+        margin-top: 0.75rem;
+    }
+
+    /* ── PROGRESS TRACKER WIDGET ── */
+    .progress-widget {
+        background: rgba(255, 255, 255, 0.6);
+        border: 1px solid rgba(255, 200, 225, 0.4);
+        border-radius: 16px;
+        padding: 1rem 1.25rem;
+        margin-bottom: 1.25rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    /* ── MCQ OPTION CARD (gamified) ── */
+    .quest-option-card {
+        background: rgba(255, 255, 255, 0.8);
+        border: 1.5px solid rgba(255, 200, 225, 0.4);
+        border-radius: 16px;
+        padding: 1rem 1.25rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+        outline: none;
+        width: 100%;
+        text-align: left;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.875rem;
+        box-shadow: 0 2px 8px rgba(180, 60, 100, 0.04);
+    }
+    .quest-option-card:hover {
+        background: rgba(253, 242, 248, 0.95);
+        border-color: var(--pink-accent);
+        box-shadow: 0 6px 20px rgba(232, 121, 160, 0.15);
+        transform: translateY(-2px);
+    }
+    .quest-option-card.selected-option {
+        background: rgba(232, 121, 160, 0.1);
+        border-color: var(--pink-accent);
+        box-shadow: 0 4px 16px rgba(232, 121, 160, 0.2);
+    }
+
+    /* ── MENTOR SELECTION CARD ── */
+    .mentor-card {
+        background: rgba(255, 255, 255, 0.82);
+        border: 2px solid rgba(255, 200, 225, 0.4);
+        border-radius: 22px;
+        padding: 1.75rem;
+        transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 0.875rem;
+        position: relative;
+        overflow: hidden;
+    }
+    .mentor-card::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: 22px;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    .mentor-card.voice-card::after {
+        background: linear-gradient(135deg, rgba(13,148,136,0.06), rgba(167,139,250,0.06));
+    }
+    .mentor-card.chat-card::after {
+        background: linear-gradient(135deg, rgba(99,102,241,0.06), rgba(232,121,160,0.06));
+    }
+    .mentor-card:hover {
+        transform: translateY(-6px) scale(1.02);
+        box-shadow: 0 20px 48px rgba(180, 60, 100, 0.18);
+    }
+    .mentor-card:hover::after { opacity: 1; }
+    .mentor-card.voice-card:hover { border-color: var(--neon-cyan); }
+    .mentor-card.chat-card:hover  { border-color: #6366f1; }
+
+    .mentor-icon-wrap {
+        width: 72px; height: 72px;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.75rem;
+        position: relative;
+        z-index: 1;
+        transition: all 0.3s ease;
+    }
+    .mentor-card.voice-card .mentor-icon-wrap {
+        background: rgba(13, 148, 136, 0.1);
+        color: var(--neon-cyan);
+        border: 2px solid rgba(13, 148, 136, 0.2);
+    }
+    .mentor-card.chat-card .mentor-icon-wrap {
+        background: rgba(99, 102, 241, 0.1);
+        color: #6366f1;
+        border: 2px solid rgba(99, 102, 241, 0.2);
+    }
+    .mentor-card:hover .mentor-icon-wrap {
+        transform: scale(1.12);
+        box-shadow: 0 0 20px currentColor;
+    }
+
+    /* ── COMPILE / LOADING STATE ── */
+    .compile-panel {
+        background: var(--card-glass);
+        border: 1.5px solid var(--pink-border);
+        border-radius: 24px;
+        padding: 3rem 2rem;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+    .compile-panel::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0; height: 3px;
+        background: linear-gradient(90deg, var(--pink-accent), #a78bfa, var(--neon-cyan));
+        animation: progress-shimmer 2s infinite;
+    }
+
+    /* ── LOADING OVERLAY ── */
+    #loader {
+        background: rgba(255, 248, 252, 0.97) !important;
+        backdrop-filter: blur(8px);
+    }
 </style>
 
-<div class="cyber-bg-glow"></div>
-<div class="cyber-bg-glow-2"></div>
+<!-- ── Floating particles (decorative, no event handlers) ── -->
+<div id="particles-container" style="position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;" aria-hidden="true"></div>
+<script>
+(function() {
+    const colors = ['rgba(232,121,160,0.3)','rgba(167,139,250,0.25)','rgba(13,148,136,0.2)','rgba(251,191,36,0.25)'];
+    const c = document.getElementById('particles-container');
+    if (!c) return;
+    for (let i = 0; i < 14; i++) {
+        const p = document.createElement('div');
+        const size = 4 + Math.random() * 8;
+        p.className = 'particle';
+        p.style.cssText = `width:${size}px;height:${size}px;left:${Math.random()*100}%;background:${colors[i%colors.length]};animation-duration:${12+Math.random()*18}s;animation-delay:${Math.random()*14}s;`;
+        c.appendChild(p);
+    }
+})();
+</script>
 
-<div class="max-w-4xl mx-auto py-12 px-4 sm:px-6 relative z-10">
-    <!-- Header Details with Mascot -->
-    <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-        <div class="flex items-center gap-4">
-            <div class="w-20 h-20 flex-shrink-0 relative">
-                <div class="absolute inset-0 bg-teal-500/10 rounded-full blur-md animate-pulse"></div>
-                <img src="/static/images/careo.png?v=101" alt="Careo Mascot" class="w-full h-full object-contain relative z-10">
-            </div>
-            <div>
-                <h1 class="text-2xl font-extrabold text-slate-900">Careo</h1>
-                <p class="text-xs font-semibold tracking-wider text-teal-600 uppercase">Your Career Guide</p>
-            </div>
-        </div>
-        <div class="flex flex-col items-end gap-1">
-            <span class="text-xs font-bold uppercase tracking-widest text-slate-500" id="phase-step-label">Assessment</span>
-            <div class="w-48 cyber-progress-bg mt-1">
-                <div class="cyber-progress-fill" id="global-progress-fill" style="width: 20%;"></div>
-            </div>
-        </div>
-    </div>
+<div class="assessment-page-wrap">
+<div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 relative z-10">
 
-    <!-- Glowing Interactive Container Card -->
-    <div class="premium-assessment-card p-8 sm:p-10 min-h-[520px] flex flex-col justify-between">
-        
-        <!-- Loading Shield overlay -->
-        <div id="loader" class="absolute inset-0 bg-white/95 z-50 flex flex-col items-center justify-center transition-opacity duration-300">
-            <div class="relative flex items-center justify-center mb-6">
-                <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-teal-600"></div>
-                <div class="absolute h-10 w-10 rounded-full bg-teal-50 border border-teal-200 flex items-center justify-center">
-                    <svg class="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+    <div class="assessment-layout">
+
+        <!-- ═══════════════════════════════════════
+             LEFT SIDEBAR: Adventure Journey Panel
+             ═══════════════════════════════════════ -->
+        <aside class="assessment-sidebar">
+            <div class="journey-panel">
+                <!-- Panel header -->
+                <div class="journey-panel-title">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                    Your Journey
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                </div>
+
+                <!-- Mascot illustration (point.png) — always visible on desktop -->
+                <div style="text-align:center;margin-bottom:1rem;" id="sidebar-mascot-wrap">
+                    <img src="/static/images/point.png" alt="Point — your career guide mascot"
+                         style="height:120px;width:auto;display:inline-block;filter:drop-shadow(0 8px 18px rgba(180,60,100,0.2));"
+                         onerror="this.style.display='none'">
+                </div>
+
+                <!-- Journey rail -->
+                <div class="journey-rail-wrap">
+                    <div class="journey-rail" id="journey-rail">
+
+                        <div class="journey-node" id="jn-intake" data-phase="0">
+                            <div class="journey-dot" data-icon="fa-house-chimney" style="overflow:hidden;padding:0;">
+                                <img src="/static/images/p1.jpg" alt="Start Village"
+                                     style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;"
+                                     onerror="this.style.display='none';this.parentElement.innerHTML='<i class=\'fas fa-house-chimney\'></i>'">
+                            </div>
+                            <div class="journey-label">
+                                <span class="jl-title">Start Village</span>
+                                <span class="jl-sub">Student Intake</span>
+                            </div>
+                        </div>
+
+                        <div class="journey-node" id="jn-behavioral" data-phase="1">
+                            <div class="journey-dot" data-icon="fa-tree" style="overflow:hidden;padding:0;">
+                                <img src="/static/images/p2.jpg" alt="Personality Forest"
+                                     style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;"
+                                     onerror="this.style.display='none';this.parentElement.innerHTML='<i class=\'fas fa-tree\'></i>'">
+                            </div>
+                            <div class="journey-label">
+                                <span class="jl-title">Personality Forest</span>
+                                <span class="jl-sub">Behavioral MCQs</span>
+                            </div>
+                        </div>
+
+                        <div class="journey-node" id="jn-mentor" data-phase="2">
+                            <div class="journey-dot" data-icon="fa-tower-observation" style="overflow:hidden;padding:0;">
+                                <img src="/static/images/p3.jpg" alt="Mentor Tower"
+                                     style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;"
+                                     onerror="this.style.display='none';this.parentElement.innerHTML='<i class=\'fas fa-tower-observation\'></i>'">
+                            </div>
+                            <div class="journey-label">
+                                <span class="jl-title">Mentor Tower</span>
+                                <span class="jl-sub">Meet Your Buddy</span>
+                            </div>
+                        </div>
+
+                        <div class="journey-node" id="jn-results" data-phase="5">
+                            <div class="journey-dot" data-icon="fa-chess-rook" style="overflow:hidden;padding:0;">
+                                <img src="/static/images/p4.jpg" alt="Simulation Castle"
+                                     style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;"
+                                     onerror="this.style.display='none';this.parentElement.innerHTML='<i class=\'fas fa-chess-rook\'></i>'">
+                            </div>
+                            <div class="journey-label">
+                                <span class="jl-title">Simulation Castle</span>
+                                <span class="jl-sub">Compile Results</span>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Quest stats widget -->
+                <div class="quest-stats-row">
+                    <span style="font-size:1.2rem;">⚡</span>
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-size:0.68rem;font-weight:800;color:#be185d;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Adventure Progress</div>
+                        <div class="cyber-progress-bg" style="height:6px;">
+                            <div class="cyber-progress-fill" id="sidebar-progress-fill" style="width:10%;"></div>
+                        </div>
+                    </div>
+                    <span class="xp-badge" id="sidebar-xp-badge">+XP</span>
+                </div>
+
+                <!-- Achievement unlock hint -->
+                <div class="achievement-row" style="margin-top:0.75rem;">
+                    <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#fbbf24,#f59e0b);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 10px rgba(245,158,11,0.3);">
+                        <i class="fas fa-trophy" style="color:white;font-size:0.85rem;"></i>
+                    </div>
+                    <div style="min-width:0;">
+                        <div style="font-size:0.7rem;font-weight:800;color:#92400e;">Complete the assessment</div>
+                        <div style="font-size:0.65rem;color:#b45309;">Unlock your Career Report!</div>
+                    </div>
                 </div>
             </div>
-            <p class="text-teal-600 font-extrabold text-sm tracking-widest uppercase animate-pulse" id="loader-text">Loading Assessment...</p>
-        </div>
+        </aside>
 
-        <!-- Upper Section Workspace -->
-        <div class="w-full" id="phase-body">
-            <!-- Phase layouts render here dynamically -->
-        </div>
+        <!-- ═══════════════════════════════════════
+             RIGHT MAIN: Mission Panel
+             ═══════════════════════════════════════ -->
+        <div class="assessment-main">
 
-        <!-- Footer / Panel Control Bar -->
-        <div class="mt-8 pt-6 border-t border-slate-100 flex justify-between items-center w-full relative z-10">
-            <a href="/assessment/reset" onclick="return confirm('WARNING: Re-initializing will wipe your current psychometric telemetry logs. Proceed?')" class="text-xs font-bold uppercase tracking-widest text-red-500 hover:text-red-600 transition-colors">
-                Reset Engine
-            </a>
-            
-            <div class="flex items-center gap-3">
-                <button type="button" id="speak-btn" onclick="speakActivePrompt()" class="p-2.5 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200 transition-all" title="Audio Synthesizer Readout">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
-                </button>
-                <div class="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2" id="bottom-status">
-                    <span class="h-2 w-2 rounded-full bg-teal-500 animate-ping"></span> Sync Ready
+            <!-- Progress widget header -->
+            <div class="progress-widget">
+                <div style="display:flex;align-items:center;gap:0.6rem;flex:1;min-width:0;">
+                    <span class="phase-banner" id="phase-step-label">
+                        <i class="fas fa-map-marker-alt" style="font-size:0.6rem;"></i>
+                        Loading...
+                    </span>
+                </div>
+                <div style="display:flex;align-items:center;gap:0.75rem;flex-shrink:0;">
+                    <div style="text-align:right;">
+                        <div style="font-size:0.65rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Quest Progress</div>
+                        <div class="cyber-progress-bg" style="width:140px;">
+                            <div class="cyber-progress-fill" id="global-progress-fill" style="width: 20%;"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
+
+            <!-- ── Mission Card (main content container) ── -->
+            <div class="premium-assessment-card p-7 sm:p-9 min-h-[520px] flex flex-col justify-between">
+
+                <!-- Loading Shield overlay -->
+                <div id="loader" class="absolute inset-0 z-50 flex flex-col items-center justify-center transition-opacity duration-300">
+                    <div class="relative flex items-center justify-center mb-6">
+                        <div class="animate-spin rounded-full h-16 w-16" style="border-top:3px solid var(--pink-accent);border-bottom:3px solid #a78bfa;border-left:3px solid transparent;border-right:3px solid transparent;"></div>
+                        <div class="absolute h-10 w-10 rounded-full flex items-center justify-center" style="background:rgba(255,240,248,0.9);border:1px solid rgba(232,121,160,0.3);">
+                            <i class="fas fa-compass" style="color:var(--pink-accent);font-size:1rem;animation:spin 2s linear infinite;"></i>
+                        </div>
+                    </div>
+                    <p style="color:var(--pink-accent);font-weight:800;font-size:0.75rem;letter-spacing:2px;text-transform:uppercase;" id="loader-text">Loading Quest...</p>
+                    <div style="margin-top:0.5rem;font-size:0.7rem;color:#94a3b8;">Preparing your adventure...</div>
+                </div>
+
+                <!-- ── Phase body (rendered dynamically by JS) ── -->
+                <div class="w-full" id="phase-body">
+                    <!-- Phase layouts render here dynamically -->
+                </div>
+
+                <!-- ── Footer Control Bar ── -->
+                <div class="mt-6 pt-5 flex justify-between items-center w-full relative z-10" style="border-top:1px solid rgba(255,200,225,0.3);">
+                    <a href="/assessment/reset"
+                       onclick="return confirm('WARNING: Re-initializing will wipe your current psychometric telemetry logs. Proceed?')"
+                       style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#f87171;display:flex;align-items:center;gap:5px;transition:all 0.2s;"
+                       onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#f87171'">
+                        <i class="fas fa-rotate-left" style="font-size:0.7rem;"></i> Reset
+                    </a>
+
+                    <div style="display:flex;align-items:center;gap:0.75rem;">
+                        <button type="button" id="speak-btn" onclick="speakActivePrompt()"
+                                style="padding:0.5rem;border-radius:50%;background:rgba(255,240,248,0.8);color:#be185d;border:1px solid rgba(232,121,160,0.3);cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;"
+                                title="Listen to question">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
+                        </button>
+                        <div style="font-size:0.68rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;display:flex;align-items:center;gap:6px;" id="bottom-status">
+                            <span style="width:8px;height:8px;border-radius:50%;background:#10b981;display:inline-block;animation:ping 1.5s cubic-bezier(0,0,0.2,1) infinite;"></span>
+                            Sync Ready
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
+
     </div>
 </div>
+</div><!-- /.assessment-page-wrap -->
 
 <script>
 
@@ -486,25 +1437,119 @@
             gradeTitle.innerText = isG12 ? "Grade 12 Career Track" : "Grade 10 Stream Planner";
         }
         
+        // Gamified phase labels with icons
         let phaseName = "Student Information Intake";
-        if (assessmentState.current_phase === 1) phaseName = "Preference Cards";
-        if (assessmentState.current_phase === 2) phaseName = "Behavioral Questions";
-        if (assessmentState.current_phase === 3) phaseName = "Career Matching";
-        
-        document.getElementById("phase-step-label").innerText = phaseName;
+        let phaseIcon = "fa-house-chimney";
+        let xpLabel = "+10 XP";
+        if (assessmentState.current_phase === 1) { phaseName = "Personality Forest — Behavioral MCQs"; phaseIcon = "fa-tree"; xpLabel = "+25 XP"; }
+        if (assessmentState.current_phase === 2) { phaseName = "Mentor Tower — Meet Your Buddy"; phaseIcon = "fa-tower-observation"; xpLabel = "+50 XP"; }
+        if (assessmentState.current_phase === 5) { phaseName = "Simulation Castle — Compile Results"; phaseIcon = "fa-chess-rook"; xpLabel = "+100 XP"; }
+
+        // Update phase banner (has icon child)
+        const phaseLabel = document.getElementById("phase-step-label");
+        if (phaseLabel) {
+            phaseLabel.innerHTML = `<i class="fas ${phaseIcon}" style="font-size:0.6rem;"></i> ${phaseName}`;
+        }
         
         // Progress percentage calculation
-        let percent = 33;
-        if (assessmentState.current_phase === 1) percent = 66;
-        if (assessmentState.current_phase === 2) percent = 100;
+        let percent = 20;
+        if (assessmentState.current_phase === 1) percent = 50;
+        if (assessmentState.current_phase === 2) percent = 75;
+        if (assessmentState.current_phase === 5) percent = 90;
         
         document.getElementById("global-progress-fill").style.width = `${percent}%`;
+
+        // Sync sidebar progress + XP badge
+        const sidebarFill = document.getElementById("sidebar-progress-fill");
+        if (sidebarFill) sidebarFill.style.width = `${percent}%`;
+        const xpBadge = document.getElementById("sidebar-xp-badge");
+        if (xpBadge) xpBadge.textContent = xpLabel;
         
         const subtitleTracker = document.getElementById("subtitle-tracker");
         if (subtitleTracker) {
             subtitleTracker.innerText = phaseName;
         }
+
+        updateJourneyPath(assessmentState.current_phase);
     }
+
+    // --- VERTICAL JOURNEY PATH (Duolingo-style) ---
+    // On Phase 0 (Student Intake) the 4 dots act as a segmented checklist that
+    // fills in as the intake form's fields get completed, instead of just
+    // reflecting the overall app phase.
+    function getIntakeCompletionRatio() {
+        const form = document.getElementById("intake-form");
+        if (!form) return 0;
+
+        const fields = [
+            () => form.name && form.name.value.trim().length > 0,
+            () => form.pursuing && form.pursuing.value.trim().length > 0,
+            () => form.interests && Array.from(form.interests.selectedOptions).length > 0,
+            () => form.family_income && form.family_income.value !== "",
+            () => form.father_occupation && form.father_occupation.value !== "",
+            () => form.mother_occupation && form.mother_occupation.value !== "",
+            () => form.salary_priority && form.salary_priority.value !== "",
+        ];
+
+        const filledCount = fields.filter(check => {
+            try { return check(); } catch (e) { return false; }
+        }).length;
+
+        return filledCount / fields.length;
+    }
+
+    function updateJourneyPath(currentPhase) {
+        const rail = document.getElementById("journey-rail");
+        if (!rail) return;
+        const nodes = Array.from(rail.querySelectorAll(".journey-node"));
+
+        // Phase 0: drive the dots off live intake-form completion (checklist mode)
+        if (currentPhase === 0 && document.getElementById("intake-form")) {
+            const ratio = getIntakeCompletionRatio();
+            const doneCount = Math.min(nodes.length, Math.round(ratio * nodes.length));
+
+            nodes.forEach((node, i) => {
+                const dot = node.querySelector(".journey-dot");
+                node.classList.remove("done", "active");
+
+                if (i < doneCount) {
+                    node.classList.add("done");
+                    dot.innerHTML = '<i class="fas fa-check"></i>';
+                } else {
+                    dot.innerHTML = `<i class="fas ${dot.dataset.icon}"></i>`;
+                    if (i === doneCount) node.classList.add("active");
+                }
+            });
+            return;
+        }
+
+        // Other phases: fall back to the overall app-phase progress
+        nodes.forEach(node => {
+            const nodePhase = Number(node.dataset.phase);
+            const dot = node.querySelector(".journey-dot");
+            node.classList.remove("done", "active");
+
+            if (nodePhase < currentPhase || (nodePhase === 5 && currentPhase > 5)) {
+                node.classList.add("done");
+                dot.innerHTML = '<i class="fas fa-check"></i>';
+            } else {
+                dot.innerHTML = `<i class="fas ${dot.dataset.icon}"></i>`;
+                if (nodePhase === currentPhase) node.classList.add("active");
+            }
+        });
+    }
+
+    // Live-update the checklist as the user fills the intake form
+    document.addEventListener("input", (e) => {
+        if (e.target.closest && e.target.closest("#intake-form")) {
+            updateJourneyPath(0);
+        }
+    });
+    document.addEventListener("change", (e) => {
+        if (e.target.closest && e.target.closest("#intake-form")) {
+            updateJourneyPath(0);
+        }
+    });
 
     async function loadPhase() {
         const phase = assessmentState.current_phase;
@@ -540,212 +1585,269 @@
 
     // --- PHASE 0: CLINICAL CONVERSATIONAL INTAKE ---
 
-    function toggleInterest(val, btn) {
+    // --- Searchable interest dropdown ---
+    function toggleInterestDropdown(forceOpen) {
+        const panel = document.getElementById('interest-dropdown-panel');
+        const trigger = document.getElementById('interest-trigger');
+        const chevron = document.getElementById('interest-trigger-chevron');
+        if (!panel || !trigger) return;
+        const shouldOpen = forceOpen !== undefined ? forceOpen : !panel.classList.contains('open');
+        const row = trigger.closest('.mission-panel');
+
+        if (shouldOpen) {
+            panel.classList.add('open');
+            trigger.classList.add('open');
+            if (row) row.classList.add('interest-row-active');
+            chevron.style.transform = 'rotate(180deg)';
+            const search = document.getElementById('interest-search-input');
+            if (search) {
+                search.value = '';
+                filterInterestOptions('');
+                // preventScroll avoids the browser auto-scrolling the page to
+                // bring the input into view, which would otherwise trigger a
+                // scroll-based close right after opening.
+                setTimeout(() => search.focus({ preventScroll: true }), 50);
+            }
+        } else {
+            panel.classList.remove('open');
+            trigger.classList.remove('open');
+            if (row) row.classList.remove('interest-row-active');
+            chevron.style.transform = 'rotate(0deg)';
+        }
+    }
+
+    // Close dropdown when clicking outside of it
+    document.addEventListener('click', (e) => {
+        const container = document.getElementById('interests-container');
+        const panel = document.getElementById('interest-dropdown-panel');
+        if (container && !container.contains(e.target) && panel && !panel.contains(e.target)) {
+            toggleInterestDropdown(false);
+        }
+    });
+
+    function filterInterestOptions(query) {
+        const q = query.trim().toLowerCase();
+        const rows = document.querySelectorAll('#interest-options-list .interest-option-row');
+        let visibleCount = 0;
+        rows.forEach(row => {
+            const match = row.dataset.value.toLowerCase().includes(q);
+            row.style.display = match ? 'flex' : 'none';
+            if (match) visibleCount++;
+        });
+        const noResults = document.getElementById('interest-no-results');
+        if (noResults) noResults.classList.toggle('hidden', visibleCount > 0);
+    }
+
+    function toggleInterest(val, rowEl) {
         const select = document.getElementById('hidden-interests');
         let option = Array.from(select.options).find(opt => opt.value === val);
         if (!option) return;
-        
+
         if (option.selected) {
             option.selected = false;
-            btn.classList.remove('bg-teal-600', 'text-white', 'border-teal-600', 'shadow-md');
-            btn.classList.add('text-slate-600', 'border-slate-200', 'hover:bg-slate-50', 'hover:border-teal-300');
         } else {
             if (select.selectedOptions.length >= 4) {
-                btn.classList.add('animate-pulse', 'bg-red-50', 'border-red-300');
-                setTimeout(() => btn.classList.remove('animate-pulse', 'bg-red-50', 'border-red-300'), 400);
+                rowEl.classList.add('animate-pulse');
+                setTimeout(() => rowEl.classList.remove('animate-pulse'), 400);
                 return;
             }
             option.selected = true;
-            btn.classList.add('bg-teal-600', 'text-white', 'border-teal-600', 'shadow-md');
-            btn.classList.remove('text-slate-600', 'border-slate-200', 'hover:bg-slate-50', 'hover:border-teal-300');
         }
-        
-        if (select.selectedOptions.length > 0) {
+
+        renderInterestState();
+        updateJourneyPath(0);
+    }
+
+    function removeInterest(val) {
+        const select = document.getElementById('hidden-interests');
+        let option = Array.from(select.options).find(opt => opt.value === val);
+        if (option) option.selected = false;
+        renderInterestState();
+        updateJourneyPath(0);
+    }
+
+    function renderInterestState() {
+        const select = document.getElementById('hidden-interests');
+        const selected = Array.from(select.selectedOptions).map(o => o.value);
+
+        // Sync checkmarks / disabled state in the option rows
+        document.querySelectorAll('#interest-options-list .interest-option-row').forEach(row => {
+            const isPicked = selected.includes(row.dataset.value);
+            row.classList.toggle('picked', isPicked);
+            row.classList.toggle('disabled', !isPicked && selected.length >= 4);
+        });
+
+        // Trigger label
+        const label = document.getElementById('interest-trigger-label');
+        if (label) {
+            label.textContent = selected.length > 0
+                ? `${selected.length} of 4 selected`
+                : 'Select interests...';
+        }
+
+        // Chips
+        const chips = document.getElementById('interest-chips');
+        if (chips) {
+            chips.innerHTML = selected.map(val => `
+                <span class="interest-chip">
+                    ${val}
+                    <button type="button" onclick="event.stopPropagation(); removeInterest('${val}')" aria-label="Remove ${val}">
+                        <i class="fas fa-xmark"></i>
+                    </button>
+                </span>
+            `).join('');
+        }
+
+        if (selected.length > 0) {
             const container = document.getElementById('interests-container');
-            if(container) container.classList.remove('border-red-400');
-            const err = container?.parentElement?.querySelector('.error-msg');
-            if(err) err.classList.add('hidden');
+            if (container) container.classList.remove('border-red-400');
+            const err = container?.querySelector('.error-msg');
+            if (err) err.classList.add('hidden');
         }
     }
     function renderIntakePhase() {
         const body = document.getElementById("phase-body");
+        // Helper to build a mission-style form row
+        const missionRow = (icon, iconColor, iconBg, title, subtitle, inputHtml) => `
+            <div class="mission-panel p-4 sm:p-5" style="display:flex;flex-wrap:wrap;align-items:flex-start;gap:1rem;">
+                <div style="display:flex;align-items:center;gap:0.875rem;flex:1;min-width:180px;">
+                    <div style="width:44px;height:44px;background:${iconBg};color:${iconColor};border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;border:1.5px solid ${iconColor}22;">
+                        <i class="fas ${icon}"></i>
+                    </div>
+                    <div>
+                        <div style="font-size:0.88rem;font-weight:800;color:#1e293b;">${title}</div>
+                        <div style="font-size:0.72rem;color:#94a3b8;margin-top:1px;">${subtitle}</div>
+                    </div>
+                </div>
+                <div style="flex:1;min-width:220px;max-width:320px;">${inputHtml}</div>
+            </div>
+        `;
+
         body.innerHTML = `
-            <div class="stagger-in max-w-3xl mx-auto">
-                <!-- Header Title block -->
-                <div class="mb-8 text-center md:text-left">
-                    <span class="cyber-badge mb-2">Phase 1: Student Intake</span>
-                    <h2 class="text-3xl font-extrabold text-slate-900 mt-1">Let's get to know you better</h2>
-                    <p class="text-slate-500 text-sm mt-1">We'll ask you a few questions to understand you better and provide personalized insights.</p>
+            <div class="stagger-in">
+                <!-- ── Mission Header ── -->
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;">
+                    <div>
+                        <span class="cyber-badge" style="margin-bottom:0.5rem;">
+                            <i class="fas fa-house-chimney" style="font-size:0.55rem;"></i>
+                            Phase 1 · Start Village
+                        </span>
+                        <h2 style="font-size:1.6rem;font-weight:900;color:#1e293b;margin:0.25rem 0 0.3rem;line-height:1.2;">Let's get to know you better</h2>
+                        <p style="color:#64748b;font-size:0.82rem;max-width:480px;">We'll ask a few questions to understand you and provide personalized career insights.</p>
+                    </div>
+                    <span class="xp-badge" style="align-self:flex-start;">
+                        <i class="fas fa-bolt" style="font-size:0.6rem;"></i> +10 XP on completion
+                    </span>
                 </div>
 
-                <!-- Alert Box -->
-                <div class="bg-teal-50 border border-teal-100/80 text-teal-800 rounded-2xl p-4 mb-8 flex items-center gap-3 text-sm">
-                    <i class="fas fa-info-circle text-teal-600 text-lg"></i>
+                <!-- ── Info Banner ── -->
+                <div style="background:rgba(13,148,136,0.07);border:1px solid rgba(13,148,136,0.2);border-radius:14px;padding:0.75rem 1rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:0.6rem;font-size:0.8rem;color:#0d9488;">
+                    <i class="fas fa-shield-alt" style="flex-shrink:0;"></i>
                     <span>Your information is safe with us and will only be used to guide your career journey.</span>
                 </div>
 
-                <!-- Form Rows -->
-                <form id="intake-form" onsubmit="submitIntakeForm(event)" class="space-y-6">
-                    <!-- Row 1: Full Name -->
-                    <div class="flex flex-col md:flex-row md:items-center justify-between p-5 bg-slate-50/40 border border-slate-100 rounded-2xl gap-4 hover:border-teal-500/10 transition-all duration-300">
-                        <div class="flex items-center gap-4">
-                            <div class="h-12 w-12 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center text-xl flex-shrink-0">
-                                <i class="fas fa-user"></i>
-                            </div>
-                            <div>
-                                <h4 class="text-base font-bold text-slate-900">What is your full name?</h4>
-                                <p class="text-slate-400 text-xs">Please enter your full name.</p>
-                            </div>
-                        </div>
-                        <div class="w-full md:w-80">
-                            <input type="text" name="name" required placeholder="Enter your full name" 
-                                class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder-slate-400 focus:border-teal-500 focus:bg-white focus:outline-none text-sm transition-all">
-                            <div class="error-msg text-red-500 text-xs mt-1 hidden">Please enter a valid name (at least 2 characters).</div>
-                        </div>
-                    </div>
+                <!-- ── Form ── -->
+                <form id="intake-form" onsubmit="submitIntakeForm(event)" style="display:flex;flex-direction:column;gap:0.875rem;">
 
-                    <!-- Row 2: Currently Pursuing -->
-                    <div class="flex flex-col md:flex-row md:items-center justify-between p-5 bg-slate-50/40 border border-slate-100 rounded-2xl gap-4 hover:border-teal-500/10 transition-all duration-300">
-                        <div class="flex items-center gap-4">
-                            <div class="h-12 w-12 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center text-xl flex-shrink-0">
-                                <i class="fas fa-graduation-cap"></i>
-                            </div>
-                            <div>
-                                <h4 class="text-base font-bold text-slate-900">What are you currently pursuing?</h4>
-                                <p class="text-slate-400 text-xs">Select your current class/education level.</p>
-                            </div>
-                        </div>
-                        <div class="w-full md:w-80">
-                            <input type="text" name="pursuing" required placeholder="Enter current education (e.g. Grade 12)" 
-                                class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder-slate-400 focus:border-teal-500 focus:bg-white focus:outline-none text-sm transition-all">
-                            <div class="error-msg text-red-500 text-xs mt-1 hidden">Please enter your current studies (at least 2 characters).</div>
-                        </div>
-                    </div>
+                    ${missionRow('fa-user','#e879a0','rgba(232,121,160,0.1)',
+                        'What is your full name?','Please enter your full name.',
+                        `<input type="text" name="name" required placeholder="Enter your full name"
+                            class="w-full px-4 py-3 text-sm text-slate-900 placeholder-slate-400 mission-input"
+                            style="font-size:0.875rem;">
+                        <div class="error-msg" style="color:#f87171;font-size:0.72rem;margin-top:4px;display:none;">Please enter a valid name (at least 2 characters).</div>`
+                    )}
 
-                    <!-- Row 3: Areas of Interest -->
-                    <div class="flex flex-col md:flex-row md:items-center justify-between p-5 bg-slate-50/40 border border-slate-100 rounded-2xl gap-4 hover:border-teal-500/10 transition-all duration-300">
-                        <div class="flex items-center gap-4">
-                            <div class="h-12 w-12 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center text-xl flex-shrink-0">
-                                <i class="fas fa-star"></i>
-                            </div>
-                            <div>
-                                <h4 class="text-base font-bold text-slate-900">Which areas interest you the most?</h4>
-                                <p class="text-slate-400 text-xs">Choose up to four areas you would enjoy exploring.</p>
-                            </div>
-                        </div>
-                        <div class="w-full md:w-80">
+                    ${missionRow('fa-graduation-cap','#a78bfa','rgba(167,139,250,0.1)',
+                        'What are you currently pursuing?','Your current class or education level.',
+                        `<input type="text" name="pursuing" required placeholder="e.g. Grade 12, Class 10"
+                            class="w-full px-4 py-3 text-sm text-slate-900 placeholder-slate-400 mission-input"
+                            style="font-size:0.875rem;">
+                        <div class="error-msg" style="color:#f87171;font-size:0.72rem;margin-top:4px;display:none;">Please enter your current studies (at least 2 characters).</div>`
+                    )}
+
+                    ${missionRow('fa-star','#f59e0b','rgba(245,158,11,0.1)',
+                        'Which areas interest you the most?','Choose up to 4 areas you enjoy exploring.',
+                        `<div class="relative" id="interests-container">
                             <select name="interests" multiple required class="hidden" id="hidden-interests">
                                 ${interestOptions.map(opt => `<option value="${opt}">${opt}</option>`).join("")}
                             </select>
-                            <div class="flex flex-wrap gap-2 max-h-52 overflow-y-auto p-1 border-2 border-transparent rounded-xl" id="interests-container">
-                                ${interestOptions.map(opt => `
-                                    <button type="button" 
-                                        onclick="toggleInterest('${opt}', this)"
-                                        class="px-3 py-1.5 rounded-full border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:border-teal-300 transition-all text-left select-none">
-                                        ${opt}
-                                    </button>
-                                `).join("")}
+                            <button type="button" id="interest-trigger" onclick="toggleInterestDropdown()" class="interest-select-trigger">
+                                <span id="interest-trigger-label">Select interests...</span>
+                                <i class="fas fa-chevron-down" style="font-size:0.7rem;transition:transform 0.2s;" id="interest-trigger-chevron"></i>
+                            </button>
+                            <div style="display:flex;flex-wrap:wrap;gap:0.375rem;margin-top:0.5rem;" id="interest-chips"></div>
+                            <div class="interest-dropdown-panel" id="interest-dropdown-panel">
+                                <div class="interest-search-box">
+                                    <input type="text" id="interest-search-input" placeholder="Search interests..." oninput="filterInterestOptions(this.value)" autocomplete="off">
+                                </div>
+                                <div class="interest-options-list" id="interest-options-list">
+                                    ${interestOptions.map(opt => `
+                                        <div class="interest-option-row" data-value="${opt}" onclick="toggleInterest('${opt}', this)">
+                                            <span class="iop-check"><i class="fas fa-check"></i></span>
+                                            <span class="iop-label">${opt}</span>
+                                        </div>`).join("")}
+                                    <div class="interest-no-results hidden" id="interest-no-results">No matching interests found.</div>
+                                </div>
                             </div>
-                            <div class="text-xs text-slate-400 mt-2">Select up to 4 areas</div>
-                            <div class="error-msg text-red-500 text-xs mt-1 hidden">Please select 1 to 4 interests.</div>
-                        </div>
-                    </div>
+                            <div style="font-size:0.7rem;color:#94a3b8;margin-top:4px;">Select up to 4 areas</div>
+                            <div class="error-msg" style="color:#f87171;font-size:0.72rem;margin-top:4px;display:none;">Please select 1 to 4 interests.</div>
+                        </div>`
+                    )}
 
-                    <!-- Row 4: Family Income -->
-                    <div class="flex flex-col md:flex-row md:items-center justify-between p-5 bg-slate-50/40 border border-slate-100 rounded-2xl gap-4 hover:border-teal-500/10 transition-all duration-300">
-                        <div class="flex items-center gap-4">
-                            <div class="h-12 w-12 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center text-xl flex-shrink-0">
-                                <i class="fas fa-money-bill-wave"></i>
-                            </div>
-                            <div>
-                                <h4 class="text-base font-bold text-slate-900">Family Income Range</h4>
-                                <p class="text-slate-400 text-xs">Select your family's annual income bracket.</p>
-                            </div>
-                        </div>
-                        <div class="w-full md:w-80">
-                            <select name="family_income" required class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:border-teal-500 focus:outline-none text-sm transition-all">
-                                <option value="" disabled selected>Select an option...</option>
-                                ${incomeOptions.map(opt => `<option value="${opt}">${opt}</option>`).join("")}
-                            </select>
-                            <div class="error-msg text-red-500 text-xs mt-1 hidden">Please select an income range.</div>
-                        </div>
-                    </div>
+                    ${missionRow('fa-money-bill-wave','#10b981','rgba(16,185,129,0.1)',
+                        'Family Income Range','Your family\'s annual income bracket.',
+                        `<select name="family_income" required class="w-full px-4 py-3 text-sm text-slate-900 mission-input" style="font-size:0.875rem;">
+                            <option value="" disabled selected>Select an option...</option>
+                            ${incomeOptions.map(opt => `<option value="${opt}">${opt}</option>`).join("")}
+                        </select>
+                        <div class="error-msg" style="color:#f87171;font-size:0.72rem;margin-top:4px;display:none;">Please select an income range.</div>`
+                    )}
 
-                    <!-- Row 5: Father's Occupation -->
-                    <div class="flex flex-col md:flex-row md:items-center justify-between p-5 bg-slate-50/40 border border-slate-100 rounded-2xl gap-4 hover:border-teal-500/10 transition-all duration-300">
-                        <div class="flex items-center gap-4">
-                            <div class="h-12 w-12 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center text-xl flex-shrink-0">
-                                <i class="fas fa-user-tie"></i>
-                            </div>
-                            <div>
-                                <h4 class="text-base font-bold text-slate-900">Father's Occupation</h4>
-                                <p class="text-slate-400 text-xs">Select primary occupation.</p>
-                            </div>
-                        </div>
-                        <div class="w-full md:w-80">
-                            <select name="father_occupation" required class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:border-teal-500 focus:outline-none text-sm transition-all">
-                                <option value="" disabled selected>Select an option...</option>
-                                ${occupationOptions.map(opt => `<option value="${opt}">${opt}</option>`).join("")}
-                            </select>
-                            <div class="error-msg text-red-500 text-xs mt-1 hidden">Please select an occupation.</div>
-                        </div>
-                    </div>
+                    ${missionRow('fa-user-tie','#6366f1','rgba(99,102,241,0.1)',
+                        'Father\'s Occupation','Select primary occupation.',
+                        `<select name="father_occupation" required class="w-full px-4 py-3 text-sm text-slate-900 mission-input" style="font-size:0.875rem;">
+                            <option value="" disabled selected>Select an option...</option>
+                            ${occupationOptions.map(opt => `<option value="${opt}">${opt}</option>`).join("")}
+                        </select>
+                        <div class="error-msg" style="color:#f87171;font-size:0.72rem;margin-top:4px;display:none;">Please select an occupation.</div>`
+                    )}
 
-                    <!-- Row 6: Mother's Occupation -->
-                    <div class="flex flex-col md:flex-row md:items-center justify-between p-5 bg-slate-50/40 border border-slate-100 rounded-2xl gap-4 hover:border-teal-500/10 transition-all duration-300">
-                        <div class="flex items-center gap-4">
-                            <div class="h-12 w-12 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center text-xl flex-shrink-0">
-                                <i class="fas fa-user-nurse"></i>
-                            </div>
-                            <div>
-                                <h4 class="text-base font-bold text-slate-900">Mother's Occupation</h4>
-                                <p class="text-slate-400 text-xs">Select primary occupation.</p>
-                            </div>
-                        </div>
-                        <div class="w-full md:w-80">
-                            <select name="mother_occupation" required class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:border-teal-500 focus:outline-none text-sm transition-all">
-                                <option value="" disabled selected>Select an option...</option>
-                                ${occupationOptions.map(opt => `<option value="${opt}">${opt}</option>`).join("")}
-                            </select>
-                            <div class="error-msg text-red-500 text-xs mt-1 hidden">Please select an occupation.</div>
-                        </div>
-                    </div>
+                    ${missionRow('fa-user-nurse','#ec4899','rgba(236,72,153,0.1)',
+                        'Mother\'s Occupation','Select primary occupation.',
+                        `<select name="mother_occupation" required class="w-full px-4 py-3 text-sm text-slate-900 mission-input" style="font-size:0.875rem;">
+                            <option value="" disabled selected>Select an option...</option>
+                            ${occupationOptions.map(opt => `<option value="${opt}">${opt}</option>`).join("")}
+                        </select>
+                        <div class="error-msg" style="color:#f87171;font-size:0.72rem;margin-top:4px;display:none;">Please select an occupation.</div>`
+                    )}
 
-                    <!-- Row 7: Salary Priority (Career Choice) -->
-                    <div class="flex flex-col md:flex-row md:items-center justify-between p-5 bg-slate-50/40 border border-slate-100 rounded-2xl gap-4 hover:border-teal-500/10 transition-all duration-300">
-                        <div class="flex items-center gap-4">
-                            <div class="h-12 w-12 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center text-xl flex-shrink-0">
-                                <i class="fas fa-wallet"></i>
-                            </div>
-                            <div>
-                                <h4 class="text-base font-bold text-slate-900">What matters most to you?</h4>
-                                <p class="text-slate-400 text-xs">When choosing a future career.</p>
-                            </div>
-                        </div>
-                        <div class="w-full md:w-80">
-                            <select name="salary_priority" required class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 focus:border-teal-500 focus:outline-none text-sm transition-all">
-                                <option value="" disabled selected>Select an option...</option>
-                                <option value="high_salary">High salary and financial growth</option>
-                                <option value="balanced">A balance of salary, interest, and stability</option>
-                                <option value="meaningful_work">Interest, purpose, and meaningful work</option>
-                                <option value="unsure">I am still exploring</option>
-                            </select>
-                            <div class="error-msg text-red-500 text-xs mt-1 hidden">Please select a priority.</div>
-                        </div>
-                    </div>
+                    ${missionRow('fa-wallet','#0d9488','rgba(13,148,136,0.1)',
+                        'What matters most to you?','When choosing your future career path.',
+                        `<select name="salary_priority" required class="w-full px-4 py-3 text-sm text-slate-900 mission-input" style="font-size:0.875rem;">
+                            <option value="" disabled selected>Select an option...</option>
+                            <option value="high_salary">High salary and financial growth</option>
+                            <option value="balanced">A balance of salary, interest, and stability</option>
+                            <option value="meaningful_work">Interest, purpose, and meaningful work</option>
+                            <option value="unsure">I am still exploring</option>
+                        </select>
+                        <div class="error-msg" style="color:#f87171;font-size:0.72rem;margin-top:4px;display:none;">Please select a priority.</div>`
+                    )}
 
-                    <!-- Footer Control Bar -->
-                    <div class="flex justify-between items-center pt-6 border-t border-slate-100 mt-8">
-                        <div class="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                            <i class="fas fa-shield-alt text-teal-600"></i> Secure & Confidential
+                    <!-- Submit row -->
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding-top:1.25rem;margin-top:0.5rem;border-top:1px solid rgba(255,200,225,0.35);">
+                        <div style="display:flex;align-items:center;gap:6px;font-size:0.72rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;">
+                            <i class="fas fa-shield-alt" style="color:#0d9488;"></i> Secure &amp; Confidential
                         </div>
-                        <button type="submit" id="intake-submit-btn" class="px-8 py-3.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-extrabold transition-all text-sm flex items-center gap-2 shadow-md shadow-teal-600/10">
-                            Save & Continue <i class="fas fa-arrow-right"></i>
+                        <button type="submit" id="intake-submit-btn"
+                                style="padding:0.8rem 2rem;border-radius:14px;font-weight:800;font-size:0.85rem;display:flex;align-items:center;gap:0.5rem;border:none;cursor:pointer;transition:all 0.3s;letter-spacing:0.3px;">
+                            Continue Adventure <i class="fas fa-arrow-right"></i>
                         </button>
                     </div>
                 </form>
             </div>
         `;
+        renderInterestState();
+        updateJourneyPath(0);
     }
 
     async function submitIntakeForm(event) {
@@ -765,20 +1867,24 @@
         
         function toggleError(inputName, show) {
             const input = form[inputName];
-            const error = (input.parentElement || document.getElementById('interests-container').parentElement).querySelector('.error-msg');
-            
-            let targetEl = input;
+            // For interests, the parent is the custom div wrapper
+            let container;
             if (inputName === 'interests') {
-                targetEl = document.getElementById('interests-container');
+                container = document.getElementById('interests-container');
+            } else if (input) {
+                container = input.parentElement;
             }
 
+            const error = container ? container.querySelector('.error-msg') : null;
+            let targetEl = (inputName === 'interests') ? document.getElementById('interests-container') : input;
+
             if (show) {
-                if (targetEl && targetEl.classList) targetEl.classList.add("border-red-400");
-                if (error) error.classList.remove("hidden");
+                if (targetEl && targetEl.style !== undefined) targetEl.style.borderColor = '#f87171';
+                if (error) error.style.display = 'block';
                 isValid = false;
             } else {
-                if (targetEl && targetEl.classList) targetEl.classList.remove("border-red-400");
-                if (error) error.classList.add("hidden");
+                if (targetEl && targetEl.style !== undefined) targetEl.style.borderColor = '';
+                if (error) error.style.display = 'none';
             }
         }
         
@@ -835,13 +1941,13 @@
             } else {
                 alert("Failed to submit intake. Please verify your data and try again.");
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = `Save & Continue <i class="fas fa-arrow-right"></i>`;
+                submitBtn.innerHTML = `Continue Adventure <i class="fas fa-arrow-right"></i>`;
             }
         } catch (e) {
             console.error(e);
             document.getElementById("bottom-status").innerHTML = `Extraction Error`;
             submitBtn.disabled = false;
-            submitBtn.innerHTML = `Save & Continue <i class="fas fa-arrow-right"></i>`;
+            submitBtn.innerHTML = `Continue Adventure <i class="fas fa-arrow-right"></i>`;
         }
     }
 
@@ -951,22 +2057,22 @@
 
     window.togglePhase2Lang = function(lang) {
         currentLang = lang;
-        document.querySelectorAll('.lang-en').forEach(el => el.classList.toggle('hidden', lang !== 'en'));
-        document.querySelectorAll('.lang-hi').forEach(el => el.classList.toggle('hidden', lang !== 'hi'));
+        // Toggle visibility via inline style (new MCQ template uses inline display)
+        document.querySelectorAll('.lang-en').forEach(el => {
+            el.style.display = (lang !== 'en') ? 'none' : '';
+        });
+        document.querySelectorAll('.lang-hi').forEach(el => {
+            el.style.display = (lang !== 'hi') ? 'none' : '';
+        });
         
         const btnEn = document.getElementById('btn-lang-en');
         const btnHi = document.getElementById('btn-lang-hi');
-        const activeClass = "px-4 py-1.5 text-sm font-bold rounded-full bg-teal-600 text-white shadow-sm transition-all";
-        const inactiveClass = "px-4 py-1.5 text-sm font-medium rounded-full bg-white text-slate-500 border border-slate-200 hover:bg-slate-50 transition-all";
+        const activeStyle = "padding:0.35rem 1rem;font-size:0.8rem;font-weight:800;border-radius:999px;background:linear-gradient(135deg,#0d9488,#0b7a70);color:white;border:none;cursor:pointer;transition:all 0.2s;";
+        const inactiveStyle = "padding:0.35rem 1rem;font-size:0.8rem;font-weight:600;border-radius:999px;background:rgba(255,255,255,0.85);color:#64748b;border:1px solid rgba(255,200,225,0.5);cursor:pointer;transition:all 0.2s;";
         
         if (btnEn && btnHi) {
-            if (lang === 'en') {
-                btnEn.className = activeClass;
-                btnHi.className = inactiveClass;
-            } else {
-                btnEn.className = inactiveClass;
-                btnHi.className = activeClass;
-            }
+            btnEn.style.cssText = (lang === 'en') ? activeStyle : inactiveStyle;
+            btnHi.style.cssText = (lang === 'hi') ? activeStyle : inactiveStyle;
         }
     };
 
@@ -999,40 +2105,64 @@
         }
 
         const q = phase2Questions[currentQuestionIdx];
-        
-        const enClass = currentLang === 'en' ? "px-4 py-1.5 text-sm font-bold rounded-full bg-teal-600 text-white shadow-sm transition-all" : "px-4 py-1.5 text-sm font-medium rounded-full bg-white text-slate-500 border border-slate-200 hover:bg-slate-50 transition-all";
-        const hiClass = currentLang === 'hi' ? "px-4 py-1.5 text-sm font-bold rounded-full bg-teal-600 text-white shadow-sm transition-all" : "px-4 py-1.5 text-sm font-medium rounded-full bg-white text-slate-500 border border-slate-200 hover:bg-slate-50 transition-all";
-        
-        let optionsHtml = q.options.map((opt) => `
-            <button onclick="selectPhase2Option('${opt.archetype_id}', this)" class="w-full text-left p-4 rounded-xl border border-slate-200 bg-white hover:border-teal-500 hover:bg-teal-50 hover:shadow-md transition-all duration-300 group">
-                <div class="flex items-start gap-4">
-                    <div class="h-8 w-8 shrink-0 rounded-full border-2 border-slate-200 group-hover:border-teal-500 flex items-center justify-center text-teal-600 transition-colors mt-0.5">
-                        <span class="opacity-0 group-hover:opacity-100 text-sm"><i class="fas fa-check"></i></span>
-                    </div>
-                    <div class="flex flex-col justify-center min-h-[32px]">
-                        <p class="lang-en text-slate-800 font-bold text-base ${currentLang !== 'en' ? 'hidden' : ''}">${opt.option_en}</p>
-                        <p class="lang-hi text-slate-800 font-bold text-base ${currentLang !== 'hi' ? 'hidden' : ''}">${opt.option_hi_en}</p>
-                    </div>
+        const totalQ = phase2Questions.length;
+        const pct = Math.round(((currentQuestionIdx) / totalQ) * 100);
+
+        const enActive = "padding:0.35rem 1rem;font-size:0.8rem;font-weight:800;border-radius:999px;background:linear-gradient(135deg,#0d9488,#0b7a70);color:white;border:none;cursor:pointer;transition:all 0.2s;";
+        const enInactive = "padding:0.35rem 1rem;font-size:0.8rem;font-weight:600;border-radius:999px;background:rgba(255,255,255,0.85);color:#64748b;border:1px solid rgba(255,200,225,0.5);cursor:pointer;transition:all 0.2s;";
+        const hiActive = "padding:0.35rem 1rem;font-size:0.8rem;font-weight:800;border-radius:999px;background:linear-gradient(135deg,#0d9488,#0b7a70);color:white;border:none;cursor:pointer;transition:all 0.2s;";
+        const hiInactive = "padding:0.35rem 1rem;font-size:0.8rem;font-weight:600;border-radius:999px;background:rgba(255,255,255,0.85);color:#64748b;border:1px solid rgba(255,200,225,0.5);cursor:pointer;transition:all 0.2s;";
+
+        const optionLetters = ['A','B','C','D','E'];
+        let optionsHtml = q.options.map((opt, idx) => `
+            <button onclick="selectPhase2Option('${opt.archetype_id}', this)"
+                    class="quest-option-card"
+                    style="animation:cyber-stagger 0.4s ${0.05 * idx}s cubic-bezier(0.4,0,0.2,1) both;">
+                <div style="width:32px;height:32px;flex-shrink:0;border-radius:50%;border:2px solid rgba(255,200,225,0.5);background:rgba(255,245,252,0.8);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.78rem;color:#be185d;margin-top:1px;transition:all 0.25s;" class="opt-indicator">
+                    ${optionLetters[idx] || (idx+1)}
+                </div>
+                <div style="flex:1;min-width:0;">
+                    <p class="lang-en" style="font-size:0.92rem;font-weight:700;color:#1e293b;line-height:1.4;${currentLang !== 'en' ? 'display:none;' : ''}">${opt.option_en}</p>
+                    <p class="lang-hi" style="font-size:0.92rem;font-weight:700;color:#1e293b;line-height:1.4;${currentLang !== 'hi' ? 'display:none;' : ''}">${opt.option_hi_en}</p>
                 </div>
             </button>
         `).join("");
 
         body.innerHTML = `
-            <div class="max-w-3xl mx-auto stagger-in">
-                <!-- Header with Toggle -->
-                <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
-                    <span class="cyber-badge">Question ${currentQuestionIdx + 1} of ${phase2Questions.length}</span>
-                    <div class="flex bg-slate-100 p-1 rounded-full border border-slate-200 shadow-inner">
-                        <button id="btn-lang-en" onclick="togglePhase2Lang('en')" class="${enClass}">English</button>
-                        <button id="btn-lang-hi" onclick="togglePhase2Lang('hi')" class="${hiClass}">Hinglish</button>
+            <div class="stagger-in">
+                <!-- ── Quest Header ── -->
+                <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;margin-bottom:1.25rem;">
+                    <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+                        <span class="cyber-badge">
+                            <i class="fas fa-tree" style="font-size:0.55rem;"></i>
+                            Quest ${currentQuestionIdx + 1} of ${totalQ}
+                        </span>
+                        <span class="xp-badge">
+                            <i class="fas fa-bolt" style="font-size:0.6rem;"></i> +5 XP
+                        </span>
+                    </div>
+                    <!-- Language toggle -->
+                    <div style="display:flex;background:rgba(255,245,252,0.7);border:1px solid rgba(255,200,225,0.4);border-radius:999px;padding:3px;gap:3px;">
+                        <button id="btn-lang-en" onclick="togglePhase2Lang('en')" style="${currentLang === 'en' ? enActive : enInactive}">English</button>
+                        <button id="btn-lang-hi" onclick="togglePhase2Lang('hi')" style="${currentLang === 'hi' ? hiActive : hiInactive}">Hinglish</button>
                     </div>
                 </div>
-                
-                <div class="mb-8 text-center md:text-left bg-slate-50 p-6 rounded-2xl border border-slate-100 shadow-sm">
-                    <h2 class="lang-en text-2xl md:text-3xl font-extrabold text-slate-900 leading-tight ${currentLang !== 'en' ? 'hidden' : ''}">${q.question_en}</h2>
-                    <h2 class="lang-hi text-2xl md:text-3xl font-extrabold text-slate-900 leading-tight ${currentLang !== 'hi' ? 'hidden' : ''}">${q.question_hi_en}</h2>
+
+                <!-- ── Mini progress bar ── -->
+                <div style="margin-bottom:1.25rem;">
+                    <div class="cyber-progress-bg" style="height:6px;">
+                        <div class="cyber-progress-fill" style="width:${pct}%;"></div>
+                    </div>
                 </div>
-                <div class="space-y-4">
+
+                <!-- ── Question card ── -->
+                <div class="mission-panel" style="padding:1.5rem;margin-bottom:1.25rem;">
+                    <p class="lang-en" style="font-size:1.25rem;font-weight:900;color:#1e293b;line-height:1.35;${currentLang !== 'en' ? 'display:none;' : ''}">${q.question_en}</p>
+                    <p class="lang-hi" style="font-size:1.25rem;font-weight:900;color:#1e293b;line-height:1.35;${currentLang !== 'hi' ? 'display:none;' : ''}">${q.question_hi_en}</p>
+                </div>
+
+                <!-- ── Options ── -->
+                <div style="display:flex;flex-direction:column;gap:0.6rem;">
                     ${optionsHtml}
                 </div>
             </div>
@@ -1041,10 +2171,16 @@
 
     window.selectPhase2Option = function(archetypeId, btn) {
         if (btn.disabled) return;
-        
-        btn.classList.add("border-teal-500", "bg-teal-50");
-        btn.querySelector(".h-8").classList.add("border-teal-500");
-        btn.querySelector(".h-8 span").classList.add("opacity-100");
+
+        // Visual selection feedback
+        btn.classList.add("selected-option");
+        const indicator = btn.querySelector('.opt-indicator');
+        if (indicator) {
+            indicator.style.background = 'var(--pink-accent)';
+            indicator.style.borderColor = 'var(--pink-accent)';
+            indicator.style.color = 'white';
+            indicator.innerHTML = '<i class="fas fa-check" style="font-size:0.65rem;"></i>';
+        }
         
         const q = phase2Questions[currentQuestionIdx];
         phase2Answers.push({
@@ -1083,58 +2219,122 @@
     function renderPhase3Selection() {
         const body = document.getElementById("phase-body");
         body.innerHTML = `
-            <div class="text-center py-10 flex flex-col items-center justify-center stagger-in">
-                <div class="mb-8">
-                    <span class="cyber-badge mb-2">Phase 3: Deep Dive</span>
-                    <h2 class="text-3xl font-extrabold text-slate-900 mt-2">Meet Your Career Buddy</h2>
-                    <p class="text-slate-500 max-w-md mx-auto mt-3 text-sm leading-relaxed">
-                        We're ready to dive deeper into your choices. How would you like to interact with your Career Mentor?
+            <div class="stagger-in">
+                <!-- ── Mentor Tower Header ── -->
+                <div style="text-align:center;margin-bottom:2rem;">
+                    <span class="cyber-badge" style="margin-bottom:0.75rem;">
+                        <i class="fas fa-tower-observation" style="font-size:0.55rem;"></i>
+                        Phase 3 · Mentor Tower
+                    </span>
+                    <h2 style="font-size:1.7rem;font-weight:900;color:#1e293b;margin:0.5rem 0 0.5rem;line-height:1.2;">Choose Your Path</h2>
+                    <p style="color:#64748b;font-size:0.85rem;max-width:400px;margin:0 auto;">
+                        How would you like to connect with your AI Career Mentor?
                     </p>
+                    <!-- XP reward row -->
+                    <div class="achievement-row" style="max-width:380px;margin:1rem auto 0;">
+                        <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--pink-accent),#a78bfa);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 12px rgba(232,121,160,0.3);">
+                            <i class="fas fa-star" style="color:white;font-size:0.8rem;"></i>
+                        </div>
+                        <div style="text-align:left;">
+                            <div style="font-size:0.72rem;font-weight:800;color:#92400e;">Mentor Tower Unlocked!</div>
+                            <div style="font-size:0.65rem;color:#b45309;">Complete the session to earn +50 XP and unlock career insights</div>
+                        </div>
+                    </div>
                 </div>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-2xl">
+
+                <!-- ── Mentor Mode Cards ── -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;max-width:580px;margin:0 auto;">
                     <!-- Voice Mode -->
-                    <button onclick="window.location.href='/assessment/phase3?mode=voice'" class="group flex flex-col items-center p-8 bg-white border-2 border-slate-100 rounded-3xl hover:border-teal-500 hover:shadow-xl hover:shadow-teal-500/10 transition-all duration-300 transform hover:-translate-y-1">
-                        <div class="w-16 h-16 rounded-full bg-teal-50 text-teal-600 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 group-hover:bg-teal-500 group-hover:text-white transition-all duration-300">
+                    <button onclick="window.location.href='/assessment/phase3?mode=voice'" class="mentor-card voice-card">
+                        <div class="mentor-icon-wrap">
                             <i class="fas fa-microphone"></i>
                         </div>
-                        <h3 class="text-xl font-bold text-slate-900 mb-2">Voice Call</h3>
-                        <p class="text-slate-500 text-xs leading-relaxed">
-                            Have a natural, spoken conversation with your AI mentor. Best for an immersive experience.
-                        </p>
+                        <!-- Illustration placeholder -->
+                        <div style="width:80px;height:56px;background:rgba(13,148,136,0.07);border-radius:12px;display:flex;align-items:center;justify-content:center;border:1px dashed rgba(13,148,136,0.2);">
+                            <img src="/static/images/mascot_telling.png" alt="Voice mentor"
+                                 style="height:52px;width:auto;object-fit:contain;"
+                                 onerror="this.style.display='none'">
+                        </div>
+                        <div>
+                            <h3 style="font-size:1rem;font-weight:900;color:#1e293b;margin-bottom:0.3rem;">Voice Call</h3>
+                            <p style="color:#64748b;font-size:0.72rem;line-height:1.4;">Speak naturally with your AI mentor for an immersive experience.</p>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:4px;font-size:0.68rem;font-weight:700;color:#0d9488;">
+                            <i class="fas fa-headphones" style="font-size:0.6rem;"></i> Recommended
+                        </div>
                     </button>
-                    
+
                     <!-- Chat Mode -->
-                    <button onclick="window.location.href='/assessment/phase3?mode=chat'" class="group flex flex-col items-center p-8 bg-white border-2 border-slate-100 rounded-3xl hover:border-indigo-500 hover:shadow-xl hover:shadow-indigo-500/10 transition-all duration-300 transform hover:-translate-y-1">
-                        <div class="w-16 h-16 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 group-hover:bg-indigo-500 group-hover:text-white transition-all duration-300">
+                    <button onclick="window.location.href='/assessment/phase3?mode=chat'" class="mentor-card chat-card">
+                        <div class="mentor-icon-wrap">
                             <i class="fas fa-keyboard"></i>
                         </div>
-                        <h3 class="text-xl font-bold text-slate-900 mb-2">Text Chat</h3>
-                        <p class="text-slate-500 text-xs leading-relaxed">
-                            Type your answers at your own pace in a familiar messaging interface.
-                        </p>
+                        <!-- Illustration placeholder -->
+                        <div style="width:80px;height:56px;background:rgba(99,102,241,0.07);border-radius:12px;display:flex;align-items:center;justify-content:center;border:1px dashed rgba(99,102,241,0.2);">
+                            <img src="/static/images/mascot_asking.png" alt="Chat mentor"
+                                 style="height:52px;width:auto;object-fit:contain;"
+                                 onerror="this.style.display='none'">
+                        </div>
+                        <div>
+                            <h3 style="font-size:1rem;font-weight:900;color:#1e293b;margin-bottom:0.3rem;">Text Chat</h3>
+                            <p style="color:#64748b;font-size:0.72rem;line-height:1.4;">Type your answers at your own pace in a chat interface.</p>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:4px;font-size:0.68rem;font-weight:700;color:#6366f1;">
+                            <i class="fas fa-comment-dots" style="font-size:0.6rem;"></i> Flexible
+                        </div>
                     </button>
                 </div>
+
+                <!-- Mobile stacked layout hint -->
+                <style>@media(max-width:480px){.mentor-grid{grid-template-columns:1fr !important;}}</style>
             </div>
         `;
     }
 
-    // --- PHASE 2: COMPILING RESULTS ---
-function renderCompilePhase() {
+    // --- PHASE 5: COMPILING RESULTS ---
+    function renderCompilePhase() {
         const body = document.getElementById("phase-body");
         body.innerHTML = `
-            <div class="text-center py-10 flex flex-col items-center justify-center stagger-in">
-                <div class="relative flex items-center justify-center mb-8">
-                    <div class="animate-ping absolute inline-flex h-20 w-20 rounded-full bg-teal-500 opacity-20"></div>
-                    <div class="w-20 h-20 rounded-full bg-gradient-to-tr from-teal-500 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-teal-600/10">
-                        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+            <div class="compile-panel stagger-in">
+                <!-- Illustration placeholder -->
+                <div style="margin-bottom:1.5rem;display:flex;justify-content:center;">
+                    <div style="width:100px;height:100px;border-radius:50%;background:linear-gradient(135deg,rgba(232,121,160,0.15),rgba(167,139,250,0.15));border:2px dashed rgba(232,121,160,0.35);display:flex;align-items:center;justify-content:center;position:relative;">
+                        <div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--pink-accent),#a78bfa);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 28px rgba(232,121,160,0.4);">
+                            <i class="fas fa-chess-rook" style="color:white;font-size:1.75rem;"></i>
+                        </div>
+                        <div style="position:absolute;inset:-8px;border-radius:50%;border:2px solid rgba(232,121,160,0.2);animation:journey-pulse 2s infinite;"></div>
                     </div>
                 </div>
-                <h2 class="text-2xl font-extrabold text-slate-900">Shadow Compilation Ready</h2>
-                <p class="text-slate-500 max-w-md mt-3 text-sm leading-relaxed">Your reflex latency indices, RIASEC profiles, geographical variables, and ego coefficients are consolidated.</p>
-                
-                <button onclick="compileFinalResults()" id="compile-btn" class="mt-8 px-12 py-4 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-extrabold transition-all shadow-md shadow-teal-600/10 hover:scale-105 active:scale-95 tracking-widest uppercase text-xs">Execute Matrix Compilation</button>
-                <p id="compiling-indicator" class="hidden text-teal-600 font-bold mt-5 animate-pulse text-xs tracking-widest uppercase">Formulating career fit projections...</p>
+
+                <span class="cyber-badge" style="margin-bottom:0.75rem;">
+                    <i class="fas fa-chess-rook" style="font-size:0.55rem;"></i>
+                    Simulation Castle · Final Stage
+                </span>
+
+                <h2 style="font-size:1.6rem;font-weight:900;color:#1e293b;margin:0.5rem 0 0.5rem;line-height:1.2;">Results Ready to Compile!</h2>
+                <p style="color:#64748b;font-size:0.85rem;max-width:420px;margin:0 auto 1.5rem;">
+                    Your personality profile, behavioral patterns, and interest data are consolidated. Ready to reveal your career match?
+                </p>
+
+                <!-- Achievement unlock hint -->
+                <div class="achievement-row" style="max-width:400px;margin:0 auto 1.5rem;">
+                    <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#fbbf24,#f59e0b);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 10px rgba(245,158,11,0.3);">
+                        <i class="fas fa-trophy" style="color:white;font-size:0.9rem;"></i>
+                    </div>
+                    <div style="text-align:left;">
+                        <div style="font-size:0.75rem;font-weight:800;color:#92400e;">Achievement Unlocked: Career Explorer</div>
+                        <div style="font-size:0.68rem;color:#b45309;">+100 XP · Career Report · Personalized Roadmap</div>
+                    </div>
+                </div>
+
+                <button onclick="compileFinalResults()" id="compile-btn"
+                        style="padding:0.9rem 2.5rem;border-radius:16px;font-weight:900;font-size:0.88rem;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:0.6rem;letter-spacing:0.5px;transition:all 0.3s;">
+                    <i class="fas fa-rocket"></i> Reveal My Career Path
+                </button>
+
+                <p id="compiling-indicator" style="display:none;color:var(--pink-accent);font-weight:800;font-size:0.75rem;letter-spacing:2px;text-transform:uppercase;margin-top:1rem;animation:typing-wave 1.4s infinite;">
+                    <i class="fas fa-spinner fa-spin"></i> Formulating your career match...
+                </p>
             </div>
         `;
     }
@@ -1142,9 +2342,8 @@ function renderCompilePhase() {
     async function compileFinalResults() {
         const btn = document.getElementById("compile-btn");
         const ind = document.getElementById("compiling-indicator");
-        if (btn) btn.disabled = true;
-        if (btn) btn.classList.add("opacity-40", "cursor-not-allowed");
-        if (ind) ind.classList.remove("hidden");
+        if (btn) { btn.disabled = true; btn.style.opacity = "0.55"; btn.style.cursor = "not-allowed"; }
+        if (ind) ind.style.display = "block";
         
         try {
             const res = await fetch("/assessment/api/compile", {
@@ -1156,16 +2355,14 @@ function renderCompilePhase() {
                 window.location.href = data.redirect;
             } else {
                 alert("Compilation failed. Please try resetting assessment progress.");
-                if (btn) btn.disabled = false;
-                if (btn) btn.classList.remove("opacity-40", "cursor-not-allowed");
-                if (ind) ind.classList.add("hidden");
+                if (btn) { btn.disabled = false; btn.style.opacity = ""; btn.style.cursor = ""; }
+                if (ind) ind.style.display = "none";
             }
         } catch (e) {
             console.error(e);
-            alert("Matrix Compilation Error. Check local gateway connections.");
-            if (btn) btn.disabled = false;
-            if (btn) btn.classList.remove("opacity-40", "cursor-not-allowed");
-            if (ind) ind.classList.add("hidden");
+            alert("Career path compilation error. Please try again.");
+            if (btn) { btn.disabled = false; btn.style.opacity = ""; btn.style.cursor = ""; }
+            if (ind) ind.style.display = "none";
         }
     }
 

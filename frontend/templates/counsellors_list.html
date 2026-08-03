@@ -112,9 +112,13 @@
 
                     <button id="btn_{{ c.user_id }}"
                         onclick="payNow('{{ c.user_id }}', '{{ c.fee }}', '{{ c.user.full_name }}')"
-                        title="Book and pay for your session"
+                        title="Book your session"
                         class="w-full py-4 px-6 rounded-2xl bg-[var(--navy)] text-white font-bold hover:bg-[var(--teal)] transition-all shadow-lg shadow-[var(--teal-soft)]">
-                        Book Session & Pay
+                        {% if user and user.role == 'admin' %}
+                            Book Session (Free for Admin)
+                        {% else %}
+                            Book Session & Pay
+                        {% endif %}
                     </button>
 
                     <p class="text-[10px] text-center text-slate-400 font-medium">
@@ -135,6 +139,8 @@
 
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
+    const isAdmin = {{ 'true' if (user and user.role == 'admin') else 'false' }};
+
     async function payNow(counsellorId, fee, counsellorName) {
         const apptTime = document.getElementById(`time_${counsellorId}`).value;
         const msgEl = document.getElementById(`avail_msg_${counsellorId}`);
@@ -172,8 +178,8 @@
 
         btn.innerHTML = `<i class="fas fa-circle-notch fa-spin mr-2"></i> Processing...`;
 
-        if (parseFloat(fee) === 0) {
-            // Direct booking for free counsellors
+        if (isAdmin || parseFloat(fee) === 0) {
+            // Direct booking for free counsellors or admin exemption
             const freeForm = document.createElement('form');
             freeForm.method = 'POST';
             freeForm.action = `/book_free_counsellor/${counsellorId}`;

@@ -2,11 +2,228 @@
 
 {% block title %}Your Career Blueprint | CareStance{% endblock %}
 
+{% block navbar %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Jersey+10&display=swap');
+
+    .hero-nav {
+        position: fixed;
+        top: 40px;
+        left: 0;
+        right: 0;
+        width: 100%;
+        z-index: 1100;
+        background: transparent;
+        box-shadow: none;
+    }
+
+    .hero-nav-inner {
+        max-width: 1500px;
+        margin: 0 auto;
+        padding: 0 2.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .hero-nav-logo {
+        display: flex;
+        align-items: center;
+        gap: 1.75rem;
+        text-decoration: none;
+    }
+
+    .hero-nav-logo-badge {
+        width: 156px; height: 156px;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 50%;
+        background: #0f172a;
+        flex-shrink: 0;
+    }
+
+    .hero-nav-logo-badge img {
+        width: 90px; height: 90px;
+        border-radius: 50%; object-fit: cover;
+        transform: scale(1.6);
+    }
+
+    .hero-nav-logo-text {
+        font-family: 'Jersey 10', 'Playfair Display', serif;
+        font-size: 2rem; font-weight: 700;
+        color: #12202b; white-space: nowrap;
+        letter-spacing: 0.02em;
+    }
+
+    .hero-nav-links {
+        display: flex;
+        align-items: center;
+        gap: 1.9rem;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .hero-nav-links a {
+        display: inline-block;
+        font-family: 'Jersey 10', sans-serif;
+        color: #fff;
+        font-size: 30px;
+        font-weight: 400;
+        white-space: nowrap;
+        text-decoration: none;
+        letter-spacing: 0.02em;
+        text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+        transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+
+    .hero-nav-links a:hover {
+        transform: scale(1.1);
+        opacity: 0.75;
+    }
+
+    .hero-nav-links a.nav-active {
+        text-decoration: underline;
+        text-underline-offset: 4px;
+    }
+
+    .hero-nav-user-name {
+        font-family: 'Jersey 10', sans-serif;
+        color: #fff;
+        opacity: 0.75;
+        font-size: 22px;
+        text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+    }
+
+    .hero-nav-logout {
+        font-family: 'Jersey 10', sans-serif;
+        background: #12202b;
+        color: #fff !important;
+        padding: 0.4rem 1.6rem;
+        border-radius: 999px;
+        font-size: 28px;
+        text-shadow: none;
+    }
+
+    .hero-nav-logout:hover {
+        transform: scale(1.08);
+        opacity: 1 !important;
+        background: #1e2f3d;
+    }
+
+    .hero-mobile-toggle {
+        display: none;
+        background: none; border: none;
+        color: #12202b; font-size: 1.35rem;
+        cursor: pointer;
+    }
+
+    .hero-mobile-menu {
+        display: none;
+        position: absolute; top: 100%; left: 1.5rem; right: 1.5rem;
+        margin-top: 0.75rem; padding: 1.5rem;
+        flex-direction: column; gap: 0.75rem;
+        background: #fff; border-radius: 1.25rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.15);
+    }
+
+    .hero-mobile-menu.open { display: flex; }
+
+    .hero-mobile-menu a {
+        padding: 0.8rem 0.5rem;
+        color: var(--text-main);
+        text-decoration: none;
+        font-weight: 500;
+        border-bottom: 1px solid var(--border-soft);
+        transition: color 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .hero-mobile-menu a:last-child { border-bottom: none; }
+    .hero-mobile-menu a:hover { color: #0d9488; }
+
+    @media (max-width: 768px) {
+        .hero-nav-links { display: none; }
+        .hero-mobile-toggle { display: block; }
+        .hero-nav-logo-badge { width: 64px; height: 64px; }
+        .hero-nav-logo-badge img { width: 36px; height: 36px; }
+        .hero-nav-logo-text { font-size: 1.4rem; }
+        .hero-nav-inner { padding: 0 1.25rem; }
+        .hero-nav { top: 20px; }
+    }
+
+    body { padding-top: 0 !important; }
+
+    :root {
+        --content-top-gap: calc(40px + 156px + 30px);
+    }
+    @media (max-width: 768px) {
+        :root { --content-top-gap: calc(20px + 64px + 30px); }
+    }
+</style>
+
+<nav class="hero-nav">
+    <div class="hero-nav-inner">
+        <a href="/" class="hero-nav-logo">
+            <span class="hero-nav-logo-badge">
+                <picture>
+                    <source srcset="/static/images/image.webp?v=101" type="image/webp">
+                    <img src="/static/images/image.png?v=101" alt="CareStance Logo" width="90" height="90">
+                </picture>
+            </span>
+            <span class="hero-nav-logo-text">Carestance</span>
+        </a>
+
+        <div class="hero-nav-links">
+            {% if user %}
+            <a href="/dashboard" class="nav-active">Dashboard</a>
+            {% if user.role != 'counsellor' %}
+            <a href="/chatbot">Chat AI</a>
+            {% endif %}
+            <a href="/community">Community</a>
+            <a href="/feedback">Feedback</a>
+            <a href="/ticket">Support</a>
+            {% if user.role == 'admin' %}
+            <a href="/admin" class="{% if request.url.path == '/admin' %}nav-active{% endif %}" style="font-weight:700;">Admin</a>
+            {% endif %}
+            {% if user.full_name and user.full_name != 'None' %}<span class="hero-nav-user-name">| {{ user.full_name }}</span>{% endif %}
+            <a href="/logout" class="hero-nav-logout">Logout</a>
+            {% else %}
+            <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}">Home</a>
+            <a href="/login" class="{% if request.url.path == '/login' %}nav-active{% endif %}">Log In</a>
+            {% endif %}
+        </div>
+
+        <button class="hero-mobile-toggle" id="base-menu-toggle" aria-label="Menu">
+            <i class="fa-solid fa-bars" id="base-menu-icon"></i>
+        </button>
+    </div>
+
+    <div class="hero-mobile-menu" id="base-mobile-menu">
+        {% if user %}
+        <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i class="fa-solid fa-house"></i>Home</a>
+        <a href="/dashboard" class="nav-active"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
+        {% if user.role != 'counsellor' %}
+        <a href="/chatbot"><i class="fa-solid fa-comment-dots"></i>Chat AI</a>
+        {% endif %}
+        <a href="/community"><i class="fa-solid fa-users"></i>Community</a>
+        <a href="/feedback"><i class="fa-solid fa-star"></i>Feedback</a>
+        <a href="/ticket"><i class="fa-solid fa-circle-question"></i>Support</a>
+        {% if user.role == 'admin' %}<a href="/admin"><i class="fa-solid fa-shield-halved"></i>Admin Panel</a>{% endif %}
+        <a href="/logout" style="color:#b45309;"><i class="fa-solid fa-right-from-bracket"></i>Logout</a>
+        {% else %}
+        <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i class="fa-solid fa-house"></i>Home</a>
+        <a href="/login"><i class="fa-solid fa-right-to-bracket"></i>Log In</a>
+        {% endif %}
+    </div>
+</nav>
+{% endblock %}
+
 {% block extra_head %}
-<!-- Google Fonts -->
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-<!-- Open Graph / Facebook -->
 <meta property="og:type" content="website">
 <meta property="og:url" content="{{ request.base_url }}share/report/{{ result.id }}">
 <meta property="og:title" content="Career Blueprint: {{ result.recommended_stream if result.recommended_stream else display_archetype }}">
@@ -14,120 +231,530 @@
 <meta property="og:image" content="{{ request.base_url }}static/images/image.png">
 
 <style>
+    :root {
+        --content-top-gap: calc(40px + 156px + 30px);
+        --navy-bg: #0a0a18;
+        --card-bg: rgba(255, 255, 255, 0.03);
+        --card-border: rgba(148, 130, 255, 0.16);
+        --teal: #2dd4bf;
+        --teal-soft: rgba(45, 212, 191, 0.14);
+        --purple: #a78bfa;
+        --purple-soft: rgba(167, 139, 250, 0.14);
+        --green: #34d399;
+        --green-soft: rgba(52, 211, 153, 0.14);
+        --gold: #f59e0b;
+        --gold-soft: rgba(245, 158, 11, 0.14);
+        --rose: #fb7185;
+        --rose-soft: rgba(251, 113, 133, 0.14);
+        --text-primary: #f8fafc;
+        --text-secondary: #a1a8c0;
+        --text-muted: #6b7189;
+    }
+    @media (max-width: 768px) {
+        :root { --content-top-gap: calc(20px + 64px + 30px); }
+    }
+
     body {
         font-family: 'Plus Jakarta Sans', sans-serif;
-        background-color: #f8fafc !important; /* bg-slate-50 */
-        color: #0f172a !important; /* text-slate-900 */
-    }
-    
-    .font-outfit {
-        font-family: 'Outfit', sans-serif;
+        background-color: var(--navy-bg) !important;
+        color: var(--text-primary) !important;
     }
 
-    .glass-card {
-        background: rgba(255, 255, 255, 0.9);
+    .font-outfit { font-family: 'Outfit', sans-serif; }
+
+    /* ---------- Generic dark glass card ---------- */
+    .dark-card {
+        background: var(--card-bg);
         backdrop-filter: blur(16px);
         -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(226, 232, 240, 0.8);
-        box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.05);
-        border-radius: 24px;
+        border: 1px solid var(--card-border);
+        border-radius: 1.75rem;
         transition: all 0.3s ease;
     }
+    .dark-card:hover {
+        border-color: rgba(167, 139, 250, 0.32);
+    }
 
-    .glass-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 25px 50px -12px rgba(13, 148, 136, 0.1);
-        border-color: rgba(20, 184, 166, 0.2);
+    .label-eyebrow {
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+    }
+
+    /* ---------- Hero ---------- */
+    .hero-archetype {
+        position: relative;
+        padding-top: var(--content-top-gap);
+        padding-bottom: 4rem;
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+        text-align: center;
+        background: url('/static/images/BG2.png') center top / cover no-repeat fixed;
+        overflow: hidden;
+    }
+    .hero-archetype::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to bottom, rgba(10,10,24,0) 0%, rgba(10,10,24,0.55) 65%, var(--navy-bg) 100%);
+        pointer-events: none;
+    }
+    .hero-archetype > * { position: relative; z-index: 2; }
+
+    .hero-icon-hex {
+        width: 68px;
+        height: 68px;
+        margin: 0 auto 1.5rem;
+        background: rgba(15, 18, 38, 0.55);
+        border: 1.5px solid rgba(255,255,255,0.28);
+        clip-path: polygon(25% 6%, 75% 6%, 100% 50%, 75% 94%, 25% 94%, 0% 50%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 1.4rem;
+        backdrop-filter: blur(6px);
+    }
+
+    .hero-eyebrow {
+        color: var(--teal);
+        margin-bottom: 0.75rem;
+    }
+
+    .hero-title {
+        font-size: 2.1rem;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        color: #fff;
+        margin-bottom: 1.1rem;
+    }
+    @media (min-width: 768px) { .hero-title { font-size: 3rem; } }
+
+    .hero-title .accent {
+        background: linear-gradient(135deg, #c4b5fd, #818cf8);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+
+    .hero-divider {
+        width: 64px;
+        height: 3px;
+        margin: 0 auto 1.75rem;
+        border-radius: 999px;
+        background: linear-gradient(90deg, var(--teal), var(--purple));
+    }
+
+    .hero-desc {
+        color: #cbd5e1;
+        max-width: 640px;
+        margin: 0 auto;
+        line-height: 1.75;
+        font-size: 1rem;
+    }
+
+    /* ---------- Simulation banner ---------- */
+    .sim-banner {
+        position: relative;
+        overflow: hidden;
+        background: linear-gradient(135deg, rgba(253, 224, 235, 0.94), rgba(221, 214, 254, 0.9));
+        border: 1px solid rgba(255,255,255,0.5);
+        border-radius: 1.75rem;
+        padding: 2rem 2.25rem;
+        box-shadow: 0 30px 60px -18px rgba(0,0,0,0.5);
+    }
+    .sim-banner .sparkle {
+        position: absolute;
+        color: var(--purple);
+        opacity: 0.6;
+        font-size: 0.9rem;
+    }
+    .sim-icon-badge {
+        width: 56px;
+        height: 56px;
+        border-radius: 1.1rem;
+        background: rgba(245, 158, 11, 0.14);
+        color: #b45309;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        flex-shrink: 0;
+    }
+    .sim-cta {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.85rem 1.5rem;
+        border-radius: 999px;
+        background: linear-gradient(135deg, #fde68a, #f59e0b);
+        color: #78350f;
+        font-size: 0.72rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        text-decoration: none;
+        box-shadow: 0 12px 25px -8px rgba(245,158,11,0.5);
+        transition: transform 0.2s ease;
+    }
+    .sim-cta:hover { transform: translateY(-2px); }
+    .sim-credit-note {
+        font-size: 0.65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: #7c5c00;
+        opacity: 0.75;
+    }
+
+    /* ---------- Section headings ---------- */
+    .section-title {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #fff;
+        letter-spacing: -0.01em;
+    }
+    .section-sub { color: var(--text-secondary); margin-top: 0.25rem; }
+
+    /* ---------- Timeline ---------- */
+    .phase-timeline {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin: 2rem 0 1.5rem;
+        padding: 0 4px;
+    }
+    .phase-timeline::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 4px;
+        right: 4px;
+        height: 1px;
+        background: linear-gradient(90deg, var(--teal), var(--purple), var(--teal));
+        opacity: 0.45;
+        transform: translateY(-50%);
+    }
+    .phase-dot {
+        position: relative;
+        z-index: 2;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        border: 2px solid rgba(10,10,24,1);
+    }
+    .phase-dot.t { background: var(--teal); box-shadow: 0 0 12px var(--teal); }
+    .phase-dot.p { background: var(--purple); box-shadow: 0 0 12px var(--purple); }
+    .phase-dot.g { background: var(--green); box-shadow: 0 0 12px var(--green); }
+    .phase-arrow { position: relative; z-index: 2; color: var(--teal); font-size: 0.9rem; }
+
+    /* ---------- Phase cards ---------- */
+    .phase-card {
+        background: rgba(255,255,255,0.02);
+        border-radius: 1.5rem;
+        padding: 1.75rem;
+        border: 1.5px solid;
+    }
+    .phase-card.t { border-color: rgba(45, 212, 191, 0.35); }
+    .phase-card.p { border-color: rgba(167, 139, 250, 0.35); }
+    .phase-card.g { border-color: rgba(52, 211, 153, 0.35); }
+
+    .phase-card-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.25rem;
+    }
+    .phase-card-num {
+        font-size: 1.6rem;
+        font-weight: 900;
+        line-height: 1;
+    }
+    .phase-card.t .phase-card-num { color: var(--teal); }
+    .phase-card.p .phase-card-num { color: var(--purple); }
+    .phase-card.g .phase-card-num { color: var(--green); }
+
+    .phase-card-title { color: #fff; font-weight: 700; font-size: 1.05rem; }
+    .phase-card-icon { font-size: 1.1rem; opacity: 0.85; }
+    .phase-card.t .phase-card-icon { color: var(--teal); }
+    .phase-card.p .phase-card-icon { color: var(--purple); }
+    .phase-card.g .phase-card-icon { color: var(--green); }
+
+    .phase-field { margin-bottom: 0.9rem; }
+    .phase-field:last-child { margin-bottom: 0; }
+    .phase-field-label {
+        display: block;
+        font-size: 0.62rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-bottom: 0.3rem;
+    }
+    .phase-card.t .phase-field-label { color: var(--teal); }
+    .phase-card.p .phase-field-label { color: var(--purple); }
+    .phase-card.g .phase-field-label { color: var(--green); }
+    .phase-field-value { color: #e2e8f0; font-size: 0.85rem; line-height: 1.5; }
+
+    /* ---------- Career path action buttons (header) ---------- */
+    .btn-outline-dark {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.65rem 1.25rem;
+        border-radius: 0.9rem;
+        border: 1px solid rgba(255,255,255,0.18);
+        color: #e2e8f0;
+        background: rgba(255,255,255,0.02);
+        font-weight: 700;
+        font-size: 0.82rem;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+    .btn-outline-dark:hover { border-color: rgba(255,255,255,0.35); background: rgba(255,255,255,0.05); }
+
+    .btn-outline-gold {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.65rem 1.25rem;
+        border-radius: 0.9rem;
+        border: 1px solid rgba(245, 158, 11, 0.5);
+        color: var(--gold);
+        background: rgba(245, 158, 11, 0.08);
+        font-weight: 700;
+        font-size: 0.82rem;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+    .btn-outline-gold:hover { background: rgba(245, 158, 11, 0.16); }
+
+    /* ---------- Career rec card (populated state) ---------- */
+    .rec-card {
+        background: rgba(255,255,255,0.03);
+        border: 1px solid var(--card-border);
+        border-radius: 1.5rem;
+        padding: 1.75rem;
+    }
+    .rec-rank {
+        width: 52px; height: 52px;
+        border-radius: 1rem;
+        background: var(--teal-soft);
+        border: 1px solid rgba(45,212,191,0.35);
+        color: var(--teal);
+        font-weight: 900;
+        font-size: 1.1rem;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+    }
+    .rec-title { color: #fff; font-weight: 800; font-size: 1.15rem; }
+    .status-pill {
+        display: inline-flex; align-items: center; gap: 0.4rem;
+        padding: 0.28rem 0.8rem; border-radius: 999px;
+        font-size: 0.62rem; font-weight: 800;
+        text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .status-pill .dot { width: 6px; height: 6px; border-radius: 50%; }
+    .status-optimal { color: var(--green); background: var(--green-soft); border: 1px solid rgba(52,211,153,0.35); }
+    .status-optimal .dot { background: var(--green); }
+    .status-pivot { color: var(--gold); background: var(--gold-soft); border: 1px solid rgba(245,158,11,0.35); }
+    .status-pivot .dot { background: var(--gold); }
+    .status-risk { color: var(--rose); background: var(--rose-soft); border: 1px solid rgba(251,113,133,0.35); }
+    .status-risk .dot { background: var(--rose); }
+
+    .rec-action {
+        display: inline-flex; align-items: center; gap: 0.4rem;
+        padding: 0.5rem 0.9rem; border-radius: 0.75rem;
+        font-size: 0.7rem; font-weight: 700;
+        text-decoration: none; border: 1px solid; cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .rec-action-sim { color: var(--gold); background: var(--gold-soft); border-color: rgba(245,158,11,0.35); }
+    .rec-action-inst { color: #818cf8; background: rgba(129,140,248,0.12); border-color: rgba(129,140,248,0.35); }
+    .rec-action-road { color: #0a0a18; background: linear-gradient(135deg, var(--teal), #5eead4); border-color: transparent; }
+    .rec-action:hover { transform: translateY(-1px); }
+    .rec-credit-note {
+        padding: 0.5rem 0.8rem; border-radius: 0.75rem;
+        background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);
+        color: var(--text-muted); font-size: 0.6rem; font-weight: 800;
+        text-transform: uppercase; letter-spacing: 0.08em;
+    }
+    .rec-challenge-label {
+        font-size: 0.62rem; font-weight: 800; text-transform: uppercase;
+        letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: 0.4rem;
+    }
+    .rec-challenge-text { color: var(--text-secondary); font-size: 0.88rem; line-height: 1.6; }
+    .rec-proscons { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 1.25rem; padding: 1.25rem; }
+    .rec-proscons h4 { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.5rem; }
+    .rec-proscons li { display: flex; align-items: flex-start; font-size: 0.82rem; color: var(--text-secondary); line-height: 1.55; }
+
+    /* ---------- Compiling / loading placeholder ---------- */
+    .compiling-card {
+        position: relative;
+        overflow: hidden;
+        text-align: center;
+        padding: 2.75rem 1.5rem;
+        border-radius: 1.75rem;
+        border: 1.5px dashed rgba(167, 139, 250, 0.35);
+        background: radial-gradient(ellipse at center, rgba(88, 60, 160, 0.14), transparent 70%);
+    }
+    .compiling-card .sparkle {
+        position: absolute;
+        color: var(--purple);
+        opacity: 0.7;
+        font-size: 0.85rem;
+        animation: twinkle 2.4s ease-in-out infinite;
+    }
+    @keyframes twinkle {
+        0%, 100% { opacity: 0.3; transform: scale(0.85); }
+        50% { opacity: 0.9; transform: scale(1.05); }
+    }
+    .compiling-icon {
+        width: 52px; height: 52px;
+        margin: 0 auto 1.1rem;
+        border-radius: 50%;
+        border: 1.5px dashed rgba(167,139,250,0.5);
+        display: flex; align-items: center; justify-content: center;
+        color: var(--purple);
+        font-size: 1.1rem;
+        animation: spin 6s linear infinite;
+    }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .compiling-dots { display: flex; justify-content: center; gap: 0.35rem; margin-top: 0.9rem; }
+    .compiling-dots span { width: 5px; height: 5px; border-radius: 50%; background: var(--purple); opacity: 0.5; }
+    .compiling-dots span:nth-child(2) { opacity: 0.75; }
+    .compiling-dots span:nth-child(3) { opacity: 1; }
+
+    /* ---------- Share card ---------- */
+    .share-card {
+        position: relative;
+        overflow: hidden;
+        text-align: center;
+        padding: 2rem;
+        border-radius: 1.75rem;
+        border: 1px solid var(--card-border);
+        background: rgba(255,255,255,0.02);
+    }
+    .share-card .sparkle {
+        position: absolute; color: var(--purple); opacity: 0.55; font-size: 0.8rem;
+    }
+    .share-icon-btn {
+        width: 46px; height: 46px;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.05rem;
+        border: 1px solid;
+        transition: all 0.2s ease;
+        cursor: pointer;
+        text-decoration: none;
+        position: relative;
+    }
+    .share-icon-btn:hover { transform: translateY(-2px); }
+    .share-link { color: var(--teal); background: var(--teal-soft); border-color: rgba(45,212,191,0.35); }
+    .share-whatsapp { color: #34d399; background: rgba(52,211,153,0.12); border-color: rgba(52,211,153,0.35); }
+    .share-whatsapp .ping {
+        position: absolute; top: -2px; right: -2px;
+        width: 9px; height: 9px; border-radius: 50%;
+        background: #34d399; box-shadow: 0 0 8px #34d399;
+    }
+    .share-linkedin { color: #60a5fa; background: rgba(96,165,250,0.12); border-color: rgba(96,165,250,0.35); }
+
+    .retake-link {
+        color: var(--text-muted);
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        transition: color 0.2s ease;
+    }
+    .retake-link:hover { color: var(--rose); }
+
+    /* ---------- Loading overlay ---------- */
+    #loadingOverlay .overlay-card {
+        background: #14152b;
+        border: 1px solid rgba(167,139,250,0.25);
     }
 
     /* Print styling overrides */
     @media print {
-        .no-print {
-            display: none !important;
-        }
-        body {
-            background: white !important;
-        }
-        .glass-card {
-            background: white !important;
-            border: 1px solid #e2e8f0 !important;
-            box-shadow: none !important;
-            break-inside: avoid;
-        }
+        .no-print { display: none !important; }
+        body { background: white !important; color: #0f172a !important; }
+        .dark-card, .phase-card, .rec-card { background: white !important; border: 1px solid #e2e8f0 !important; box-shadow: none !important; }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="min-h-screen py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden bg-slate-50">
-    <div class="max-w-5xl mx-auto space-y-8 relative z-10">
+<div style="background: var(--navy-bg); min-height: 100vh;">
 
-        {# Data Extraction & Normalization #}
-        {% set dominant_trait = display_archetype %}
-        {% set final_recs = result.assessment_report.get('final_recommendations', []) if result.assessment_report else [] %}
+    {# Data Extraction & Normalization #}
+    {% set dominant_trait = display_archetype %}
+    {% set final_recs = result.assessment_report.get('final_recommendations', []) if result.assessment_report else [] %}
 
-        {% if not final_recs and result.stream_pros and result.stream_pros[0] is mapping %}
-            {% set final_recs = result.stream_pros %}
-        {% endif %}
+    {% if not final_recs and result.stream_pros and result.stream_pros[0] is mapping %}
+        {% set final_recs = result.stream_pros %}
+    {% endif %}
 
-        <!-- 1. HERO SECTION: Assessment Complete Archetype -->
-        {% if mode != 'minimal' %}
-        <div class="glass-card p-10 md:p-16 text-center relative overflow-hidden bg-white">
-            <div class="absolute top-0 right-0 w-64 h-64 bg-teal-50 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob pointer-events-none"></div>
-            <div class="absolute bottom-0 left-0 w-64 h-64 bg-emerald-50 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-2000 pointer-events-none"></div>
-
-            <div class="relative z-10">
-                <div class="w-20 h-20 mx-auto bg-teal-100 text-teal-600 rounded-full flex items-center justify-center text-3xl mb-6 shadow-xl shadow-teal-100">
-                    <i class="fas fa-user-astronaut"></i>
-                </div>
-                
-                <h2 class="text-sm font-bold tracking-widest text-teal-600 uppercase mb-3">Your Core Archetype</h2>
-                <h1 class="text-4xl md:text-5xl font-black mb-6 tracking-tight font-outfit text-slate-900">
-                    {% if result.student_type == '10th' %}
-                        {{ result.recommended_stream }} Stream Alignment
-                    {% else %}
-                        {{ result.phase_2_category or 'Unassigned' }} Archetype
-                    {% endif %}
-                </h1>
-                
-                <p class="text-slate-500 max-w-2xl mx-auto text-lg leading-relaxed">
-                    Based on your deep dive and behavioral analysis, you naturally align with this archetype. This reflects your core strengths, problem-solving approach, and ideal work environment.
-                </p>
-            </div>
+    <!-- 1. HERO SECTION -->
+    {% if mode != 'minimal' %}
+    <div class="hero-archetype">
+        <div class="hero-icon-hex">
+            <i class="fas fa-user-astronaut"></i>
         </div>
-        {% endif %}
+        <h2 class="label-eyebrow hero-eyebrow">Your Core Archetype</h2>
+        <h1 class="hero-title font-outfit">
+            {% if result.student_type == '10th' %}
+                {{ result.recommended_stream }} <span class="accent">Stream Alignment</span>
+            {% else %}
+                {{ result.phase_2_category or 'Unassigned' }} <span class="accent">Archetype</span>
+            {% endif %}
+        </h1>
+        <div class="hero-divider"></div>
+        <p class="hero-desc">
+            Based on your deep dive and behavioral analysis, you naturally align with this archetype. This reflects your core strengths, problem-solving approach, and ideal work environment.
+        </p>
+    </div>
+    {% endif %}
 
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12 pb-16" style="{% if mode == 'minimal' %}padding-top: var(--content-top-gap);{% else %}padding-top: 2.5rem;{% endif %}">
+
+        <!-- ASSESSMENT SIMULATION BANNER -->
         {% if mode != 'minimal' %}
         {% set primary_simulation_career = result.recommended_stream or result.phase_2_category or dominant_trait or 'Career Exploration' %}
-        <div class="glass-card mt-8 p-6 md:p-8 border border-amber-100 bg-amber-50/40">
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+        <div class="sim-banner">
+            <span class="sparkle" style="top: 12%; left: 6%;"><i class="fas fa-star"></i></span>
+            <span class="sparkle" style="top: 18%; right: 8%;"><i class="fas fa-star"></i></span>
+            <span class="sparkle" style="bottom: 14%; left: 40%;"><i class="fas fa-star"></i></span>
+            <div class="relative flex flex-col md:flex-row md:items-center md:justify-between gap-5">
                 <div class="flex items-start gap-4">
-                    <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
-                        <i class="fas fa-vr-cardboard"></i>
+                    <div class="sim-icon-badge">
+                        <i class="fas fa-gamepad"></i>
                     </div>
                     <div>
-                        <p class="text-[10px] font-black uppercase tracking-widest text-amber-700 mb-1">Assessment Simulation</p>
-                        <h2 class="text-xl font-black text-slate-900 font-outfit">Test your fit in a real scenario</h2>
-                        <p class="text-sm text-slate-600 mt-1 max-w-2xl">
+                        <p class="text-[10px] font-black uppercase tracking-widest mb-1" style="color:#b45309;">Assessment Simulation</p>
+                        <h2 class="text-xl font-black font-outfit" style="color:#1e1b3a;">Test your fit in a real scenario</h2>
+                        <p class="text-sm mt-1 max-w-2xl" style="color:#4b4470;">
                             Your first simulation is free. After that, unlock another attempt for Rs. 15 or get 3 attempts for Rs. 35.
                         </p>
                     </div>
                 </div>
-                <div class="flex flex-wrap items-center gap-3">
-                    {% if simulation_access %}
-                        {% if simulation_access.is_free %}
-                            <span class="px-3 py-2 rounded-xl bg-white text-emerald-700 border border-emerald-200 text-[10px] font-black uppercase tracking-wider">First attempt free</span>
-                        {% elif simulation_access.credits > 0 %}
-                            <span class="px-3 py-2 rounded-xl bg-white text-emerald-700 border border-emerald-200 text-[10px] font-black uppercase tracking-wider">{{ simulation_access.credits }} credit{{ 's' if simulation_access.credits != 1 else '' }} left</span>
-                        {% else %}
-                            <span class="px-3 py-2 rounded-xl bg-white text-amber-700 border border-amber-200 text-[10px] font-black uppercase tracking-wider">Paid attempt required</span>
-                        {% endif %}
+                <div class="flex flex-wrap items-center gap-3 shrink-0">
+                    {% if simulation_access and not simulation_access.is_free and simulation_access.credits <= 0 %}
+                        <a href="/assessment/simulation/start/{{ primary_simulation_career | urlencode }}" class="sim-cta">
+                            <i class="fas fa-lock"></i> Paid Attempt Required
+                        </a>
+                    {% elif simulation_access and simulation_access.credits > 0 and not simulation_access.is_free %}
+                        <a href="/assessment/simulation/start/{{ primary_simulation_career | urlencode }}" class="sim-cta">
+                            <i class="fas fa-play"></i> {{ simulation_access.credits }} Credit{{ 's' if simulation_access.credits != 1 else '' }} Left
+                        </a>
+                    {% else %}
+                        <a href="/assessment/simulation/start/{{ primary_simulation_career | urlencode }}" class="sim-cta">
+                            <i class="fas fa-play"></i> Start Free Simulation
+                        </a>
                     {% endif %}
-                    <a href="/assessment/simulation/start/{{ primary_simulation_career | urlencode }}"
-                       class="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-amber-600 text-white hover:bg-amber-700 text-xs font-black uppercase tracking-wider transition">
-                        <i class="fas fa-play"></i>
-                        Start Simulation
-                    </a>
                 </div>
             </div>
         </div>
@@ -135,29 +762,40 @@
 
         <!-- 2. DETAILED PHASE REPORTS -->
         {% if mode != 'minimal' %}
-        <div class="space-y-6 mt-12">
+        <div class="space-y-2">
             <div class="text-center md:text-left">
-                <h2 class="text-2xl font-extrabold tracking-tight font-outfit text-slate-900">Assessment Phase Breakdown</h2>
-                <p class="text-slate-500 mt-1">Detailed insights captured during each stage of your evaluation.</p>
+                <h2 class="section-title font-outfit">Assessment Phase Breakdown</h2>
+                <p class="section-sub">Detailed insights captured during each stage of your evaluation.</p>
             </div>
+
+            <div class="phase-timeline">
+                <span class="phase-dot t"></span>
+                <span class="phase-dot p"></span>
+                <span class="phase-dot g"></span>
+                <span class="phase-arrow"><i class="fas fa-arrow-right"></i></span>
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                
+
                 <!-- Phase 1 -->
-                <div class="glass-card p-6 border-t-4 border-t-teal-500">
-                    <div class="flex items-center gap-3 mb-5">
-                        <div class="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center font-black">1</div>
-                        <h3 class="text-lg font-bold text-slate-800 font-outfit">Initial Intake</h3>
+                <div class="phase-card t">
+                    <div class="phase-card-head">
+                        <div class="flex items-center gap-3">
+                            <span class="phase-card-num">01</span>
+                            <h3 class="phase-card-title font-outfit">Initial Intake</h3>
+                        </div>
+                        <i class="fas fa-clipboard-list phase-card-icon"></i>
                     </div>
-                    <div class="space-y-4">
+                    <div>
                         {% if result.raw_answers and result.raw_answers.get('groq_summary') %}
-                            <div>
-                                <span class="block text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1">Student Context</span>
-                                <span class="text-slate-600 text-xs leading-relaxed block">{{ result.raw_answers.get('groq_summary') }}</span>
+                            <div class="phase-field">
+                                <span class="phase-field-label">Student Context</span>
+                                <span class="phase-field-value">{{ result.raw_answers.get('groq_summary') }}</span>
                             </div>
                         {% else %}
-                            <div>
-                                <span class="block text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1">Expressed Interests</span>
-                                <span class="text-slate-700 font-medium text-sm">
+                            <div class="phase-field">
+                                <span class="phase-field-label">Expressed Interests</span>
+                                <span class="phase-field-value">
                                     {% set interests = result.raw_answers.get('interests') if result.raw_answers else '' %}
                                     {% if interests is string %}
                                         {{ interests }}
@@ -168,54 +806,60 @@
                                     {% endif %}
                                 </span>
                             </div>
-                            <div>
-                                <span class="block text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1">Salary Priority</span>
-                                <span class="text-slate-700 font-medium text-sm">{{ result.raw_answers.get('salary_priority', 'Not specified') if result.raw_answers else 'Not specified' }}</span>
+                            <div class="phase-field">
+                                <span class="phase-field-label">Salary Priority</span>
+                                <span class="phase-field-value">{{ result.raw_answers.get('salary_priority', 'Not specified') if result.raw_answers else 'Not specified' }}</span>
                             </div>
-                            <div>
-                                <span class="block text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1">Current Trajectory</span>
-                                <span class="text-slate-700 font-medium text-sm">{{ result.student_type }} - {{ result.raw_answers.get('pursuing', 'General') if result.raw_answers else 'General' }}</span>
+                            <div class="phase-field">
+                                <span class="phase-field-label">Current Trajectory</span>
+                                <span class="phase-field-value">{{ result.student_type }} - {{ result.raw_answers.get('pursuing', 'General') if result.raw_answers else 'General' }}</span>
                             </div>
                         {% endif %}
                     </div>
                 </div>
 
                 <!-- Phase 2 -->
-                <div class="glass-card p-6 border-t-4 border-t-indigo-500">
-                    <div class="flex items-center gap-3 mb-5">
-                        <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-black">2</div>
-                        <h3 class="text-lg font-bold text-slate-800 font-outfit">Behavioral Profile</h3>
+                <div class="phase-card p">
+                    <div class="phase-card-head">
+                        <div class="flex items-center gap-3">
+                            <span class="phase-card-num">02</span>
+                            <h3 class="phase-card-title font-outfit">Behavioral Profile</h3>
+                        </div>
+                        <i class="fas fa-user-group phase-card-icon"></i>
                     </div>
-                    <div class="space-y-4">
-                        <div>
-                            <span class="block text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1">Primary Work Style</span>
-                            <span class="text-slate-700 font-medium text-sm">{{ result.phase_2_category or 'Pending' }}</span>
+                    <div>
+                        <div class="phase-field">
+                            <span class="phase-field-label">Primary Work Style</span>
+                            <span class="phase-field-value">{{ result.phase_2_category or 'Pending' }}</span>
                         </div>
-                        <div>
-                            <span class="block text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1">Dominant Archetype</span>
-                            <span class="text-slate-700 font-medium text-sm">{{ dominant_trait }}</span>
+                        <div class="phase-field">
+                            <span class="phase-field-label">Dominant Archetype</span>
+                            <span class="phase-field-value">{{ dominant_trait }}</span>
                         </div>
-                        <div>
-                            <span class="block text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1">Cognitive Approach</span>
-                            <span class="text-slate-600 text-xs leading-relaxed">Evaluated through situational judgment matrices measuring risk tolerance, creativity, and structural preference.</span>
+                        <div class="phase-field">
+                            <span class="phase-field-label">Evaluation Basis</span>
+                            <span class="phase-field-value">Evaluated through situational judgment matrices measuring risk tolerance, creativity, and structural preference.</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- Phase 3 -->
-                <div class="glass-card p-6 border-t-4 border-t-emerald-500">
-                    <div class="flex items-center gap-3 mb-5">
-                        <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-black">3</div>
-                        <h3 class="text-lg font-bold text-slate-800 font-outfit">Deep Dive Synthesis</h3>
-                    </div>
-                    <div class="space-y-4">
-                        <div>
-                            <span class="block text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1">Conversation Analysis</span>
-                            <span class="text-slate-600 text-xs leading-relaxed block overflow-hidden line-clamp-4">{{ result.final_analysis or 'Deep dive insights captured.' }}</span>
+                <div class="phase-card g">
+                    <div class="phase-card-head">
+                        <div class="flex items-center gap-3">
+                            <span class="phase-card-num">03</span>
+                            <h3 class="phase-card-title font-outfit">Deep Dive Synthesis</h3>
                         </div>
-                        <div>
-                            <span class="block text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1">Readiness Signal</span>
-                            <span class="text-slate-700 font-medium text-sm">
+                        <i class="fas fa-chart-pie phase-card-icon"></i>
+                    </div>
+                    <div>
+                        <div class="phase-field">
+                            <span class="phase-field-label">Conversation Analysis</span>
+                            <span class="phase-field-value" style="display:block; overflow:hidden;">{{ result.final_analysis or 'Deep dive insights captured.' }}</span>
+                        </div>
+                        <div class="phase-field">
+                            <span class="phase-field-label">Readiness Signal</span>
+                            <span class="phase-field-value">
                                 {{ ((display_confidence or result.confidence or 0.85) * 100) | int }}% profile clarity based on your assessment responses.
                             </span>
                         </div>
@@ -227,26 +871,28 @@
         {% endif %}
 
         <!-- 3. RECOMMENDED CAREER PATHS -->
-        <div class="space-y-6 mt-12">
+        <div class="space-y-6">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h2 class="text-2xl font-extrabold tracking-tight font-outfit text-slate-900">Recommended Career Paths</h2>
-                    <p class="text-slate-500 mt-1">Top career tracks matched to your unique profile.</p>
+                    <h2 class="section-title font-outfit">Recommended Career Paths</h2>
+                    <p class="section-sub">Top career tracks matched to your unique profile.</p>
                 </div>
-                <button onclick="window.print()" class="no-print px-5 py-2.5 bg-white border border-slate-200 hover:border-teal-500 hover:text-teal-600 rounded-xl text-slate-600 font-bold transition-all shadow-sm flex items-center gap-2">
-                    <i class="fas fa-print"></i> Print Report
-                </button>
-                {% if not is_public_share %}
-                    {% if subscription_state and subscription_state.active %}
-                    <a href="/assessment/report/download" class="no-print px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold transition-all shadow-sm flex items-center gap-2">
-                        <i class="fas fa-file-pdf"></i> Detailed PDF
-                    </a>
-                    {% else %}
-                    <a href="/subscription" class="no-print px-5 py-2.5 bg-amber-50 border border-amber-200 hover:bg-amber-100 text-amber-700 rounded-xl font-bold transition-all shadow-sm flex items-center gap-2">
-                        <i class="fas fa-lock"></i> Unlock PDF
-                    </a>
+                <div class="flex flex-wrap items-center gap-3">
+                    <button onclick="window.print()" class="no-print btn-outline-dark">
+                        <i class="fas fa-print"></i> Print Report
+                    </button>
+                    {% if not is_public_share %}
+                        {% if subscription_state and subscription_state.active %}
+                        <a href="/assessment/report/download" class="no-print btn-outline-dark">
+                            <i class="fas fa-file-pdf"></i> Detailed PDF
+                        </a>
+                        {% else %}
+                        <a href="/subscription" class="no-print btn-outline-gold">
+                            <i class="fas fa-lock"></i> Unlock PDF
+                        </a>
+                        {% endif %}
                     {% endif %}
-                {% endif %}
+                </div>
             </div>
 
             <div class="space-y-6">
@@ -255,41 +901,28 @@
                     {% set career_title = rec.career or rec.title %}
                     {% set status = rec.feasibility_status or rec.status or "Optimal" %}
                     {% set challenge = rec.pivot_notes or rec.reason %}
-                    
-                    <div class="glass-card p-6 md:p-8">
+
+                    <div class="rec-card">
                         <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-                            
-                            <!-- Career Rank and Name -->
+
                             <div class="flex items-start gap-5">
-                                <div class="w-14 h-14 rounded-2xl bg-teal-50 border border-teal-100 text-teal-600 font-black text-xl flex items-center justify-center shrink-0 shadow-inner">
-                                    {{ loop.index }}
-                                </div>
+                                <div class="rec-rank">{{ loop.index }}</div>
                                 <div>
-                                    <h3 class="text-xl md:text-2xl font-bold text-slate-900 font-outfit">{{ career_title }}</h3>
-                                    
-                                    <!-- Feasibility Badge -->
+                                    <h3 class="rec-title font-outfit">{{ career_title }}</h3>
                                     <div class="mt-2 flex flex-wrap gap-2 items-center">
                                         {% if status == "Optimal" %}
-                                            <span class="px-3 py-1 rounded-full text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 flex items-center gap-1.5">
-                                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Optimal Fit
-                                            </span>
+                                            <span class="status-pill status-optimal"><span class="dot"></span> Optimal Fit</span>
                                         {% elif status == "Pivot" %}
-                                            <span class="px-3 py-1 rounded-full text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 flex items-center gap-1.5">
-                                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Pivot Strategy
-                                            </span>
+                                            <span class="status-pill status-pivot"><span class="dot"></span> Pivot Strategy</span>
                                         {% else %}
-                                            <span class="px-3 py-1 rounded-full text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-200 flex items-center gap-1.5">
-                                                <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> High-Risk Pathway
-                                            </span>
+                                            <span class="status-pill status-risk"><span class="dot"></span> High-Risk Pathway</span>
                                         {% endif %}
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Interactive Actions -->
                             <div class="no-print flex flex-wrap gap-3 shrink-0">
-                                <a href="/assessment/simulation/start/{{ career_title|urlencode }}" 
-                                   class="px-4 py-2 rounded-xl bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 text-xs font-bold transition flex items-center gap-2">
+                                <a href="/assessment/simulation/start/{{ career_title|urlencode }}" class="rec-action rec-action-sim">
                                     <i class="fas fa-terminal"></i>
                                     {% if simulation_access and simulation_access.is_free %}
                                         Start Free Simulation
@@ -300,7 +933,7 @@
                                     {% endif %}
                                 </a>
                                 {% if simulation_access %}
-                                    <span class="px-3 py-2 rounded-xl bg-slate-50 text-slate-500 border border-slate-200 text-[10px] font-black uppercase tracking-wider flex items-center gap-2">
+                                    <span class="rec-credit-note">
                                         {% if simulation_access.is_free %}
                                             First attempt free
                                         {% elif simulation_access.credits > 0 %}
@@ -310,47 +943,36 @@
                                         {% endif %}
                                     </span>
                                 {% endif %}
-                                <button type="button" onclick='generateCollegeRecs({{ career_title|tojson }})'
-                                        class="px-4 py-2 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 text-xs font-bold transition flex items-center gap-2">
+                                <button type="button" onclick='generateCollegeRecs({{ career_title|tojson }})' class="rec-action rec-action-inst">
                                     <i class="fas fa-university"></i> Institutes
                                 </button>
                             </div>
                         </div>
 
-                        <!-- Honest Challenge Description Section -->
-                        <div class="mt-6 pt-5 border-t border-slate-100">
-                            <h4 class="text-[10px] font-bold uppercase tracking-wider mb-2 text-slate-400">Target Challenge Analysis</h4>
-                            <p class="text-sm text-slate-600 leading-relaxed">{{ challenge }}</p>
+                        <div class="mt-6 pt-5" style="border-top: 1px solid rgba(255,255,255,0.08);">
+                            <h4 class="rec-challenge-label">Target Challenge Analysis</h4>
+                            <p class="rec-challenge-text">{{ challenge }}</p>
                         </div>
 
-                        <!-- Detailed Pros & Cons -->
                         {% if rec.pros or rec.cons %}
-                        <div class="mt-5 grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-5 rounded-2xl border border-slate-100">
+                        <div class="mt-5 grid grid-cols-1 md:grid-cols-2 gap-6">
                             {% if rec.pros %}
-                            <div>
-                                <h4 class="font-bold text-emerald-700 mb-3 flex items-center gap-2 text-xs uppercase tracking-wider">
-                                    <i class="fas fa-thumbs-up"></i> Why It's a Great Fit
-                                </h4>
+                            <div class="rec-proscons">
+                                <h4 style="color: var(--green);"><i class="fas fa-thumbs-up"></i> Why It's a Great Fit</h4>
                                 <ul class="space-y-2">
                                     {% for pro in rec.pros %}
-                                    <li class="flex items-start text-sm text-slate-700 leading-relaxed">
-                                        <i class="fas fa-check text-emerald-500 mt-1 mr-3 shrink-0 text-[10px]"></i> {{ pro }}
-                                    </li>
+                                    <li><i class="fas fa-check mt-1 mr-3 shrink-0 text-[10px]" style="color: var(--green);"></i> {{ pro }}</li>
                                     {% endfor %}
                                 </ul>
                             </div>
                             {% endif %}
-                            
+
                             {% if rec.cons %}
-                            <div>
-                                <h4 class="font-bold text-rose-700 mb-3 flex items-center gap-2 text-xs uppercase tracking-wider">
-                                    <i class="fas fa-exclamation-triangle"></i> Things to Consider
-                                </h4>
+                            <div class="rec-proscons">
+                                <h4 style="color: var(--rose);"><i class="fas fa-exclamation-triangle"></i> Things to Consider</h4>
                                 <ul class="space-y-2">
                                     {% for con in rec.cons %}
-                                    <li class="flex items-start text-sm text-slate-700 leading-relaxed">
-                                        <i class="fas fa-minus text-rose-500 mt-1 mr-3 shrink-0 text-[10px]"></i> {{ con }}
-                                    </li>
+                                    <li><i class="fas fa-minus mt-1 mr-3 shrink-0 text-[10px]" style="color: var(--rose);"></i> {{ con }}</li>
                                     {% endfor %}
                                 </ul>
                             </div>
@@ -360,9 +982,18 @@
                     </div>
                     {% endfor %}
                 {% else %}
-                    <div class="text-center py-12 bg-white border border-slate-200 rounded-2xl shadow-sm">
-                        <i class="fas fa-sync fa-spin text-2xl mb-3 text-teal-500"></i>
-                        <p class="text-sm text-slate-500">Compiling top matching career tracks...</p>
+                    <div class="text-center py-16 bg-white border border-slate-200 rounded-2xl shadow-sm">
+                        <div class="w-16 h-16 mx-auto mb-4 bg-teal-50 rounded-full flex items-center justify-center">
+                            <i class="fas fa-map-signs text-2xl text-teal-500"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-slate-800 mb-2">Career Recommendations Not Generated Yet</h3>
+                        <p class="text-sm text-slate-500 mb-6 max-w-sm mx-auto">
+                            This can happen when AI services are temporarily unavailable. Click below to generate your personalized career matches instantly.
+                        </p>
+                        <a href="/assessment/phase3/retry-careers"
+                           class="inline-flex items-center gap-2 px-6 py-3 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl transition shadow-md shadow-teal-500/20">
+                            <i class="fas fa-sync"></i> Generate My Career Paths
+                        </a>
                     </div>
                 {% endif %}
             </div>
@@ -370,45 +1001,40 @@
 
         <!-- 4. SOCIAL SHARE & NETWORKS -->
         {% if mode != 'minimal' %}
-        <div class="no-print glass-card p-8 text-center mt-12 bg-white">
-            <h3 class="text-slate-900 font-bold text-xl mb-6 font-outfit flex items-center justify-center gap-2">
-                <i class="fas fa-share-alt text-teal-500"></i> Share Your Blueprint
+        <div class="no-print share-card">
+            <span class="sparkle" style="top: 16%; left: 10%;"><i class="fas fa-star"></i></span>
+            <span class="sparkle" style="bottom: 18%; right: 12%;"><i class="fas fa-star"></i></span>
+            <h3 class="font-outfit font-bold text-xl mb-2" style="color:#fff;">
+                <i class="fas fa-share-alt" style="color: var(--teal);"></i> Share Your Blueprint
             </h3>
-            
+            <p class="text-xs mb-6" style="color: var(--text-secondary);">Share this blueprint to unlock further simulation discoveries.</p>
+
             <div class="flex flex-wrap justify-center gap-4">
                 {% set share_url = request.base_url ~ "share/report/" ~ result.id %}
                 {% set share_text = "🚀 Just compiled my Career Blueprint on CareStance! Archetype: " ~ (result.recommended_stream if result.recommended_stream else dominant_trait) ~ ". Discover your professional profile at https://carestance.me" %}
 
-                <button onclick="copyToClipboard('{{ share_url }}')"
-                        class="w-12 h-12 rounded-full bg-slate-100 text-slate-600 hover:bg-teal-50 hover:text-teal-600 transition-all duration-200 flex items-center justify-center text-lg shadow-sm"
-                        title="Copy Link">
+                <button onclick="copyToClipboard('{{ share_url }}')" class="share-icon-btn share-link" title="Copy Link">
                     <i class="fas fa-link"></i>
                 </button>
 
-                <a href="https://wa.me/?text={{ (share_text ~ ' ' ~ share_url)|urlencode }}" 
-                   target="_blank" rel="noopener"
-                   class="w-12 h-12 rounded-full bg-slate-100 text-slate-600 hover:bg-emerald-50 hover:text-emerald-600 transition-all duration-200 flex items-center justify-center text-lg shadow-sm"
-                   title="Share on WhatsApp">
+                <a href="https://wa.me/?text={{ (share_text ~ ' ' ~ share_url)|urlencode }}" target="_blank" rel="noopener" class="share-icon-btn share-whatsapp" title="Share on WhatsApp">
                     <i class="fab fa-whatsapp"></i>
+                    <span class="ping"></span>
                 </a>
 
-                <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ share_url|urlencode }}" 
-                   target="_blank" rel="noopener"
-                   class="w-12 h-12 rounded-full bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-all duration-200 flex items-center justify-center text-lg shadow-sm"
-                   title="Share on LinkedIn">
+                <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ share_url|urlencode }}" target="_blank" rel="noopener" class="share-icon-btn share-linkedin" title="Share on LinkedIn">
                     <i class="fab fa-linkedin-in"></i>
                 </a>
             </div>
-            <p class="text-xs mt-5 text-slate-400">Share this blueprint to unlock further simulation discoveries.</p>
         </div>
         {% endif %}
 
         <!-- 5. RETAKE CTA SECTION -->
-        <div class="no-print mt-8 flex justify-center">
+        <div class="no-print flex justify-center">
             <a href="/assessment/reset"
                onclick="return confirm('Are you sure you want to retake the assessment? This will clear your current results.')"
-               class="px-6 py-3 text-slate-400 hover:text-rose-500 text-xs font-bold transition duration-200 flex items-center gap-2">
-                <i class="fas fa-undo"></i> Reset & Retake Assessment
+               class="retake-link">
+                <i class="fas fa-undo"></i> Reset &amp; Retake Assessment
             </a>
         </div>
 

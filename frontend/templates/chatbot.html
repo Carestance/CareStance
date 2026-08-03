@@ -2,108 +2,336 @@
 
 {% block title %}AI Career Guide{% endblock %}
 
+{% block navbar %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Jersey+10&display=swap');
+
+    .hero-nav {
+        position: fixed;
+        top: 40px;
+        left: 0;
+        right: 0;
+        width: 100%;
+        z-index: 1000;
+        background: transparent;
+        box-shadow: none;
+    }
+
+    .hero-nav-inner {
+        max-width: 1500px;
+        margin: 0 auto;
+        padding: 0 2.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .hero-nav-logo {
+        display: flex;
+        align-items: center;
+        gap: 1.75rem;
+        text-decoration: none;
+    }
+
+    .hero-nav-logo-badge {
+        width: 156px; height: 156px;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 50%;
+        background: #0f172a;
+        flex-shrink: 0;
+    }
+
+    .hero-nav-logo-badge img {
+        width: 90px; height: 90px;
+        border-radius: 50%; object-fit: cover;
+        transform: scale(1.6);
+    }
+
+    .hero-nav-logo-text {
+        font-family: 'Jersey 10', 'Playfair Display', serif;
+        font-size: 2rem; font-weight: 700;
+        color: #12202b; white-space: nowrap;
+        letter-spacing: 0.02em;
+    }
+
+    .hero-nav-links {
+        display: flex;
+        align-items: center;
+        gap: 1.9rem;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .hero-nav-links a {
+        display: inline-block;
+        font-family: 'Jersey 10', sans-serif;
+        color: #fff;
+        font-size: 30px;
+        font-weight: 400;
+        white-space: nowrap;
+        text-decoration: none;
+        letter-spacing: 0.02em;
+        text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+        transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+
+    .hero-nav-links a:hover {
+        transform: scale(1.1);
+        opacity: 0.75;
+    }
+
+    .hero-nav-links a.nav-active {
+        text-decoration: underline;
+        text-underline-offset: 4px;
+    }
+
+    .hero-nav-user-name {
+        font-family: 'Jersey 10', sans-serif;
+        color: #fff;
+        opacity: 0.75;
+        font-size: 22px;
+        text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+    }
+
+    .hero-nav-logout {
+        font-family: 'Jersey 10', sans-serif;
+        background: #12202b;
+        color: #fff !important;
+        padding: 0.4rem 1.6rem;
+        border-radius: 999px;
+        font-size: 28px;
+        text-shadow: none;
+    }
+
+    .hero-nav-logout:hover {
+        transform: scale(1.08);
+        opacity: 1 !important;
+        background: #1e2f3d;
+    }
+
+    .hero-mobile-toggle {
+        display: none;
+        background: none; border: none;
+        color: #12202b; font-size: 1.35rem;
+        cursor: pointer;
+    }
+
+    .hero-mobile-menu {
+        display: none;
+        position: absolute; top: 100%; left: 1.5rem; right: 1.5rem;
+        margin-top: 0.75rem; padding: 1.5rem;
+        flex-direction: column; gap: 0.75rem;
+        background: #fff; border-radius: 1.25rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.15);
+    }
+
+    .hero-mobile-menu.open { display: flex; }
+
+    .hero-mobile-menu a {
+        padding: 0.8rem 0.5rem;
+        color: var(--text-main);
+        text-decoration: none;
+        font-weight: 500;
+        border-bottom: 1px solid var(--border-soft);
+        transition: color 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .hero-mobile-menu a.nav-active {
+        color: var(--primary);
+        font-weight: 700;
+        background: var(--primary-soft);
+        border-radius: 0.5rem;
+    }
+
+    .hero-mobile-menu a:last-child { border-bottom: none; }
+    .hero-mobile-menu a:hover { color: #0d9488; }
+
+    @media (max-width: 768px) {
+        .hero-nav-links { display: none; }
+        .hero-mobile-toggle { display: block; }
+        .hero-nav-logo-badge { width: 64px; height: 64px; }
+        .hero-nav-logo-badge img { width: 36px; height: 36px; }
+        .hero-nav-logo-text { font-size: 1.4rem; }
+        .hero-nav-inner { padding: 0 1.25rem; }
+        .hero-nav { top: 20px; }
+    }
+</style>
+
+<nav class="hero-nav">
+    <div class="hero-nav-inner">
+        <a href="/" class="hero-nav-logo">
+            <span class="hero-nav-logo-badge">
+                <picture>
+                    <source srcset="/static/images/image.webp?v=101" type="image/webp">
+                    <img src="/static/images/image.png?v=101" alt="CareStance Logo" width="90" height="90">
+                </picture>
+            </span>
+            <span class="hero-nav-logo-text">Carestance</span>
+        </a>
+
+        <div class="hero-nav-links">
+            {% if user %}
+            <a href="/dashboard" class="{% if request.url.path == '/dashboard' %}nav-active{% endif %}">Dashboard</a>
+            {% if user.role != 'counsellor' %}
+            <a href="/chatbot" class="{% if request.url.path == '/chatbot' %}nav-active{% endif %}">Chat AI</a>
+            {% endif %}
+            <a href="/community">Community</a>
+            <a href="/feedback">Feedback</a>
+            <a href="/ticket">Support</a>
+            {% if user.role == 'admin' %}
+            <a href="/admin" class="{% if request.url.path == '/admin' %}nav-active{% endif %}" style="font-weight:700;">Admin</a>
+            {% endif %}
+            {% if user.full_name and user.full_name != 'None' %}<span class="hero-nav-user-name">| {{ user.full_name }}</span>{% endif %}
+            <a href="/logout" class="hero-nav-logout">Logout</a>
+            {% else %}
+            <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}">Home</a>
+            <a href="/login" class="{% if request.url.path == '/login' %}nav-active{% endif %}">Log In</a>
+            {% endif %}
+        </div>
+
+        <button class="hero-mobile-toggle" id="base-menu-toggle" aria-label="Menu">
+            <i class="fa-solid fa-bars" id="base-menu-icon"></i>
+        </button>
+    </div>
+
+    <div class="hero-mobile-menu" id="base-mobile-menu">
+        {% if user %}
+        <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i class="fa-solid fa-house"></i>Home</a>
+        <a href="/dashboard" class="{% if request.url.path == '/dashboard' %}nav-active{% endif %}"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
+        {% if user.role != 'counsellor' %}
+        <a href="/chatbot" class="{% if request.url.path == '/chatbot' %}nav-active{% endif %}"><i class="fa-solid fa-comment-dots"></i>Chat AI</a>
+        {% endif %}
+        <a href="/community"><i class="fa-solid fa-users"></i>Community</a>
+        <a href="/feedback"><i class="fa-solid fa-star"></i>Feedback</a>
+        <a href="/ticket"><i class="fa-solid fa-circle-question"></i>Support</a>
+        {% if user.role == 'admin' %}<a href="/admin"><i class="fa-solid fa-shield-halved"></i>Admin Panel</a>{% endif %}
+        <a href="/logout" style="color:#b45309;"><i class="fa-solid fa-right-from-bracket"></i>Logout</a>
+        {% else %}
+        <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i class="fa-solid fa-house"></i>Home</a>
+        <a href="/login"><i class="fa-solid fa-right-to-bracket"></i>Log In</a>
+        {% endif %}
+    </div>
+</nav>
+{% endblock %}
+
 {% block content %}
+<!-- Adventure Sky Backdrop -->
+<div class="quest-sky">
+    <div class="quest-sky-overlay"></div>
+</div>
+
+<!-- Fixed, non-scrolling viewport shell that clears the hero-nav above -->
+<div class="quest-page-shell">
+
 <!-- Main Layout Container -->
-<div class="chatbot-shell max-w-7xl mx-auto h-[calc(100vh-5rem)] md:h-[calc(100vh-8rem)] min-h-[500px] flex gap-6">
+<div class="quest-ui max-w-7xl mx-auto h-full flex gap-6">
 
     <!-- SIDEBAR: Context & Profile (Hidden on Mobile) -->
     <div class="hidden lg:flex flex-col w-80 gap-4 h-full shrink-0">
         <!-- Profile Card -->
-        <div
-            class="bg-white/80 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-lg shadow-[var(--teal-soft)]/50 flex flex-col items-center text-center">
-            <div class="relative w-24 h-24 mb-4">
-                <!-- Animated Orb Background -->
-                <div
-                    class="absolute inset-0 bg-[var(--teal)] rounded-full blur-xl opacity-30 animate-pulse">
-                </div>
-                <!-- The Orb -->
-                <div id="talking-buddy"
-                    class="relative w-full h-full bg-[var(--navy)] rounded-full border-4 border-white shadow-xl flex items-center justify-center overflow-hidden transition-transform duration-300">
+        <div class="pixel-frame">
+            <div class="pixel-frame-inner flex flex-col items-center text-center p-6">
+                <div class="relative w-20 h-20 mb-3">
+                    <!-- Animated Orb Background -->
                     <div
-                        class="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.4),transparent)]">
+                        class="absolute inset-0 bg-[var(--teal)] rounded-full blur-xl opacity-40 animate-pulse">
                     </div>
-                    <span class="text-4xl relative z-10">🎓</span>
+                    <!-- The Orb -->
+                    <div id="talking-buddy"
+                        class="relative w-full h-full bg-[var(--navy)] rounded-full border-4 border-[var(--parchment)] shadow-xl flex items-center justify-center overflow-hidden transition-transform duration-300 quest-ring">
+                        <video src="/static/images/peek.mp4" autoplay muted loop playsinline
+                               class="absolute inset-0 w-full h-full object-cover rounded-full"></video>
+                        <div
+                            class="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.35),transparent)] pointer-events-none">
+                        </div>
+                    </div>
+                    <!-- Status Dot -->
+                    <div id="buddy-status"
+                        class="absolute bottom-1 right-1 w-5 h-5 bg-slate-400 border-2 border-[var(--parchment)] rounded-full shadow-md transition-colors duration-300">
+                    </div>
                 </div>
-                <!-- Status Dot -->
-                <div id="buddy-status"
-                    class="absolute bottom-1 right-1 w-5 h-5 bg-slate-400 border-2 border-white rounded-full shadow-md transition-colors duration-300">
-                </div>
+                <h2 class="quest-heading text-lg text-[var(--ink)]">AI Career Guide</h2>
+                <p class="quest-eyebrow mt-1 text-[var(--teal)]">Always here to help</p>
             </div>
-            <h2 class="text-lg font-bold text-slate-900">AI Career Guide</h2>
-            <p class="text-xs text-slate-500 font-medium">Always here to help</p>
         </div>
 
         <!-- Stats / Context Card -->
-        <div
-            class="bg-white/80 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-lg shadow-[var(--teal-soft)]/50 flex-1 overflow-y-auto custom-scrollbar">
-            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Current Context</h3>
+        <div class="pixel-frame flex-1 min-h-0">
+            <div class="pixel-frame-inner p-6 h-full overflow-y-auto custom-scrollbar">
+                <h3 class="quest-eyebrow mb-4">Current Context</h3>
 
-            <div class="space-y-3">
-                <div class="p-3 bg-[var(--teal-soft)] rounded-xl border border-[var(--teal-light)]/20">
-                    <p class="text-xs text-[var(--teal)] font-bold mb-1 uppercase">Personality</p>
-                    <p class="text-sm font-bold text-slate-800">
-                        {% if user.assessment %}
-                        {{ user.assessment.phase_2_category|default("Not Assessed") }}
-                        {% else %}
-                        Not Assessed
-                        {% endif %}
-                    </p>
+                <div class="space-y-3">
+                    <div class="p-3 bg-[var(--teal-soft)] rounded-xl border border-[var(--teal)]/30">
+                        <p class="text-[10px] text-[var(--teal-deep)] font-bold mb-1 uppercase tracking-wider">Personality</p>
+                        <p class="text-sm font-bold text-[var(--ink)]">
+                            {% if user.assessment %}
+                            {{ user.assessment.phase_2_category|default("Not Assessed") }}
+                            {% else %}
+                            Not Assessed
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="p-3 bg-[var(--teal-soft)] rounded-xl border border-[var(--teal)]/30">
+                        <p class="text-[10px] text-[var(--teal-deep)] font-bold mb-1 uppercase tracking-wider">Goal Status</p>
+                        <p class="text-sm font-bold text-[var(--ink)]">
+                            {% if user.assessment %}
+                            {{ user.assessment.goal_status|default("Pending") }}
+                            {% else %}
+                            Pending
+                            {% endif %}
+                        </p>
+                    </div>
                 </div>
-                <div class="p-3 bg-[var(--teal-soft)] rounded-xl border border-[var(--teal-light)]/20">
-                    <p class="text-xs text-[var(--teal)] font-bold mb-1 uppercase">Goal Status</p>
-                    <p class="text-sm font-bold text-slate-800">
-                        {% if user.assessment %}
-                        {{ user.assessment.goal_status|default("Pending") }}
-                        {% else %}
-                        Pending
-                        {% endif %}
-                    </p>
-                </div>
-            </div>
 
-            <div class="mt-6 pt-6 border-t border-slate-100">
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Try Asking:</p>
-                <ul class="text-xs text-slate-500 space-y-2.5">
-                    <li class="flex items-start cursor-pointer hover:text-[var(--navy)] transition"
-                        onclick="fillInput('What careers match my personality?')">
-                        <span class="mr-2 text-[var(--teal)]">•</span> What matches my personality?
-                    </li>
-                    <li class="flex items-start cursor-pointer hover:text-[var(--navy)] transition"
-                        onclick="fillInput('Which entrance exams should I take?')">
-                        <span class="mr-2 text-[var(--teal)]">•</span> Entrance exams for me?
-                    </li>
-                    <li class="flex items-start cursor-pointer hover:text-[var(--navy)] transition"
-                        onclick="fillInput('Explain the salary trends for my stream.')">
-                        <span class="mr-2 text-[var(--teal)]">•</span> Salary trends?
-                    </li>
-                </ul>
+                <div class="mt-6 pt-6 border-t-2 border-dashed border-[var(--ink)]/10">
+                    <p class="quest-eyebrow mb-3">Try Asking</p>
+                    <ul class="text-xs text-[var(--ink)]/70 space-y-2.5">
+                        <li class="flex items-start gap-2 cursor-pointer hover:text-[var(--navy)] transition"
+                            onclick="fillInput('What careers match my personality?')">
+                            <span class="quest-bullet"></span> What matches my personality?
+                        </li>
+                        <li class="flex items-start gap-2 cursor-pointer hover:text-[var(--navy)] transition"
+                            onclick="fillInput('Which entrance exams should I take?')">
+                            <span class="quest-bullet"></span> Entrance exams for me?
+                        </li>
+                        <li class="flex items-start gap-2 cursor-pointer hover:text-[var(--navy)] transition"
+                            onclick="fillInput('Explain the salary trends for my stream.')">
+                            <span class="quest-bullet"></span> Salary trends?
+                        </li>
+                    </ul>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- MAIN CHAT INTERFACE -->
-    <div
-        class="flex-1 bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl shadow-[var(--teal-soft)]/50 border border-white/50 flex flex-col overflow-hidden relative">
+    <div class="pixel-frame flex-1 flex flex-col overflow-hidden relative">
+      <div class="pixel-frame-inner flex-1 flex flex-col overflow-hidden relative">
 
         <!-- Header (Mobile Only) -->
         <div
-            class="lg:hidden p-4 bg-white/80 border-b border-slate-100 flex items-center justify-between backdrop-blur-md z-10">
+            class="lg:hidden p-4 bg-[var(--navy)] border-b-2 border-[var(--ink)] flex items-center justify-between z-10">
             <div class="flex items-center gap-3">
                 <div
-                    class="w-8 h-8 rounded-full bg-[var(--navy)] flex items-center justify-center text-white text-xs shadow-md">
+                    class="w-8 h-8 rounded-full bg-[var(--teal)] flex items-center justify-center text-[var(--navy)] text-xs font-bold shadow-md quest-ring">
                     AI</div>
-                <span class="font-bold text-slate-800">Career Guide</span>
+                <span class="quest-heading text-sm text-white">Career Guide</span>
             </div>
             <div id="mobile-status" class="w-2 h-2 rounded-full bg-slate-400"></div>
         </div>
 
         <!-- Chat Area -->
-        <div id="chat-box" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 bg-slate-50/50 scroll-smooth">
+        <div id="chat-box" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 bg-[var(--parchment-dim)] scroll-smooth">
 
             <!-- Security Notice -->
             <div
-                class="p-3 md:p-4 bg-amber-50/50 border border-amber-100 rounded-2xl flex items-start gap-3 md:gap-4 mb-2">
-                <div class="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+                class="p-3 md:p-4 bg-amber-50 border-2 border-amber-200 rounded-2xl flex items-start gap-3 md:gap-4 mb-2">
+                <div class="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0 border border-amber-200">
                     <i class="fas fa-shield-alt text-amber-600"></i>
                 </div>
                 <div>
@@ -118,12 +346,10 @@
 
             <!-- Welcome Message -->
             <div class="flex items-start gap-4 animate-fade-in-up">
-                <div
-                    class="w-10 h-10 rounded-2xl bg-[var(--navy)] flex items-center justify-center flex-shrink-0 shadow-lg">
-                    <span class="text-lg text-white">🤖</span>
+                <div class="quest-avatar quest-avatar--ai">
+                    <img src="/static/images/pfp.png" alt="AI" class="w-full h-full object-cover rounded-[0.85rem]">
                 </div>
-                <div
-                    class="bg-white text-slate-700 p-5 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 max-w-[90%] sm:max-w-[80%]">
+                <div class="bubble bubble--ai max-w-[90%] sm:max-w-[80%]">
                     <p class="leading-relaxed text-sm sm:text-base">Hello! I'm your personal AI career guide. I have
                         access to your assessment data and can help you explore career paths, suggest degrees, or create
                         a growth plan. What's on your mind today?</p>
@@ -136,26 +362,22 @@
                 class="flex items-start gap-4 {% if msg.sender == 'user' %}flex-row-reverse{% endif %} animate-fade-in-up">
                 {% if msg.sender == 'user' %}
                 <!-- User Avatar -->
-                <div
-                    class="w-10 h-10 rounded-full bg-slate-200 border-2 border-white flex items-center justify-center flex-shrink-0 shadow-sm">
+                <div class="quest-avatar quest-avatar--user">
                     <span class="text-lg">👤</span>
                 </div>
                 <!-- User Bubble -->
-                <div
-                    class="bg-[var(--navy)] text-white rounded-2xl rounded-tr-none shadow-md p-4 sm:p-5 max-w-[90%] sm:max-w-[80%]">
+                <div class="bubble bubble--user max-w-[90%] sm:max-w-[80%]">
                     <div class="prose prose-invert prose-sm max-w-none history-content">
                         {{ msg.content }}
                     </div>
                 </div>
                 {% else %}
                 <!-- AI Avatar -->
-                <div
-                    class="w-10 h-10 rounded-2xl bg-[var(--navy)] flex items-center justify-center flex-shrink-0 shadow-lg">
-                    <span class="text-lg">🤖</span>
+                <div class="quest-avatar quest-avatar--ai">
+                    <img src="/static/images/pfp.png" alt="AI" class="w-full h-full object-cover rounded-[0.85rem]">
                 </div>
                 <!-- AI Bubble -->
-                <div
-                    class="bg-white text-slate-700 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 p-4 sm:p-5 max-w-[90%] sm:max-w-[80%]">
+                <div class="bubble bubble--ai max-w-[90%] sm:max-w-[80%]">
                     <div class="prose prose-emerald prose-sm max-w-none history-content">
                         {{ msg.content }}
                     </div>
@@ -169,33 +391,31 @@
         </div>
 
         <!-- Input Area -->
-        <div class="bg-white p-4 sm:p-6 border-t border-slate-100 relative z-20">
+        <div class="bg-[var(--parchment)] p-4 sm:p-6 border-t-2 border-[var(--ink)]/10 relative z-20">
 
             <!-- Suggestion Chips (Horizontal Scroll) -->
             <div class="flex gap-2 overflow-x-auto pb-3 mb-1 no-scrollbar">
-                <button onclick="fillInput('Create a study plan for me')"
-                    class="whitespace-nowrap px-4 py-1.5 rounded-full bg-slate-100 hover:bg-[var(--teal-soft)] text-slate-600 hover:text-[var(--navy)] border border-slate-200 hover:border-[var(--teal-light)]/30 text-xs font-bold transition-colors">
-                    <i class="fas fa-calendar-alt mr-1"></i> Study Plan
+                <button onclick="fillInput('Create a study plan for me')" class="quest-chip">
+                    📅 Study Plan
                 </button>
-                <button onclick="fillInput('What are the top colleges for my interest?')"
-                    class="whitespace-nowrap px-4 py-1.5 rounded-full bg-slate-100 hover:bg-[var(--teal-soft)] text-slate-600 hover:text-[var(--navy)] border border-slate-200 hover:border-[var(--teal-light)]/30 text-xs font-bold transition-colors">
-                    <i class="fas fa-university mr-1"></i> Top Colleges
+                <button onclick="fillInput('What are the top colleges for my interest?')" class="quest-chip">
+                    🏛️ Top Colleges
                 </button>
                 <button onclick="fillInput('Explain my strengths and weaknesses')"
                     class="whitespace-nowrap px-4 py-1.5 rounded-full bg-slate-100 hover:bg-[var(--teal-soft)] text-slate-600 hover:text-[var(--navy)] border border-slate-200 hover:border-[var(--teal-light)]/30 text-xs font-bold transition-colors">
-                    <i class="fas fa-bolt mr-1"></i> My Strengths
+                    💪 My Strengths
                 </button>
             </div>
 
             <form id="chat-form" class="flex items-end gap-3 relative">
                 <div class="relative flex-grow">
                     <input type="text" id="user-input"
-                        class="w-full pl-5 pr-12 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[var(--teal)]/20 focus:border-[var(--teal)] transition-all placeholder-slate-400 text-slate-700 shadow-inner"
+                        class="quest-input w-full pl-5 pr-12 py-4"
                         placeholder="Type your question..." required autocomplete="off">
 
                     <!-- Voice Button inside input -->
                     <button type="button" id="voice-btn"
-                        class="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-xl text-slate-400 hover:text-[var(--navy)] hover:bg-[var(--teal-soft)] transition-colors"
+                        class="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-xl text-[var(--ink)]/40 hover:text-[var(--navy)] hover:bg-[var(--teal-soft)] transition-colors"
                         title="Voice Input">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor">
@@ -206,7 +426,7 @@
                 </div>
 
                 <button type="submit" id="send-btn"
-                    class="bg-slate-900 text-white p-4 rounded-2xl shadow-lg transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                    class="bg-[var(--navy)] text-white p-4 rounded-2xl shadow-lg transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transform rotate-90" fill="none"
                         viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -214,14 +434,232 @@
                     </svg>
                 </button>
             </form>
-            <p class="text-center text-[10px] text-slate-400 mt-3 font-medium uppercase tracking-widest">AI generated -
-                Check important info</p>
+            <p class="quest-eyebrow text-center mt-3 opacity-60">AI generated • Check important info</p>
         </div>
+      </div>
     </div>
 </div>
 
+</div><!-- /.quest-page-shell -->
+
 <!-- STYLES -->
 <style>
+    /* ===== CareStance Adventure Theme — Quest UI ===== */
+    @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Baloo+2:wght@500;600;700&display=swap');
+
+    .quest-ui {
+        --parchment: #fbf3de;
+        --parchment-dim: #f6ecd3;
+        --ink: #2a2140;
+        --teal-deep: #0d7d72;
+        font-family: 'Baloo 2', 'Nunito', sans-serif;
+    }
+
+    /* Lock the whole page to the viewport — no outer scrollbar.
+       Panels below (chat history, sidebar) still scroll internally. */
+    html:has(.quest-page-shell),
+    body:has(.quest-page-shell) {
+        height: 100vh;
+        overflow: hidden;
+    }
+
+    .quest-page-shell {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        box-sizing: border-box;
+        padding: 200px 2.5rem 1.25rem;
+        overflow: hidden;
+    }
+
+    @media (max-width: 1024px) {
+        .quest-page-shell { padding: 150px 1.5rem 1rem; }
+    }
+
+    @media (max-width: 768px) {
+        .quest-page-shell { padding: 95px 0.75rem 0.75rem; }
+    }
+
+    .quest-heading,
+    .quest-eyebrow {
+        font-family: 'Fredoka', 'Baloo 2', sans-serif;
+    }
+
+    .quest-heading {
+        font-weight: 700;
+        letter-spacing: 0.01em;
+    }
+
+    .quest-eyebrow {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink);
+        opacity: 0.55;
+    }
+
+    /* Sunset sky backdrop, painted from BG2.png */
+    .quest-sky {
+        position: fixed;
+        inset: 0;
+        z-index: -2;
+        background-image: url("/static/images/BG2.png");
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+    }
+
+    .quest-sky-overlay {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, rgba(24, 16, 41, 0.55) 0%, rgba(24, 16, 41, 0.35) 45%, rgba(24, 16, 41, 0.6) 100%);
+    }
+
+    /* Pixel-frame: the signature 8-bit notched window used for major panels */
+    .pixel-frame {
+        --notch: 12px;
+        background: var(--ink);
+        padding: 4px;
+        clip-path: polygon(
+            0 var(--notch), var(--notch) var(--notch), var(--notch) 0,
+            calc(100% - var(--notch)) 0, calc(100% - var(--notch)) var(--notch), 100% var(--notch),
+            100% calc(100% - var(--notch)), calc(100% - var(--notch)) calc(100% - var(--notch)), calc(100% - var(--notch)) 100%,
+            var(--notch) 100%, var(--notch) calc(100% - var(--notch)), 0 calc(100% - var(--notch))
+        );
+        box-shadow: 0 18px 40px -12px rgba(10, 6, 26, 0.55);
+    }
+
+    .pixel-frame-inner {
+        --notch: 9px;
+        height: 100%;
+        background: var(--parchment);
+        clip-path: polygon(
+            0 var(--notch), var(--notch) var(--notch), var(--notch) 0,
+            calc(100% - var(--notch)) 0, calc(100% - var(--notch)) var(--notch), 100% var(--notch),
+            100% calc(100% - var(--notch)), calc(100% - var(--notch)) calc(100% - var(--notch)), calc(100% - var(--notch)) 100%,
+            var(--notch) 100%, var(--notch) calc(100% - var(--notch)), 0 calc(100% - var(--notch))
+        );
+    }
+
+    .quest-ring {
+        box-shadow: 0 0 0 3px var(--teal), 0 0 18px rgba(45, 212, 191, 0.55);
+    }
+
+    .quest-bullet {
+        margin-top: 4px;
+        width: 6px;
+        height: 6px;
+        background: var(--teal);
+        flex-shrink: 0;
+    }
+
+    .quest-avatar {
+        width: 2.5rem;
+        height: 2.5rem;
+        border-radius: 0.85rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    }
+
+    .quest-avatar--ai {
+        background: var(--navy);
+        border: 2px solid var(--teal);
+    }
+
+    .quest-avatar--user {
+        background: var(--parchment);
+        border: 2px solid var(--ink);
+    }
+
+    .bubble {
+        padding: 1.1rem 1.25rem;
+        border-radius: 1.25rem;
+        font-size: 0.9rem;
+    }
+
+    .bubble--ai {
+        background: #ffffff;
+        color: var(--ink);
+        border: 2px solid rgba(42, 33, 64, 0.1);
+        border-top-left-radius: 0.4rem;
+        box-shadow: 0 3px 0 rgba(42, 33, 64, 0.06);
+    }
+
+    .bubble--user {
+        background: var(--navy);
+        color: #fff;
+        border: 2px solid var(--teal-deep);
+        border-top-right-radius: 0.4rem;
+        box-shadow: 0 3px 0 rgba(0, 0, 0, 0.15);
+    }
+
+    .quest-chip {
+        white-space: nowrap;
+        padding: 0.4rem 1rem;
+        border-radius: 999px;
+        background: #fff;
+        color: var(--ink);
+        border: 2px solid rgba(42, 33, 64, 0.12);
+        font-size: 0.72rem;
+        font-weight: 700;
+        transition: all 0.15s ease;
+    }
+
+    .quest-chip:hover {
+        background: var(--teal-soft);
+        border-color: var(--teal);
+        color: var(--teal-deep);
+        transform: translateY(-1px);
+    }
+
+    .quest-input {
+        background: #fff;
+        border: 2px solid rgba(42, 33, 64, 0.15);
+        border-radius: 1rem;
+        color: var(--ink);
+        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+        transition: all 0.15s ease;
+    }
+
+    .quest-input::placeholder {
+        color: rgba(42, 33, 64, 0.35);
+    }
+
+    .quest-input:focus {
+        outline: none;
+        border-color: var(--teal);
+        box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.25);
+    }
+
+    .quest-btn-send {
+        background: var(--teal);
+        color: var(--navy);
+        padding: 1rem;
+        border-radius: 1rem;
+        border: 2px solid var(--teal-deep);
+        box-shadow: 0 3px 0 var(--teal-deep);
+        transition: all 0.15s ease;
+    }
+
+    .quest-btn-send:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 0 var(--teal-deep);
+    }
+
+    .quest-btn-send:active:not(:disabled) {
+        transform: translateY(2px);
+        box-shadow: 0 1px 0 var(--teal-deep);
+    }
+
+    .quest-btn-send:disabled {
+        opacity: 0.5;
+    }
+
     .custom-scrollbar::-webkit-scrollbar {
         width: 4px;
     }
@@ -537,18 +975,16 @@
         div.className = `flex items-start gap-4 ${isUser ? 'flex-row-reverse' : ''} animate-fade-in-up`;
 
         const avatar = isUser ? `
-            <div class="w-10 h-10 rounded-full bg-slate-200 border-2 border-white flex items-center justify-center flex-shrink-0 shadow-sm">
+            <div class="quest-avatar quest-avatar--user">
                 <span class="text-lg">👤</span>
             </div>
         ` : `
-            <div class="w-10 h-10 rounded-2xl bg-[var(--navy)] flex items-center justify-center flex-shrink-0 shadow-lg">
-                <span class="text-lg text-white">🤖</span>
+            <div class="quest-avatar quest-avatar--ai">
+                <img src="/static/images/pfp.png" alt="AI" class="w-full h-full object-cover rounded-[0.85rem]">
             </div>
         `;
 
-        const bubbleClass = isUser
-            ? 'bg-[var(--navy)] text-white rounded-2xl rounded-tr-none shadow-md'
-            : 'bg-white text-slate-700 rounded-2xl rounded-tl-none shadow-sm border border-slate-100';
+        const bubbleClass = isUser ? 'bubble bubble--user' : 'bubble bubble--ai';
 
         div.innerHTML = `
             ${avatar}
@@ -586,10 +1022,10 @@
         const div = document.createElement('div');
         div.className = 'flex items-start gap-4 animate-fade-in-up';
         div.innerHTML = `
-            <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-[var(--navy)] to-[var(--teal)] flex items-center justify-center flex-shrink-0 shadow-lg shadow-[var(--teal-soft)]">
-                <span class="text-lg text-white">🤖</span>
+            <div class="quest-avatar quest-avatar--ai">
+                <img src="/static/images/pfp.png" alt="AI" class="w-full h-full object-cover rounded-[0.85rem]">
             </div>
-            <div class="bg-white text-slate-700 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 p-4 sm:p-5 max-w-[90%] sm:max-w-[80%]">
+            <div class="bubble bubble--ai max-w-[90%] sm:max-w-[80%]">
                 <div id="ai-response-content" class="prose prose-emerald prose-sm max-w-none">
                    <div class="flex space-x-1.5 h-5 items-center">
                         <div class="w-2 h-2 bg-[var(--teal)] rounded-full animate-bounce"></div>
