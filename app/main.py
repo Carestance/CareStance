@@ -929,18 +929,22 @@ async def get_current_user(request: Request, db: AsyncSession = Depends(get_db))
     token = request.cookies.get("user_id")
     if not token: return None
     user_id = decode_access_token(token)
+    if not user_id and str(token).isdigit():
+        user_id = str(token)
     if not user_id: return None
     try:
-        # Try fetching from Appwrite first
-        user = get_user_by_id(user_id)
-        if user:
-             return user
-        
-        # Fallback to local SQL if not found in Appwrite
         uid = int(user_id)
+        # Always fetch from PostgreSQL first — it is the authoritative source for
+        # role, subscription, is_suspended, and other fields that Appwrite lacks.
         stmt = select(models.User).options(selectinload(models.User.assessment)).where(models.User.id == uid)
         result = await db.execute(stmt)
-        return result.scalars().first()
+        db_user = result.scalars().first()
+        if db_user:
+            return db_user
+
+        # Fallback: try Appwrite (legacy path — returns SimpleNamespace without role)
+        user = get_user_by_id(user_id)
+        return user
     except Exception: return None
 
 # Routes
