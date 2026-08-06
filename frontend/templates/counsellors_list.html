@@ -2,10 +2,120 @@
 
 {% block title %}Find a Counsellor{% endblock %}
 
+{% block extra_head %}
+<style>
+    /* ===================================================================
+       GLOBAL ANIMATED BACKGROUND — copied 1:1 from counsellor dashboard:
+       layered teal/turquoise wave SVGs + floating glass bubbles, fixed
+       behind everything via position:fixed + z-index:-1.
+       =================================================================== */
+    .site-bg {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: -1;
+        overflow: hidden;
+        background: linear-gradient(160deg, #d7f3f1 0%, #bfe9e6 28%, #9ddcd9 55%, #6fc4c2 78%, #4fb0ae 100%);
+    }
+
+    .site-bg-waves {
+        position: absolute;
+        inset: -10% -10% -10% -10%;
+        width: 120%;
+        height: 120%;
+    }
+
+    .site-bg-wave {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+    }
+
+    .site-bg-wave.wave-1 { animation: bgDrift1 38s ease-in-out infinite; opacity: 0.55; }
+    .site-bg-wave.wave-2 { animation: bgDrift2 46s ease-in-out infinite; opacity: 0.5; }
+    .site-bg-wave.wave-3 { animation: bgDrift3 54s ease-in-out infinite; opacity: 0.4; }
+
+    @keyframes bgDrift1 { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(-2%, 2%) scale(1.04); } }
+    @keyframes bgDrift2 { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(2.5%, -1.5%) scale(1.05); } }
+    @keyframes bgDrift3 { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(-1.5%, -2%) scale(1.03); } }
+
+    /* Floating glassy bubbles, like the reference image */
+    .site-bg-bubble {
+        position: absolute;
+        border-radius: 50%;
+        background: radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.85) 0%, rgba(102, 158, 167, 0.25) 35%, rgba(103, 211, 210, 0.383) 70%, transparent 100%);
+        filter: blur(0.5px);
+        will-change: transform;
+    }
+
+    .site-bg-bubble.b1 { width: 380px; height: 380px; top: -6%; right: 4%; animation: bubbleFloat1 24s ease-in-out infinite; }
+    .site-bg-bubble.b2 {
+        width: 220px; height: 220px; top: 18%; right: 22%;
+        background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.9) 0%, rgba(56, 189, 248, 0.55) 40%, rgba(13, 148, 136, 0.2) 75%, transparent 100%);
+        animation: bubbleFloat2 19s ease-in-out infinite;
+    }
+    .site-bg-bubble.b3 {
+        width: 120px; height: 120px; top: 38%; right: 6%;
+        background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.95) 0%, rgba(45, 212, 191, 0.6) 45%, transparent 100%);
+        animation: bubbleFloat3 16s ease-in-out infinite;
+    }
+    .site-bg-bubble.b4 { width: 150px; height: 150px; top: 58%; left: 4%; animation: bubbleFloat2 21s ease-in-out infinite reverse; }
+    .site-bg-bubble.b5 {
+        width: 90px; height: 90px; top: 80%; left: 18%;
+        background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.9) 0%, rgba(56, 189, 248, 0.5) 45%, transparent 100%);
+        animation: bubbleFloat1 17s ease-in-out infinite reverse;
+    }
+    .site-bg-bubble.b6 { width: 260px; height: 260px; bottom: -8%; right: 12%; animation: bubbleFloat3 27s ease-in-out infinite; }
+
+    @keyframes bubbleFloat1 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-18px, 22px); } }
+    @keyframes bubbleFloat2 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(16px, -20px); } }
+    @keyframes bubbleFloat3 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-14px, -16px); } }
+
+    @media (max-width: 768px) {
+        .site-bg-bubble.b1 { width: 220px; height: 220px; }
+        .site-bg-bubble.b2 { width: 130px; height: 130px; }
+        .site-bg-bubble.b6 { width: 160px; height: 160px; }
+    }
+
+    /* Wider, centered shell + stronger tint so the frosted panels read
+       clearly against the busier bubble background */
+    .cl-shell-wrap {
+        width: 80vw;
+        margin-left: auto;
+        margin-right: auto;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="bg-white/70 backdrop-blur-xl rounded-3xl overflow-hidden shadow-2xl border border-white/50">
+
+<!-- GLOBAL ANIMATED BACKGROUND: teal/turquoise waves + floating glass bubbles, fixed behind all content -->
+<div class="site-bg" aria-hidden="true">
+    <div class="site-bg-waves">
+        <svg class="site-bg-wave wave-1" viewBox="0 0 800 1400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0,1400 L0,300 C150,250 220,420 320,480 C440,560 520,380 620,460 C700,520 760,700 800,780 L800,1400 Z" fill="#cdeeec" />
+        </svg>
+        <svg class="site-bg-wave wave-2" viewBox="0 0 800 1400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0,1400 L0,520 C120,460 200,620 300,640 C420,665 500,520 610,560 C700,592 760,760 800,860 L800,1400 Z" fill="#9fdcd8" />
+        </svg>
+        <svg class="site-bg-wave wave-3" viewBox="0 0 800 1400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0,1400 L0,760 C140,720 240,860 360,880 C480,900 560,780 660,820 C730,848 780,950 800,1020 L800,1400 Z" fill="#6fc1bd" />
+        </svg>
+    </div>
+    <div class="site-bg-bubble b1"></div>
+    <div class="site-bg-bubble b2"></div>
+    <div class="site-bg-bubble b3"></div>
+    <div class="site-bg-bubble b4"></div>
+    <div class="site-bg-bubble b5"></div>
+    <div class="site-bg-bubble b6"></div>
+</div>
+
+<div class="cl-shell-wrap">
+<div class="bg-white/90 backdrop-blur-xl rounded-3xl overflow-hidden shadow-2xl border border-white/50">
     <div
-        class="px-6 py-6 sm:px-8 bg-[var(--teal-soft)]/50 border-b border-[var(--teal-light)] flex flex-col md:flex-row md:items-center justify-between gap-4">
+        class="px-6 py-6 sm:px-8 bg-[var(--teal-soft)]/75 border-b border-[var(--teal-light)] flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
             <h3 class="text-2xl leading-6 font-bold text-slate-900">Expert Counsellors</h3>
             <p class="mt-2 max-w-2xl text-sm text-slate-500">Connect with industry experts via 1-on-1 video calls.</p>
@@ -60,7 +170,7 @@
 
                 <div class="space-y-4 mb-8">
                     <div
-                        class="flex items-start gap-3 p-4 bg-slate-50/50 rounded-2xl border border-slate-100 group-hover:bg-white group-hover:border-[var(--teal-soft)] transition-colors">
+                        class="flex items-start gap-3 p-4 bg-slate-50/85 rounded-2xl border border-slate-100 group-hover:bg-white group-hover:border-[var(--teal-soft)] transition-colors">
                         <i class="fas fa-briefcase text-[var(--teal)] mt-1"></i>
                         <div>
                             <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Knowledge &
@@ -71,7 +181,7 @@
                     </div>
 
                     <div
-                        class="flex items-start gap-3 p-4 bg-slate-50/50 rounded-2xl border border-slate-100 group-hover:bg-white group-hover:border-[var(--teal-soft)] transition-colors">
+                        class="flex items-start gap-3 p-4 bg-slate-50/85 rounded-2xl border border-slate-100 group-hover:bg-white group-hover:border-[var(--teal-soft)] transition-colors">
                         <i class="fas fa-clock text-[var(--teal)] mt-1"></i>
                         <div>
                             <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Availability
@@ -135,6 +245,7 @@
         </div>
         {% endif %}
     </div>
+</div>
 </div>
 
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
