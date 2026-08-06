@@ -122,7 +122,7 @@
         position: absolute; top: 100%; left: 1.5rem; right: 1.5rem;
         margin-top: 0.75rem; padding: 1.5rem;
         flex-direction: column; gap: 0.75rem;
-        background: #fff; border-radius: 1.25rem;
+        background: #2d2b2b; border-radius: 1.25rem;
         border: 1px solid #e2e8f0;
         box-shadow: 0 10px 15px -3px rgba(0,0,0,0.15);
     }
@@ -227,17 +227,18 @@
 <style>
     :root {
         --content-top-gap: calc(40px + 156px + 30px);
-        --ink: #0b0b0f;
-        --paper: #fffdf9;
-        --pink: #ff3d81;
-        --pink-soft: rgba(255, 61, 129, 0.1);
-        --yellow: #ffcc33;
-        --yellow-soft: rgba(255, 204, 51, 0.18);
-        --green: #1fae62;
-        --green-soft: rgba(31, 174, 98, 0.12);
-        --text-secondary: #57575f;
-        --text-muted: #8a8a92;
-        --line: rgba(11, 11, 15, 0.08);
+        --ink: #f3f0fb;
+        --paper: #120c22;
+        --surface: #1e1735;
+        --pink: #c084fc;
+        --pink-soft: rgba(192, 132, 252, 0.14);
+        --yellow: #f5a623;
+        --yellow-soft: rgba(245, 166, 35, 0.18);
+        --green: #2dd4bf;
+        --green-soft: rgba(45, 212, 191, 0.14);
+        --text-secondary: #c7c0dd;
+        --text-muted: #8f87ab;
+        --line: rgba(255, 255, 255, 0.08);
     }
     @media (max-width: 768px) {
         :root { --content-top-gap: calc(20px + 64px + 30px); }
@@ -276,10 +277,10 @@
         align-items: center;
         gap: 0.7rem;
         padding: 0.55rem 1.25rem;
-        background: rgba(255,255,255,0.12);
+        background: rgba(0,0,0,0.08);
         backdrop-filter: blur(10px);
         -webkit-backdrop-filter: blur(10px);
-        border: 1px solid rgba(255,255,255,0.25);
+        border: 1px solid rgba(0,0,0,0.15);
         border-radius: 999px;
         font-size: 0.82rem;
         margin-bottom: 2rem;
@@ -293,7 +294,7 @@
         display: inline-flex;
         align-items: center;
         gap: 0.5rem;
-        color: var(--yellow);
+        color: var(--green);
         font-size: 0.72rem;
         font-weight: 800;
         letter-spacing: 0.2em;
@@ -312,7 +313,7 @@
     }
     @media (min-width: 768px) { .cr-title { font-size: 3.4rem; } }
     .cr-title .accent {
-        background: linear-gradient(120deg, var(--pink), var(--yellow));
+        background: linear-gradient(120deg, var(--pink), var(--green));
         -webkit-background-clip: text;
         background-clip: text;
         color: transparent;
@@ -328,11 +329,11 @@
     /* ---------- Rec cards ---------- */
     .cr-card {
         position: relative;
-        background: #fff;
+        background: var(--surface);
         border-radius: 1.75rem;
         padding: 1.75rem;
         border: 1.5px solid var(--line);
-        box-shadow: 0 1px 2px rgba(11,11,15,0.03);
+        box-shadow: 0 1px 2px rgba(0,0,0,0.2);
         transition: all 0.3s ease;
         overflow: hidden;
     }
@@ -348,7 +349,7 @@
     }
     .cr-card:hover {
         border-color: transparent;
-        box-shadow: 0 24px 48px -20px rgba(11,11,15,0.18);
+        box-shadow: 0 24px 48px -20px rgba(0,0,0,0.6);
         transform: translateY(-4px);
     }
     .cr-card:hover::before { transform: scaleX(1); }
@@ -371,27 +372,27 @@
         border-radius: 0.6rem;
         background: var(--pink-soft);
         color: var(--pink);
-        border: 1px solid rgba(255,61,129,0.2);
+        border: 1px solid rgba(192,132,252,0.25);
     }
-    .cr-chip.more { background: var(--ink); color: #fff; border-color: var(--ink); }
+    .cr-chip.more { background: #2a2145; color: var(--ink); border-color: #2a2145; }
 
     .cr-view-link { color: var(--ink); }
     .cr-card:hover .cr-view-link { color: var(--pink); }
 
     /* ---------- Empty state ---------- */
     .cr-empty {
-        background: #fff;
-        border: 1.5px dashed rgba(11,11,15,0.14);
+        background: rgba(255,255,255,0.04);
+        border: 1.5px dashed rgba(255,255,255,0.14);
     }
     .cr-empty-icon {
         background: linear-gradient(135deg, var(--pink-soft), var(--yellow-soft));
         color: var(--pink);
     }
     .cr-empty-cta {
-        background: var(--ink);
-        box-shadow: 0 14px 28px -10px rgba(11,11,15,0.4);
+        background: linear-gradient(120deg, var(--pink), var(--green));
+        box-shadow: 0 14px 28px -10px rgba(0,0,0,0.5);
     }
-    .cr-empty-cta:hover { background: var(--pink); }
+    .cr-empty-cta:hover { filter: brightness(1.1); }
 </style>
 {% endblock %}
 

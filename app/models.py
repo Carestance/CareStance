@@ -122,19 +122,6 @@ class Ticket(Base):
     timestamp = Column(DateTime(timezone=True), server_default=func.now(), index=True)
     user = relationship("User", back_populates="tickets")
 
-class CareerPath(Base):
-    __tablename__ = "career_paths"
-
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), index=True)
-    career_title = Column(String, index=True)
-    path_data = Column(JSON) # Detailed path steps
-    reminders = Column(JSON) # List of reminders/milestones
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    user = relationship("User", back_populates="career_paths")
-
-
 class MonthlyGrowthPlan(Base):
     """One saved, personalised growth path per student per calendar month."""
     __tablename__ = "monthly_growth_plans"
@@ -150,11 +137,10 @@ class MonthlyGrowthPlan(Base):
 
     user = relationship("User", back_populates="monthly_growth_plans")
 
-# Update User model to include messages, feedback, and career paths relationships
+# Update User model to include messages, feedback, and growth-plan relationships
 User.messages = relationship("ChatMessage", back_populates="user", order_by="ChatMessage.timestamp")
 User.feedbacks = relationship("Feedback", back_populates="user", order_by="Feedback.timestamp")
 User.tickets = relationship("Ticket", back_populates="user", order_by="Ticket.timestamp")
-User.career_paths = relationship("CareerPath", back_populates="user", order_by="CareerPath.created_at.desc()")
 User.monthly_growth_plans = relationship("MonthlyGrowthPlan", back_populates="user", order_by="MonthlyGrowthPlan.month_key.desc()")
 
 class CounsellorProfile(Base):

@@ -1,0 +1,205 @@
+warning: in the working copy of 'app/main.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/templates/dashboard.html', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/app/main.py b/app/main.py[m
+[1mindex 839e2cd..24ef34f 100644[m
+[1m--- a/app/main.py[m
+[1m+++ b/app/main.py[m
+[36m@@ -44,7 +44,6 @@[m [mfrom .email_utils import ([m
+ )[m
+ from itsdangerous import URLSafeTimedSerializer[m
+ from .data.career_keywords import career_keywords[m
+[31m-from .utils.resource_aggregator import ResourceAggregator[m
+ from .services import simulation_service[m
+ from .services import assessment_engine[m
+ [m
+[36m@@ -125,10 +124,10 @@[m [mSUBSCRIPTION_PLANS = {[m
+     "critical": {[m
+         "name": "Critical",[m
+         "amount": 200,[m
+[31m-        "tagline": "Monthly report and roadmap plan",[m
+[32m+[m[32m        "tagline": "Monthly report and growth plan",[m
+         "features": [[m
+             "10-15 page detailed assessment report",[m
+[31m-            "Personalized roadmap",[m
+[32m+[m[32m            "Personalized growth plan",[m
+             "Curated learning resources",[m
+             "Progress tracking",[m
+             "College recommendation",[m
+[36m@@ -2253,12 +2252,12 @@[m [mdef build_detailed_report_sections(user, result):[m
+ [m
+     def para_list(items):[m
+         clean = [str(item).strip() for item in items if str(item).strip()][m
+[31m-        return clean or ["Keep validating this area through roadmap tasks, simulations, and counsellor review."][m
+[32m+[m[32m        return clean or ["Keep validating this area through monthly tasks, simulations, and counsellor review."][m
+ [m
+     strengths = para_list(result.stream_pros or report.get("strengths") or [[m
+         f"Shows alignment with {archetype} style decisions.",[m
+         "Can compare options using structured evidence instead of random guessing.",[m
+[31m-        "Has enough assessment signal to start a guided roadmap."[m
+[32m+[m[32m        "Has enough assessment signal to start a guided growth plan."[m
+     ])[m
+     growth = para_list(result.stream_cons or report.get("growth_areas") or [[m
+         "Needs practical proof through projects, tasks, and short assessments.",[m
+[36m@@ -2281,7 +2280,7 @@[m [mdef build_detailed_report_sections(user, result):[m
+         ]),[m
+         ("Assessment Summary", [[m
+             result.final_analysis or result.reasoning or "The assessment combines interest, decision style, scenario response, and stream fit to identify a practical direction.",[m
+[31m-            "The result should be used as a planning compass, then validated through roadmap tasks and simulations."[m
+[32m+[m[32m            "The result should be used as a planning compass, then validated through monthly tasks and simulations."[m
+         ]),[m
+         ("Recommended Career Direction", [[m
+             f"The strongest current recommendation is {primary_path}.",[m
+[36m@@ -2295,7 +2294,7 @@[m [mdef build_detailed_report_sections(user, result):[m
+         ]),[m
+         ("Strengths to Build On", strengths),[m
+         ("Growth Areas", growth),[m
+[31m-        ("Roadmap Guidance", [[m
+[32m+[m[32m        ("Growth Plan Guidance", [[m
+             "Use milestones as real checkpoints, not fictional tasks.",[m
+             "Each milestone should include a deliverable, timeline, resources, and a small MCQ-based check.",[m
+             "A milestone is complete only when the student can explain what was done and answer the step check correctly."[m
+[36m@@ -2307,16 +2306,16 @@[m [mdef build_detailed_report_sections(user, result):[m
+         ]),[m
+         ("College and Entrance Planning", [[m
+             "Shortlist colleges by course fit, eligibility, entrance route, location, fees, placement signal, and credibility.",[m
+[31m-            "Track application windows and exam dates separately from the career roadmap.",[m
+[32m+[m[32m            "Track application windows and exam dates separately from the monthly growth plan.",[m
+             "Use college recommendations as a starting list, then verify each college from the official website."[m
+         ]),[m
+         ("Tracking and AI Review", [[m
+[31m-            "After each roadmap step, the student should discuss evidence with the AI tracker.",[m
+[32m+[m[32m            "After each growth task, the student should discuss evidence with the AI tracker.",[m
+             "For the Customised plan, a weekly AI conversation keeps the plan current and catches blockers early.",[m
+             "Progress should depend on completed work, assessment checks, and follow-up reflection."[m
+         ]),[m
+         ("Next 30 Days", [[m
+[31m-            "Week 1: choose the highest-confidence career path and open its roadmap.",[m
+[32m+[m[32m            "Week 1: choose the highest-confidence career direction and set a growth goal.",[m
+             "Week 2: complete the first milestone and its MCQ check.",[m
+             "Week 3: collect resources and verify college or course requirements.",[m
+             "Week 4: review progress with CareerBuddy or a counsellor and adjust the next milestone."[m
+[36m@@ -4322,7 +4321,6 @@[m [masync def reject_appointment(appt_id: int, request: Request, background_tasks: B[m
+ [m
+     return RedirectResponse(url="/dashboard?message=Appointment+rejected", status_code=status.HTTP_302_FOUND)[m
+ [m
+[31m-@app.post("/career/roadmap/delete/{path_id}")[m
+ async def delete_roadmap(path_id: int, request: Request, db: AsyncSession = Depends(get_db)):[m
+     user = await get_current_user(request, db)[m
+     if not user:[m
+[36m@@ -6377,7 +6375,6 @@[m [masync def submit_ticket([m
+ class CareerPathRequest(BaseModel):[m
+     career_title: str[m
+ [m
+[31m-@app.post("/assessment/generate_path")[m
+ async def generate_career_path(request: Request, path_req: CareerPathRequest, db: AsyncSession = Depends(get_db)):[m
+     user = await get_current_user(request, db)[m
+     if not user:[m
+[36m@@ -6761,7 +6758,6 @@[m [mDo not create direct URLs. For every course/resource, provide only a real resour[m
+         print(f"Career Path Generation Error: {e}")[m
+         raise HTTPException(status_code=500, detail=f"Failed to generate career path: {str(e)}")[m
+ [m
+[31m-@app.post("/career/roadmap/{path_id}/step/{step_index}/toggle")[m
+ async def toggle_step_completion(path_id: int, step_index: int, request: Request, db: AsyncSession = Depends(get_db)):[m
+     user = await get_current_user(request, db)[m
+     if not user:[m
+[36m@@ -6821,7 +6817,6 @@[m [masync def toggle_step_completion(path_id: int, step_index: int, request: Request[m
+         "progress": data.get("progress_percentage", 0) if isinstance(data, dict) else 0[m
+     }[m
+ [m
+[31m-@app.get("/career/roadmaps", response_class=HTMLResponse)[m
+ async def view_roadmaps(request: Request, db: AsyncSession = Depends(get_db)):[m
+     user = await get_current_user(request, db)[m
+     if not user:[m
+[36m@@ -6932,7 +6927,6 @@[m [mdef evaluate_step_mcq(step: dict, selected_index: int) -> dict:[m
+     step["mcq_result"] = result[m
+     return result[m
+ [m
+[31m-@app.get("/career/roadmap/{path_id}/step/{step_index}/chat", response_class=HTMLResponse)[m
+ async def roadmap_step_chat_page(path_id: int, step_index: int, request: Request, db: AsyncSession = Depends(get_db)):[m
+     user = await get_current_user(request, db)[m
+     if not user:[m
+[36m@@ -6967,7 +6961,6 @@[m [masync def roadmap_step_chat_page(path_id: int, step_index: int, request: Request[m
+         "step": step[m
+     })[m
+ [m
+[31m-@app.post("/career/roadmap/{path_id}/step/{step_index}/chat/message")[m
+ async def roadmap_step_chat_message(path_id: int, step_index: int, request: Request, chat_req: RoadmapStepChatRequest, db: AsyncSession = Depends(get_db)):[m
+     user = await get_current_user(request, db)[m
+     if not user:[m
+[36m@@ -7062,7 +7055,6 @@[m [masync def roadmap_step_chat_message(path_id: int, step_index: int, request: Requ[m
+         "recommendation_ready": recommendation_ready[m
+     }[m
+ [m
+[31m-@app.post("/career/roadmap/{path_id}/step/{step_index}/chat/finalize")[m
+ async def roadmap_step_chat_finalize(path_id: int, step_index: int, request: Request, db: AsyncSession = Depends(get_db)):[m
+     user = await get_current_user(request, db)[m
+     if not user:[m
+[36m@@ -7124,7 +7116,6 @@[m [masync def roadmap_step_chat_finalize(path_id: int, step_index: int, request: Req[m
+         [m
+     return {"redirect": f"/career/roadmap/{path_id}"}[m
+ [m
+[31m-@app.get("/career/roadmap/{path_id}", response_class=HTMLResponse)[m
+ async def view_roadmap_detail(path_id: int, request: Request, db: AsyncSession = Depends(get_db)):[m
+     user = await get_current_user(request, db)[m
+     if not user:[m
+[36m@@ -7155,7 +7146,6 @@[m [masync def view_roadmap_detail(path_id: int, request: Request, db: AsyncSession =[m
+ [m
+ [m
+ [m
+[31m-@app.get("/career/roadmap/{path_id}/resources", response_class=HTMLResponse)[m
+ async def view_roadmap_resources(path_id: int, request: Request, db: AsyncSession = Depends(get_db)):[m
+     user = await get_current_user(request, db)[m
+     if not user:[m
+[1mdiff --git a/frontend/templates/dashboard.html b/frontend/templates/dashboard.html[m
+[1mindex 80a18f2..ced3f85 100644[m
+[1m--- a/frontend/templates/dashboard.html[m
+[1m+++ b/frontend/templates/dashboard.html[m
+[36m@@ -280,10 +280,10 @@[m
+                 </div>[m
+                 <div class="db-card p-5 text-center">[m
+                     <div class="w-12 h-12 mx-auto bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center text-xl mb-3">[m
+[31m-                        <i class="fas fa-route"></i>[m
+[32m+[m[32m                        <i class="fas fa-compass"></i>[m
+                     </div>[m
+[31m-                    <h4 class="font-bold text-slate-800 text-sm">Career Roadmaps</h4>[m
+[31m-                    <p class="text-slate-400 text-xs mt-1">Step-by-step personalised guidance</p>[m
+[32m+[m[32m                    <h4 class="font-bold text-slate-800 text-sm">Student Growth Map</h4>[m
+[32m+[m[32m                    <p class="text-slate-400 text-xs mt-1">Weekly goals and personalised guidance</p>[m
+                 </div>[m
+                 <div class="db-card p-5 text-center">[m
+                     <div class="w-12 h-12 mx-auto bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center text-xl mb-3">[m
+[36m@@ -321,12 +321,6 @@[m
+ [m
+             <!-- Tools Grid -->[m
+             <div class="grid grid-cols-2 gap-4">[m
+[31m-                <a href="/career/roadmaps" class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:border-[var(--teal)] hover:-translate-y-0.5 transition-all text-center">[m
+[31m-                    <div class="w-10 h-10 mx-auto bg-[var(--teal-soft)] text-[var(--navy)] rounded-full flex items-center justify-center mb-2">[m
+[31m-                        <i class="fas fa-route"></i>[m
+[31m-                    </div>[m
+[31m-                    <span class="text-xs font-bold text-slate-700 block">My Roadmaps</span>[m
+[31m-                </a>[m
+                 <a href="/my-growth-profile" class="bg-white p-4 rounded-2xl border border-teal-100 shadow-sm hover:border-teal-400 hover:-translate-y-0.5 transition-all text-center">[m
+                     <div class="w-10 h-10 mx-auto bg-teal-50 text-teal-700 rounded-full flex items-center justify-center mb-2">[m
+                         <i class="fas fa-compass"></i>[m
+[36m@@ -404,7 +398,7 @@[m
+                     <i class="fas fa-crown"></i>[m
+                 </div>[m
+                 <h4 class="font-black text-slate-900 text-sm">Guidance Plans</h4>[m
+[31m-                <p class="text-xs text-slate-500 mt-1">Reports, roadmap, resources.</p>[m
+[32m+[m[32m                <p class="text-xs text-slate-500 mt-1">Reports, growth plan, resources.</p>[m
+             </a>[m
+         </div>[m
+ [m
+[36m@@ -788,12 +782,6 @@[m
+ [m
+             <!-- Simplified Tools Grid -->[m
+             <div class="grid grid-cols-2 gap-4">[m
+[31m-                <a href="/career/roadmaps" class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:border-[var(--teal)] hover:-translate-y-0.5 transition-all text-center">[m
+[31m-                    <div class="w-10 h-10 mx-auto bg-[var(--teal-soft)] text-[var(--navy)] rounded-full flex items-center justify-center mb-2">[m
+[31m-                        <i class="fas fa-route"></i>[m
+[31m-                    </div>[m
+[31m-                    <span class="text-xs font-bold text-slate-700 block">My Roadmaps</span>[m
+[31m-                </a>[m
+                 <a href="/my-growth-profile" class="bg-white p-4 rounded-2xl border border-teal-100 shadow-sm hover:border-teal-400 hover:-translate-y-0.5 transition-all text-center">[m
+                     <div class="w-10 h-10 mx-auto bg-teal-50 text-teal-700 rounded-full flex items-center justify-center mb-2">[m
+                         <i class="fas fa-compass"></i>[m

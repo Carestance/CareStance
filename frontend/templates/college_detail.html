@@ -227,17 +227,18 @@
 <style>
     :root {
         --content-top-gap: calc(40px + 156px + 30px);
-        --ink: #0b0b0f;
-        --paper: #fffdf9;
-        --pink: #ff3d81;
-        --pink-soft: rgba(255, 61, 129, 0.1);
-        --yellow: #ffcc33;
-        --yellow-soft: rgba(255, 204, 51, 0.18);
-        --green: #1fae62;
-        --green-soft: rgba(31, 174, 98, 0.12);
-        --text-secondary: #57575f;
-        --text-muted: #8a8a92;
-        --line: rgba(11, 11, 15, 0.08);
+        --ink: #f3f0fb;
+        --paper: #120c22;
+        --surface: #1e1735;
+        --pink: #c084fc;
+        --pink-soft: rgba(192, 132, 252, 0.14);
+        --yellow: #f5a623;
+        --yellow-soft: rgba(245, 166, 35, 0.18);
+        --green: #2dd4bf;
+        --green-soft: rgba(45, 212, 191, 0.14);
+        --text-secondary: #c7c0dd;
+        --text-muted: #8f87ab;
+        --line: rgba(255, 255, 255, 0.08);
     }
     @media (max-width: 768px) {
         :root { --content-top-gap: calc(20px + 64px + 30px); }
@@ -312,7 +313,7 @@
     }
     @media (min-width: 768px) { .cd-title { font-size: 3.1rem; } }
     .cd-title .accent {
-        background: linear-gradient(120deg, var(--pink), var(--yellow));
+        background: linear-gradient(120deg, var(--pink), var(--green));
         -webkit-background-clip: text;
         background-clip: text;
         color: transparent;
@@ -327,15 +328,15 @@
 
     /* ---------- College cards ---------- */
     .cd-card {
-        background: #fff;
+        background: var(--surface);
         border-radius: 2rem;
         border: 1.5px solid var(--line);
-        box-shadow: 0 1px 2px rgba(11,11,15,0.03);
+        box-shadow: 0 1px 2px rgba(0,0,0,0.2);
         overflow: hidden;
         transition: all 0.3s ease;
     }
     .cd-card:hover {
-        box-shadow: 0 30px 60px -24px rgba(11,11,15,0.2);
+        box-shadow: 0 30px 60px -24px rgba(0,0,0,0.6);
         border-color: transparent;
     }
 
@@ -345,10 +346,10 @@
         overflow: hidden;
     }
     .cd-card-head.rank-1 { background: linear-gradient(115deg, var(--pink), #ff7a3d); }
-    .cd-card-head.rank-2 { background: linear-gradient(115deg, var(--ink), #33333d); }
+    .cd-card-head.rank-2 { background: linear-gradient(115deg, #241a3d, #33333d); }
     .cd-card-head.rank-3 { background: linear-gradient(115deg, var(--yellow), #ff9d3d); }
     .cd-card-head.rank-4 { background: linear-gradient(115deg, var(--green), #0f7a44); }
-    .cd-card-head.rank-other { background: linear-gradient(115deg, var(--ink), var(--pink)); }
+    .cd-card-head.rank-other { background: linear-gradient(115deg, #241a3d, var(--pink)); }
 
     .cd-rank-badge {
         background: rgba(255,255,255,0.22);
@@ -371,7 +372,7 @@
     /* Admission criteria */
     .cd-admission {
         background: var(--pink-soft);
-        border: 1px solid rgba(255,61,129,0.18);
+        border: 1px solid rgba(192,132,252,0.22);
         border-radius: 1.5rem;
     }
     .cd-admission h4 { color: var(--pink); }
@@ -379,26 +380,26 @@
     /* Courses offered */
     .cd-courses {
         background: var(--green-soft);
-        border: 1px solid rgba(31,174,98,0.18);
+        border: 1px solid rgba(45,212,191,0.22);
         border-radius: 1.5rem;
     }
     .cd-courses h4 { color: var(--green); }
     .cd-course-chip {
-        background: #fff;
+        background: var(--surface);
         color: var(--green);
-        border: 1px solid rgba(31,174,98,0.25);
+        border: 1px solid rgba(45,212,191,0.3);
     }
 
     /* Top recruiters */
     .cd-recruiters {
         background: var(--yellow-soft);
-        border: 1px solid rgba(255,204,51,0.3);
+        border: 1px solid rgba(245,166,35,0.3);
         border-radius: 1.25rem;
     }
     .cd-recruiter-chip {
-        background: #fff;
+        background: var(--surface);
         color: var(--ink);
-        border: 1px solid rgba(11,11,15,0.1);
+        border: 1px solid rgba(255,255,255,0.12);
     }
 
     .cd-website-link { color: var(--ink); }
@@ -406,7 +407,7 @@
 
     /* ---------- Preparation Tips ---------- */
     .cd-tips {
-        background: linear-gradient(160deg, var(--ink), #1c1c22);
+        background: linear-gradient(160deg, #1c1530, #120c22);
         border-radius: 2rem;
         color: #fff;
         position: relative;
@@ -432,22 +433,22 @@
 
     /* ---------- Action bar ---------- */
     .cd-action-bar {
-        background: #fff;
+        background: var(--surface);
         border: 1.5px solid var(--line);
         border-radius: 2rem;
-        box-shadow: 0 20px 50px -30px rgba(11,11,15,0.25);
+        box-shadow: 0 20px 50px -30px rgba(0,0,0,0.6);
     }
     .cd-btn-outline {
-        border: 2px solid rgba(11,11,15,0.12);
+        border: 2px solid rgba(255,255,255,0.14);
         color: var(--ink);
     }
     .cd-btn-outline:hover { background: var(--yellow-soft); border-color: var(--yellow); }
     .cd-btn-primary {
-        background: var(--ink);
+        background: linear-gradient(120deg, var(--pink), var(--green));
         color: #fff;
-        box-shadow: 0 14px 28px -10px rgba(11,11,15,0.4);
+        box-shadow: 0 14px 28px -10px rgba(0,0,0,0.5);
     }
-    .cd-btn-primary:hover { background: var(--pink); box-shadow: 0 14px 28px -10px rgba(255,61,129,0.5); }
+    .cd-btn-primary:hover { filter: brightness(1.1); box-shadow: 0 14px 28px -10px rgba(192,132,252,0.5); }
 </style>
 {% endblock %}
 
@@ -609,8 +610,8 @@
         <!-- Action Bar -->
         <div class="cd-action-bar flex flex-col md:flex-row justify-between items-center p-8 gap-6">
             <div class="text-center md:text-left">
-                <p class="font-black text-xl mb-1" style="color: var(--ink);">Want deeper guidance?</p>
-                <p class="text-sm" style="color: var(--text-secondary);">Talk to an expert counsellor or explore your career roadmap.</p>
+                <p class="text-slate-900 font-black text-xl mb-1">Want deeper guidance?</p>
+                <p class="text-slate-500 text-sm">Talk to an expert counsellor or explore your monthly growth plan.</p>
             </div>
             <div class="flex gap-4">
                 <a href="/career/colleges"
