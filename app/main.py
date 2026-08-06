@@ -30,8 +30,6 @@ import hashlib
 import hmac
 from html import escape
 
-def sync_assessment_to_appwrite(user_id, result):
-    pass  # Appwrite sync disabled — local DB only
 
 from urllib.parse import urlparse
 from . import models
@@ -933,18 +931,17 @@ async def get_current_user(request: Request, db: AsyncSession = Depends(get_db))
         user_id = str(token)
     if not user_id: return None
     try:
+        # Try Appwrite first per user request
+        appwrite_user = get_user_by_id(user_id)
+        if appwrite_user:
+            return appwrite_user
+
         uid = int(user_id)
-        # Always fetch from PostgreSQL first — it is the authoritative source for
-        # role, subscription, is_suspended, and other fields that Appwrite lacks.
         stmt = select(models.User).options(selectinload(models.User.assessment)).where(models.User.id == uid)
         result = await db.execute(stmt)
         db_user = result.scalars().first()
         if db_user:
             return db_user
-
-        # Fallback: try Appwrite (legacy path — returns SimpleNamespace without role)
-        user = get_user_by_id(user_id)
-        return user
     except Exception: return None
 
 # Routes
@@ -1170,8 +1167,8 @@ async def login(
     if not appwrite_user and (not user or not verify_password(password, user.hashed_password)):
          return templates.TemplateResponse(request=request, name="login.html", context={"error": "Invalid credentials"})
     
-    # Use local user if present; Appwrite user only if no local record exists.
-    effective_user = user if user else appwrite_user
+    # Use Appwrite user if present; local user only if no Appwrite record exists.
+    effective_user = appwrite_user if appwrite_user else user
     effective_user_id = None
     if user:
         effective_user_id = user.id
@@ -2257,7 +2254,13 @@ async def assessment_result(request: Request, db: AsyncSession = Depends(get_db)
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     
-    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+    try:
+        from .appwrite_helper import get_assessment_by_user_id
+        result = get_assessment_by_user_id(user.id)
+        if not result:
+            result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+    except Exception:
+        result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
     if not result:
         return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
 
@@ -2638,8 +2641,14 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
             import traceback
             return HTMLResponse(content=f"Template Error: {e}<br><pre>{traceback.format_exc()}</pre>", status_code=500)
     
-    # Fetch assessment result to show on dashboard
-    assessment = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+    # Fetch assessment result to show on dashboard (prefer Appwrite per user request)
+    try:
+        from .appwrite_helper import get_assessment_by_user_id
+        assessment = get_assessment_by_user_id(user.id)
+        if not assessment:
+            assessment = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+    except Exception:
+        assessment = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
     
     # Ensure confidence is populated if assessment exists but analysis is partial
     if assessment and (not assessment.confidence or assessment.confidence < 0.81):
