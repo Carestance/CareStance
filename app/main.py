@@ -44,7 +44,6 @@ from .email_utils import (
 )
 from itsdangerous import URLSafeTimedSerializer
 from .data.career_keywords import career_keywords
-from .utils.resource_aggregator import ResourceAggregator
 from .services import simulation_service
 from .services import assessment_engine
 
@@ -140,10 +139,10 @@ SUBSCRIPTION_PLANS = {
     "critical": {
         "name": "Critical",
         "amount": 200,
-        "tagline": "Monthly report and roadmap plan",
+        "tagline": "Monthly report and growth plan",
         "features": [
             "10-15 page detailed assessment report",
-            "Personalized roadmap",
+            "Personalized growth plan",
             "Curated learning resources",
             "Progress tracking",
             "College recommendation",
@@ -2307,12 +2306,12 @@ def build_detailed_report_sections(user, result):
 
     def para_list(items):
         clean = [str(item).strip() for item in items if str(item).strip()]
-        return clean or ["Keep validating this area through roadmap tasks, simulations, and counsellor review."]
+        return clean or ["Keep validating this area through monthly tasks, simulations, and counsellor review."]
 
     strengths = para_list(result.stream_pros or report.get("strengths") or [
         f"Shows alignment with {archetype} style decisions.",
         "Can compare options using structured evidence instead of random guessing.",
-        "Has enough assessment signal to start a guided roadmap."
+        "Has enough assessment signal to start a guided growth plan."
     ])
     growth = para_list(result.stream_cons or report.get("growth_areas") or [
         "Needs practical proof through projects, tasks, and short assessments.",
@@ -2335,7 +2334,7 @@ def build_detailed_report_sections(user, result):
         ]),
         ("Assessment Summary", [
             result.final_analysis or result.reasoning or "The assessment combines interest, decision style, scenario response, and stream fit to identify a practical direction.",
-            "The result should be used as a planning compass, then validated through roadmap tasks and simulations."
+            "The result should be used as a planning compass, then validated through monthly tasks and simulations."
         ]),
         ("Recommended Career Direction", [
             f"The strongest current recommendation is {primary_path}.",
@@ -2349,7 +2348,7 @@ def build_detailed_report_sections(user, result):
         ]),
         ("Strengths to Build On", strengths),
         ("Growth Areas", growth),
-        ("Roadmap Guidance", [
+        ("Growth Plan Guidance", [
             "Use milestones as real checkpoints, not fictional tasks.",
             "Each milestone should include a deliverable, timeline, resources, and a small MCQ-based check.",
             "A milestone is complete only when the student can explain what was done and answer the step check correctly."
@@ -2361,16 +2360,16 @@ def build_detailed_report_sections(user, result):
         ]),
         ("College and Entrance Planning", [
             "Shortlist colleges by course fit, eligibility, entrance route, location, fees, placement signal, and credibility.",
-            "Track application windows and exam dates separately from the career roadmap.",
+            "Track application windows and exam dates separately from the monthly growth plan.",
             "Use college recommendations as a starting list, then verify each college from the official website."
         ]),
         ("Tracking and AI Review", [
-            "After each roadmap step, the student should discuss evidence with the AI tracker.",
+            "After each growth task, the student should discuss evidence with the AI tracker.",
             "For the Customised plan, a weekly AI conversation keeps the plan current and catches blockers early.",
             "Progress should depend on completed work, assessment checks, and follow-up reflection."
         ]),
         ("Next 30 Days", [
-            "Week 1: choose the highest-confidence career path and open its roadmap.",
+            "Week 1: choose the highest-confidence career direction and set a growth goal.",
             "Week 2: complete the first milestone and its MCQ check.",
             "Week 3: collect resources and verify college or course requirements.",
             "Week 4: review progress with CareerBuddy or a counsellor and adjust the next milestone."
@@ -4443,7 +4442,6 @@ async def reject_appointment(appt_id: int, request: Request, background_tasks: B
 
     return RedirectResponse(url="/dashboard?message=Appointment+rejected", status_code=status.HTTP_302_FOUND)
 
-@app.post("/career/roadmap/delete/{path_id}")
 async def delete_roadmap(path_id: int, request: Request, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
     if not user:
@@ -6970,7 +6968,6 @@ async def submit_ticket(
 class CareerPathRequest(BaseModel):
     career_title: str
 
-@app.post("/assessment/generate_path")
 async def generate_career_path(request: Request, path_req: CareerPathRequest, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
     if not user:
@@ -7354,7 +7351,6 @@ Do not create direct URLs. For every course/resource, provide only a real resour
         print(f"Career Path Generation Error: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to generate career path: {str(e)}")
 
-@app.post("/career/roadmap/{path_id}/step/{step_index}/toggle")
 async def toggle_step_completion(path_id: int, step_index: int, request: Request, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
     if not user:
@@ -7414,7 +7410,6 @@ async def toggle_step_completion(path_id: int, step_index: int, request: Request
         "progress": data.get("progress_percentage", 0) if isinstance(data, dict) else 0
     }
 
-@app.get("/career/roadmaps", response_class=HTMLResponse)
 async def view_roadmaps(request: Request, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
     if not user:
@@ -7495,7 +7490,6 @@ def evaluate_step_mcq(step: dict, selected_index: int) -> dict:
     step["mcq_result"] = result
     return result
 
-@app.get("/career/roadmap/{path_id}/step/{step_index}/chat", response_class=HTMLResponse)
 async def roadmap_step_chat_page(path_id: int, step_index: int, request: Request, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
     if not user:
@@ -7530,7 +7524,6 @@ async def roadmap_step_chat_page(path_id: int, step_index: int, request: Request
         "step": step
     })
 
-@app.post("/career/roadmap/{path_id}/step/{step_index}/chat/message")
 async def roadmap_step_chat_message(path_id: int, step_index: int, request: Request, chat_req: RoadmapStepChatRequest, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
     if not user:
@@ -7625,7 +7618,6 @@ async def roadmap_step_chat_message(path_id: int, step_index: int, request: Requ
         "recommendation_ready": recommendation_ready
     }
 
-@app.post("/career/roadmap/{path_id}/step/{step_index}/chat/finalize")
 async def roadmap_step_chat_finalize(path_id: int, step_index: int, request: Request, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
     if not user:
@@ -7687,7 +7679,6 @@ async def roadmap_step_chat_finalize(path_id: int, step_index: int, request: Req
         
     return {"redirect": f"/career/roadmap/{path_id}"}
 
-@app.get("/career/roadmap/{path_id}", response_class=HTMLResponse)
 async def view_roadmap_detail(path_id: int, request: Request, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
     if not user:
@@ -7718,7 +7709,6 @@ async def view_roadmap_detail(path_id: int, request: Request, db: AsyncSession =
 
 
 
-@app.get("/career/roadmap/{path_id}/resources", response_class=HTMLResponse)
 async def view_roadmap_resources(path_id: int, request: Request, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
     if not user:

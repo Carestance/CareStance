@@ -680,9 +680,30 @@
         }
     }" class="py-2">
 
-        <!-- Mascot Scene Banner (single full-bleed background, 3 slides via step) -->
-        <div class="mascot-scene-card">
-            <div class="mascot-scene-inner">
+            <!-- Quick Feature Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="db-card p-5 text-center">
+                    <div class="w-12 h-12 mx-auto bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center text-xl mb-3">
+                        <i class="fas fa-brain"></i>
+                    </div>
+                    <h4 class="font-bold text-slate-800 text-sm">AI-Powered Analysis</h4>
+                    <p class="text-slate-400 text-xs mt-1">Multi-phase psychometric assessment</p>
+                </div>
+                <div class="db-card p-5 text-center">
+                    <div class="w-12 h-12 mx-auto bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center text-xl mb-3">
+                        <i class="fas fa-compass"></i>
+                    </div>
+                    <h4 class="font-bold text-slate-800 text-sm">Student Growth Map</h4>
+                    <p class="text-slate-400 text-xs mt-1">Weekly goals and personalised guidance</p>
+                </div>
+                <div class="db-card p-5 text-center">
+                    <div class="w-12 h-12 mx-auto bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center text-xl mb-3">
+                        <i class="fas fa-video"></i>
+                    </div>
+                    <h4 class="font-bold text-slate-800 text-sm">Expert Counsellors</h4>
+                    <p class="text-slate-400 text-xs mt-1">Book 1-on-1 guidance sessions</p>
+                </div>
+            </div>
 
                 <img src="/static/images/G1.png" alt="Careo Mascot" class="mascot-scene-char mascot-container">
 
@@ -695,12 +716,6 @@
 
             <!-- Tools Grid -->
             <div class="grid grid-cols-2 gap-4">
-                <a href="/career/roadmaps" class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:border-[var(--teal)] hover:-translate-y-0.5 transition-all text-center">
-                    <div class="w-10 h-10 mx-auto bg-[var(--teal-soft)] text-[var(--navy)] rounded-full flex items-center justify-center mb-2">
-                        <i class="fas fa-route"></i>
-                    </div>
-                    <span class="text-xs font-bold text-slate-700 block">My Roadmaps</span>
-                </a>
                 <a href="/my-growth-profile" class="bg-white p-4 rounded-2xl border border-teal-100 shadow-sm hover:border-teal-400 hover:-translate-y-0.5 transition-all text-center">
                     <div class="w-10 h-10 mx-auto bg-teal-50 text-teal-700 rounded-full flex items-center justify-center mb-2">
                         <i class="fas fa-compass"></i>
@@ -751,68 +766,36 @@
                                         Back
                                     </button>
 
-                                    <button x-show="step < 3" @click="nextStep()" class="px-6 py-2.5 btn-teal-primary text-white text-sm font-bold rounded-xl shadow-md transition-all">
-                                        Next <i class="fas fa-arrow-right ml-1"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </template>
-
-                    <!-- Slide 3: action panel (same banner, no separate box below) -->
-                    <template x-if="step === 3">
-                        <div x-transition:enter="transition ease-out duration-500" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0">
-
-                            <!-- CASE A: NEW USER (No Assessment started yet) -->
-                            <template x-if="!isReturning">
-                                <div class="flex flex-col gap-4">
-                                    <div class="flex items-center gap-3">
-                                        <div class="h-12 w-12 bg-[var(--teal-soft)] text-[var(--teal)] rounded-2xl flex items-center justify-center text-2xl flex-shrink-0">
-                                            <i class="fas fa-rocket"></i>
-                                        </div>
-                                        <div>
-                                            <h4 class="text-xl font-bold text-slate-900">Start Your Assessment</h4>
-                                            <p class="text-slate-500 text-sm leading-relaxed">Discover your ideal career path and strengths.</p>
-                                        </div>
-                                    </div>
-
-                                    <div class="flex items-center justify-between">
-                                        <button @click="step = 1" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors">
-                                            <i class="fas fa-arrow-left mr-1"></i> Back
-                                        </button>
-                                        <a href="/assessment/start?class_level=12th" class="px-6 py-3 bg-[var(--navy)] hover:bg-[var(--teal)] text-white text-center font-bold rounded-2xl shadow-lg shadow-[var(--teal-soft)] transition-all">
-                                            Start Assessment <i class="fas fa-arrow-right ml-1.5"></i>
-                                        </a>
-                                    </div>
-                                </div>
-                            </template>
-
-                            <!-- CASE B: RETURNING USER (Assessment in progress) -->
-                            <template x-if="isReturning">
-                                <div class="flex flex-col gap-4">
-                                    <div class="flex items-center gap-3">
-                                        <div class="h-12 w-12 bg-[var(--teal-soft)] text-[var(--teal)] rounded-2xl flex items-center justify-center text-2xl flex-shrink-0">
-                                            <i class="fas fa-play"></i>
-                                        </div>
-                                        <div>
-                                            <h4 class="text-xl font-bold text-slate-900">Your Assessment is Waiting</h4>
-                                            <p class="text-slate-500 text-sm leading-relaxed">Let's continue where you left off and finish discovering your best-suited careers.</p>
-                                        </div>
-                                    </div>
-
-                                    <div class="flex flex-col sm:flex-row items-center gap-3">
-                                        <button @click="step = 1" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors sm:mr-auto">
-                                            <i class="fas fa-arrow-left mr-1"></i> Back
-                                        </button>
-                                        <a href="/assessment" class="w-full sm:w-auto px-6 py-3 bg-[var(--navy)] hover:bg-[var(--teal)] text-white text-center font-bold rounded-2xl shadow-lg shadow-[var(--teal-soft)] transition-all">
-                                            Continue Assessment <i class="fas fa-arrow-right ml-1"></i>
-                                        </a>
-                                        <a href="/assessment/reset" onclick="return confirm('Are you sure you want to start fresh? This will clear your current assessment progress.')" class="w-full sm:w-auto px-6 py-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 text-center font-bold rounded-2xl transition-all">
-                                            Start Fresh / Reset
-                                        </a>
-                                    </div>
-                                </div>
-                            </template>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-10">
+            <a href="/assessment/start?class_level=12th" class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:border-[var(--teal)] hover:-translate-y-0.5 transition-all">
+                <div class="w-11 h-11 bg-[var(--teal-soft)] text-[var(--teal)] rounded-xl flex items-center justify-center mb-3">
+                    <i class="fas fa-clipboard-check"></i>
+                </div>
+                <h4 class="font-black text-slate-900 text-sm">{{ 'Retake Assessment' if user.assessments_completed and user.assessments_completed > 0 else 'Start Assessment' }}</h4>
+                <p class="text-xs text-slate-500 mt-1">{{ 'Requires an active Guidance Plan.' if user.assessments_completed and user.assessments_completed > 0 else 'Get your first career direction.' }}</p>
+            </a>
+            <a href="/counsellors" class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:border-[var(--teal)] hover:-translate-y-0.5 transition-all">
+                <div class="w-11 h-11 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-3">
+                    <i class="fas fa-user-tie"></i>
+                </div>
+                <h4 class="font-black text-slate-900 text-sm">Talk to Expert</h4>
+                <p class="text-xs text-slate-500 mt-1">Book guidance when you need it.</p>
+            </a>
+            <a href="/chatbot" class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:border-[var(--teal)] hover:-translate-y-0.5 transition-all">
+                <div class="w-11 h-11 bg-slate-100 text-slate-700 rounded-xl flex items-center justify-center mb-3">
+                    <i class="fas fa-comments"></i>
+                </div>
+                <h4 class="font-black text-slate-900 text-sm">CareerBuddy</h4>
+                <p class="text-xs text-slate-500 mt-1">Ask a quick career question.</p>
+            </a>
+            <a href="/subscription" class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:border-amber-300 hover:-translate-y-0.5 transition-all">
+                <div class="w-11 h-11 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center mb-3">
+                    <i class="fas fa-crown"></i>
+                </div>
+                <h4 class="font-black text-slate-900 text-sm">Guidance Plans</h4>
+                <p class="text-xs text-slate-500 mt-1">Reports, growth plan, resources.</p>
+            </a>
+        </div>
 
                         </div>
                     </div>
@@ -1244,12 +1227,6 @@
 
             <!-- Simplified Tools Grid -->
             <div class="grid grid-cols-2 gap-4">
-                <a href="/career/roadmaps" class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:border-[var(--teal)] hover:-translate-y-0.5 transition-all text-center">
-                    <div class="w-10 h-10 mx-auto bg-[var(--teal-soft)] text-[var(--navy)] rounded-full flex items-center justify-center mb-2">
-                        <i class="fas fa-route"></i>
-                    </div>
-                    <span class="text-xs font-bold text-slate-700 block">My Roadmaps</span>
-                </a>
                 <a href="/my-growth-profile" class="bg-white p-4 rounded-2xl border border-teal-100 shadow-sm hover:border-teal-400 hover:-translate-y-0.5 transition-all text-center">
                     <div class="w-10 h-10 mx-auto bg-teal-50 text-teal-700 rounded-full flex items-center justify-center mb-2">
                         <i class="fas fa-compass"></i>

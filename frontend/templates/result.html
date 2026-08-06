@@ -946,9 +946,6 @@
                                 <button type="button" onclick='generateCollegeRecs({{ career_title|tojson }})' class="rec-action rec-action-inst">
                                     <i class="fas fa-university"></i> Institutes
                                 </button>
-                                <a href="/my-monthly-path" class="rec-action rec-action-road">
-                                    <i class="fas fa-compass"></i> Growth Map <i class="fas fa-arrow-right"></i>
-                                </a>
                             </div>
                         </div>
 
@@ -1045,11 +1042,11 @@
 </div>
 
 <!-- Loader Modals overlay -->
-<div id="loadingOverlay" class="hidden fixed inset-0 z-[9999] flex items-center justify-center" style="background: rgba(10,10,24,0.75); backdrop-filter: blur(4px);">
-    <div class="overlay-card p-8 rounded-3xl text-center max-w-sm mx-4" style="box-shadow: 0 30px 60px -12px rgba(0,0,0,0.6);">
-        <div class="w-16 h-16 border-4 rounded-full animate-spin mx-auto mb-6" style="border-color: rgba(167,139,250,0.2); border-top-color: var(--purple);"></div>
-        <h3 id="loadingTitle" class="text-xl font-bold mb-2 font-outfit" style="color:#fff;">Synthesizing Path</h3>
-        <p id="loadingDesc" class="text-sm" style="color: var(--text-secondary);">Designing a custom, multi-milestone career path roadmap...</p>
+<div id="loadingOverlay" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center">
+    <div class="bg-white p-8 rounded-3xl text-center max-w-sm mx-4 shadow-2xl">
+        <div class="w-16 h-16 border-4 border-teal-100 border-t-teal-500 rounded-full animate-spin mx-auto mb-6"></div>
+        <h3 id="loadingTitle" class="text-xl font-bold text-slate-900 mb-2 font-outfit">Synthesizing Path</h3>
+        <p id="loadingDesc" class="text-sm text-slate-500">Preparing your personalised recommendation...</p>
     </div>
 </div>
 
@@ -1068,33 +1065,6 @@
         }
 
         return data;
-    }
-
-    async function generateRoadmap(careerTitle) {
-        const overlay = document.getElementById('loadingOverlay');
-        overlay.classList.remove('hidden');
-        document.getElementById('loadingTitle').textContent = 'Architecting Roadmap';
-        document.getElementById('loadingDesc').textContent = 'Designing a custom, multi-milestone career path roadmap...';
-
-        try {
-            const response = await fetch('/assessment/generate_path', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ career_title: careerTitle }),
-            });
-
-            const data = await readJsonResponse(response);
-            if (data.success) {
-                window.location.href = data.path_id ? `/career/roadmap/${data.path_id}` : '/career/roadmaps';
-            } else {
-                alert(data.detail || 'Roadmap synthesis failed. Please try again.');
-                overlay.classList.add('hidden');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            alert(error.message || 'An error occurred. Please try again.');
-            overlay.classList.add('hidden');
-        }
     }
 
     async function generateCollegeRecs(careerTitle) {
