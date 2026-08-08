@@ -2501,6 +2501,7 @@ async def share_report(result_id: int, request: Request, mode: str = "full", db:
             parsed_trait = json.loads(dominant_trait)
             if isinstance(parsed_trait, dict):
                 # If it's a dict, classify it to get the name
+                from .pipeline.vector_utils import classify_archetype
                 dominant_trait = classify_archetype(parsed_trait)
         except (json.JSONDecodeError, TypeError):
             # If it's not JSON, it's a normal string like "Realistic". Use as is.
@@ -2531,7 +2532,7 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
     # New OAuth users must select a role first
     if not user.role:
         return RedirectResponse(url="/select-role", status_code=status.HTTP_302_FOUND)
-    
+        
     if user.role == "counsellor":
         profile = (await db.execute(select(models.CounsellorProfile).where(models.CounsellorProfile.user_id == user.id))).scalars().first()
         # Show active/scheduled, requested, accepted, and completed appointments on dashboard
@@ -2657,7 +2658,7 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
             await db.commit()
         except:
             await db.rollback()
-    
+            
     # Fetch student appointments (scheduled & completed for rating) with eager loading to prevent N+1
     appointments = (await db.execute(
         select(models.Appointment).options(
@@ -2680,6 +2681,20 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
         )
     )).scalar() or 0
     
+    # Process dominant trait
+    dominant_trait = assessment.personality if assessment else "Realistic"
+    if dominant_trait and isinstance(dominant_trait, str):
+        try:
+            parsed_trait = json.loads(dominant_trait)
+            if isinstance(parsed_trait, dict):
+                from .pipeline.vector_utils import classify_archetype
+                dominant_trait = classify_archetype(parsed_trait)
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+    if not dominant_trait or not isinstance(dominant_trait, str):
+        dominant_trait = "Realistic"
+    
     try:
         template = templates.get_template("dashboard.html")
         content = template.render({
@@ -2687,6 +2702,7 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
             "user": user, 
             "assessment": assessment,
             "display_archetype": get_assessment_display_archetype(assessment),
+            "dominant_trait": dominant_trait,
             "subscription_state": get_subscription_state(user),
             "appointments": appointments,
             "tickets": tickets,
