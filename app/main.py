@@ -2720,8 +2720,8 @@ async def my_growth_profile(request: Request, db: AsyncSession = Depends(get_db)
     user = await get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
-    if user.role != "student":
-        raise HTTPException(status_code=403, detail="This page is only available to students")
+    if user.role not in ["student", "admin"]:
+        raise HTTPException(status_code=403, detail="This page is only available to students and admins")
 
     assessment = (await db.execute(
         select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id)
@@ -2790,8 +2790,8 @@ async def my_monthly_path(request: Request, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
-    if user.role != "student":
-        raise HTTPException(status_code=403, detail="This page is only available to students")
+    if user.role not in ["student", "admin"]:
+        raise HTTPException(status_code=403, detail="This page is only available to students and admins")
 
     from .services.monthly_plan_service import (
         build_weekend_quiz,
@@ -2820,8 +2820,8 @@ async def toggle_monthly_path_week(week_number: int, request: Request, db: Async
     user = await get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
-    if user.role != "student":
-        raise HTTPException(status_code=403, detail="This action is only available to students")
+    if user.role not in ["student", "admin"]:
+        raise HTTPException(status_code=403, detail="This action is only available to students and admins")
     if week_number not in range(1, 5):
         raise HTTPException(status_code=404, detail="Weekly action not found")
 
@@ -2858,8 +2858,8 @@ async def toggle_monthly_path_task(
     user = await get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
-    if user.role != "student":
-        raise HTTPException(status_code=403, detail="This action is only available to students")
+    if user.role not in ["student", "admin"]:
+        raise HTTPException(status_code=403, detail="This action is only available to students and admins")
     if week_number not in range(1, 5):
         raise HTTPException(status_code=404, detail="Weekly task not found")
 
@@ -2902,8 +2902,8 @@ async def monthly_path_week(week_number: int, request: Request, db: AsyncSession
     user = await get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
-    if user.role != "student":
-        raise HTTPException(status_code=403, detail="This page is only available to students")
+    if user.role not in ["student", "admin"]:
+        raise HTTPException(status_code=403, detail="This page is only available to students and admins")
     if week_number not in range(1, 5):
         raise HTTPException(status_code=404, detail="Week not found")
 
@@ -2954,8 +2954,8 @@ async def submit_monthly_checkin(
     user = await get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
-    if user.role != "student":
-        raise HTTPException(status_code=403, detail="This action is only available to students")
+    if user.role not in ["student", "admin"]:
+        raise HTTPException(status_code=403, detail="This action is only available to students and admins")
     message = message.strip()
     if not message or len(message) > 1500:
         raise HTTPException(status_code=400, detail="Please write an update between 1 and 1500 characters")
@@ -2981,8 +2981,8 @@ async def acknowledge_monthly_encouragement(request: Request, db: AsyncSession =
     user = await get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
-    if user.role != "student":
-        raise HTTPException(status_code=403, detail="This action is only available to students")
+    if user.role not in ["student", "admin"]:
+        raise HTTPException(status_code=403, detail="This action is only available to students and admins")
     plan_record = await _get_current_monthly_plan_record(user, db)
     plan_data = dict(plan_record.plan_data or {})
     plan_data["last_encouragement_seen_on"] = datetime.date.today().isoformat()
@@ -2996,8 +2996,8 @@ async def submit_monthly_weekend_quiz(request: Request, db: AsyncSession = Depen
     user = await get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
-    if user.role != "student":
-        raise HTTPException(status_code=403, detail="This action is only available to students")
+    if user.role not in ["student", "admin"]:
+        raise HTTPException(status_code=403, detail="This action is only available to students and admins")
     form_data = await request.form()
     plan_record = await _get_current_monthly_plan_record(user, db)
     plan_data = dict(plan_record.plan_data or {})
@@ -3033,8 +3033,8 @@ async def submit_month_end_review(
     user = await get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
-    if user.role != "student":
-        raise HTTPException(status_code=403, detail="This action is only available to students")
+    if user.role not in ["student", "admin"]:
+        raise HTTPException(status_code=403, detail="This action is only available to students and admins")
     reflection = reflection.strip()
     if not reflection or len(reflection) > 1500:
         raise HTTPException(status_code=400, detail="Please write a reflection between 1 and 1500 characters")

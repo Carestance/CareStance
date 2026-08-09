@@ -928,7 +928,7 @@
             <div class="nav-links">
                 {% if user %}
                 <a href="/dashboard"><i class="fa-solid fa-house" style="margin-right:0.25rem;"></i>Dashboard</a>
-                {% if user.role == 'student' %}
+                {% if user.role in ['student', 'admin'] %}
                 <a href="/my-growth-profile" class="{% if request.url.path == '/my-growth-profile' %}nav-active{% endif %}"><i class="fa-solid fa-compass" style="margin-right:0.25rem;"></i>Growth Profile</a>
                 <a href="/my-monthly-path" class="{% if request.url.path == '/my-monthly-path' %}nav-active{% endif %}"><i class="fa-solid fa-route" style="margin-right:0.25rem;"></i>Monthly Path</a>
                 {% endif %}
@@ -964,7 +964,7 @@
                     class="fa-solid fa-house"></i>Home</a>
             <a href="/dashboard" class="{% if request.url.path == '/dashboard' %}nav-active{% endif %}"><i
                     class="fa-solid fa-gauge-high"></i>Dashboard</a>
-            {% if user.role == 'student' %}
+            {% if user.role in ['student', 'admin'] %}
             <a href="/my-growth-profile" class="{% if request.url.path == '/my-growth-profile' %}nav-active{% endif %}"><i
                     class="fa-solid fa-compass"></i>Growth Profile</a>
             <a href="/my-monthly-path" class="{% if request.url.path == '/my-monthly-path' %}nav-active{% endif %}"><i
