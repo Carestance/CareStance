@@ -5624,6 +5624,16 @@ async def simulation_verify_payment(request: Request, db: AsyncSession = Depends
         
     return {"status": "ok"}
 
+def _restore_live_simulation_session(result, session_id: str):
+    """Restore a live simulation after a request is served by another worker."""
+    stored_session = result.simulation_questions if result else None
+    if not isinstance(stored_session, dict):
+        return None
+    if stored_session.get("session_id") != session_id:
+        return None
+    return stored_session
+
+
 @app.post("/simulation/start")
 async def live_simulation_start(
     request: Request,
@@ -5648,7 +5658,8 @@ async def live_simulation_start(
 
     scenarios = await simulation_service.build_live_simulation(career_title, difficulty)
     session_id = uuid.uuid4().hex
-    LIVE_SIMULATION_SESSIONS[session_id] = {
+    session = {
+        "session_id": session_id,
         "user_id": user.id,
         "career_title": career_title,
         "difficulty": difficulty,
@@ -5657,6 +5668,7 @@ async def live_simulation_start(
         "moves": [],
         "final_evaluation": None,
     }
+    LIVE_SIMULATION_SESSIONS[session_id] = session
 
     if sims_completed >= 1:
         if result.simulation_credits and result.simulation_credits > 0:
@@ -5665,11 +5677,10 @@ async def live_simulation_start(
             db_user.simulation_credits -= 1
 
     result.simulation_career = career_title
-    # Store a readable audit trail while keeping compatibility with the
-    # legacy simulation-question route, which expects a list of strings.
-    result.simulation_questions = [mcq["question"] for mcq in scenarios[0].get("mcqs", [])] + [
-        scenarios[1]["scenario"], scenarios[2]["scenario"]
-    ]
+    # Persist the full state as well as caching it locally.  The local cache
+    # alone works in development, but production requests can use different
+    # workers and therefore cannot rely on process memory.
+    result.simulation_questions = session
     result.simulation_answers = []
     result.simulation_evaluation = None
     result.simulation_paid = False
@@ -5697,9 +5708,11 @@ async def live_simulation_step(
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
-    session = LIVE_SIMULATION_SESSIONS.get(session_id)
+    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+    session = LIVE_SIMULATION_SESSIONS.get(session_id) or _restore_live_simulation_session(result, session_id)
     if not session or session["user_id"] != user.id:
         raise HTTPException(status_code=404, detail="Simulation session not found")
+    LIVE_SIMULATION_SESSIONS[session_id] = session
 
     index = session["current_index"]
     scenarios = session["scenarios"]
@@ -5716,8 +5729,10 @@ async def live_simulation_step(
     })
     session["current_index"] += 1
 
-    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
     if result:
+        result.simulation_questions = session
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(result, "simulation_questions")
         result.simulation_answers = [move["answer"] for move in session["moves"]]
         update_assessment_simulation(user.id, answers=result.simulation_answers)
         await db.commit()
@@ -5740,12 +5755,13 @@ async def simulation_workspace(session_id: str, request: Request, db: AsyncSessi
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
-    session = LIVE_SIMULATION_SESSIONS.get(session_id)
+    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+    session = LIVE_SIMULATION_SESSIONS.get(session_id) or _restore_live_simulation_session(result, session_id)
     career_title = "General"
     if session and session.get("user_id") == user.id:
+        LIVE_SIMULATION_SESSIONS[session_id] = session
         career_title = session.get("career_title", "General")
     else:
-        result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
         if result and result.simulation_career:
             career_title = result.simulation_career
 
@@ -5782,9 +5798,11 @@ async def live_simulation_session(session_id: str, request: Request, db: AsyncSe
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
-    session = LIVE_SIMULATION_SESSIONS.get(session_id)
+    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+    session = LIVE_SIMULATION_SESSIONS.get(session_id) or _restore_live_simulation_session(result, session_id)
     if not session or session["user_id"] != user.id:
         raise HTTPException(status_code=404, detail="Simulation session not found")
+    LIVE_SIMULATION_SESSIONS[session_id] = session
 
     if not session.get("final_evaluation"):
         await _finalize_live_simulation_session(user.id, session, db)
@@ -5805,6 +5823,9 @@ async def _finalize_live_simulation_session(user_id: int, session: dict, db: Asy
 
     result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user_id))).scalars().first()
     if result:
+        result.simulation_questions = session
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(result, "simulation_questions")
         result.simulation_answers = [move["answer"] for move in session["moves"]]
         result.simulation_evaluation = evaluation
         result.simulations_completed = (result.simulations_completed or 0) + 1
