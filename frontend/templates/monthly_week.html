@@ -2,44 +2,753 @@
 
 {% block title %}Week {{ week.week }} | Monthly Path{% endblock %}
 
-{% block content %}
-<div class="max-w-4xl mx-auto py-4 space-y-6">
-    <a href="/my-monthly-path" class="inline-flex items-center gap-2 text-sm font-bold text-teal-700 hover:text-teal-900"><i class="fas fa-arrow-left"></i> Back to monthly path</a>
+{% block navbar %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Jersey+10&display=swap');
 
-    <section class="rounded-3xl bg-gradient-to-br from-teal-900 to-slate-900 p-8 text-white shadow-xl">
-        <p class="text-xs font-black uppercase tracking-widest text-teal-200">Monthly path · Week {{ week.week }} of 4</p>
-        <h1 class="mt-2 text-3xl font-black">{{ week.title }}</h1>
-        <p class="mt-3 text-slate-200">{{ week.goal }}</p>
-        <div class="mt-5 h-2 overflow-hidden rounded-full bg-white/20"><div class="h-full bg-teal-300" style="width: {{ progress.percent }}%"></div></div>
-    </section>
+    .hero-nav {
+        position: fixed;
+        top: 40px;
+        left: 0;
+        right: 0;
+        width: 100%;
+        z-index: 1100;
+        background: transparent;
+        box-shadow: none;
+    }
 
-    <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <p class="text-xs font-black uppercase tracking-widest text-teal-700">Part 1 · Weekly tasks</p>
-        <h2 class="mt-1 text-xl font-black text-slate-900">Build evidence step by step</h2>
-        <p class="mt-2 text-sm text-slate-600">Save a meaningful response for each task. The next subtask unlocks only after the current one is completed.</p>
-        <div class="mt-5 space-y-3">
-            {% for task in task_states %}
-            {% if task.is_complete %}
-            <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950"><p class="font-bold"><i class="fas fa-check-circle mr-2"></i>{{ task.text }}</p><p class="mt-2 border-t border-emerald-200 pt-2 text-emerald-800">{{ task.response.text }}</p></div>
-            {% elif task.is_open %}
-            <form action="/my-monthly-path/week/{{ week.week }}/task/{{ task.id }}/toggle" method="post" class="rounded-xl border border-teal-200 bg-teal-50 p-4"><p class="font-bold text-slate-900"><i class="fas fa-pen-to-square text-teal-700 mr-2"></i>{{ task.text }}</p><label class="mt-3 block text-sm font-semibold text-slate-700">{{ task.prompt }}</label><textarea name="response" required minlength="10" maxlength="1500" rows="4" class="mt-2 w-full rounded-lg border border-slate-300 p-3 text-sm" placeholder="Write your response here..."></textarea><button class="mt-3 rounded-lg bg-teal-700 px-4 py-2 text-sm font-bold text-white hover:bg-teal-800">Save and unlock next task</button></form>
-            {% else %}
-            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500"><i class="fas fa-lock mr-2"></i>{{ task.text }} — complete the previous subtask first.</div>
+    .hero-nav-inner {
+        max-width: 1500px;
+        margin: 0 auto;
+        padding: 0 2.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .hero-nav-logo {
+        display: flex;
+        align-items: center;
+        gap: 1.75rem;
+        text-decoration: none;
+    }
+
+    .hero-nav-logo-badge {
+        width: 156px; height: 156px;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 50%;
+        background: #0f172a;
+        flex-shrink: 0;
+    }
+
+    .hero-nav-logo-badge img {
+        width: 90px; height: 90px;
+        border-radius: 50%; object-fit: cover;
+        transform: scale(1.6);
+    }
+
+    .hero-nav-logo-text {
+        font-family: 'Jersey 10', 'Playfair Display', serif;
+        font-size: 2rem; font-weight: 700;
+        color: #12202b; white-space: nowrap;
+        letter-spacing: 0.02em;
+    }
+
+    .hero-nav-links {
+        display: flex;
+        align-items: center;
+        gap: 1.9rem;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .hero-nav-links a {
+        display: inline-block;
+        font-family: 'Jersey 10', sans-serif;
+        color: #fff;
+        font-size: 30px;
+        font-weight: 400;
+        white-space: nowrap;
+        text-decoration: none;
+        letter-spacing: 0.02em;
+        text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+        transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+
+    .hero-nav-links a:hover {
+        transform: scale(1.1);
+        opacity: 0.75;
+    }
+
+    .hero-nav-links a.nav-active {
+        text-decoration: underline;
+        text-underline-offset: 4px;
+    }
+
+    .hero-nav-user-name {
+        font-family: 'Jersey 10', sans-serif;
+        color: #fff;
+        opacity: 0.75;
+        font-size: 22px;
+        text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+    }
+
+    .hero-nav-logout {
+        font-family: 'Jersey 10', sans-serif;
+        background: #12202b;
+        color: #fff !important;
+        padding: 0.4rem 1.6rem;
+        border-radius: 999px;
+        font-size: 28px;
+        text-shadow: none;
+    }
+
+    .hero-nav-logout:hover {
+        transform: scale(1.08);
+        opacity: 1 !important;
+        background: #1e2f3d;
+    }
+
+    .hero-mobile-toggle {
+        display: none;
+        background: none; border: none;
+        color: #12202b; font-size: 1.35rem;
+        cursor: pointer;
+    }
+
+    .hero-mobile-menu {
+        display: none;
+        position: absolute; top: 100%; left: 1.5rem; right: 1.5rem;
+        margin-top: 0.75rem; padding: 1.5rem;
+        flex-direction: column; gap: 0.75rem;
+        background: #fff; border-radius: 1.25rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.15);
+    }
+
+    .hero-mobile-menu.open { display: flex; }
+
+    .hero-mobile-menu a {
+        padding: 0.8rem 0.5rem;
+        color: var(--text-main);
+        text-decoration: none;
+        font-weight: 500;
+        border-bottom: 1px solid var(--border-soft);
+        transition: color 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .hero-mobile-menu a:last-child { border-bottom: none; }
+    .hero-mobile-menu a:hover { color: #0d9488; }
+
+    @media (max-width: 768px) {
+        .hero-nav-links { display: none; }
+        .hero-mobile-toggle { display: block; }
+        .hero-nav-logo-badge { width: 64px; height: 64px; }
+        .hero-nav-logo-badge img { width: 36px; height: 36px; }
+        .hero-nav-logo-text { font-size: 1.4rem; }
+        .hero-nav-inner { padding: 0 1.25rem; }
+        .hero-nav { top: 20px; }
+    }
+
+    body { padding-top: 0 !important; }
+
+    :root {
+        --content-top-gap: calc(40px + 156px + 30px);
+    }
+    @media (max-width: 768px) {
+        :root { --content-top-gap: calc(20px + 64px + 30px); }
+    }
+</style>
+
+<nav class="hero-nav">
+    <div class="hero-nav-inner">
+        <a href="/" class="hero-nav-logo">
+            <span class="hero-nav-logo-badge">
+                <picture>
+                    <source srcset="/static/images/image.webp?v=101" type="image/webp">
+                    <img src="/static/images/image.png?v=101" alt="CareStance Logo" width="90" height="90">
+                </picture>
+            </span>
+            <span class="hero-nav-logo-text">Carestance</span>
+        </a>
+
+        <div class="hero-nav-links">
+            {% if user %}
+            <a href="/dashboard" class="nav-active">Dashboard</a>
+            {% if user.role == 'student' %}
+            <a href="/my-growth-profile" class="{% if request.url.path == '/my-growth-profile' %}nav-active{% endif %}">Growth Profile</a>
+            <a href="/my-monthly-path" class="{% if request.url.path == '/my-monthly-path' %}nav-active{% endif %}">Monthly Path</a>
             {% endif %}
-            {% endfor %}
+            {% if user.role != 'counsellor' %}
+            <a href="/chatbot">Chat AI</a>
+            {% endif %}
+            <a href="/community">Community</a>
+            <a href="/feedback">Feedback</a>
+            <a href="/ticket">Support</a>
+            {% if user.role == 'admin' %}
+            <a href="/admin" class="{% if request.url.path == '/admin' %}nav-active{% endif %}" style="font-weight:700;">Admin</a>
+            {% endif %}
+            {% if user.full_name and user.full_name != 'None' %}<span class="hero-nav-user-name">| {{ user.full_name }}</span>{% endif %}
+            <a href="/logout" class="hero-nav-logout">Logout</a>
+            {% else %}
+            <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}">Home</a>
+            <a href="/login" class="{% if request.url.path == '/login' %}nav-active{% endif %}">Log In</a>
+            {% endif %}
         </div>
-    </section>
 
-    <section class="rounded-2xl border border-teal-100 bg-white p-6 shadow-sm">
-        <div class="flex items-center justify-between gap-3"><div><p class="text-xs font-black uppercase tracking-widest text-teal-700">Part 2 · Weekly conversation</p><h2 class="mt-1 text-xl font-black text-slate-900">Weekly AI reflection</h2></div><span class="rounded-full bg-teal-50 px-3 py-1 text-xs font-bold text-teal-800">{% if cycle.weekly_checkin_due %}Due now{% else %}Logged this week{% endif %}</span></div>
-        <p class="mt-3 text-sm text-slate-600">Share what you completed, where you got stuck, and your next small action.</p>
-        <form action="/my-monthly-path/check-in" method="post" class="mt-4"><input type="hidden" name="return_week" value="{{ week.week }}"><textarea name="message" required maxlength="1500" rows="3" class="w-full rounded-xl border border-slate-200 p-3 text-sm" placeholder="This week I completed…, my blocker was…, and next I will…"></textarea><button class="mt-3 rounded-lg bg-teal-700 px-4 py-2 text-sm font-bold text-white hover:bg-teal-800">Save weekly reflection</button></form>
-        {% for entry in cycle.latest_checkins|reverse %}<div class="mt-4 rounded-xl bg-slate-50 p-4 text-sm"><p class="font-bold text-slate-800">You · {{ entry.date }}</p><p class="mt-1 text-slate-600">{{ entry.message }}</p><p class="mt-3 border-t border-slate-200 pt-3 text-teal-900"><i class="fas fa-sparkles mr-1"></i>{{ entry.response }}</p></div>{% endfor %}
-    </section>
+        <button class="hero-mobile-toggle" id="base-menu-toggle" aria-label="Menu">
+            <i class="fa-solid fa-bars" id="base-menu-icon"></i>
+        </button>
+    </div>
 
-    <section class="rounded-2xl border border-blue-100 bg-white p-6 shadow-sm">
-        <div class="flex items-center justify-between gap-3"><div><p class="text-xs font-black uppercase tracking-widest text-blue-700">Part 3 · Weekend check</p><h2 class="mt-1 text-xl font-black text-slate-900">Five-question progress check</h2></div>{% if cycle.latest_quiz %}<span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-800">{{ cycle.latest_quiz.score }}/{{ cycle.latest_quiz.total }}</span>{% endif %}</div>
-        {% if cycle.weekend_quiz_due %}<form action="/my-monthly-path/weekend-quiz" method="post" class="mt-5 space-y-5"><input type="hidden" name="return_week" value="{{ week.week }}">{% for question in weekend_quiz %}{% set question_index = loop.index0 %}<fieldset><legend class="font-bold text-slate-800 text-sm">{{ loop.index }}. {{ question.question }}</legend><div class="mt-2 grid gap-2">{% for option in question.options %}<label class="flex items-center gap-2 rounded-lg border border-slate-200 p-2 text-sm text-slate-700 hover:bg-blue-50"><input required type="radio" name="answer_{{ question_index }}" value="{{ loop.index0 }}">{{ option }}</label>{% endfor %}</div></fieldset>{% endfor %}<button class="rounded-lg bg-blue-700 px-4 py-2 text-sm font-bold text-white hover:bg-blue-800">Submit progress check</button></form>{% elif cycle.latest_quiz %}<p class="mt-4 rounded-xl bg-blue-50 p-4 text-sm text-blue-900">This week’s check is complete. A new one appears next weekend.</p>{% else %}<p class="mt-4 rounded-xl bg-blue-50 p-4 text-sm text-blue-900">Available on Saturday or Sunday.</p>{% endif %}
-    </section>
+    <div class="hero-mobile-menu" id="base-mobile-menu">
+        {% if user %}
+        <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i class="fa-solid fa-house"></i>Home</a>
+        <a href="/dashboard" class="nav-active"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
+        {% if user.role == 'student' %}
+        <a href="/my-growth-profile" class="{% if request.url.path == '/my-growth-profile' %}nav-active{% endif %}"><i class="fa-solid fa-compass"></i>Growth Profile</a>
+        <a href="/my-monthly-path" class="{% if request.url.path == '/my-monthly-path' %}nav-active{% endif %}"><i class="fa-solid fa-route"></i>Monthly Path</a>
+        {% endif %}
+        {% if user.role != 'counsellor' %}
+        <a href="/chatbot"><i class="fa-solid fa-comment-dots"></i>Chat AI</a>
+        {% endif %}
+        <a href="/community"><i class="fa-solid fa-users"></i>Community</a>
+        <a href="/feedback"><i class="fa-solid fa-star"></i>Feedback</a>
+        <a href="/ticket"><i class="fa-solid fa-circle-question"></i>Support</a>
+        {% if user.role == 'admin' %}<a href="/admin"><i class="fa-solid fa-shield-halved"></i>Admin Panel</a>{% endif %}
+        <a href="/logout" style="color:#b45309;"><i class="fa-solid fa-right-from-bracket"></i>Logout</a>
+        {% else %}
+        <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i class="fa-solid fa-house"></i>Home</a>
+        <a href="/login"><i class="fa-solid fa-right-to-bracket"></i>Log In</a>
+        {% endif %}
+    </div>
+</nav>
+{% endblock %}
+
+{% block extra_head %}
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+    :root {
+        --content-top-gap: calc(40px + 156px + 30px);
+        --navy-bg: #0a0a18;
+        --card-bg: rgba(255, 255, 255, 0.03);
+        --card-border: rgba(52, 211, 153, 0.16);
+        --teal: #2dd4bf;
+        --teal-soft: rgba(45, 212, 191, 0.14);
+        --purple: #a78bfa;
+        --purple-soft: rgba(167, 139, 250, 0.14);
+        --green: #34d399;
+        --green-soft: rgba(52, 211, 153, 0.14);
+        --gold: #f59e0b;
+        --gold-soft: rgba(245, 158, 11, 0.14);
+        --rose: #fb7185;
+        --rose-soft: rgba(251, 113, 133, 0.14);
+        --blue: #60a5fa;
+        --blue-soft: rgba(96, 165, 250, 0.14);
+        --text-primary: #f8fafc;
+        --text-secondary: #a1a8c0;
+        --text-muted: #6b7189;
+    }
+    @media (max-width: 768px) {
+        :root { --content-top-gap: calc(20px + 64px + 30px); }
+    }
+
+    body {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        background-color: var(--navy-bg) !important;
+        color: var(--text-primary) !important;
+    }
+
+    .font-outfit { font-family: 'Outfit', sans-serif; }
+
+    /* ---------- Generic dark glass card ---------- */
+    .dark-card {
+        background: var(--card-bg);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid var(--card-border);
+        border-radius: 1.75rem;
+        transition: all 0.3s ease;
+    }
+    .dark-card:hover {
+        border-color: rgba(52, 211, 153, 0.34);
+        box-shadow: 0 20px 40px -20px rgba(0,0,0,0.5);
+    }
+
+    .label-eyebrow {
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+    }
+
+    .section-title { font-size: 1.35rem; font-weight: 800; color: #fff; letter-spacing: -0.01em; }
+
+    /* ---------- Mini hero band (same tint treatment as monthly path) ---------- */
+    .week-hero-band {
+        position: relative;
+        padding-top: var(--content-top-gap);
+        padding-bottom: 3rem;
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+        text-align: center;
+        background: url('/static/images/BG3.png') center top / cover no-repeat fixed;
+        overflow: hidden;
+    }
+    .week-hero-band::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to bottom, rgba(10,10,24,0) 0%, rgba(10,10,24,0.55) 65%, var(--navy-bg) 100%);
+        pointer-events: none;
+    }
+    .week-hero-band > * { position: relative; z-index: 2; }
+
+    .hero-icon-hex {
+        width: 60px; height: 60px;
+        margin: 0 auto 1.25rem;
+        background: rgba(15, 18, 38, 0.55);
+        border: 1.5px solid rgba(255,255,255,0.28);
+        clip-path: polygon(25% 6%, 75% 6%, 100% 50%, 75% 94%, 25% 94%, 0% 50%);
+        display: flex; align-items: center; justify-content: center;
+        color: #fff; font-size: 1.25rem;
+        backdrop-filter: blur(6px);
+    }
+    .hero-eyebrow { color: var(--teal); margin-bottom: 0.65rem; }
+    .hero-title-sm { font-size: 1.9rem; font-weight: 900; letter-spacing: -0.02em; color: #fff; margin-bottom: 0.85rem; }
+    @media (min-width: 768px) { .hero-title-sm { font-size: 2.5rem; } }
+    .hero-divider { width: 56px; height: 3px; margin: 0 auto 1.4rem; border-radius: 999px; background: linear-gradient(90deg, var(--teal), var(--green)); }
+    .hero-desc { color: #cbd5e1; max-width: 620px; margin: 0 auto; line-height: 1.7; font-size: 0.95rem; }
+
+    .mp-progress-bg { height: 0.6rem; border-radius: 999px; background: rgba(255,255,255,0.08); overflow: hidden; }
+    .mp-progress-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--teal), var(--green)); transition: width 0.6s ease; }
+
+    /* ---------- Buttons ---------- */
+    .btn-solid-teal, .btn-solid-blue {
+        display: inline-flex; align-items: center; gap: 0.5rem;
+        padding: 0.65rem 1.3rem; border-radius: 0.9rem;
+        border: none; color: #04241d; font-weight: 800; font-size: 0.85rem;
+        cursor: pointer; transition: all 0.2s ease;
+    }
+    .btn-solid-teal { background: linear-gradient(135deg, var(--teal), var(--green)); }
+    .btn-solid-blue { background: linear-gradient(135deg, #93c5fd, var(--blue)); color: #071c33; }
+    .btn-solid-teal:hover, .btn-solid-blue:hover { transform: translateY(-2px); box-shadow: 0 14px 28px -10px rgba(45,212,191,0.5); }
+    .btn-solid-teal:active, .btn-solid-blue:active { transform: scale(0.97); }
+
+    .btn-ghost {
+        display: inline-flex; align-items: center; gap: 0.5rem;
+        padding: 0.55rem 1.1rem; border-radius: 0.85rem;
+        border: 1px solid rgba(255,255,255,0.16); background: rgba(255,255,255,0.03);
+        color: var(--text-secondary); font-weight: 700; font-size: 0.8rem;
+        cursor: pointer; transition: all 0.2s ease;
+    }
+    .btn-ghost:hover:not(:disabled) { border-color: rgba(255,255,255,0.3); color: #fff; }
+    .btn-ghost:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    .back-link {
+        display: inline-flex; align-items: center; gap: 0.5rem;
+        color: var(--teal); font-weight: 800; font-size: 0.85rem; text-decoration: none;
+        transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+    .back-link:hover { transform: translateX(-3px); opacity: 0.85; }
+
+    .mp-tag {
+        display: inline-flex; align-items: center;
+        padding: 0.4rem 0.9rem; border-radius: 999px;
+        font-size: 0.75rem; font-weight: 800; border: 1px solid;
+    }
+
+    /* ---------- Part 1: checklist ---------- */
+    .checklist-track { display: flex; flex-direction: column; }
+    .checklist-item { display: flex; align-items: flex-start; gap: 1rem; }
+    .checklist-marker {
+        width: 34px; height: 34px; flex-shrink: 0;
+        border-radius: 0.6rem;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.8rem; margin-top: 0.15rem;
+        border: 1.5px solid rgba(255,255,255,0.12);
+        background: rgba(255,255,255,0.03);
+        color: var(--text-muted);
+        transition: all 0.25s ease;
+    }
+    .checklist-item.done .checklist-marker { background: var(--green-soft); border-color: rgba(52,211,153,0.45); color: var(--green); }
+    .checklist-item.active .checklist-marker { background: var(--teal-soft); border-color: rgba(45,212,191,0.5); color: var(--teal); }
+    .checklist-item.locked .checklist-marker { color: var(--text-muted); }
+
+    .checklist-body { flex: 1; min-width: 0; padding-bottom: 0.25rem; }
+    .checklist-item.done .checklist-title { color: var(--text-secondary); text-decoration: line-through; text-decoration-color: rgba(52,211,153,0.5); text-decoration-thickness: 2px; }
+    .checklist-title { font-weight: 800; color: #fff; font-size: 0.95rem; }
+
+    .checklist-connector { width: 34px; display: flex; justify-content: center; }
+    .checklist-connector-line { width: 3px; height: 1.6rem; border-radius: 3px; background: rgba(255,255,255,0.1); }
+    .checklist-connector.active .checklist-connector-line { background: linear-gradient(to bottom, var(--green), rgba(52,211,153,0.15)); }
+
+    .checklist-card-complete { border-radius: 1rem; padding: 0.9rem 1rem; background: var(--green-soft); border: 1px solid rgba(52,211,153,0.3); font-size: 0.85rem; color: #d1fae5; margin-top: 0.5rem; }
+    .checklist-card-locked { border-radius: 1rem; padding: 0.9rem 1rem; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); font-size: 0.85rem; color: var(--text-muted); margin-top: 0.35rem; }
+    .checklist-form { border-radius: 1rem; padding: 1.1rem; background: var(--teal-soft); border: 1px solid rgba(45,212,191,0.3); margin-top: 0.5rem; }
+    .checklist-textarea {
+        width: 100%; margin-top: 0.65rem; border-radius: 0.75rem; padding: 0.75rem;
+        font-size: 0.85rem; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.14); color: #fff;
+    }
+    .checklist-textarea::placeholder { color: var(--text-muted); }
+
+    /* ---------- Part 3: flip-book quiz ---------- */
+    .quiz-book-wrap {
+        perspective: 1800px;
+        position: relative;
+        padding: 1.5rem 1.75rem 1.75rem 2.25rem;
+        border-radius: 1rem;
+        background: linear-gradient(135deg, rgba(96,165,250,0.07), rgba(15,15,30,0.35));
+        border: 1px solid rgba(96,165,250,0.18);
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02), 0 18px 40px -22px rgba(0,0,0,0.7);
+    }
+    /* book spine */
+    .quiz-book-wrap::before {
+        content: '';
+        position: absolute;
+        top: 0.75rem; bottom: 0.75rem; left: 0.75rem;
+        width: 6px;
+        border-radius: 4px;
+        background: linear-gradient(to bottom, rgba(96,165,250,0.55), rgba(45,212,191,0.35));
+        box-shadow: 2px 0 6px rgba(0,0,0,0.4);
+    }
+    /* stacked page edges under the visible page, for thickness */
+    .quiz-book-wrap::after {
+        content: '';
+        position: absolute;
+        top: 1rem; bottom: 1rem; left: 1.6rem; right: 0.9rem;
+        border-radius: 0.6rem;
+        background: rgba(255,255,255,0.02);
+        box-shadow:
+            3px 3px 0 rgba(255,255,255,0.02),
+            6px 6px 0 rgba(255,255,255,0.015),
+            9px 9px 18px -6px rgba(0,0,0,0.5);
+        z-index: 0;
+    }
+    .quiz-book { position: relative; min-height: 300px; z-index: 1; transform-style: preserve-3d; }
+    .quiz-page {
+        position: absolute; inset: 0;
+        padding: 1.1rem 1.1rem 0.25rem;
+        border-radius: 0.6rem;
+        background: rgba(10,12,22,0.55);
+        opacity: 0; pointer-events: none;
+        transform: rotateY(0deg);
+        transform-origin: left center;
+        transform-style: preserve-3d;
+        backface-visibility: hidden;
+    }
+    .quiz-page.active { opacity: 1; pointer-events: auto; z-index: 3; }
+    .quiz-page.shake { animation: quizShake 0.4s ease; }
+    @keyframes quizShake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-6px); }
+        75% { transform: translateX(6px); }
+    }
+
+    /* fold shadow that sweeps across the page as it turns */
+    .quiz-page::after {
+        content: '';
+        position: absolute; inset: 0;
+        border-radius: 0.6rem;
+        background: linear-gradient(90deg, rgba(0,0,0,0.55), transparent 55%);
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .quiz-page.flip-out-next { animation: flipOutNext 0.62s cubic-bezier(0.6,0,0.4,1) forwards; z-index: 3; }
+    .quiz-page.flip-in-next { animation: flipInNext 0.62s cubic-bezier(0.2,0.6,0.3,1) forwards; z-index: 4; }
+    .quiz-page.flip-out-prev { animation: flipOutPrev 0.62s cubic-bezier(0.6,0,0.4,1) forwards; z-index: 3; }
+    .quiz-page.flip-in-prev { animation: flipInPrev 0.62s cubic-bezier(0.2,0.6,0.3,1) forwards; z-index: 4; }
+
+    .quiz-page.flip-out-next::after, .quiz-page.flip-out-prev::after { animation: foldShadowOut 0.62s ease forwards; }
+    .quiz-page.flip-in-next::after, .quiz-page.flip-in-prev::after { animation: foldShadowIn 0.62s ease forwards; }
+
+    @keyframes flipOutNext {
+        0% { transform: rotateY(0deg); opacity: 1; }
+        45% { transform: rotateY(-55deg); opacity: 1; }
+        100% { transform: rotateY(-110deg); opacity: 0; }
+    }
+    @keyframes flipInNext {
+        0% { transform: rotateY(110deg); opacity: 0; }
+        55% { transform: rotateY(55deg); opacity: 1; }
+        100% { transform: rotateY(0deg); opacity: 1; }
+    }
+    @keyframes flipOutPrev {
+        0% { transform: rotateY(0deg); opacity: 1; }
+        45% { transform: rotateY(55deg); opacity: 1; }
+        100% { transform: rotateY(110deg); opacity: 0; }
+    }
+    @keyframes flipInPrev {
+        0% { transform: rotateY(-110deg); opacity: 0; }
+        55% { transform: rotateY(-55deg); opacity: 1; }
+        100% { transform: rotateY(0deg); opacity: 1; }
+    }
+    @keyframes foldShadowOut {
+        0% { opacity: 0; }
+        45% { opacity: 0.55; }
+        100% { opacity: 0; }
+    }
+    @keyframes foldShadowIn {
+        0% { opacity: 0; }
+        45% { opacity: 0.45; }
+        100% { opacity: 0; }
+    }
+
+    .quiz-page-number { font-size: 0.7rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--blue); margin-bottom: 0.6rem; }
+    .quiz-question { font-weight: 800; color: #fff; font-size: 1rem; line-height: 1.5; }
+    .quiz-options { margin-top: 0.9rem; display: grid; gap: 0.55rem; }
+    .quiz-option {
+        display: flex; align-items: center; gap: 0.6rem;
+        border-radius: 0.75rem; padding: 0.7rem 0.85rem;
+        border: 1px solid rgba(96,165,250,0.22); background: rgba(96,165,250,0.06);
+        font-size: 0.85rem; color: #e2e8f0; cursor: pointer;
+        transition: all 0.15s ease;
+    }
+    .quiz-option:hover { background: rgba(96,165,250,0.14); border-color: rgba(96,165,250,0.4); }
+    .quiz-option input { accent-color: var(--blue); }
+
+    .quiz-book-nav { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1.75rem; }
+    .quiz-dots { display: flex; align-items: center; gap: 0.45rem; }
+    .quiz-dot { width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,0.15); transition: all 0.2s ease; cursor: pointer; }
+    .quiz-dot.answered { background: rgba(96,165,250,0.55); }
+    .quiz-dot.active { background: var(--blue); transform: scale(1.35); }
+    .quiz-warning { display: none; margin-top: 0.6rem; font-size: 0.78rem; font-weight: 700; color: var(--rose); }
+
+    @media print {
+        .no-print { display: none !important; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="background: var(--navy-bg); min-height: 100vh;">
+
+    <!-- Mini hero band -->
+    <div class="week-hero-band">
+        <div class="hero-icon-hex"><i class="fas fa-list-check"></i></div>
+        <h2 class="label-eyebrow hero-eyebrow">Monthly path · Week {{ week.week }} of 4</h2>
+        <h1 class="hero-title-sm font-outfit">{{ week.title }}</h1>
+        <div class="hero-divider"></div>
+        <p class="hero-desc">{{ week.goal }}</p>
+        <div class="mt-6 mx-auto" style="max-width: 420px;">
+            <div class="flex items-center justify-between text-xs font-bold" style="color:#e2e8f0;"><span>Monthly path progress</span><span>{{ progress.percent }}%</span></div>
+            <div class="mt-2 mp-progress-bg"><div class="mp-progress-fill" style="width: {{ progress.percent }}%"></div></div>
+        </div>
+    </div>
+
+    <div class="mx-auto px-4 sm:px-6 lg:px-8 pb-16 space-y-6" style="max-width: 80vw; padding-top: 2.5rem;">
+
+        <a href="/my-monthly-path" class="back-link"><i class="fas fa-arrow-left"></i> Back to monthly path</a>
+
+        <!-- Part 1: checklist -->
+        <section class="dark-card p-6 md:p-8">
+            <p class="label-eyebrow" style="color: var(--teal);">Part 1 · Weekly tasks</p>
+            <h2 class="mt-1 section-title font-outfit">Build evidence step by step</h2>
+            <p class="mt-2 text-sm" style="color: var(--text-secondary);">Save a meaningful response for each task. The next subtask unlocks only after the current one is completed.</p>
+
+            <div class="mt-6 checklist-track">
+                {% for task in task_states %}
+                <div class="checklist-item {% if task.is_complete %}done{% elif task.is_open %}active{% else %}locked{% endif %}">
+                    <div class="checklist-marker">
+                        {% if task.is_complete %}<i class="fas fa-check"></i>{% elif task.is_open %}<i class="fas fa-pen"></i>{% else %}<i class="fas fa-lock"></i>{% endif %}
+                    </div>
+                    <div class="checklist-body">
+                        <p class="checklist-title">{{ task.text }}</p>
+
+                        {% if task.is_complete %}
+                        <div class="checklist-card-complete">{{ task.response.text }}</div>
+
+                        {% elif task.is_open %}
+                        <form action="/my-monthly-path/week/{{ week.week }}/task/{{ task.id }}/toggle" method="post" class="checklist-form">
+                            <label class="block text-sm font-semibold" style="color:#e2e8f0;">{{ task.prompt }}</label>
+                            <textarea name="response" required minlength="10" maxlength="1500" rows="4" class="checklist-textarea" placeholder="Write your response here..."></textarea>
+                            <button class="mt-3 btn-solid-teal"><i class="fas fa-check"></i> Save and unlock next task</button>
+                        </form>
+
+                        {% else %}
+                        <div class="checklist-card-locked">Complete the previous subtask first.</div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if not loop.last %}
+                <div class="checklist-connector {% if task.is_complete %}active{% endif %}"><span class="checklist-connector-line"></span></div>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </section>
+
+        <!-- Part 2: reflection -->
+        <section class="dark-card p-6 md:p-8" style="border-color: rgba(45,212,191,0.3);">
+            <div class="flex items-center justify-between gap-3 flex-wrap">
+                <div>
+                    <p class="label-eyebrow" style="color: var(--teal);">Part 2 · Weekly conversation</p>
+                    <h2 class="mt-1 section-title font-outfit">Weekly AI reflection</h2>
+                </div>
+                <span class="mp-tag" style="color: var(--teal); background: var(--teal-soft); border-color: rgba(45,212,191,0.35);">{% if cycle.weekly_checkin_due %}Due now{% else %}Logged this week{% endif %}</span>
+            </div>
+            <p class="mt-3 text-sm" style="color: var(--text-secondary);">Share what you completed, where you got stuck, and your next small action.</p>
+            <form action="/my-monthly-path/check-in" method="post" class="mt-4">
+                <input type="hidden" name="return_week" value="{{ week.week }}">
+                <textarea name="message" required maxlength="1500" rows="3" class="checklist-textarea" placeholder="This week I completed…, my blocker was…, and next I will…"></textarea>
+                <button class="mt-3 btn-solid-teal"><i class="fas fa-paper-plane"></i> Save weekly reflection</button>
+            </form>
+            {% for entry in cycle.latest_checkins|reverse %}
+            <div class="mt-4 rounded-xl p-4 text-sm" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);">
+                <p class="font-bold" style="color:#fff;">You · {{ entry.date }}</p>
+                <p class="mt-1" style="color: var(--text-secondary);">{{ entry.message }}</p>
+                <p class="mt-3 pt-3" style="border-top: 1px solid rgba(255,255,255,0.08); color: var(--teal);"><i class="fas fa-sparkles mr-1"></i>{{ entry.response }}</p>
+            </div>
+            {% endfor %}
+        </section>
+
+        <!-- Part 3: quiz flip-book -->
+        <section class="dark-card p-6 md:p-8" style="border-color: rgba(96,165,250,0.3);">
+            <div class="flex items-center justify-between gap-3 flex-wrap">
+                <div>
+                    <p class="label-eyebrow" style="color: var(--blue);">Part 3 · Weekend check</p>
+                    <h2 class="mt-1 section-title font-outfit">Five-question progress check</h2>
+                </div>
+                {% if cycle.latest_quiz %}<span class="mp-tag" style="color: var(--blue); background: var(--blue-soft); border-color: rgba(96,165,250,0.35);">{{ cycle.latest_quiz.score }}/{{ cycle.latest_quiz.total }}</span>{% endif %}
+            </div>
+
+            {% if cycle.weekend_quiz_due %}
+            <form id="quizBookForm" action="/my-monthly-path/weekend-quiz" method="post" class="mt-6">
+                <input type="hidden" name="return_week" value="{{ week.week }}">
+                <div class="quiz-book-wrap">
+                    <div class="quiz-book" id="quizBook">
+                        {% for question in weekend_quiz %}
+                        {% set question_index = loop.index0 %}
+                        <div class="quiz-page {% if loop.first %}active{% endif %}" data-index="{{ question_index }}">
+                            <p class="quiz-page-number">Page {{ loop.index }} of {{ weekend_quiz|length }}</p>
+                            <fieldset>
+                                <legend class="quiz-question">{{ loop.index }}. {{ question.question }}</legend>
+                                <div class="quiz-options">
+                                    {% for option in question.options %}
+                                    <label class="quiz-option"><input required type="radio" name="answer_{{ question_index }}" value="{{ loop.index0 }}">{{ option }}</label>
+                                    {% endfor %}
+                                </div>
+                            </fieldset>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <p class="quiz-warning" id="quizWarning"><i class="fas fa-triangle-exclamation mr-1"></i>Pick an answer before turning the page.</p>
+                <div class="quiz-book-nav">
+                    <button type="button" id="quizPrevBtn" class="btn-ghost" disabled><i class="fas fa-angle-left"></i> Prev</button>
+                    <div class="quiz-dots" id="quizDots">
+                        {% for question in weekend_quiz %}<span class="quiz-dot {% if loop.first %}active{% endif %}" data-index="{{ loop.index0 }}"></span>{% endfor %}
+                    </div>
+                    <button type="button" id="quizNextBtn" class="btn-ghost">Next <i class="fas fa-angle-right"></i></button>
+                    <button type="submit" id="quizSubmitBtn" class="btn-solid-blue" style="display:none;"><i class="fas fa-flag-checkered"></i> Submit progress check</button>
+                </div>
+            </form>
+
+            <script>
+            (function () {
+                var book = document.getElementById('quizBook');
+                if (!book) return;
+                var pages = Array.prototype.slice.call(book.querySelectorAll('.quiz-page'));
+                var dots = Array.prototype.slice.call(document.querySelectorAll('#quizDots .quiz-dot'));
+                var prevBtn = document.getElementById('quizPrevBtn');
+                var nextBtn = document.getElementById('quizNextBtn');
+                var submitBtn = document.getElementById('quizSubmitBtn');
+                var warning = document.getElementById('quizWarning');
+                var current = 0;
+
+                function isAnswered(i) {
+                    return pages[i].querySelectorAll('input[type="radio"]:checked').length > 0;
+                }
+
+                function refreshUI() {
+                    dots.forEach(function (d, i) {
+                        d.classList.toggle('active', i === current);
+                        d.classList.toggle('answered', isAnswered(i));
+                    });
+                    prevBtn.disabled = current === 0;
+                    var last = current === pages.length - 1;
+                    nextBtn.style.display = last ? 'none' : 'inline-flex';
+                    submitBtn.style.display = last ? 'inline-flex' : 'none';
+                }
+
+                var flipping = false;
+
+                function clearFlipClasses(el) {
+                    el.classList.remove('flip-out-next', 'flip-in-next', 'flip-out-prev', 'flip-in-prev');
+                }
+
+                function goTo(index, direction) {
+                    if (flipping || index < 0 || index >= pages.length || index === current) return;
+                    flipping = true;
+
+                    var outgoing = pages[current];
+                    var incoming = pages[index];
+
+                    clearFlipClasses(outgoing);
+                    clearFlipClasses(incoming);
+                    outgoing.classList.remove('active');
+                    incoming.classList.add('active');
+
+                    void outgoing.offsetWidth;
+                    outgoing.classList.add(direction === 'next' ? 'flip-out-next' : 'flip-out-prev');
+                    incoming.classList.add(direction === 'next' ? 'flip-in-next' : 'flip-in-prev');
+
+                    current = index;
+                    warning.style.display = 'none';
+                    refreshUI();
+
+                    setTimeout(function () {
+                        clearFlipClasses(outgoing);
+                        clearFlipClasses(incoming);
+                        flipping = false;
+                    }, 650);
+                }
+
+                nextBtn.addEventListener('click', function () {
+                    if (!isAnswered(current)) {
+                        warning.style.display = 'block';
+                        pages[current].classList.add('shake');
+                        setTimeout(function () { pages[current].classList.remove('shake'); }, 400);
+                        return;
+                    }
+                    goTo(current + 1, 'next');
+                });
+
+                prevBtn.addEventListener('click', function () { goTo(current - 1, 'prev'); });
+
+                dots.forEach(function (dot, i) {
+                    dot.addEventListener('click', function () {
+                        if (i < current) { goTo(i, 'prev'); return; }
+                        if (i > current && isAnswered(current)) { goTo(i, 'next'); return; }
+                        if (i > current) {
+                            warning.style.display = 'block';
+                            pages[current].classList.add('shake');
+                            setTimeout(function () { pages[current].classList.remove('shake'); }, 400);
+                        }
+                    });
+                });
+
+                pages.forEach(function (p) {
+                    p.querySelectorAll('input[type="radio"]').forEach(function (input) {
+                        input.addEventListener('change', refreshUI);
+                    });
+                });
+
+                refreshUI();
+            })();
+            </script>
+
+            {% elif cycle.latest_quiz %}
+            <p class="mt-5 rounded-xl p-4 text-sm font-semibold" style="background: var(--blue-soft); color: var(--blue);"><i class="fas fa-check-circle mr-1"></i>This week’s check is complete. A new one appears next weekend.</p>
+            {% else %}
+            <p class="mt-5 rounded-xl p-4 text-sm font-semibold" style="background: var(--blue-soft); color: var(--blue);"><i class="fas fa-calendar-day mr-1"></i>Available on Saturday or Sunday.</p>
+            {% endif %}
+        </section>
+
+    </div>
 </div>
 {% endblock %}
