@@ -1633,7 +1633,7 @@ async def assessment_reset(request: Request, db: AsyncSession = Depends(get_db))
         await db.commit()
         sync_assessment_to_appwrite(user.id, result)
     
-    return RedirectResponse(url="/dashboard?message=Assessment+reset+successfully", status_code=status.HTTP_302_FOUND)
+    return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
 
 @app.get("/assessment", response_class=HTMLResponse)
 async def assessment_page(request: Request, db: AsyncSession = Depends(get_db)):

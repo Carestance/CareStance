@@ -1251,11 +1251,46 @@
             <!-- ── Retake ── -->
             <div class="db-card p-4 text-center db-stagger" style="animation-delay:0.3s;">
                 <p style="font-size:0.72rem;color:#475569;margin-bottom:0.5rem;">Want to map a different academic stage?</p>
-                <a href="/assessment/reset"
-                   onclick="return confirm('Are you sure you want to retake the assessment? This will clear your current results.')"
-                   style="font-size:0.75rem;font-weight:700;color:#f87171;display:inline-flex;align-items:center;gap:4px;text-decoration:none;transition:color 0.2s;">
+                <button onclick="document.getElementById('retake-modal').classList.remove('hidden')"
+                   style="font-size:0.75rem;font-weight:700;color:#f87171;display:inline-flex;align-items:center;gap:4px;background:none;border:none;cursor:pointer;transition:color 0.2s;">
                     <i class="fas fa-undo"></i> Retake Assessment
-                </a>
+                </button>
+            </div>
+
+            <!-- Retake Class-Level Modal -->
+            <div id="retake-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(15,23,42,0.65);backdrop-filter:blur(8px);">
+                <div class="bg-white rounded-3xl w-full max-w-sm p-8 shadow-2xl" style="border:1.5px solid rgba(255,200,225,0.4);">
+                    <h3 class="text-xl font-black text-slate-900 mb-1 text-center">Retake Assessment</h3>
+                    <p class="text-sm text-slate-500 mb-6 text-center">Choose your current academic stage to begin a fresh assessment.</p>
+                    <div class="flex flex-col gap-3">
+                        <a href="/assessment/start?class_level=12th"
+                           class="flex items-center gap-3 p-4 rounded-2xl border border-teal-100 hover:border-teal-400 hover:bg-teal-50 transition-all"
+                           onclick="return confirm('This will clear your current results and start fresh. Continue?')">
+                            <div class="w-10 h-10 bg-teal-50 text-teal-700 rounded-xl flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-graduation-cap"></i>
+                            </div>
+                            <div class="text-left">
+                                <div class="font-black text-slate-900 text-sm">Class 12th / Above</div>
+                                <div class="text-xs text-slate-500">Science, Commerce, Arts streams</div>
+                            </div>
+                        </a>
+                        <a href="/assessment/start?class_level=10th"
+                           class="flex items-center gap-3 p-4 rounded-2xl border border-indigo-100 hover:border-indigo-400 hover:bg-indigo-50 transition-all"
+                           onclick="return confirm('This will clear your current results and start fresh. Continue?')">
+                            <div class="w-10 h-10 bg-indigo-50 text-indigo-700 rounded-xl flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-school"></i>
+                            </div>
+                            <div class="text-left">
+                                <div class="font-black text-slate-900 text-sm">Class 10th</div>
+                                <div class="text-xs text-slate-500">Explore career paths early</div>
+                            </div>
+                        </a>
+                    </div>
+                    <button onclick="document.getElementById('retake-modal').classList.add('hidden')"
+                            class="mt-5 w-full py-3 text-sm font-bold text-slate-500 rounded-2xl hover:bg-slate-100 transition-all">
+                        Cancel
+                    </button>
+                </div>
             </div>
 
             <!-- ── Sleeping mascot: sits in the open background space below the panels ── -->
