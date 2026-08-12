@@ -73,6 +73,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 RUN_MIGRATIONS_ON_STARTUP = False
 ENABLE_CLEANUP_TASK = os.getenv("ENABLE_CLEANUP_TASK", "false").strip().lower() in ("1", "true", "yes")
+ENABLE_GROWTH_PLAN_SCHEDULER = os.getenv("ENABLE_GROWTH_PLAN_SCHEDULER", "true").strip().lower() in ("1", "true", "yes")
 
 @lru_cache(maxsize=4)
 def get_genai_module():
@@ -241,9 +242,10 @@ def has_completed_assessment(result) -> bool:
         result
         and (
             result.assessment_report
-            or result.recommended_stream
-            or result.final_analysis
-            or result.phase_2_category
+            # A Phase 2 category is saved before the assessment is finished.
+            # Treating it as completion hides the resume flow and can charge a
+            # first-time user for an unfinished assessment.
+            or (result.recommended_stream and result.final_analysis)
         )
     )
 
@@ -651,6 +653,10 @@ async def startup_event():
     else:
         print("Startup: Auto-cleanup task disabled. Set ENABLE_CLEANUP_TASK=true to enable.")
 
+    if ENABLE_GROWTH_PLAN_SCHEDULER:
+        app.state.growth_plan_stop = asyncio.Event()
+        app.state.growth_plan_task = asyncio.create_task(_monthly_growth_plan_loop(app.state.growth_plan_stop))
+
 async def _cleanup_old_sessions_loop(stop_event: asyncio.Event):
     """Periodically delete completed/expired video session appointments older than 2 days."""
     while not stop_event.is_set():
@@ -706,6 +712,12 @@ async def shutdown_event():
         stop_event.set()
     if cleanup_task:
         await cleanup_task
+    growth_plan_stop = getattr(app.state, "growth_plan_stop", None)
+    growth_plan_task = getattr(app.state, "growth_plan_task", None)
+    if growth_plan_stop:
+        growth_plan_stop.set()
+    if growth_plan_task:
+        await growth_plan_task
 
 # ─── Include Split Payments Router (Razorpay Route) ───────────────────────────
 from .routes.payments import router as payments_router
@@ -1513,6 +1525,11 @@ async def assessment_start(
         # Check/Create Result
         result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
 
+        # A user who has already begun their free assessment must resume it,
+        # not be sent through the retake gate or have their answers erased.
+        if result and not has_completed_assessment(result):
+            return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
+
         used_free_assessment = (user.assessments_completed or 0) >= 1 or has_completed_assessment(result)
         if used_free_assessment and not get_subscription_state(user)["active"]:
             if (user.assessments_completed or 0) < 1:
@@ -1572,8 +1589,6 @@ async def assessment_start(
             )
             db.add(result)
 
-        user.assessments_completed = max(user.assessments_completed or 0, 1)
-        
         await db.commit()
         sync_assessment_to_appwrite(user.id, result)
     except Exception as e:
@@ -2785,6 +2800,38 @@ async def _get_monthly_plan(user, db: AsyncSession):
     return growth_profile, None
 
 
+async def _generate_monthly_growth_plans_for_all_students() -> None:
+    """Create the current calendar month's plan for every eligible student."""
+    async with AsyncSessionLocal() as db:
+        students = (await db.execute(
+            select(models.User).where(models.User.role == "student")
+        )).scalars().all()
+        for student in students:
+            try:
+                await _get_monthly_plan(student, db)
+            except Exception as exc:
+                await db.rollback()
+                print(f"Growth-plan generation skipped for user {student.id}: {exc}")
+
+
+async def _monthly_growth_plan_loop(stop_event: asyncio.Event) -> None:
+    """Generate plans on startup and re-check hourly for a new calendar month."""
+    last_processed_month = None
+    while not stop_event.is_set():
+        current_month = datetime.date.today().strftime("%Y-%m")
+        if current_month != last_processed_month:
+            try:
+                await _generate_monthly_growth_plans_for_all_students()
+                last_processed_month = current_month
+                print(f"Growth plans generated for {current_month}.")
+            except Exception as exc:
+                print(f"Growth-plan scheduler error: {exc}")
+        try:
+            await asyncio.wait_for(stop_event.wait(), timeout=60 * 60)
+        except asyncio.TimeoutError:
+            continue
+
+
 @app.get("/my-monthly-path", response_class=HTMLResponse)
 async def my_monthly_path(request: Request, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
@@ -2922,7 +2969,7 @@ async def monthly_path_week(week_number: int, request: Request, db: AsyncSession
     week = next((item for item in plan.get("weeks", []) if item.get("week") == week_number), None)
     if not week:
         raise HTTPException(status_code=404, detail="Week not found")
-    cycle = get_monthly_cycle_status(plan)
+    cycle = get_monthly_cycle_status(plan, week_number=week_number)
     return templates.TemplateResponse(request=request, name="monthly_week.html", context={
         "user": user,
         "plan": plan,
@@ -2947,6 +2994,140 @@ async def _get_current_monthly_plan_record(user, db: AsyncSession):
     return plan_record
 
 
+WEEKLY_CONVERSATION_MIN_SECONDS = 3 * 60
+WEEKLY_CONVERSATION_MAX_SECONDS = 4 * 60
+
+
+def _conversation_elapsed_seconds(conversation: dict) -> int:
+    try:
+        started_at = datetime.datetime.fromisoformat(conversation["started_at"])
+        if started_at.tzinfo is None:
+            started_at = started_at.replace(tzinfo=datetime.timezone.utc)
+        return max(0, int((datetime.datetime.now(datetime.timezone.utc) - started_at).total_seconds()))
+    except (KeyError, TypeError, ValueError):
+        return WEEKLY_CONVERSATION_MAX_SECONDS
+
+
+def _weekly_conversation_opening(plan: dict, week_number: int) -> str:
+    skill = plan.get("focus_skill", "your focus skill")
+    return (
+        f"Welcome to your Week {week_number} growth conversation. We will focus on {skill.lower()}. "
+        "Tell me what you tried this week, what felt difficult, and one result you are proud of."
+    )
+
+
+@app.get("/my-monthly-path/week/{week_number}/conversation", response_class=HTMLResponse)
+async def weekly_growth_conversation(week_number: int, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    if user.role != "student":
+        raise HTTPException(status_code=403, detail="This page is only available to students")
+    if week_number not in range(1, 5):
+        raise HTTPException(status_code=404, detail="Week not found")
+
+    from .services.monthly_plan_service import get_monthly_plan_progress
+    plan_record = await _get_current_monthly_plan_record(user, db)
+    plan_data = dict(plan_record.plan_data or {})
+    if get_monthly_plan_progress(plan_data)["current_week"] != week_number:
+        raise HTTPException(status_code=403, detail="The weekly conversation is available only for the current week")
+
+    conversations = list(plan_data.get("weekly_conversations", []))
+    conversation = next((item for item in reversed(conversations) if item.get("week") == week_number), None)
+    if conversation is None:
+        now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        conversation = {
+            "week": week_number,
+            "started_at": now,
+            "messages": [{"role": "assistant", "content": _weekly_conversation_opening(plan_data, week_number), "timestamp": now}],
+        }
+        conversations.append(conversation)
+        plan_data["weekly_conversations"] = conversations[-8:]
+        plan_record.plan_data = plan_data
+        await db.commit()
+    elapsed_seconds = _conversation_elapsed_seconds(conversation)
+    return templates.TemplateResponse(request=request, name="monthly_conversation.html", context={
+        "user": user,
+        "week_number": week_number,
+        "conversation": conversation,
+        "remaining_seconds": max(0, WEEKLY_CONVERSATION_MAX_SECONDS - elapsed_seconds),
+        "minimum_remaining_seconds": max(0, WEEKLY_CONVERSATION_MIN_SECONDS - elapsed_seconds),
+    })
+
+
+@app.post("/my-monthly-path/week/{week_number}/conversation/message")
+async def weekly_growth_conversation_message(week_number: int, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    if user.role != "student" or week_number not in range(1, 5):
+        raise HTTPException(status_code=403, detail="This conversation is not available")
+    try:
+        message = str((await request.json()).get("message", "")).strip()
+    except (TypeError, ValueError):
+        message = ""
+    if not 1 <= len(message) <= 1200:
+        raise HTTPException(status_code=400, detail="Write a message between 1 and 1200 characters")
+
+    from .services.monthly_plan_service import get_monthly_plan_progress
+    plan_record = await _get_current_monthly_plan_record(user, db)
+    plan_data = dict(plan_record.plan_data or {})
+    if get_monthly_plan_progress(plan_data)["current_week"] != week_number:
+        raise HTTPException(status_code=403, detail="The weekly conversation is available only for the current week")
+    conversations = list(plan_data.get("weekly_conversations", []))
+    conversation = next((item for item in reversed(conversations) if item.get("week") == week_number), None)
+    if not conversation or conversation.get("completed_at"):
+        raise HTTPException(status_code=400, detail="Start a new weekly conversation first")
+    if _conversation_elapsed_seconds(conversation) >= WEEKLY_CONVERSATION_MAX_SECONDS:
+        raise HTTPException(status_code=403, detail="This four-minute conversation has ended")
+
+    messages = list(conversation.get("messages", []))
+    now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    messages.append({"role": "user", "content": message, "timestamp": now})
+    history = "\n".join(f"{item.get('role', 'student')}: {item.get('content', '')}" for item in messages[-8:])
+    prompt = f"""
+You are CareStance, a supportive weekly growth coach. Hold a short, natural back-and-forth conversation with a student.
+This is Week {week_number} of their monthly plan, focused on: {plan_data.get('focus_skill', 'career growth')}.
+Conversation so far:
+{history}
+
+Reply in 70 words or fewer. Ask one helpful follow-up question or offer one concrete suggestion. Do not end the session yet.
+"""
+    try:
+        ai_reply = await generate_content_with_fallback(prompt)
+    except Exception:
+        ai_reply = "That is a useful observation. What is one small action you can take before your next practice session?"
+    messages.append({"role": "assistant", "content": ai_reply.strip(), "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat()})
+    conversation["messages"] = messages[-16:]
+    plan_data["weekly_conversations"] = conversations[-8:]
+    plan_record.plan_data = plan_data
+    await db.commit()
+    return {"response": ai_reply, "remaining_seconds": max(0, WEEKLY_CONVERSATION_MAX_SECONDS - _conversation_elapsed_seconds(conversation))}
+
+
+@app.post("/my-monthly-path/week/{week_number}/conversation/complete")
+async def complete_weekly_growth_conversation(week_number: int, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    from .services.monthly_plan_service import get_monthly_plan_progress
+    plan_record = await _get_current_monthly_plan_record(user, db)
+    plan_data = dict(plan_record.plan_data or {})
+    if user.role != "student" or get_monthly_plan_progress(plan_data)["current_week"] != week_number:
+        raise HTTPException(status_code=403, detail="This conversation is not available")
+    conversations = list(plan_data.get("weekly_conversations", []))
+    conversation = next((item for item in reversed(conversations) if item.get("week") == week_number), None)
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Weekly conversation not found")
+    if _conversation_elapsed_seconds(conversation) < WEEKLY_CONVERSATION_MIN_SECONDS:
+        raise HTTPException(status_code=400, detail="Continue for at least three minutes before completing the conversation")
+    conversation["completed_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    plan_data["weekly_conversations"] = conversations[-8:]
+    plan_record.plan_data = plan_data
+    await db.commit()
+    return {"redirect": f"/my-monthly-path/week/{week_number}"}
+
+
 @app.post("/my-monthly-path/check-in")
 async def submit_monthly_checkin(
     request: Request, message: str = Form(...), return_week: int = Form(0), db: AsyncSession = Depends(get_db)
@@ -2963,16 +3144,22 @@ async def submit_monthly_checkin(
     from .services.monthly_plan_service import build_weekly_reflection_response
     plan_record = await _get_current_monthly_plan_record(user, db)
     plan_data = dict(plan_record.plan_data or {})
+    from .services.monthly_plan_service import get_monthly_plan_progress
+    current_week = get_monthly_plan_progress(plan_data)["current_week"]
+    selected_week = return_week or current_week
+    if selected_week not in range(1, 5) or selected_week != current_week:
+        raise HTTPException(status_code=403, detail="Weekly reflections can only be submitted for the current week")
     checkins = list(plan_data.get("weekly_checkins", []))
     checkins.append({
         "date": datetime.date.today().isoformat(),
+        "week": selected_week,
         "message": message,
         "response": build_weekly_reflection_response(plan_data, message),
     })
     plan_data["weekly_checkins"] = checkins[-8:]
     plan_record.plan_data = plan_data
     await db.commit()
-    destination = f"/my-monthly-path/week/{return_week}" if return_week in range(1, 5) else "/my-monthly-path"
+    destination = f"/my-monthly-path/week/{selected_week}"
     return RedirectResponse(url=destination, status_code=status.HTTP_303_SEE_OTHER)
 
 
@@ -3002,6 +3189,16 @@ async def submit_monthly_weekend_quiz(request: Request, db: AsyncSession = Depen
     plan_record = await _get_current_monthly_plan_record(user, db)
     plan_data = dict(plan_record.plan_data or {})
     from .services.monthly_plan_service import build_weekend_quiz
+    from .services.monthly_plan_service import get_monthly_plan_progress
+    progress = get_monthly_plan_progress(plan_data)
+    current_week = progress["current_week"]
+    try:
+        return_week = int(form_data.get("return_week", 0))
+    except (TypeError, ValueError):
+        return_week = 0
+    selected_week = return_week or current_week
+    if selected_week not in range(1, 5) or selected_week != current_week:
+        raise HTTPException(status_code=403, detail="Progress checks can only be submitted for the current week")
     questions = build_weekend_quiz(plan_data)
     answers = []
     for index, question in enumerate(questions):
@@ -3014,15 +3211,11 @@ async def submit_monthly_weekend_quiz(request: Request, db: AsyncSession = Depen
         answers.append(answer)
     score = sum(answer == question["correct_index"] for answer, question in zip(answers, questions))
     quizzes = list(plan_data.get("weekend_quizzes", []))
-    quizzes.append({"date": datetime.date.today().isoformat(), "score": score, "total": len(questions)})
+    quizzes.append({"date": datetime.date.today().isoformat(), "week": selected_week, "score": score, "total": len(questions)})
     plan_data["weekend_quizzes"] = quizzes[-8:]
     plan_record.plan_data = plan_data
     await db.commit()
-    try:
-        return_week = int(form_data.get("return_week", 0))
-    except (TypeError, ValueError):
-        return_week = 0
-    destination = f"/my-monthly-path/week/{return_week}" if return_week in range(1, 5) else "/my-monthly-path"
+    destination = f"/my-monthly-path/week/{selected_week}"
     return RedirectResponse(url=destination, status_code=status.HTTP_303_SEE_OTHER)
 
 
@@ -3041,6 +3234,9 @@ async def submit_month_end_review(
     from .services.monthly_plan_service import build_month_end_summary
     plan_record = await _get_current_monthly_plan_record(user, db)
     plan_data = dict(plan_record.plan_data or {})
+    from .services.monthly_plan_service import get_monthly_plan_progress
+    if get_monthly_plan_progress(plan_data)["percent"] < 100:
+        raise HTTPException(status_code=403, detail="Complete all four weeks before submitting the month-end review")
     plan_data["month_end_review"] = {
         "date": datetime.date.today().isoformat(),
         "reflection": reflection,

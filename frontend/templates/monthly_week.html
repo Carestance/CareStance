@@ -582,28 +582,21 @@
             </div>
         </section>
 
-        <!-- Part 2: reflection -->
+        <!-- Part 2: timed AI conversation -->
         <section class="dark-card p-6 md:p-8" style="border-color: rgba(45,212,191,0.3);">
             <div class="flex items-center justify-between gap-3 flex-wrap">
                 <div>
                     <p class="label-eyebrow" style="color: var(--teal);">Part 2 · Weekly conversation</p>
-                    <h2 class="mt-1 section-title font-outfit">Weekly AI reflection</h2>
+                    <h2 class="mt-1 section-title font-outfit">3–4 minute AI conversation</h2>
                 </div>
-                <span class="mp-tag" style="color: var(--teal); background: var(--teal-soft); border-color: rgba(45,212,191,0.35);">{% if cycle.weekly_checkin_due %}Due now{% else %}Logged this week{% endif %}</span>
+                <span class="mp-tag" style="color: var(--teal); background: var(--teal-soft); border-color: rgba(45,212,191,0.35);">{% if cycle.weekly_conversation_due is not defined or cycle.weekly_conversation_due %}Due now{% else %}Complete{% endif %}</span>
             </div>
-            <p class="mt-3 text-sm" style="color: var(--text-secondary);">Share what you completed, where you got stuck, and your next small action.</p>
-            <form action="/my-monthly-path/check-in" method="post" class="mt-4">
-                <input type="hidden" name="return_week" value="{{ week.week }}">
-                <textarea name="message" required maxlength="1500" rows="3" class="checklist-textarea" placeholder="This week I completed…, my blocker was…, and next I will…"></textarea>
-                <button class="mt-3 btn-solid-teal"><i class="fas fa-paper-plane"></i> Save weekly reflection</button>
-            </form>
-            {% for entry in cycle.latest_checkins|reverse %}
-            <div class="mt-4 rounded-xl p-4 text-sm" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);">
-                <p class="font-bold" style="color:#fff;">You · {{ entry.date }}</p>
-                <p class="mt-1" style="color: var(--text-secondary);">{{ entry.message }}</p>
-                <p class="mt-3 pt-3" style="border-top: 1px solid rgba(255,255,255,0.08); color: var(--teal);"><i class="fas fa-sparkles mr-1"></i>{{ entry.response }}</p>
-            </div>
-            {% endfor %}
+            {% if cycle.weekly_conversation_due is not defined or cycle.weekly_conversation_due %}
+            <p class="mt-3 text-sm" style="color: var(--text-secondary);">Have a short, guided conversation about your progress, blocker, and next action.</p>
+            <a href="/my-monthly-path/week/{{ week.week }}/conversation" class="mt-4 inline-flex items-center gap-2 btn-solid-teal"><i class="fas fa-comments"></i> Start weekly conversation</a>
+            {% else %}
+            <p class="mt-4 rounded-xl p-4 text-sm" style="background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.25); color:#a7f3d0;"><i class="fas fa-check-circle mr-1"></i>Your Week {{ week.week }} AI conversation is complete.</p>
+            {% endif %}
         </section>
 
         <!-- Part 3: quiz flip-book -->

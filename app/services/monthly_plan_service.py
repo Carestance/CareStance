@@ -233,24 +233,38 @@ def _days_since(value: str | None, today: date) -> int | None:
         return None
 
 
-def get_monthly_cycle_status(plan: dict[str, Any] | None, today: date | None = None) -> dict[str, Any]:
-    """Return due states for the weekly, weekend, and two-day cycle actions."""
+def get_monthly_cycle_status(
+    plan: dict[str, Any] | None, today: date | None = None, week_number: int | None = None
+) -> dict[str, Any]:
+    """Return due states for one weekly cycle, keeping support actions tied to that week."""
     today = today or date.today()
     plan = plan or {}
     checkins = plan.get("weekly_checkins", [])
     quizzes = plan.get("weekend_quizzes", [])
-    last_checkin = checkins[-1].get("date") if checkins else None
-    last_quiz = quizzes[-1].get("date") if quizzes else None
+    conversations = plan.get("weekly_conversations", [])
+    progress = get_monthly_plan_progress(plan)
+    active_week = week_number or progress["current_week"] or 4
+    week_checkins = [entry for entry in checkins if entry.get("week") == active_week]
+    week_quizzes = [entry for entry in quizzes if entry.get("week") == active_week]
+    week_conversations = [entry for entry in conversations if entry.get("week") == active_week]
+    completed_conversation = next(
+        (entry for entry in reversed(week_conversations) if entry.get("completed_at")), None
+    )
+    last_checkin = week_checkins[-1].get("date") if week_checkins else None
+    last_quiz = week_quizzes[-1].get("date") if week_quizzes else None
     encouragement_seen = plan.get("last_encouragement_seen_on")
     return {
         "today": today.isoformat(),
+        "week_number": active_week,
+        "weekly_conversation_due": completed_conversation is None,
+        "weekly_conversation": completed_conversation,
         "weekly_checkin_due": _days_since(last_checkin, today) is None or _days_since(last_checkin, today) >= 7,
         "weekend_quiz_due": today.weekday() >= 5 and (
             _days_since(last_quiz, today) is None or _days_since(last_quiz, today) >= 7
         ),
         "encouragement_due": _days_since(encouragement_seen, today) is None or _days_since(encouragement_seen, today) >= 2,
-        "latest_checkins": checkins[-2:],
-        "latest_quiz": quizzes[-1] if quizzes else None,
+        "latest_checkins": week_checkins[-2:],
+        "latest_quiz": week_quizzes[-1] if week_quizzes else None,
         "month_end_review": plan.get("month_end_review"),
     }
 
