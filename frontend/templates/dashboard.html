@@ -638,7 +638,7 @@
 
 {% block content %}
 <div class="db-page space-y-8">
-    {% set has_dashboard_assessment = assessment and (assessment.assessment_report or assessment.phase_2_category or assessment.recommended_stream or assessment.final_analysis) %}
+    {% set has_dashboard_assessment = assessment and (assessment.assessment_report or (assessment.recommended_stream and assessment.final_analysis)) %}
 
     {# Admin denied / generic error message banner (used by admin_auth redirects) #}
     {% if request.query_params.get('error') %}
@@ -650,7 +650,7 @@
 
     <!-- STATE 1: WELCOME INTRO FLOW (No Assessment or Assessment in Progress) -->
     {% if not has_dashboard_assessment %}
-    <div x-data="{
+    <div class="mascot-scene-card" x-data="{
         step: 1,
         isReturning: {% if assessment %}true{% else %}false{% endif %},
         dialogues: {
@@ -678,152 +678,23 @@
                 this.step--;
             }
         }
-    }" class="py-2">
-
-            <!-- Quick Feature Cards -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div class="db-card p-5 text-center">
-                    <div class="w-12 h-12 mx-auto bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center text-xl mb-3">
-                        <i class="fas fa-brain"></i>
+    }">
+        <div class="mascot-scene-inner">
+            <img src="/static/images/G1.png" alt="Careo Mascot" class="mascot-scene-char mascot-container">
+            <div class="mascot-scene-panel">
+                <p class="mascot-scene-text" x-text="currentText"></p>
+                <div class="flex items-center justify-between gap-3 mt-6">
+                    <button x-show="step < 3" @click="step = 3" class="text-sm font-bold text-slate-500 hover:text-slate-800">Skip intro</button>
+                    <div class="flex gap-2 ml-auto">
+                        <button x-show="step > 1" @click="prevStep()" class="px-4 py-2 text-sm font-bold text-slate-600">Back</button>
+                        <button x-show="step < 3" @click="nextStep()" class="btn-teal-primary px-5 py-2 text-sm font-bold">Next</button>
+                        <a x-show="step === 3" href="{% if assessment %}/assessment{% else %}/assessment/start?class_level=12th{% endif %}" class="btn-teal-primary px-5 py-2 text-sm font-bold">
+                            {{ 'Resume assessment' if assessment else 'Start assessment' }}
+                        </a>
                     </div>
-                    <h4 class="font-bold text-slate-800 text-sm">AI-Powered Analysis</h4>
-                    <p class="text-slate-400 text-xs mt-1">Multi-phase psychometric assessment</p>
-                </div>
-                <div class="db-card p-5 text-center">
-                    <div class="w-12 h-12 mx-auto bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center text-xl mb-3">
-                        <i class="fas fa-compass"></i>
-                    </div>
-                    <h4 class="font-bold text-slate-800 text-sm">Student Growth Map</h4>
-                    <p class="text-slate-400 text-xs mt-1">Weekly goals and personalised guidance</p>
-                </div>
-                <div class="db-card p-5 text-center">
-                    <div class="w-12 h-12 mx-auto bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center text-xl mb-3">
-                        <i class="fas fa-video"></i>
-                    </div>
-                    <h4 class="font-bold text-slate-800 text-sm">Expert Counsellors</h4>
-                    <p class="text-slate-400 text-xs mt-1">Book 1-on-1 guidance sessions</p>
-                </div>
-            </div>
-
-                <img src="/static/images/G1.png" alt="Careo Mascot" class="mascot-scene-char mascot-container">
-
-                <div class="mascot-scene-panel">
-
-                    <!-- Slides 1 & 2: dialogue + dots + skip/back/next -->
-                    <template x-if="step < 3">
-                        <div>
-                            <p class="mascot-scene-text" x-text="currentText"></p>
-
-            <!-- Tools Grid -->
-            <div class="grid grid-cols-2 gap-4">
-                <a href="/my-growth-profile" class="bg-white p-4 rounded-2xl border border-teal-100 shadow-sm hover:border-teal-400 hover:-translate-y-0.5 transition-all text-center">
-                    <div class="w-10 h-10 mx-auto bg-teal-50 text-teal-700 rounded-full flex items-center justify-center mb-2">
-                        <i class="fas fa-compass"></i>
-                    </div>
-                    <span class="text-xs font-bold text-slate-700 block">Growth Profile</span>
-                </a>
-                <a href="/my-monthly-path" class="bg-white p-4 rounded-2xl border border-emerald-100 shadow-sm hover:border-emerald-400 hover:-translate-y-0.5 transition-all text-center">
-                    <div class="w-10 h-10 mx-auto bg-emerald-50 text-emerald-700 rounded-full flex items-center justify-center mb-2">
-                        <i class="fas fa-calendar-alt"></i>
-                    </div>
-                    <span class="text-xs font-bold text-slate-700 block">Monthly Path</span>
-                </a>
-                <a href="/career/colleges" class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:border-[var(--teal)] hover:-translate-y-0.5 transition-all text-center">
-                    <div class="w-10 h-10 mx-auto bg-[var(--teal-soft)] text-[var(--navy)] rounded-full flex items-center justify-center mb-2">
-                        <i class="fas fa-university"></i>
-                    </div>
-                    <span class="text-xs font-bold text-slate-700 block">Colleges</span>
-                </a>
-                <a href="/counsellors" class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:border-[var(--teal)] hover:-translate-y-0.5 transition-all text-center">
-                    <div class="w-10 h-10 mx-auto bg-[var(--teal-soft)] text-[var(--teal)] rounded-full flex items-center justify-center mb-2">
-                        <i class="fas fa-video"></i>
-                    </div>
-                    <span class="text-xs font-bold text-slate-700 block">Talk to Expert</span>
-                </a>
-                <a href="/chatbot" class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:border-[var(--teal)] hover:-translate-y-0.5 transition-all text-center">
-                    <div class="w-10 h-10 mx-auto bg-[var(--teal-soft)] text-[var(--teal)] rounded-full flex items-center justify-center mb-2">
-                        <i class="fas fa-comments"></i>
-                    </div>
-                    <span class="text-xs font-bold text-slate-700 block">CareerBuddy AI</span>
-                </a>
-                {% if subscription_state and subscription_state.active and subscription_state.plan == 'customised' %}
-                <a href="/weekly-checkin" class="bg-white p-4 rounded-2xl border border-teal-100 shadow-sm hover:border-[var(--teal)] hover:-translate-y-0.5 transition-all text-center">
-                    <div class="w-10 h-10 mx-auto bg-teal-50 text-teal-600 rounded-full flex items-center justify-center mb-2">
-                        <i class="fas fa-calendar-check"></i>
-                    </div>
-                    <span class="text-xs font-bold text-slate-700 block">Weekly AI</span>
-                </a>
-                {% endif %}
-            </div>
-
-                                <!-- Navigation Buttons -->
-                                <div class="flex items-center gap-2">
-                                    <button x-show="step < 3" @click="step = 3" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors mr-2">
-                                        Skip Intro
-                                    </button>
-
-                                    <button x-show="step > 1" @click="prevStep()" class="px-4 py-2 text-sm font-bold text-slate-500 hover:text-slate-800 transition-colors">
-                                        Back
-                                    </button>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-10">
-            <a href="/assessment/start?class_level=12th" class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:border-[var(--teal)] hover:-translate-y-0.5 transition-all">
-                <div class="w-11 h-11 bg-[var(--teal-soft)] text-[var(--teal)] rounded-xl flex items-center justify-center mb-3">
-                    <i class="fas fa-clipboard-check"></i>
-                </div>
-                <h4 class="font-black text-slate-900 text-sm">{{ 'Retake Assessment' if user.assessments_completed and user.assessments_completed > 0 else 'Start Assessment' }}</h4>
-                <p class="text-xs text-slate-500 mt-1">{{ 'Requires an active Guidance Plan.' if user.assessments_completed and user.assessments_completed > 0 else 'Get your first career direction.' }}</p>
-            </a>
-            <a href="/counsellors" class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:border-[var(--teal)] hover:-translate-y-0.5 transition-all">
-                <div class="w-11 h-11 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-3">
-                    <i class="fas fa-user-tie"></i>
-                </div>
-                <h4 class="font-black text-slate-900 text-sm">Talk to Expert</h4>
-                <p class="text-xs text-slate-500 mt-1">Book guidance when you need it.</p>
-            </a>
-            <a href="/chatbot" class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:border-[var(--teal)] hover:-translate-y-0.5 transition-all">
-                <div class="w-11 h-11 bg-slate-100 text-slate-700 rounded-xl flex items-center justify-center mb-3">
-                    <i class="fas fa-comments"></i>
-                </div>
-                <h4 class="font-black text-slate-900 text-sm">CareerBuddy</h4>
-                <p class="text-xs text-slate-500 mt-1">Ask a quick career question.</p>
-            </a>
-            <a href="/subscription" class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:border-amber-300 hover:-translate-y-0.5 transition-all">
-                <div class="w-11 h-11 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center mb-3">
-                    <i class="fas fa-crown"></i>
-                </div>
-                <h4 class="font-black text-slate-900 text-sm">Guidance Plans</h4>
-                <p class="text-xs text-slate-500 mt-1">Reports, growth plan, resources.</p>
-            </a>
-        </div>
-
-                        </div>
-                    </div>
-                </div>
-                <div class="mt-5 pt-5 border-t border-slate-100">
-                    <div class="flex items-center justify-between gap-3 mb-2">
-                        <h4 class="font-black text-sm text-slate-900">Bio</h4>
-                        <button type="button" onclick="document.getElementById('empty-bio-form').classList.toggle('hidden')" class="text-xs font-bold text-teal-700 hover:text-teal-800">
-                            {{ 'Edit Bio' if user.bio else 'Add Bio' }}
-                        </button>
-                    </div>
-                    <p class="text-sm text-slate-600 leading-relaxed {% if not user.bio %}italic text-slate-400{% endif %}">
-                        {{ user.bio if user.bio else 'Add a short bio so your profile does not feel empty.' }}
-                    </p>
-                    <form id="empty-bio-form" action="/profile/update-bio" method="POST" class="hidden mt-4 space-y-3">
-                        <textarea name="bio" rows="3" maxlength="500" class="w-full rounded-xl border border-slate-200 p-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[var(--teal)] focus:border-transparent resize-none" placeholder="Tell other students about yourself...">{{ user.bio or '' }}</textarea>
-                        <button type="submit" class="px-4 py-2 rounded-xl bg-teal-600 text-white text-xs font-black">Save Bio</button>
-                    </form>
-                </div>
-                <a href="/my-growth-profile" class="inline-flex mt-5 items-center gap-2 text-sm font-black text-teal-700 hover:text-teal-900">
-                    <i class="fas fa-compass"></i> View My Growth Profile
-                </a>
-            </div>
-
                 </div>
             </div>
         </div>
-
     </div>
 
 
