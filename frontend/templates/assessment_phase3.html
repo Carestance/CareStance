@@ -2,29 +2,251 @@
 
 {% block title %}Advanced Assessment – Phase 3{% endblock %}
 
+{% block navbar %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Jersey+10&display=swap');
+
+    .hero-nav {
+        position: fixed;
+        top: 40px;
+        left: 0;
+        right: 0;
+        width: 100%;
+        z-index: 1000;
+        background: transparent;
+        box-shadow: none;
+    }
+
+    .hero-nav-inner {
+        max-width: 1500px;
+        margin: 0 auto;
+        padding: 0 2.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .hero-nav-logo {
+        display: flex;
+        align-items: center;
+        gap: 1.75rem;
+        text-decoration: none;
+    }
+
+    .hero-nav-logo-badge {
+        width: 156px; height: 156px;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 50%;
+        background: #0f172a;
+        flex-shrink: 0;
+    }
+
+    .hero-nav-logo-badge img {
+        width: 90px; height: 90px;
+        border-radius: 50%; object-fit: cover;
+        transform: scale(1.6);
+    }
+
+    .hero-nav-logo-text {
+        font-family: 'Jersey 10', 'Playfair Display', serif;
+        font-size: 2rem; font-weight: 700;
+        color: #12202b; white-space: nowrap;
+        letter-spacing: 0.02em;
+    }
+
+    .hero-nav-links {
+        display: flex;
+        align-items: center;
+        gap: 1.9rem;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .hero-nav-links a {
+        display: inline-block;
+        font-family: 'Jersey 10', sans-serif;
+        color: #fff;
+        font-size: 30px;
+        font-weight: 400;
+        white-space: nowrap;
+        text-decoration: none;
+        letter-spacing: 0.02em;
+        text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+        transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+
+    .hero-nav-links a:hover {
+        transform: scale(1.1);
+        opacity: 0.75;
+    }
+
+    .hero-nav-links a.nav-active {
+        text-decoration: underline;
+        text-underline-offset: 4px;
+    }
+
+    .hero-nav-user-name {
+        font-family: 'Jersey 10', sans-serif;
+        color: #fff;
+        opacity: 0.75;
+        font-size: 22px;
+        text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+    }
+
+    .hero-nav-logout {
+        font-family: 'Jersey 10', sans-serif;
+        background: #12202b;
+        color: #fff !important;
+        padding: 0.4rem 1.6rem;
+        border-radius: 999px;
+        font-size: 28px;
+        text-shadow: none;
+    }
+
+    .hero-nav-logout:hover {
+        transform: scale(1.08);
+        opacity: 1 !important;
+        background: #1e2f3d;
+    }
+
+    .hero-mobile-toggle {
+        display: none;
+        background: none; border: none;
+        color: #12202b; font-size: 1.35rem;
+        cursor: pointer;
+    }
+
+    .hero-mobile-menu {
+        display: none;
+        position: absolute; top: 100%; left: 1.5rem; right: 1.5rem;
+        margin-top: 0.75rem; padding: 1.5rem;
+        flex-direction: column; gap: 0.75rem;
+        background: #fff; border-radius: 1.25rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.15);
+    }
+
+    .hero-mobile-menu.open { display: flex; }
+
+    .hero-mobile-menu a {
+        padding: 0.8rem 0.5rem;
+        color: var(--text-main);
+        text-decoration: none;
+        font-weight: 500;
+        border-bottom: 1px solid var(--border-soft);
+        transition: color 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .hero-mobile-menu a.nav-active {
+        color: var(--primary);
+        font-weight: 700;
+        background: var(--primary-soft);
+        border-radius: 0.5rem;
+    }
+
+    .hero-mobile-menu a:last-child { border-bottom: none; }
+    .hero-mobile-menu a:hover { color: #0d9488; }
+
+    @media (max-width: 768px) {
+        .hero-nav-links { display: none; }
+        .hero-mobile-toggle { display: block; }
+        .hero-nav-logo-badge { width: 64px; height: 64px; }
+        .hero-nav-logo-badge img { width: 36px; height: 36px; }
+        .hero-nav-logo-text { font-size: 1.4rem; }
+        .hero-nav-inner { padding: 0 1.25rem; }
+        .hero-nav { top: 20px; }
+    }
+</style>
+
+<nav class="hero-nav">
+    <div class="hero-nav-inner">
+        <a href="/" class="hero-nav-logo">
+            <span class="hero-nav-logo-badge">
+                <picture>
+                    <source srcset="/static/images/image.webp?v=101" type="image/webp">
+                    <img src="/static/images/logo-1.png" alt="CareStance Logo" width="90" height="90">
+                </picture>
+            </span>
+            <span class="hero-nav-logo-text">Carestance</span>
+        </a>
+
+        <div class="hero-nav-links">
+            {% if user %}
+            <a href="/dashboard">Dashboard</a>
+            {% if user.role in ['student', 'admin'] %}
+            <a href="/my-growth-profile" class="{% if request.url.path == '/my-growth-profile' %}nav-active{% endif %}">Growth Profile</a>
+            <a href="/my-monthly-path" class="{% if request.url.path == '/my-monthly-path' %}nav-active{% endif %}">Monthly Path</a>
+            {% endif %}
+            {% if user.role != 'counsellor' %}
+            <a href="/chatbot">Chat AI</a>
+            {% endif %}
+            <a href="/community">Community</a>
+            <a href="/feedback">Feedback</a>
+            <a href="/ticket">Support</a>
+            {% if user.role == 'admin' %}
+            <a href="/admin" class="{% if request.url.path == '/admin' %}nav-active{% endif %}" style="font-weight:700;">Admin</a>
+            {% endif %}
+            {% if user.full_name and user.full_name != 'None' %}<span class="hero-nav-user-name">| {{ user.full_name }}</span>{% endif %}
+            <a href="/logout" class="hero-nav-logout">Logout</a>
+            {% else %}
+            <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}">Home</a>
+            <a href="/login" class="{% if request.url.path == '/login' %}nav-active{% endif %}">Log In</a>
+            {% endif %}
+        </div>
+
+        <button class="hero-mobile-toggle" id="base-menu-toggle" aria-label="Menu">
+            <i class="fa-solid fa-bars" id="base-menu-icon"></i>
+        </button>
+    </div>
+
+    <div class="hero-mobile-menu" id="base-mobile-menu">
+        {% if user %}
+        <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i class="fa-solid fa-house"></i>Home</a>
+        <a href="/dashboard"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
+        {% if user.role in ['student', 'admin'] %}
+        <a href="/my-growth-profile" class="{% if request.url.path == '/my-growth-profile' %}nav-active{% endif %}"><i class="fa-solid fa-compass"></i>Growth Profile</a>
+        <a href="/my-monthly-path" class="{% if request.url.path == '/my-monthly-path' %}nav-active{% endif %}"><i class="fa-solid fa-route"></i>Monthly Path</a>
+        {% endif %}
+        {% if user.role != 'counsellor' %}
+        <a href="/chatbot"><i class="fa-solid fa-comment-dots"></i>Chat AI</a>
+        {% endif %}
+        <a href="/community"><i class="fa-solid fa-users"></i>Community</a>
+        <a href="/feedback"><i class="fa-solid fa-star"></i>Feedback</a>
+        <a href="/ticket"><i class="fa-solid fa-circle-question"></i>Support</a>
+        {% if user.role == 'admin' %}<a href="/admin"><i class="fa-solid fa-shield-halved"></i>Admin Panel</a>{% endif %}
+        <a href="/logout" style="color:#b45309;"><i class="fa-solid fa-right-from-bracket"></i>Logout</a>
+        {% else %}
+        <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i class="fa-solid fa-house"></i>Home</a>
+        <a href="/login"><i class="fa-solid fa-right-to-bracket"></i>Log In</a>
+        {% endif %}
+    </div>
+</nav>
+{% endblock %}
+
 {% block extra_head %}
 <style>
-    body {
-        background: url('/static/images/BG1.png') center top / cover no-repeat fixed !important;
-        padding-top: 0 !important;
-    }
-    .phase3-page-wrap {
-        padding-top: calc(35px + 90px + 30px); /* base-nav top(35px) + nav height(~90px) + 30px gap */
-    }
-    @media (max-width: 768px) {
-        .phase3-page-wrap { padding-top: calc(20px + 72px + 30px); }
-    }
+    body { background: transparent !important; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="phase3-page-wrap">
-<div class="max-w-4xl mx-auto py-6 px-4 sm:px-6 lg:px-8 relative z-10">
+<!-- Adventure Sky Backdrop (same treatment as Chat AI) -->
+<div class="quest-sky quest-sky--phase3">
+    <div class="quest-sky-overlay"></div>
+</div>
+
+<div class="phase3-quest-shell">
+<div class="max-w-4xl mx-auto relative z-10">
 
     <!-- ===================== CLASSIC MODE ===================== -->
     <div id="classic-panel">
-        <div class="bg-white/70 backdrop-blur-xl shadow-2xl rounded-3xl overflow-hidden border border-white/50">
-            <div class="w-full bg-slate-100 h-2.5 relative overflow-hidden">
+        <div class="pixel-frame">
+          <div class="pixel-frame-inner overflow-hidden">
+            <div class="w-full bg-black/10 h-2.5 relative overflow-hidden">
                 <div id="progress-bar"
                     class="bg-gradient-to-r from-[var(--navy)] via-[var(--teal)] to-[var(--navy)] h-2.5 transition-all duration-700 ease-out relative"
                     style="width: 0%">
@@ -34,19 +256,19 @@
                 </div>
             </div>
 
-            <div class="px-6 py-6 sm:px-8 bg-[var(--teal-soft)] flex justify-between items-center border-b border-[var(--teal-light)]">
+            <div class="px-6 py-6 sm:px-8 bg-[var(--navy)] flex justify-between items-center border-b-2 border-[var(--ink)]/20">
                 <div>
-                    <h3 class="text-lg leading-6 font-bold text-[var(--navy)]">Phase 3: Deep Dive Scenarios</h3>
-                    <p class="mt-1 max-w-2xl text-sm text-[var(--navy)] font-medium">
-                        Scenario <span id="step-counter" class="font-bold">1</span> of {{ scenarios|length }}
+                    <p class="quest-eyebrow !text-[var(--teal)] !opacity-90 mb-1">Phase 3 · Deep Dive Scenarios</p>
+                    <p class="text-sm text-white/80 font-medium">
+                        Scenario <span id="step-counter" class="font-bold text-white">1</span> of {{ scenarios|length }}
                     </p>
                     <a href="/assessment/reset" onclick="return confirm('Restart assessment from scratch?')"
-                        class="text-[10px] font-bold text-rose-500 uppercase hover:underline mt-1 block">Restart
+                        class="text-[10px] font-bold text-rose-300 uppercase hover:underline mt-1 block">Restart
                         Assessment</a>
                 </div>
                 <div class="flex space-x-2">
                     <button type="button" id="record-btn"
-                        class="p-2.5 rounded-full bg-slate-100 text-slate-600 shadow-sm hover:bg-red-50 hover:text-red-600 transition-all border border-slate-200"
+                        class="p-2.5 rounded-full bg-white/10 text-white shadow-sm hover:bg-red-500/20 hover:text-red-300 transition-all border border-white/20"
                         title="Record Answer">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor">
@@ -55,7 +277,7 @@
                         </svg>
                     </button>
                     <button type="button" onclick="speakCurrentScenario()" id="speak-btn"
-                        class="p-2.5 rounded-full bg-white text-[var(--navy)] shadow-sm hover:bg-[var(--teal-soft)] transition-colors border border-[var(--teal-light)]"
+                        class="p-2.5 rounded-full bg-white/10 text-[var(--teal)] shadow-sm hover:bg-white/20 transition-colors border border-white/20"
                         title="Replay Audio">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor">
@@ -64,7 +286,7 @@
                         </svg>
                     </button>
                     <button type="button" onclick="togglePauseVoice()" id="pause-btn"
-                        class="p-2.5 rounded-full bg-white text-[var(--navy)] shadow-sm hover:bg-[var(--teal-soft)] transition-colors border border-[var(--teal-light)]"
+                        class="p-2.5 rounded-full bg-white/10 text-[var(--teal)] shadow-sm hover:bg-white/20 transition-colors border border-white/20"
                         title="Pause/Resume Audio">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor">
@@ -75,7 +297,7 @@
                 </div>
             </div>
 
-            <div class="px-6 py-8 sm:p-10">
+            <div class="px-6 py-8 sm:p-10 bg-[var(--parchment)]">
                 <form id="scenario-form" action="/assessment/phase3/submit" method="POST">
                     {% for scenario in scenarios %}
                     <div class="scenario-step hidden space-y-8" data-step="{{ loop.index0 }}">
@@ -89,38 +311,34 @@
                             "Dynamic Generalist": "versatile_seeker.png"
                             } %}
                             {% set category_image = cat_img_map.get(category_name, "focused_specialist.png") %}
-                            <div
-                                class="mb-8 rounded-3xl overflow-hidden shadow-xl border-4 border-white/50 transform hover:scale-[1.02] transition-transform duration-500">
-                                <img src="/static/images/p3/{{ category_image }}" alt="{{ category_name }}"
-                                    class="w-full h-64 object-cover">
+                            <div class="mb-8 pixel-frame">
+                                <div class="pixel-frame-inner !p-0 overflow-hidden">
+                                    <img src="/static/images/p3/{{ category_image }}" alt="{{ category_name }}"
+                                        class="w-full h-64 object-cover">
+                                </div>
                             </div>
 
-                            <h4 class="text-2xl font-extrabold text-slate-900 mb-6 scenario-title tracking-tight">{{
+                            <h4 class="quest-heading text-2xl text-[var(--ink)] mb-6 scenario-title tracking-tight">{{
                                 scenario.title }}</h4>
                             <div
-                                class="text-lg text-slate-700 mb-8 italic border-l-4 border-[var(--teal-light)] pl-6 py-4 bg-slate-50 rounded-r-2xl scenario-story shadow-sm">
+                                class="text-lg text-[var(--ink)]/80 mb-8 italic border-l-4 border-[var(--teal)] pl-6 py-4 bg-white/60 rounded-r-2xl scenario-story shadow-sm">
                                 "{{ scenario.story }}"
                             </div>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                             {% for opt in scenario.options %}
-                            <label
-                                class="option-label relative flex cursor-pointer rounded-2xl border-2 border-slate-200/60 bg-white/80 p-6 shadow-sm transition-all duration-300 hover:shadow-xl hover:shadow-[var(--teal-soft)] hover:border-[var(--teal-light)] hover:-translate-y-2 peer-checked:border-emerald-500 peer-checked:bg-emerald-50/50 group">
+                            <label class="quest-option-label group">
                                 <input type="radio" name="{{ scenario.id }}" value="{{ opt.value }}"
                                     onchange="handleSelection()" class="sr-only peer" required>
                                 <span class="flex flex-1">
                                     <span class="flex flex-col">
-                                        <span
-                                            class="block text-xs font-bold text-[var(--navy)] uppercase tracking-wider mb-2">Option
+                                        <span class="quest-eyebrow !text-[var(--teal-deep)] mb-2">Option
                                             {{ opt.value }}</span>
                                         <span
-                                            class="block text-base font-medium text-slate-800 option-text leading-relaxed">{{
+                                            class="block text-base font-medium text-[var(--ink)] option-text leading-relaxed">{{
                                             opt.text }}</span>
                                     </span>
                                 </span>
-                                <div
-                                    class="absolute -inset-px rounded-2xl border-2 border-transparent peer-checked:border-[var(--navy)] pointer-events-none ring-0 peer-checked:ring-2 peer-checked:ring-[var(--teal-soft)]">
-                                </div>
                             </label>
                             {% endfor %}
                         </div>
@@ -129,17 +347,16 @@
 
                     <div id="final-step" class="hidden text-center py-10">
                         <div
-                            class="mb-6 inline-flex items-center justify-center h-24 w-24 rounded-full bg-[var(--teal-soft)] text-[var(--navy)] animate-bounce">
+                            class="mb-6 inline-flex items-center justify-center h-24 w-24 rounded-full bg-[var(--teal-soft)] text-[var(--navy)] quest-ring animate-bounce">
                             <svg class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                         </div>
-                        <h3 class="text-3xl font-extrabold text-slate-900 mb-2">Scenarios Complete</h3>
-                        <p class="text-slate-500 mt-2 mb-10 text-lg">Ready to generate your final work-style profile?
+                        <h3 class="quest-heading text-3xl text-[var(--ink)] mb-2">Scenarios Complete</h3>
+                        <p class="text-[var(--ink)]/60 mt-2 mb-10 text-lg">Ready to generate your final work-style profile?
                         </p>
-                        <button type="submit" id="finish-btn"
-                            class="inline-flex items-center px-10 py-4 border border-transparent text-lg font-bold rounded-2xl shadow-xl shadow-[var(--teal-soft)] text-white bg-gradient-to-r from-[var(--navy)] via-[var(--teal)] to-[var(--navy)] hover:from-[var(--teal)] hover:via-[var(--navy)] hover:to-[var(--teal)] transform transition-all duration-300 hover:scale-105 hover:-translate-y-1 focus:outline-none focus:ring-4 focus:ring-[var(--teal-light)] min-w-[280px] justify-center">
+                        <button type="submit" id="finish-btn" class="quest-btn-finish">
                             <span id="btn-text">Finish Assessment</span>
                             <div id="btn-spinner" class="hidden ml-3">
                                 <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg"
@@ -152,15 +369,16 @@
                                 </svg>
                             </div>
                         </button>
-                        <p id="loading-text" class="hidden mt-6 text-[var(--navy)] font-bold animate-pulse">Deep Diving
+                        <p id="loading-text" class="hidden mt-6 text-[var(--navy)] font-bold animate-pulse quest-eyebrow !text-sm !normal-case">Deep Diving
                             into your work-style profile...</p>
                     </div>
                 </form>
             </div>
+          </div>
         </div>
     </div>
 </div>
-</div><!-- /.phase3-page-wrap -->
+</div><!-- /.phase3-quest-shell -->
 
 <!-- Floating Premium AI Buddy Orb -->
 <div id="talking-buddy" onclick="window.location.href='/chatbot'"
@@ -168,14 +386,160 @@
     <div class="pulse-ring absolute inset-0 rounded-full bg-[var(--teal)] opacity-0"></div>
     <div class="pulse-ring absolute inset-0 rounded-full bg-[var(--teal)] opacity-0" style="animation-delay: 0.5s"></div>
     <div
-        class="buddy-orb relative w-14 h-14 rounded-full bg-gradient-to-br from-[var(--navy)] to-[var(--navy)] shadow-[0_0_30px_rgba(139,92,246,0.6)] flex items-center justify-center border-2 border-[var(--teal)]/30 overflow-hidden">
+        class="buddy-orb relative w-14 h-14 rounded-full bg-[var(--navy)] shadow-[0_0_30px_rgba(45,212,191,0.5)] flex items-center justify-center border-2 border-[var(--teal)] quest-ring overflow-hidden">
         <div class="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.2),transparent)]"></div>
         <span class="text-3xl z-10">🎓</span>
     </div>
     <div id="buddy-status"
-        class="absolute bottom-1 right-1 h-5 w-5 bg-slate-400 rounded-full border-2 border-white shadow-lg z-[110] transition-colors duration-300">
+        class="absolute bottom-1 right-1 h-5 w-5 bg-slate-400 rounded-full border-2 border-[var(--parchment)] shadow-lg z-[110] transition-colors duration-300">
     </div>
 </div>
+
+<!-- STYLES: reuses the same Quest UI theme tokens as Chat AI, sized for a form page -->
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Baloo+2:wght@500;600;700&display=swap');
+
+    .quest-heading, .quest-eyebrow { font-family: 'Fredoka', 'Baloo 2', sans-serif; }
+    .quest-heading { font-weight: 700; letter-spacing: 0.01em; }
+    .quest-eyebrow {
+        font-size: 10px; font-weight: 700; letter-spacing: 0.14em;
+        text-transform: uppercase; color: var(--ink); opacity: 0.55;
+    }
+
+    /* Sunset sky backdrop — same source image as Chat AI, slightly deeper tint
+       so this page still reads as its own space. */
+    .quest-sky {
+        position: fixed;
+        inset: 0;
+        z-index: -2;
+        background-image: url("/static/images/BG2.png");
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+    }
+
+    .quest-sky-overlay {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, rgba(24, 16, 41, 0.6) 0%, rgba(24, 16, 41, 0.4) 45%, rgba(24, 16, 41, 0.65) 100%);
+    }
+
+    .phase3-quest-shell {
+        position: relative;
+        min-height: 100vh;
+        box-sizing: border-box;
+        padding: 200px 2.5rem 3rem;
+    }
+
+    @media (max-width: 1024px) {
+        .phase3-quest-shell { padding: 150px 1.5rem 2.5rem; }
+    }
+
+    @media (max-width: 768px) {
+        .phase3-quest-shell { padding: 95px 0.9rem 2rem; }
+    }
+
+    /* Pixel-frame: same signature 8-bit notched window used across the app */
+    .pixel-frame {
+        --notch: 12px;
+        background: var(--ink);
+        padding: 4px;
+        clip-path: polygon(
+            0 var(--notch), var(--notch) var(--notch), var(--notch) 0,
+            calc(100% - var(--notch)) 0, calc(100% - var(--notch)) var(--notch), 100% var(--notch),
+            100% calc(100% - var(--notch)), calc(100% - var(--notch)) calc(100% - var(--notch)), calc(100% - var(--notch)) 100%,
+            var(--notch) 100%, var(--notch) calc(100% - var(--notch)), 0 calc(100% - var(--notch))
+        );
+        box-shadow: 0 18px 40px -12px rgba(10, 6, 26, 0.55);
+    }
+
+    .pixel-frame-inner {
+        --notch: 9px;
+        background: var(--parchment);
+        clip-path: polygon(
+            0 var(--notch), var(--notch) var(--notch), var(--notch) 0,
+            calc(100% - var(--notch)) 0, calc(100% - var(--notch)) var(--notch), 100% var(--notch),
+            100% calc(100% - var(--notch)), calc(100% - var(--notch)) calc(100% - var(--notch)), calc(100% - var(--notch)) 100%,
+            var(--notch) 100%, var(--notch) calc(100% - var(--notch)), 0 calc(100% - var(--notch))
+        );
+    }
+
+    .quest-ring {
+        box-shadow: 0 0 0 3px var(--teal), 0 0 18px rgba(45, 212, 191, 0.55);
+    }
+
+    /* Scenario answer options, styled like the chat's option/quest chips */
+    .quest-option-label {
+        position: relative;
+        display: flex;
+        cursor: pointer;
+        border-radius: 1.25rem;
+        border: 2px solid rgba(42, 33, 64, 0.12);
+        background: #ffffff;
+        padding: 1.5rem;
+        box-shadow: 0 3px 0 rgba(42, 33, 64, 0.06);
+        transition: all 0.2s ease;
+    }
+
+    .quest-option-label:hover {
+        border-color: var(--teal);
+        box-shadow: 0 4px 0 var(--teal-deep, var(--teal));
+        transform: translateY(-2px);
+    }
+
+    .quest-option-label:has(input:checked) {
+        border-color: var(--navy);
+        background: var(--teal-soft);
+        box-shadow: 0 0 0 2px var(--teal);
+    }
+
+    .quest-btn-finish {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 280px;
+        padding: 1.1rem 2.5rem;
+        border-radius: 1.25rem;
+        font-family: 'Fredoka', 'Baloo 2', sans-serif;
+        font-weight: 700;
+        font-size: 1.05rem;
+        color: #fff;
+        background: var(--navy);
+        border: 2px solid var(--teal-deep, var(--teal));
+        box-shadow: 0 4px 0 var(--teal-deep, var(--teal));
+        transition: all 0.15s ease;
+    }
+
+    .quest-btn-finish:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 0 var(--teal-deep, var(--teal));
+    }
+
+    .quest-btn-finish:active:not(:disabled) {
+        transform: translateY(2px);
+        box-shadow: 0 1px 0 var(--teal-deep, var(--teal));
+    }
+
+    .quest-btn-finish:disabled { opacity: 0.65; }
+
+    .buddy-orb.buddy-talking {
+        animation: buddyTalkPulse 0.6s ease-in-out infinite;
+    }
+
+    @keyframes buddyTalkPulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.08); }
+    }
+
+    .pulse-ring {
+        animation: pulseRing 2s ease-out infinite;
+    }
+
+    @keyframes pulseRing {
+        0% { transform: scale(0.9); opacity: 0.5; }
+        100% { transform: scale(1.6); opacity: 0; }
+    }
+</style>
 
 <!-- Load Marked.js -->
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -247,7 +611,7 @@
             const pauseIcon = document.getElementById('pause-icon');
             if (pauseIcon) pauseIcon.setAttribute('d', 'M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z');
 
-            talkingBuddy.classList.add(buddyTalkingClass);
+            talkingBuddy.querySelector('.buddy-orb').classList.add(buddyTalkingClass);
             buddyStatus.classList.remove('bg-slate-400');
             buddyStatus.classList.add('bg-emerald-500');
 
@@ -257,7 +621,7 @@
                 const audioUrl = URL.createObjectURL(blob);
                 const audio = new Audio(audioUrl);
                 audio.onended = () => {
-                    talkingBuddy.classList.remove(buddyTalkingClass);
+                    talkingBuddy.querySelector('.buddy-orb').classList.remove(buddyTalkingClass);
                     buddyStatus.classList.remove('bg-emerald-500');
                     buddyStatus.classList.add('bg-slate-400');
                 };
@@ -270,12 +634,12 @@
             utterance.rate = 0.95;
             utterance.pitch = 1.1;
             utterance.onstart = () => {
-                talkingBuddy.classList.add(buddyTalkingClass);
+                talkingBuddy.querySelector('.buddy-orb').classList.add(buddyTalkingClass);
                 buddyStatus.classList.remove('bg-slate-400');
                 buddyStatus.classList.add('bg-emerald-500');
             };
             utterance.onend = () => {
-                talkingBuddy.classList.remove(buddyTalkingClass);
+                talkingBuddy.querySelector('.buddy-orb').classList.remove(buddyTalkingClass);
                 buddyStatus.classList.remove('bg-emerald-500');
                 buddyStatus.classList.add('bg-slate-400');
             };
@@ -288,7 +652,6 @@
         document.getElementById('btn-text').innerText = 'Generating Insights...';
         document.getElementById('btn-spinner').classList.remove('hidden');
         btn.disabled = true;
-        btn.classList.add('opacity-75', 'cursor-not-allowed');
         document.getElementById('loading-text').classList.remove('hidden');
     });
 </script>
