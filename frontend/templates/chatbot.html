@@ -168,7 +168,7 @@
             <span class="hero-nav-logo-badge">
                 <picture>
                     <source srcset="/static/images/image.webp?v=101" type="image/webp">
-                    <img src="/static/images/image.png?v=101" alt="CareStance Logo" width="90" height="90">
+                    <img src="/static/images/logo-1.png" alt="CareStance Logo" width="90" height="90">
                 </picture>
             </span>
             <span class="hero-nav-logo-text">Carestance</span>
@@ -176,9 +176,13 @@
 
         <div class="hero-nav-links">
             {% if user %}
-            <a href="/dashboard" class="{% if request.url.path == '/dashboard' %}nav-active{% endif %}">Dashboard</a>
+            <a href="/dashboard" class="nav-active">Dashboard</a>
+            {% if user.role in ['student', 'admin'] %}
+            <a href="/my-growth-profile" class="{% if request.url.path == '/my-growth-profile' %}nav-active{% endif %}">Growth Profile</a>
+            <a href="/my-monthly-path" class="{% if request.url.path == '/my-monthly-path' %}nav-active{% endif %}">Monthly Path</a>
+            {% endif %}
             {% if user.role != 'counsellor' %}
-            <a href="/chatbot" class="{% if request.url.path == '/chatbot' %}nav-active{% endif %}">Chat AI</a>
+            <a href="/chatbot">Chat AI</a>
             {% endif %}
             <a href="/community">Community</a>
             <a href="/feedback">Feedback</a>
@@ -202,9 +206,13 @@
     <div class="hero-mobile-menu" id="base-mobile-menu">
         {% if user %}
         <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i class="fa-solid fa-house"></i>Home</a>
-        <a href="/dashboard" class="{% if request.url.path == '/dashboard' %}nav-active{% endif %}"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
+        <a href="/dashboard" class="nav-active"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
+        {% if user.role in ['student', 'admin'] %}
+        <a href="/my-growth-profile" class="{% if request.url.path == '/my-growth-profile' %}nav-active{% endif %}"><i class="fa-solid fa-compass"></i>Growth Profile</a>
+        <a href="/my-monthly-path" class="{% if request.url.path == '/my-monthly-path' %}nav-active{% endif %}"><i class="fa-solid fa-route"></i>Monthly Path</a>
+        {% endif %}
         {% if user.role != 'counsellor' %}
-        <a href="/chatbot" class="{% if request.url.path == '/chatbot' %}nav-active{% endif %}"><i class="fa-solid fa-comment-dots"></i>Chat AI</a>
+        <a href="/chatbot"><i class="fa-solid fa-comment-dots"></i>Chat AI</a>
         {% endif %}
         <a href="/community"><i class="fa-solid fa-users"></i>Community</a>
         <a href="/feedback"><i class="fa-solid fa-star"></i>Feedback</a>
