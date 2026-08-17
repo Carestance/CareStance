@@ -2841,8 +2841,10 @@ async def my_monthly_path(request: Request, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=403, detail="This page is only available to students and admins")
 
     from .services.monthly_plan_service import (
+        build_monthly_growth_report,
         build_weekend_quiz,
         get_encouragement_message,
+        get_growth_momentum,
         get_monthly_cycle_status,
         get_monthly_plan_progress,
         get_week_task_states,
@@ -2858,7 +2860,77 @@ async def my_monthly_path(request: Request, db: AsyncSession = Depends(get_db)):
         "cycle": get_monthly_cycle_status(plan),
         "weekend_quiz": build_weekend_quiz(plan or {}),
         "encouragement_message": get_encouragement_message(plan or {}),
+        "growth_report": build_monthly_growth_report(plan or {}),
+        "growth_momentum": get_growth_momentum(plan or {}),
     })
+
+
+@app.post("/my-monthly-path/evidence")
+async def add_growth_evidence(
+    request: Request, title: str = Form(...), detail: str = Form(...), link: str = Form(""), db: AsyncSession = Depends(get_db)
+):
+    """Save optional student-owned proof alongside the automatically saved task evidence."""
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    if user.role not in ["student", "admin"]:
+        raise HTTPException(status_code=403, detail="This action is only available to students and admins")
+    title, detail, link = title.strip(), detail.strip(), link.strip()
+    if not 2 <= len(title) <= 100 or not 5 <= len(detail) <= 800 or len(link) > 500:
+        raise HTTPException(status_code=400, detail="Please add a short title and a useful description for your evidence")
+    plan_record = await _get_current_monthly_plan_record(user, db)
+    plan_data = dict(plan_record.plan_data or {})
+    evidence = list(plan_data.get("evidence_locker") or [])
+    evidence.append({"title": title, "detail": detail, "link": link, "date": datetime.date.today().isoformat()})
+    plan_data["evidence_locker"] = evidence[-20:]
+    plan_record.plan_data = plan_data
+    await db.commit()
+    return RedirectResponse(url="/my-monthly-path", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@app.post("/my-monthly-path/experiment/{experiment_id}")
+async def complete_career_experiment(experiment_id: str, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    if user.role not in ["student", "admin"]:
+        raise HTTPException(status_code=403, detail="This action is only available to students and admins")
+    plan_record = await _get_current_monthly_plan_record(user, db)
+    # Make an independent JSON value. A shallow copy shares nested experiment
+    # dictionaries with SQLAlchemy's existing JSON value, which can prevent the
+    # ORM from detecting the update and persisting it.
+    import copy
+    plan_data = copy.deepcopy(plan_record.plan_data or {})
+    experiments = plan_data.get("career_experiments") or []
+    experiment = next((item for item in experiments if item.get("id") == experiment_id), None)
+    if not experiment:
+        raise HTTPException(status_code=404, detail="Career experiment not found")
+    experiment["completed_on"] = datetime.date.today().isoformat()
+    experiment["completed"] = True
+    plan_data["career_experiments"] = experiments
+    plan_record.plan_data = plan_data
+    await db.commit()
+    return RedirectResponse(url="/my-monthly-path", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@app.post("/my-monthly-path/decision-checkpoint")
+async def save_decision_checkpoint(
+    request: Request, direction: str = Form(...), note: str = Form(""), db: AsyncSession = Depends(get_db)
+):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    if user.role not in ["student", "admin"]:
+        raise HTTPException(status_code=403, detail="This action is only available to students and admins")
+    allowed = {"explore_more", "continue", "compare"}
+    if direction not in allowed or len(note.strip()) > 600:
+        raise HTTPException(status_code=400, detail="Please choose a valid checkpoint response")
+    plan_record = await _get_current_monthly_plan_record(user, db)
+    plan_data = dict(plan_record.plan_data or {})
+    plan_data["decision_checkpoint"] = {"direction": direction, "note": note.strip(), "date": datetime.date.today().isoformat()}
+    plan_record.plan_data = plan_data
+    await db.commit()
+    return RedirectResponse(url="/my-monthly-path", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @app.post("/my-monthly-path/week/{week_number}/toggle")

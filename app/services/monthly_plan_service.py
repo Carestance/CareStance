@@ -140,7 +140,20 @@ def build_monthly_plan(
             },
         ],
         "resources": _resource_suggestions(focus_skill),
+        "evidence_locker": [],
+        "career_experiments": _career_experiments(focus),
+        "decision_checkpoint": None,
     }
+
+
+def _career_experiments(focus: str) -> list[dict[str, str]]:
+    """Give every student a small, practical way to test—not just read about—a direction."""
+    label = focus if isinstance(focus, str) and focus.strip() else "your career direction"
+    return [
+        {"id": "role-play", "title": "Try a career scenario", "detail": f"Complete a short {label} scenario and note what you enjoyed or found difficult."},
+        {"id": "career-story", "title": "Learn from a real professional", "detail": "Watch or read one day-in-the-life story and record one insight that surprised you."},
+        {"id": "mini-project", "title": "Create a mini project", "detail": "Make one small piece of work that lets you use a skill from this direction."},
+    ]
 
 
 def get_monthly_plan_progress(plan: dict[str, Any] | None) -> dict[str, int | list[int]]:
@@ -202,7 +215,49 @@ def ensure_monthly_plan_structure(plan: dict[str, Any]) -> tuple[dict[str, Any],
     if not isinstance(updated.get("task_responses"), dict):
         updated["task_responses"] = {}
         changed = True
+    if not isinstance(updated.get("evidence_locker"), list):
+        updated["evidence_locker"] = []
+        changed = True
+    if not isinstance(updated.get("career_experiments"), list):
+        updated["career_experiments"] = _career_experiments(updated.get("focus") or updated.get("title") or "your career direction")
+        changed = True
+    if "decision_checkpoint" not in updated:
+        updated["decision_checkpoint"] = None
+        changed = True
     return updated, changed
+
+
+def get_growth_momentum(plan: dict[str, Any] | None) -> dict[str, Any]:
+    """A small, meaningful progress signal—not a generic game score."""
+    plan = plan or {}
+    progress = get_monthly_plan_progress(plan)
+    evidence_count = len(plan.get("evidence_locker") or []) + len(plan.get("task_responses") or {})
+    completed = progress["completed_weeks"]
+    message = (
+        "Your consistency is turning practice into evidence."
+        if completed >= 3 else
+        "Each completed week makes your career direction clearer."
+        if completed else
+        "Your first small action will create the evidence your future choices need."
+    )
+    return {"weeks": completed, "evidence_count": evidence_count, "message": message}
+
+
+def build_monthly_growth_report(plan: dict[str, Any]) -> dict[str, Any]:
+    """Create a simple student/parent-ready snapshot from the student's actual work."""
+    progress = get_monthly_plan_progress(plan)
+    task_responses = plan.get("task_responses") if isinstance(plan.get("task_responses"), dict) else {}
+    decision = plan.get("decision_checkpoint") if isinstance(plan.get("decision_checkpoint"), dict) else None
+    return {
+        "month_label": plan.get("month_label", "This month"),
+        "focus_skill": plan.get("focus_skill", "Growth exploration"),
+        "completed_weeks": progress["completed_weeks"],
+        "total_weeks": progress["total_weeks"],
+        "evidence_count": len(plan.get("evidence_locker") or []) + len(task_responses),
+        "strongest_habit": "Showing up for small, focused practice" if progress["completed_weeks"] else "Choosing a clear first action",
+        "next_focus": (plan.get("month_end_review") or {}).get("reflection") or "Continue with one small, visible action next week.",
+        "decision": decision,
+    }
 
 
 def get_week_task_states(plan: dict[str, Any], week_number: int) -> list[dict[str, Any]]:

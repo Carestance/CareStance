@@ -550,6 +550,9 @@
             <p class="label-eyebrow" style="color: var(--teal);">Part 1 · Weekly tasks</p>
             <h2 class="mt-1 section-title font-outfit">Build evidence step by step</h2>
             <p class="mt-2 text-sm" style="color: var(--text-secondary);">Save a meaningful response for each task. The next subtask unlocks only after the current one is completed.</p>
+            <div class="mt-4 rounded-xl p-4 text-sm" style="background:rgba(167,139,250,0.09);border:1px solid rgba(167,139,250,0.25);color:#ddd6fe;">
+                <i class="fas fa-lightbulb mr-2"></i><strong>Why this matters for your future:</strong> This week gives you proof that you can practise {{ plan.focus_skill|lower }}—useful when comparing career directions, building a portfolio, and preparing for real opportunities.
+            </div>
 
             <div class="mt-6 checklist-track">
                 {% for task in task_states %}
