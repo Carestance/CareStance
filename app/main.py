@@ -1531,10 +1531,12 @@ async def assessment_start(
         if result and not has_completed_assessment(result):
             return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
 
-        used_free_assessment = (user.assessments_completed or 0) >= 1 or has_completed_assessment(result)
+        user_assessments = getattr(user, "assessments_completed", 0) or 0
+        used_free_assessment = user_assessments >= 1 or has_completed_assessment(result)
         if used_free_assessment and not get_subscription_state(user)["active"]:
-            if (user.assessments_completed or 0) < 1:
-                user.assessments_completed = 1
+            if user_assessments < 1:
+                if hasattr(user, "assessments_completed"):
+                    user.assessments_completed = 1
                 await db.commit()
             return RedirectResponse(
                 url="/subscription?reason=assessment_retake",
@@ -1550,7 +1552,7 @@ async def assessment_start(
             result.student_type = student_type
             result.current_phase = start_phase
             result.intake_turn = 1
-            result.intake_name = user.full_name
+            result.intake_name = getattr(user, "full_name", "") or getattr(user, "name", "Student")
             result.intake_grade = 10 if student_type == "10th" else 12
             result.intake_stream = stream
             result.telemetry_logs = None
@@ -1583,7 +1585,7 @@ async def assessment_start(
                 student_type=student_type,
                 current_phase=start_phase,
                 intake_turn=1,
-                intake_name=user.full_name,
+                intake_name=getattr(user, "full_name", "") or getattr(user, "name", "Student"),
                 intake_grade=10 if student_type == "10th" else 12,
                 intake_stream=stream,
                 chat_turn=0
