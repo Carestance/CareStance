@@ -557,6 +557,21 @@ async def run_migrations():
             if cp_cols:
                 if 'verification_remarks' not in cp_cols: migrations.append("ALTER TABLE counsellor_profiles ADD COLUMN verification_remarks TEXT")
 
+            # 13. Conversation Summaries
+            cs_cols = get_columns('conversation_summaries')
+            if cs_cols is None:
+                migrations.append("""
+                CREATE TABLE conversation_summaries (
+                    id SERIAL PRIMARY KEY,
+                    client_id VARCHAR UNIQUE,
+                    user_id INTEGER REFERENCES users(id),
+                    summary_text TEXT DEFAULT '',
+                    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+                """)
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_conversation_summaries_client_id ON conversation_summaries (client_id)")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_conversation_summaries_user_id ON conversation_summaries (user_id)")
+
         if migrations:
             print(f"DEBUG: Found {len(migrations)} pending migrations.", flush=True)
             async with engine.begin() as conn:
@@ -576,7 +591,22 @@ async def run_migrations():
         traceback.print_exc()
 
 
-app = FastAPI(title="CareStance")
+from contextlib import asynccontextmanager
+from app.realtime.session.manager import manager as session_manager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup actions
+    yield
+    # Shutdown actions
+    try:
+        import asyncio
+        # We must allow time for shutdown to complete cleanly
+        await asyncio.wait_for(session_manager.shutdown_all(), timeout=15.0)
+    except Exception as e:
+        print(f"Error during graceful shutdown: {e}")
+
+app = FastAPI(title="CareStance", lifespan=lifespan)
 
 @app.middleware("http")
 async def forward_proto_middleware(request: Request, call_next):
@@ -718,10 +748,10 @@ from .routes import admin
 app.include_router(admin.router)
 
 try:
-    from app.voice.routes.websocket import router as voice_router
-    app.include_router(voice_router)
+    from app.api.realtime import router as realtime_router
+    app.include_router(realtime_router, prefix="/api")
 except (ImportError, ModuleNotFoundError) as e:
-    print(f"Warning: Voice router module not available ({e}). Skipping voice_router.")
+    print(f"Warning: Realtime router module not available ({e}). Skipping realtime_router.")
 
 # Global Exception Handler for better debugging
 @app.exception_handler(Exception)
@@ -1064,6 +1094,7 @@ async def signup(
     db: AsyncSession = Depends(get_db)
 ):
     # 1. Check existing user
+    # 1. Check existing user
     stmt = select(models.User).where(models.User.email == email)
     result = await db.execute(stmt)
     user = result.scalars().first()
@@ -1082,6 +1113,8 @@ async def signup(
         await db.flush()
 
         # Create Counsellor Profile if applicable
+
+        # Create Counsellor Profile if applicable
         if role == "counsellor":
             c_profile = models.CounsellorProfile(user_id=new_user.id)
             db.add(c_profile)
@@ -1092,6 +1125,7 @@ async def signup(
         await db.rollback()
         return templates.TemplateResponse(request=request, name="signup.html", context={"error": "An error occurred during signup. Please try again."})
     
+    return RedirectResponse(url="/login?message=Account created! Please login.", status_code=status.HTTP_302_FOUND)
     return RedirectResponse(url="/login?message=Account created! Please login.", status_code=status.HTTP_302_FOUND)
 
 @app.get("/login", response_class=HTMLResponse)
@@ -1112,6 +1146,7 @@ async def login(
     db: AsyncSession = Depends(get_db)
 ):
     # Verify credentials against local DB
+    # Verify credentials against local DB
     stmt = select(models.User).where(models.User.email == email)
     result = await db.execute(stmt)
     user = result.scalars().first()
@@ -1125,8 +1160,18 @@ async def login(
         await db.commit()
     except Exception:
         pass
+    if not user or not verify_password(password, user.hashed_password):
+        return templates.TemplateResponse(request=request, name="login.html", context={"error": "Invalid credentials"})
+
+    # Update last_login timestamp
+    try:
+        user.last_login = datetime.datetime.utcnow()
+        await db.commit()
+    except Exception:
+        pass
 
     # Pre-populate suspension cache
+    user_cache.set_user_status(user.id, {"is_suspended": getattr(user, 'is_suspended', False)})
     user_cache.set_user_status(user.id, {"is_suspended": getattr(user, 'is_suspended', False)})
     
     response = RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
@@ -4057,7 +4102,17 @@ async def assessment_phase3(request: Request, mode: str = "chat", db: AsyncSessi
     if not result:
         return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
         
-    return templates.TemplateResponse(request=request, name="assessment_phase3_v2.html", context={"user": user, "result": result, "mode": mode})
+    is_completed = (result.phase3_result == "COMPLETED")
+    import json
+    history_json = json.dumps(result.chat_messages or [])
+    
+    return templates.TemplateResponse(request=request, name="assessment_phase3_v2.html", context={
+        "user": user, 
+        "result": result, 
+        "mode": mode,
+        "is_completed": is_completed,
+        "history_json": history_json
+    })
 
 @app.post("/assessment/phase3/submit")
 async def assessment_phase3_submit(
@@ -4258,8 +4313,10 @@ class Phase3V2ChatRequest(BaseModel):
     message: str = ""
     answers: list = []
 
-@app.post("/assessment/phase3/chat_v2")
+@app.post("/assessment/phase3/chat_v2", deprecated=True)
 async def phase3_chat_v2(request: Request, chat_req: Phase3V2ChatRequest, db: AsyncSession = Depends(get_db)):
+    import logging
+    logging.warning("DEPRECATION WARNING: /assessment/phase3/chat_v2 is deprecated and will be removed. Please transition to WebRTC /api/webrtc/offer")
     user = await get_current_user(request, db)
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
@@ -4383,10 +4440,18 @@ async def phase3_finalize(request: Request, finalize_req: Phase3FinalizeRequest,
     result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
     if not result:
         return JSONResponse({"redirect": "/assessment"})
+        
+    is_completed = (result.phase3_result == "COMPLETED")
+    if not is_completed:
+        raise HTTPException(
+            status_code=409,
+            detail="Deep Dive conversation has not been completed."
+        )
 
-    # Build conversation transcript
+    # Use canonical transcript persisted by the WebRTC session
+    history = result.chat_messages or []
     transcript = ""
-    for msg in finalize_req.history:
+    for msg in history:
         role = msg.get("role", "user")
         content = msg.get("content", "")
         transcript += f"{role.upper()}: {content}\n"
@@ -4616,6 +4681,14 @@ async def phase3_finalize(request: Request, finalize_req: Phase3FinalizeRequest,
         print(f"Warning: mark_assessment_completed_once failed: {mark_err}")
 
     await db.commit()
+    print("ASSESSMENT_RESULT_PERSISTED", flush=True)
+
+    try:
+        from app.realtime.session.manager import manager as session_manager
+        import asyncio
+        asyncio.create_task(session_manager.cleanup_sessions_for_user(user.id))
+    except Exception as e:
+        print(f"Error triggering cleanup_sessions_for_user: {e}")
 
     return JSONResponse({"redirect": "/assessment/result"})
 
@@ -6324,8 +6397,10 @@ async def resolve_voice(req: ResolveVoiceRequest):
 
 # --- Chatbot Routes ---
 
-@app.post("/chatbot/message")
+@app.post("/chatbot/message", deprecated=True)
 async def chatbot_message(request: Request, chat_req: ChatRequest, db: AsyncSession = Depends(get_db)):
+    import logging
+    logging.warning("DEPRECATION WARNING: /chatbot/message is deprecated and will be replaced by the real-time pipeline.")
     user = await get_current_user(request, db)
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
