@@ -56,3 +56,15 @@ async def get_db():
     """Async DB session for FastAPI routes."""
     async with AsyncSessionLocal() as session:
         yield session
+
+async def init_db():
+    """Run migrations and initialization on startup."""
+    async with engine.begin() as conn:
+        from sqlalchemy import text
+        try:
+            # Ensure the referral_code column exists to prevent production crashes
+            await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_code VARCHAR;"))
+            await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_users_referral_code ON users (referral_code);"))
+        except Exception as e:
+            # Column might already exist or SQLite doesn't support IF NOT EXISTS in ALTER TABLE
+            pass

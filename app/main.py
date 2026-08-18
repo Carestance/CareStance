@@ -612,7 +612,8 @@ async def startup_event():
                     ADD COLUMN IF NOT EXISTS simulation_paid BOOLEAN DEFAULT FALSE,
                     ADD COLUMN IF NOT EXISTS simulation_credits INTEGER DEFAULT 0,
                     ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW(),
-                    ADD COLUMN IF NOT EXISTS last_login TIMESTAMP;
+                    ADD COLUMN IF NOT EXISTS last_login TIMESTAMP,
+                    ADD COLUMN IF NOT EXISTS referral_code VARCHAR;
                     """
                     await conn.execute(text(sql))
                     print("DEBUG: Emergency batch migration for 'users' table completed.", flush=True)
@@ -1592,7 +1593,11 @@ async def assessment_start(
         await db.commit()
         sync_assessment_to_appwrite(user.id, result)
     except Exception as e:
-        print(f"Assessment start error: {e}")
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"Assessment start error: {e}\n{error_trace}")
+        with open("assessment_error.log", "w") as f:
+            f.write(error_trace)
         await db.rollback()
         return RedirectResponse(url="/dashboard?error=Assessment+failed+to+start", status_code=status.HTTP_302_FOUND)
     
