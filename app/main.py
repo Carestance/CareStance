@@ -1710,6 +1710,7 @@ async def assessment_api_intake(request: Request, payload: dict, db: AsyncSessio
         if isinstance(interests, list):
             interests = ", ".join(interests)
         salary_priority = payload.get("salary_priority", "").strip()
+        referral_code = payload.get("referral_code", "").strip()
         family_income = payload.get("family_income", "").strip()
         father_occupation = payload.get("father_occupation", "").strip()
         mother_occupation = payload.get("mother_occupation", "").strip()
@@ -1728,6 +1729,11 @@ async def assessment_api_intake(request: Request, payload: dict, db: AsyncSessio
         if not salary_priority or salary_priority not in ["high_salary", "balanced", "meaningful_work", "unsure"]:
             raise HTTPException(status_code=400, detail="Invalid salary priority")
             
+        if referral_code:
+            if len(referral_code) != 9 or sum(c.isalpha() for c in referral_code) != 4 or sum(c.isdigit() for c in referral_code) != 5:
+                raise HTTPException(status_code=400, detail="Invalid referral code. Must be 4 letters and 5 numbers.")
+            user.referral_code = referral_code
+            
         result.intake_name = name
         result.intake_grade = 12
         result.intake_stream = pursuing
@@ -1738,7 +1744,8 @@ async def assessment_api_intake(request: Request, payload: dict, db: AsyncSessio
             "family_income": family_income,
             "father_occupation": father_occupation,
             "mother_occupation": mother_occupation,
-            "salary_priority": salary_priority
+            "salary_priority": salary_priority,
+            "referral_code": referral_code
         }
         result.intake_turn = 3
         # Always force Phase 1 (swipe cards / behavioral assessment) after intake form completion.
