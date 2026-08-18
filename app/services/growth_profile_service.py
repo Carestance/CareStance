@@ -104,6 +104,31 @@ def build_growth_profile(assessment: Any) -> dict[str, Any]:
 
     archetype = report.get("personality_archetype") or getattr(assessment, "phase_2_category", None)
     focus = getattr(assessment, "recommended_stream", None) or dashboard.get("dominant_riasec")
+    top_careers = report.get("top_careers") if isinstance(report.get("top_careers"), list) else []
+    career_directions: list[dict[str, Any]] = []
+    for index, career in enumerate(top_careers[:3]):
+        if not isinstance(career, dict):
+            continue
+        title = career.get("title") or career.get("career")
+        if not isinstance(title, str) or not title.strip():
+            continue
+        raw_score = career.get("match_percent", career.get("match_score", 0))
+        try:
+            score = float(raw_score)
+            score = round(score * 100) if score <= 1 else round(score)
+        except (TypeError, ValueError):
+            score = max(55, 82 - (index * 9))
+        career_directions.append({
+            "title": title.strip(),
+            "confidence": max(1, min(99, int(score))),
+            "next_signal": "Complete a real-world experiment and save what you learned.",
+        })
+    if not career_directions and isinstance(focus, str) and focus.strip():
+        career_directions.append({
+            "title": focus.strip(),
+            "confidence": 72,
+            "next_signal": "Complete this month's path to build stronger evidence for this direction.",
+        })
     capability_candidates = _unique_strings(
         [archetype] if isinstance(archetype, str) else [],
         [focus] if isinstance(focus, str) else [],
@@ -133,4 +158,5 @@ def build_growth_profile(assessment: Any) -> dict[str, Any]:
         "growth_stage_detail": growth_stage_detail,
         "activity_count": simulations_completed,
         "focus": focus,
+        "career_directions": career_directions,
     }

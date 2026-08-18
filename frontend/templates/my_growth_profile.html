@@ -473,6 +473,29 @@
             <p class="mt-2 text-sm" style="color: var(--text-secondary);">{{ growth_profile.growth_stage_detail }}</p>
         </div>
 
+        {% if growth_profile.is_ready and growth_profile.career_directions %}
+        <section class="dark-card p-6 md:p-8" style="border-color: rgba(167,139,250,0.32);">
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                <div>
+                    <p class="label-eyebrow" style="color: var(--purple);">Career confidence compass</p>
+                    <h2 class="mt-1 gp-section-title font-outfit">Directions worth exploring</h2>
+                    <p class="mt-2 text-sm" style="color: var(--text-secondary);">These are starting signals from your assessment—not fixed decisions. Real-world experiences will make them clearer.</p>
+                </div>
+                <span class="gp-tag gp-tag-teal"><i class="fas fa-compass mr-1"></i> Keep exploring</span>
+            </div>
+            <div class="mt-5 grid grid-cols-1 md:grid-cols-3 gap-4">
+                {% for direction in growth_profile.career_directions %}
+                <div class="rounded-xl p-4" style="background: rgba(167,139,250,0.08); border: 1px solid rgba(167,139,250,0.25);">
+                    <p class="font-bold" style="color:#fff;">{{ direction.title }}</p>
+                    <div class="mt-3 flex items-center justify-between text-xs font-bold" style="color:#ddd6fe;"><span>Current signal</span><span>{{ direction.confidence }}%</span></div>
+                    <div class="mt-2 h-2 rounded-full overflow-hidden" style="background:rgba(255,255,255,0.1);"><div class="h-full rounded-full" style="width:{{ direction.confidence }}%; background:linear-gradient(90deg,#a78bfa,#2dd4bf);"></div></div>
+                    <p class="mt-3 text-xs" style="color:var(--text-secondary);">{{ direction.next_signal }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
         {% if not growth_profile.is_ready %}
         <div class="dark-card p-6 md:p-8" style="border-color: rgba(245,158,11,0.35);">
             <h2 class="gp-section-title font-outfit text-lg"><i class="fas fa-triangle-exclamation mr-2" style="color: var(--gold);"></i>Your profile is waiting for assessment data</h2>

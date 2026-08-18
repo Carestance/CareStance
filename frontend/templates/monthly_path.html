@@ -645,6 +645,10 @@
         </div>
         {% else %}
 
+        {# Safe defaults keep the existing path available during a server reload or for legacy route contexts. #}
+        {% set momentum = growth_momentum|default({'weeks': 0, 'evidence_count': 0, 'message': 'Your first small action will create the evidence your future choices need.'}, true) %}
+        {% set report = growth_report|default({'completed_weeks': 0, 'total_weeks': 4, 'evidence_count': 0, 'focus_skill': plan.focus_skill, 'strongest_habit': 'Choosing a clear first action', 'next_focus': 'Continue with one small, visible action next week.'}, true) %}
+
         <div class="mp-columns">
             <!-- LEFT COLUMN: Build clarity (milestone) + Suggested resources -->
             <div class="mp-col">
@@ -667,6 +671,10 @@
                     </div>
                 </div>
 
+                <div class="dark-card p-6" style="border-color: rgba(245,158,11,0.30);">
+                    <div class="flex items-start gap-3"><i class="fas fa-fire-flame-curved mt-1" style="color:var(--gold);"></i><div><p class="label-eyebrow" style="color:var(--gold);">Growth momentum</p><h2 class="mt-1 section-title font-outfit text-lg">{{ momentum.weeks }} week{{ '' if momentum.weeks == 1 else 's' }} completed · {{ momentum.evidence_count }} proof{{ '' if momentum.evidence_count == 1 else 's' }} saved</h2><p class="mt-2 text-sm" style="color:var(--text-secondary);">{{ momentum.message }}</p></div></div>
+                </div>
+
                 {% if plan.previous_month_summary %}
                 <div class="dark-card p-6" style="border-color: rgba(167,139,250,0.35);">
                     <p class="label-eyebrow" style="color: var(--purple);">From last month</p>
@@ -685,6 +693,19 @@
                     <h2 class="section-title font-outfit text-lg"><i class="fas fa-book-open mr-2" style="color:#818cf8;"></i>Suggested resources</h2>
                     <div class="mt-4 grid grid-cols-1 gap-3">{% for resource in plan.resources %}<div class="rounded-xl p-4" style="background: rgba(129,140,248,0.1); border:1px solid rgba(129,140,248,0.25);"><p class="font-bold" style="color:#fff;">{{ resource.title }}</p><p class="mt-1 text-sm" style="color: var(--text-secondary);">{{ resource.detail }}</p></div>{% endfor %}</div>
                 </div>
+
+                <section class="dark-card p-6" style="border-color: rgba(45,212,191,0.30);">
+                    <p class="label-eyebrow" style="color:var(--teal);">Achievement locker</p>
+                    <h2 class="mt-1 section-title font-outfit text-lg">Keep proof of your growth</h2>
+                    <p class="mt-2 text-sm" style="color:var(--text-secondary);">Save a project, certificate, link, note, or outcome you are proud of. Your completed weekly responses already count as proof too.</p>
+                    <form action="/my-monthly-path/evidence" method="post" class="mt-4 grid grid-cols-1 gap-3">
+                        <input name="title" required minlength="2" maxlength="100" class="rounded-lg p-3 text-sm" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.14);color:#fff;" placeholder="e.g. My first career interview note">
+                        <textarea name="detail" required minlength="5" maxlength="800" rows="2" class="rounded-lg p-3 text-sm" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.14);color:#fff;" placeholder="What did you create, learn, or complete?"></textarea>
+                        <input name="link" maxlength="500" type="url" class="rounded-lg p-3 text-sm" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.14);color:#fff;" placeholder="Optional link to your work">
+                        <button class="btn-solid-teal justify-self-start"><i class="fas fa-box-archive mr-2"></i>Save proof</button>
+                    </form>
+                    {% if plan.evidence_locker %}<div class="mt-5 space-y-2">{% for evidence in plan.evidence_locker|reverse %}<div class="rounded-lg p-3" style="background:rgba(45,212,191,0.07);border:1px solid rgba(45,212,191,0.18);"><p class="text-sm font-bold" style="color:#fff;">{{ evidence.title }}</p><p class="mt-1 text-xs" style="color:var(--text-secondary);">{{ evidence.detail }}</p>{% if evidence.link %}<a href="{{ evidence.link }}" target="_blank" rel="noopener" class="mt-2 inline-block text-xs font-bold" style="color:var(--teal);">Open evidence <i class="fas fa-arrow-up-right-from-square ml-1"></i></a>{% endif %}</div>{% endfor %}</div>{% endif %}
+                </section>
 
             </div>
 
@@ -738,6 +759,27 @@
                     <p class="label-eyebrow" style="color: var(--rose);">End of month</p><h2 class="mt-1 text-xl font-black font-outfit" style="color:#fff;">Reflect and prepare the next path</h2>
                     {% if cycle.month_end_review %}<p class="mt-4 rounded-xl p-4 text-sm" style="background: rgba(0,0,0,0.15); color:#ffe4e6;">{{ cycle.month_end_review.summary }}</p>{% elif progress.percent == 100 %}<p class="mt-3 text-sm" style="color: var(--text-secondary);">Your four weekly goals are complete. Record what worked and what should change; the next month’s path will use this reflection.</p><form action="/my-monthly-path/month-end-review" method="post" class="mt-4"><textarea name="reflection" required maxlength="1500" rows="3" class="w-full rounded-xl p-3 text-sm" style="background: rgba(0,0,0,0.15); border:1px solid rgba(255,255,255,0.14); color:#fff;" placeholder="What did you complete, what was difficult, and what should the next path focus on?"></textarea><button class="mt-3 btn-outline-rose">Save month-end reflection</button></form>{% else %}<p class="mt-4 rounded-xl p-4 text-sm" style="background: rgba(0,0,0,0.15); color:#ffe4e6;"><i class="fas fa-lock mr-1"></i>Complete all four weekly goals to unlock your month-end reflection ({{ progress.completed_weeks }}/{{ progress.total_weeks }} complete).</p>{% endif %}
                 </div>
+
+                <section class="dark-card p-6" style="border-color: rgba(167,139,250,0.35);">
+                    <p class="label-eyebrow" style="color:var(--purple);">Try before you decide</p>
+                    <h2 class="mt-1 section-title font-outfit text-lg">Real-world career experiments</h2>
+                    <p class="mt-2 text-sm" style="color:var(--text-secondary);">A career direction becomes clearer when you test it. Complete any experiment, then save what you learned in your Achievement Locker.</p>
+                    <div class="mt-4 space-y-3">{% for experiment in plan.career_experiments %}<div class="rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-3" style="background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.23);"><div class="flex-1"><p class="font-bold text-sm" style="color:#fff;">{% if experiment.get('completed_on') %}<i class="fas fa-circle-check mr-2" style="color:var(--green);"></i>{% else %}<i class="fas fa-flask mr-2" style="color:var(--purple);"></i>{% endif %}{{ experiment.title }}</p><p class="mt-1 text-xs" style="color:var(--text-secondary);">{{ experiment.detail }}</p></div>{% if experiment.get('completed_on') %}<span class="text-xs font-bold" style="color:var(--green);">Completed</span>{% else %}<form action="/my-monthly-path/experiment/{{ experiment.id }}" method="post"><button class="btn-outline-blue" style="border-color:rgba(167,139,250,0.4);color:#ddd6fe;">Mark explored</button></form>{% endif %}</div>{% endfor %}</div>
+                </section>
+
+                <section class="dark-card p-6" style="border-color: rgba(96,165,250,0.35);">
+                    <p class="label-eyebrow" style="color:var(--blue);">Decision checkpoint</p>
+                    <h2 class="mt-1 section-title font-outfit text-lg">How does this direction feel now?</h2>
+                    <p class="mt-2 text-sm" style="color:var(--text-secondary);">There is no wrong answer. Your response helps keep the next path relevant to you.</p>
+                    {% if plan.decision_checkpoint %}<div class="mt-4 rounded-lg p-3 text-sm" style="background:var(--blue-soft);color:#dbeafe;"><strong>Your latest decision:</strong> {{ plan.decision_checkpoint.direction|replace('_', ' ')|title }}{% if plan.decision_checkpoint.note %} · {{ plan.decision_checkpoint.note }}{% endif %}</div>{% endif %}
+                    <form action="/my-monthly-path/decision-checkpoint" method="post" class="mt-4"><div class="grid grid-cols-1 sm:grid-cols-3 gap-2">{% for value, label in [('explore_more','Explore more'), ('continue','Continue this path'), ('compare','Compare another path')] %}<label class="rounded-lg p-3 text-sm cursor-pointer" style="border:1px solid rgba(96,165,250,0.30);color:#e2e8f0;"><input required type="radio" name="direction" value="{{ value }}" class="mr-2">{{ label }}</label>{% endfor %}</div><textarea name="note" maxlength="600" rows="2" class="mt-3 w-full rounded-lg p-3 text-sm" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.14);color:#fff;" placeholder="Optional: what made you feel this way?"></textarea><button class="mt-3 btn-outline-blue">Save checkpoint</button></form>
+                </section>
+
+                <section class="dark-card p-6" style="border-color: rgba(52,211,153,0.35);">
+                    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3"><div><p class="label-eyebrow" style="color:var(--green);">Monthly growth report</p><h2 class="mt-1 section-title font-outfit text-lg">A shareable view of your progress</h2></div><button type="button" onclick="window.print()" class="btn-outline-blue" style="border-color:rgba(52,211,153,0.4);color:#a7f3d0;"><i class="fas fa-print mr-2"></i>Print / save PDF</button></div>
+                    <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-center">{% for label, value in [('Weeks complete', report.completed_weeks ~ '/' ~ report.total_weeks), ('Evidence saved', report.evidence_count), ('Focus skill', report.focus_skill), ('Strongest habit', report.strongest_habit)] %}<div class="rounded-lg p-3" style="background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.18);"><p class="text-xs font-bold" style="color:var(--green);">{{ label }}</p><p class="mt-1 text-sm font-bold" style="color:#fff;">{{ value }}</p></div>{% endfor %}</div>
+                    <p class="mt-4 text-sm" style="color:var(--text-secondary);"><strong style="color:#fff;">Next focus:</strong> {{ report.next_focus }}</p>
+                </section>
 
             </div>
         </div>
