@@ -1470,8 +1470,9 @@ async def select_role(
         # Save User Metadata in Appwrite DB
         try:
             from appwrite.query import Query
+            from .appwrite_helper import _parse_list_response
             res = tables_db.list_rows(DB_ID, COLLECTIONS["users"], [Query.equal('email', user.email)])
-            documents = res.get('documents', []) if isinstance(res, dict) else getattr(res, 'documents', [])
+            _, documents = _parse_list_response(res)
             
             if documents:
                 doc = documents[0]
@@ -1765,8 +1766,9 @@ async def assessment_api_intake(request: Request, payload: dict, db: AsyncSessio
             try:
                 from appwrite.query import Query
                 from .appwrite_client import tables_db, DB_ID, COLLECTIONS
+                from .appwrite_helper import _parse_list_response
                 res = tables_db.list_rows(DB_ID, COLLECTIONS["users"], [Query.equal('email', user.email)])
-                documents = res.get('documents', []) if isinstance(res, dict) else getattr(res, 'documents', [])
+                _, documents = _parse_list_response(res)
                 if documents:
                     doc = documents[0]
                     doc_id = doc.get('$id') if isinstance(doc, dict) else getattr(doc, '$id', getattr(doc, 'id', None))
