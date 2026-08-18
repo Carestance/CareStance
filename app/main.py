@@ -1752,6 +1752,24 @@ async def assessment_api_intake(request: Request, payload: dict, db: AsyncSessio
         result.current_phase = 1
         
         await db.commit()
+        
+        # Update referral_code in Appwrite users collection if provided
+        if referral_code:
+            try:
+                from appwrite.query import Query
+                from .appwrite_client import tables_db, DB_ID, COLLECTIONS
+                res = tables_db.list_rows(DB_ID, COLLECTIONS["users"], [Query.equal('email', user.email)])
+                documents = res.get('documents', []) if isinstance(res, dict) else getattr(res, 'documents', [])
+                if documents:
+                    doc = documents[0]
+                    doc_id = doc.get('$id') if isinstance(doc, dict) else getattr(doc, '$id', getattr(doc, 'id', None))
+                    if doc_id:
+                        tables_db.update_row(DB_ID, COLLECTIONS["users"], doc_id, {
+                            "referral_code": referral_code
+                        })
+            except Exception as e:
+                print(f"Appwrite Sync User Referral Error: {e}")
+
         sync_assessment_to_appwrite(user.id, result)
         
         validation_payload = {
