@@ -1833,6 +1833,14 @@
                         <div class="error-msg" style="color:#f87171;font-size:0.72rem;margin-top:4px;display:none;">Please select a priority.</div>`
                     )}
 
+                    ${missionRow('fa-ticket-alt','#f43f5e','rgba(244,63,94,0.1)',
+                        'Referral Code (Optional)','Do you have a referral code?',
+                        `<input type="text" name="referral_code" placeholder="e.g. ABCD12345"
+                            class="w-full px-4 py-3 text-sm text-slate-900 placeholder-slate-400 mission-input"
+                            style="font-size:0.875rem;">
+                        <div class="error-msg" style="color:#f87171;font-size:0.72rem;margin-top:4px;display:none;">Invalid referral code. Must be exactly 9 characters (4 letters, 5 numbers).</div>`
+                    )}
+
                     <!-- Submit row -->
                     <div style="display:flex;justify-content:space-between;align-items:center;padding-top:1.25rem;margin-top:0.5rem;border-top:1px solid rgba(255,200,225,0.35);">
                         <div style="display:flex;align-items:center;gap:6px;font-size:0.72rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;">
@@ -1862,6 +1870,7 @@
         const fatherOccupationVal = form.father_occupation.value;
         const motherOccupationVal = form.mother_occupation.value;
         const salaryPriorityVal = form.salary_priority.value;
+        const referralCodeVal = form.referral_code ? form.referral_code.value.trim() : "";
         
         let isValid = true;
         
@@ -1908,6 +1917,23 @@
         
         if (!salaryPriorityVal) toggleError("salary_priority", true);
         else toggleError("salary_priority", false);
+
+        if (referralCodeVal) {
+            let letters = 0;
+            let numbers = 0;
+            for (let char of referralCodeVal) {
+                if (/[a-zA-Z]/.test(char)) letters++;
+                else if (/[0-9]/.test(char)) numbers++;
+            }
+            if (referralCodeVal.length !== 9 || letters !== 4 || numbers !== 5) {
+                toggleError("referral_code", true);
+                isValid = false;
+            } else {
+                toggleError("referral_code", false);
+            }
+        } else {
+            toggleError("referral_code", false);
+        }
         
         if (!isValid) return;
         
@@ -1927,7 +1953,8 @@
                     family_income: familyIncomeVal,
                     father_occupation: fatherOccupationVal,
                     mother_occupation: motherOccupationVal,
-                    salary_priority: salaryPriorityVal
+                    salary_priority: salaryPriorityVal,
+                    referral_code: referralCodeVal
                 })
             });
             const data = await res.json();
