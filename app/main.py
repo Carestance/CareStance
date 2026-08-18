@@ -6033,7 +6033,10 @@ async def simulation_workspace(session_id: str, request: Request, db: AsyncSessi
         if result and result.simulation_career:
             career_title = result.simulation_career
 
-    workspace_path = os.path.join(os.path.dirname(__file__), "assessment_data", "Phase 4 UI.html")
+    # The interactive Phase 2 workspace is a frontend template, not an
+    # assessment-data file.  Looking in assessment_data caused every Phase 2
+    # simulation to render a 404 inside its iframe.
+    workspace_path = os.path.join(TEMPLATES_DIR, "Phase 4 UI.html")
     if not os.path.exists(workspace_path):
         raise HTTPException(status_code=404, detail="Workspace template not found")
 
@@ -6057,7 +6060,17 @@ async def simulation_workspace(session_id: str, request: Request, db: AsyncSessi
                 }
             }, window.location.origin);
 """
-    workspace_html = workspace_html.replace("            // Mock logic for export UI", completion_hook, 1)
+    # Keep the workspace's existing success feedback, then notify the parent
+    # simulation.  The previous implementation targeted an old placeholder
+    # comment that is no longer present in the Phase 4 workspace template.
+    export_success_line = "document.getElementById('success-modal').classList.remove('hidden');"
+    if export_success_line not in workspace_html:
+        raise HTTPException(status_code=500, detail="Workspace export hook could not be installed")
+    workspace_html = workspace_html.replace(
+        export_success_line,
+        f"{export_success_line}\n{completion_hook}",
+        1,
+    )
     return HTMLResponse(workspace_html)
 
 @app.get("/simulation/session/{session_id}")
