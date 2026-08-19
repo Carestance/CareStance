@@ -23,6 +23,7 @@ class User(Base):
     simulations_completed = Column(Integer, default=0, nullable=False)
     simulation_paid = Column(Boolean, default=False, nullable=False)
     simulation_credits = Column(Integer, default=0, nullable=False)
+    assessment_all_access = Column(Boolean, default=False, nullable=False)
     subscription_plan = Column(String, nullable=True, index=True)
     subscription_status = Column(String, nullable=True, index=True)
     subscription_started_at = Column(DateTime(timezone=True), nullable=True)

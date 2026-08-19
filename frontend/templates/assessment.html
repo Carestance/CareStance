@@ -1573,6 +1573,8 @@
             } else if (phase === 5) {
                 renderCompilePhase();
                 hideLoader();
+            } else if (phase === 6) {
+                window.location.href = '/assessment/free-preview';
             }
         } catch (e) {
             console.error("Critical failure during question load state", e);
@@ -2037,6 +2039,10 @@
             });
             const data = await res.json();
             if (data.status === "success") {
+                if (data.redirect) {
+                    window.location.href = data.redirect;
+                    return;
+                }
                 await refreshState();
             } else {
                 hideLoader();
