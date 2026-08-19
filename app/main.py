@@ -417,6 +417,7 @@ async def run_migrations():
                 if 'subscription_expires_at' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN subscription_expires_at TIMESTAMP")
                 if 'created_at' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN created_at TIMESTAMP")
                 if 'last_login' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN last_login TIMESTAMP")
+                if 'referral_code' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN referral_code VARCHAR")
                 migrations.append("CREATE INDEX IF NOT EXISTS ix_users_full_name ON users (full_name)")
                 migrations.append("CREATE INDEX IF NOT EXISTS ix_users_onboarded ON users (onboarded)")
                 migrations.append("CREATE INDEX IF NOT EXISTS ix_users_subscription_plan ON users (subscription_plan)")
