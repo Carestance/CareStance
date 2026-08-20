@@ -737,12 +737,14 @@
                         <p class="text-[10px] font-black uppercase tracking-widest mb-1" style="color:#b45309;">Assessment Simulation</p>
                         <h2 class="text-xl font-black font-outfit" style="color:#1e1b3a;">Test your fit in a real scenario</h2>
                         <p class="text-sm mt-1 max-w-2xl" style="color:#4b4470;">
-                            Your first simulation is free. After that, unlock another attempt for Rs. 15 or get 3 attempts for Rs. 35.
+                            {% if assessment_all_access %}Your Assessment All Access includes career simulations—try different paths before you choose one.{% else %}Unlock Assessment All Access to try careers through simulations.{% endif %}
                         </p>
                     </div>
                 </div>
                 <div class="flex flex-wrap items-center gap-3 shrink-0">
-                    {% if simulation_access and not simulation_access.is_free and simulation_access.credits <= 0 %}
+                    {% if assessment_all_access %}
+                        <a href="/assessment/simulation/start/{{ primary_simulation_career | urlencode }}" class="sim-cta"><i class="fas fa-play"></i> Start Career Simulation</a>
+                    {% elif simulation_access and not simulation_access.is_free and simulation_access.credits <= 0 %}
                         <a href="/assessment/simulation/start/{{ primary_simulation_career | urlencode }}" class="sim-cta">
                             <i class="fas fa-lock"></i> Paid Attempt Required
                         </a>
@@ -878,6 +880,11 @@
                     <p class="section-sub">Top career tracks matched to your unique profile.</p>
                 </div>
                 <div class="flex flex-wrap items-center gap-3">
+                    {% if not is_public_share %}
+                    <a href="/my-monthly-path" class="no-print inline-flex items-center gap-2 px-5 py-3 rounded-xl font-black text-sm text-white transition hover:-translate-y-0.5" style="background:linear-gradient(135deg,#0d9488,#2563eb);box-shadow:0 8px 18px rgba(13,148,136,0.25);">
+                        <i class="fas fa-wand-magic-sparkles"></i> Generate My Growth Map
+                    </a>
+                    {% endif %}
                     <button onclick="window.print()" class="no-print btn-outline-dark">
                         <i class="fas fa-print"></i> Print Report
                     </button>
@@ -894,6 +901,14 @@
                     {% endif %}
                 </div>
             </div>
+
+            {% if not is_public_share %}
+            <div class="no-print rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center gap-4" style="background:linear-gradient(135deg,rgba(13,148,136,0.12),rgba(37,99,235,0.10));border:1px solid rgba(13,148,136,0.25);">
+                <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style="background:rgba(13,148,136,0.14);color:#0d9488;"><i class="fas fa-route text-lg"></i></div>
+                <div class="flex-1"><h3 class="font-black text-slate-900">Turn your recommendations into a clear action plan</h3><p class="mt-1 text-sm text-slate-600">Generate your personalised Growth Map with a monthly goal, weekly actions, and progress tracking.</p></div>
+                <a href="/my-monthly-path" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm text-white" style="background:#0d9488;"><i class="fas fa-arrow-right"></i> Create my plan</a>
+            </div>
+            {% endif %}
 
             <div class="space-y-6">
                 {% if final_recs %}

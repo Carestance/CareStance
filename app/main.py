@@ -115,6 +115,7 @@ RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET", "your_key_secret")
 RAZORPAY_CRITICAL_PLAN_ID = os.getenv("RAZORPAY_CRITICAL_PLAN_ID", "").strip()
 RAZORPAY_CUSTOMISED_PLAN_ID = os.getenv("RAZORPAY_CUSTOMISED_PLAN_ID", "").strip()
 RAZORPAY_WEBHOOK_SECRET = os.getenv("RAZORPAY_WEBHOOK_SECRET", "").strip()
+ASSESSMENT_ALL_ACCESS_PRICE = 150
 razorpay_client = None
 
 def is_razorpay_configured():
@@ -219,6 +220,23 @@ def get_subscription_state(user) -> dict:
 def has_customised_subscription(user) -> bool:
     state = get_subscription_state(user)
     return bool(state.get("active") and state.get("plan") == "customised")
+
+def has_assessment_all_access(user) -> bool:
+    """One-time access for Career Talk, complete results, and all simulations."""
+    return bool(getattr(user, "role", None) == "admin" or getattr(user, "assessment_all_access", False))
+
+def build_free_assessment_preview(result) -> dict:
+    archetype = get_assessment_display_archetype(result)
+    profiles = {
+        "Focused Specialist": ("You prefer depth, consistency, and becoming highly capable in one area.", ["Technology & Engineering", "Research & Analytics", "Healthcare & Science"]),
+        "Quiet Explorer": ("You learn through observation, curiosity, and thoughtful independent exploration.", ["Research & Analysis", "Design & Content", "Social Sciences"]),
+        "Strategic Builder": ("You enjoy solving practical problems, planning clearly, and turning ideas into results.", ["Business & Management", "Technology & Product", "Engineering & Operations"]),
+        "Dynamic Generalist": ("You adapt quickly, enjoy variety, and can connect ideas across different areas.", ["Management & Entrepreneurship", "Media & Communication", "Technology & Product"]),
+        "Visionary Leader": ("You are drawn to initiative, influence, and creating change with other people.", ["Entrepreneurship", "Business & Leadership", "Public Policy & Social Impact"]),
+        "Adaptive Explorer": ("You are flexible, open to new experiences, and grow by trying different paths.", ["Creative Industries", "Social Sciences", "Business & Communication"]),
+    }
+    summary, domains = profiles.get(archetype, ("Your answers show a unique mix of interests and work preferences that is ready for deeper exploration.", ["Business & Management", "Technology & Innovation", "People & Society"]))
+    return {"archetype": archetype, "summary": summary, "domains": domains}
 
 def get_razorpay_subscription_plan_id(plan: str) -> str:
     """Resolve the pre-created Razorpay monthly plan for a CareStance plan."""
@@ -411,6 +429,7 @@ async def run_migrations():
                 if 'simulations_completed' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN simulations_completed INTEGER DEFAULT 0")
                 if 'simulation_paid' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN simulation_paid BOOLEAN DEFAULT FALSE")
                 if 'simulation_credits' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN simulation_credits INTEGER DEFAULT 0")
+                if 'assessment_all_access' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN assessment_all_access BOOLEAN DEFAULT FALSE")
                 if 'subscription_plan' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN subscription_plan VARCHAR")
                 if 'subscription_status' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN subscription_status VARCHAR")
                 if 'subscription_started_at' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN subscription_started_at TIMESTAMP")
@@ -1859,6 +1878,59 @@ async def assessment_api_archetype_confirm(request: Request, db: AsyncSession = 
     await db.commit()
     return {"status": "success", "next_phase": 3}
 
+
+@app.get("/assessment/free-preview", response_class=HTMLResponse)
+async def assessment_free_preview(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    if has_assessment_all_access(user):
+        return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
+    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+    if not result or not result.phase_2_category:
+        return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
+    return templates.TemplateResponse(request=request, name="assessment_free_preview.html", context={"user": user, "preview": build_free_assessment_preview(result)})
+
+
+@app.get("/assessment/unlock", response_class=HTMLResponse)
+async def assessment_unlock_page(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    if has_assessment_all_access(user):
+        return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
+    return templates.TemplateResponse(request=request, name="assessment_unlock.html", context={"user": user, "RAZORPAY_KEY_ID": RAZORPAY_KEY_ID, "razorpay_configured": is_razorpay_configured(), "amount": ASSESSMENT_ALL_ACCESS_PRICE})
+
+
+@app.post("/assessment/unlock/create-order")
+async def assessment_unlock_create_order(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user: raise HTTPException(status_code=401, detail="Unauthorized")
+    if has_assessment_all_access(user): return {"already_unlocked": True}
+    if not is_razorpay_configured(): raise HTTPException(status_code=503, detail="Payment gateway is not configured")
+    try:
+        return get_razorpay_client().order.create({"amount": ASSESSMENT_ALL_ACCESS_PRICE * 100, "currency": "INR", "receipt": f"assessment_access_{uuid.uuid4().hex[:10]}", "payment_capture": 1})
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Could not create payment order: {exc}")
+
+
+@app.post("/assessment/unlock/verify-payment")
+async def assessment_unlock_verify_payment(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user: raise HTTPException(status_code=401, detail="Unauthorized")
+    data = await request.json()
+    try:
+        get_razorpay_client().utility.verify_payment_signature({"razorpay_order_id": data.get("razorpay_order_id"), "razorpay_payment_id": data.get("razorpay_payment_id"), "razorpay_signature": data.get("razorpay_signature")})
+    except Exception:
+        raise HTTPException(status_code=400, detail="Payment verification failed")
+    db_user = (await db.execute(select(models.User).where(models.User.id == user.id))).scalars().first()
+    db_user.assessment_all_access = True
+    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+    if result and result.current_phase == 6: result.current_phase = 3
+    db.add(models.SimulationPayment(user_id=user.id, razorpay_order_id=data.get("razorpay_order_id"), razorpay_payment_id=data.get("razorpay_payment_id"), amount=ASSESSMENT_ALL_ACCESS_PRICE, career="Assessment All Access"))
+    await db.commit()
+    return {"redirect": "/assessment"}
+
 @app.post("/assessment/api/phase4_complete")
 async def assessment_api_phase4_complete(request: Request, payload: dict, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
@@ -2126,17 +2198,21 @@ async def submit_phase2_mcqs(request: Request, payload: dict, db: AsyncSession =
     except Exception as e:
         print(f"Failed to calculate phase 2 score: {e}")
         
-    result.current_phase = 3
+    # Free assessment ends here with an archetype/domain preview. The mentor
+    # talk, complete results, and simulations unlock together after payment.
+    result.current_phase = 3 if has_assessment_all_access(user) else 6
     await db.commit()
     sync_assessment_to_appwrite(user.id, result)
     
-    return {"status": "success", "next_phase": 3}
+    return {"status": "success", "next_phase": result.current_phase, "redirect": "/assessment/free-preview" if result.current_phase == 6 else None}
 
 @app.post("/assessment/api/compile")
 async def assessment_api_compile(request: Request, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
+    if not has_assessment_all_access(user):
+        raise HTTPException(status_code=403, detail="Assessment All Access is required for complete results")
 
     result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
     if not result:
@@ -2339,6 +2415,7 @@ async def assessment_result(request: Request, db: AsyncSession = Depends(get_db)
         "simulation_access": simulation_access,
         "display_archetype": display_archetype,
         "subscription_state": get_subscription_state(user),
+        "assessment_all_access": has_assessment_all_access(user),
     })
 
 def build_detailed_report_sections(user, result):
@@ -4793,6 +4870,8 @@ async def assessment_phase3(request: Request, mode: str = "chat", db: AsyncSessi
     user = await get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    if not has_assessment_all_access(user):
+        return RedirectResponse(url="/assessment/unlock", status_code=status.HTTP_302_FOUND)
         
     result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
     if not result:
@@ -4808,6 +4887,8 @@ async def assessment_phase3_submit(
     user = await get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    if not has_assessment_all_access(user):
+        return RedirectResponse(url="/assessment/unlock", status_code=status.HTTP_302_FOUND)
 
     try:
         form_data = await request.form()
@@ -4879,6 +4960,8 @@ async def phase3_chat(request: Request, chat_req: Phase3ChatRequest, db: AsyncSe
     user = await get_current_user(request, db)
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
+    if not has_assessment_all_access(user):
+        raise HTTPException(status_code=403, detail="Assessment All Access is required for Career Talk")
 
     result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
     if not result or not result.phase_2_category:
@@ -5951,12 +6034,14 @@ async def live_simulation_start(
     result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
     if not result:
         raise HTTPException(status_code=404, detail="Assessment result not found")
+    if not has_assessment_all_access(user):
+        raise HTTPException(status_code=402, detail="Assessment All Access is required for simulations")
 
     db_user = (await db.execute(select(models.User).where(models.User.id == user.id))).scalars().first()
     sims_completed = max(result.simulations_completed or 0, (db_user.simulations_completed or 0) if db_user else 0)
     sim_credits = max(result.simulation_credits or 0, (db_user.simulation_credits or 0) if db_user else 0)
 
-    if getattr(user, "role", None) != "admin" and sims_completed >= 1 and sim_credits <= 0:
+    if not has_assessment_all_access(user) and getattr(user, "role", None) != "admin" and sims_completed >= 1 and sim_credits <= 0:
         raise HTTPException(status_code=402, detail="Simulation payment required")
 
     scenarios = await simulation_service.build_live_simulation(career_title, difficulty)
@@ -6167,6 +6252,8 @@ async def simulation_start(career_title: str, request: Request, db: AsyncSession
     result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
     if not result:
         return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
+    if not has_assessment_all_access(user):
+        return RedirectResponse(url="/assessment/unlock", status_code=status.HTTP_302_FOUND)
     
     db_user = (await db.execute(select(models.User).where(models.User.id == user.id))).scalars().first()
     sims_completed = max(result.simulations_completed or 0, db_user.simulations_completed or 0 if db_user else 0)
@@ -6176,7 +6263,7 @@ async def simulation_start(career_title: str, request: Request, db: AsyncSession
     if getattr(user, "role", None) == "admin":
         # Proceed without checking credits
         pass
-    elif sims_completed >= 1 and sim_credits <= 0:
+    elif not has_assessment_all_access(user) and sims_completed >= 1 and sim_credits <= 0:
         return RedirectResponse(url=f"/assessment/simulation/pay/{career_title}", status_code=status.HTTP_302_FOUND)
     
     # Handle Class 10th Academic Discovery simulation
