@@ -298,7 +298,7 @@
         <i class="fa-solid fa-gear"></i>
     </button>
     <div class="hero-settings-menu">
-        <a href="student_profile.html"><i class="fa-solid fa-user"></i> Student Profile</a>
+        <a href="/student/{{ user.id }}"><i class="fa-solid fa-user"></i> Student Profile</a>
         <a href="/feedback"><i class="fa-solid fa-star"></i> Feedback</a>
         <a href="/ticket"><i class="fa-solid fa-circle-question"></i> Support</a>
         <a href="/logout" class="hero-settings-logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
@@ -831,10 +831,6 @@
 
             <!-- ── Quest Tools Grid ── -->
             <div class="grid grid-cols-3 gap-2 db-stagger" style="animation-delay:0.15s;">
-                <a href="/career/roadmaps" class="db-tool-card" style="--tool-c:#3b82f6;--tool-glow:rgba(59,130,246,0.35);--float-delay:0.3s;">
-                    <span class="db-tool-ring"><span class="db-tool-inner"><i class="fas fa-route"></i></span></span>
-                    <span class="db-tool-label">My Roadmaps</span>
-                </a>
                 <a href="/career/colleges" class="db-tool-card" style="--tool-c:#6366f1;--tool-glow:rgba(99,102,241,0.35);--float-delay:0.45s;">
                     <span class="db-tool-ring"><span class="db-tool-inner"><i class="fas fa-university"></i></span></span>
                     <span class="db-tool-label">Colleges</span>
@@ -842,10 +838,6 @@
                 <a href="/counsellors" class="db-tool-card" style="--tool-c:var(--db-pink-accent);--tool-glow:rgba(232,121,160,0.35);--float-delay:0.6s;">
                     <span class="db-tool-ring"><span class="db-tool-inner"><i class="fas fa-video"></i></span></span>
                     <span class="db-tool-label">Talk to Expert</span>
-                </a>
-                <a href="/chatbot" class="db-tool-card" style="--tool-c:#f59e0b;--tool-glow:rgba(245,158,11,0.35);--float-delay:0.75s;">
-                    <span class="db-tool-ring"><span class="db-tool-inner"><i class="fas fa-comments"></i></span></span>
-                    <span class="db-tool-label">CareerBuddy AI</span>
                 </a>
                 <a href="/assessment/simulation/start/{{ dashboard_sim_career | urlencode }}" class="db-tool-card" style="--tool-c:#a78bfa;--tool-glow:rgba(167,139,250,0.35);--float-delay:0.9s;">
                     <span class="db-tool-ring"><span class="db-tool-inner"><i class="fas fa-vr-cardboard"></i></span></span>
@@ -855,7 +847,7 @@
                     <span class="db-tool-ring"><span class="db-tool-inner"><i class="fas fa-crown"></i></span></span>
                     <span class="db-tool-label">Plans</span>
                 </a>
-                <a href="/weekly_checkin" class="db-tool-card" style="--tool-c:#10b981;--tool-glow:rgba(16,185,129,0.35);--float-delay:1.2s;grid-column:2;">
+                <a href="/weekly-checkin" class="db-tool-card" style="--tool-c:#10b981;--tool-glow:rgba(16,185,129,0.35);--float-delay:1.2s;grid-column:3;">
                     <span class="db-tool-ring"><span class="db-tool-inner"><i class="fas fa-calendar-check"></i></span></span>
                     <span class="db-tool-label">Weekly AI</span>
                 </a>
