@@ -227,15 +227,34 @@ def has_assessment_all_access(user) -> bool:
 
 def build_free_assessment_preview(result) -> dict:
     archetype = get_assessment_display_archetype(result)
+    domain_library = {
+        "Technology & Engineering": ("Build and improve systems, products, software, and infrastructure.", "Software developer, engineer, data analyst", "Problem solving, maths, technical curiosity"),
+        "Research & Analytics": ("Investigate questions, interpret data, and turn evidence into better decisions.", "Researcher, analyst, scientist", "Critical thinking, data literacy, attention to detail"),
+        "Healthcare & Science": ("Study living systems and use science to improve health and wellbeing.", "Doctor, psychologist, lab scientist", "Empathy, scientific thinking, communication"),
+        "Design & Content": ("Create visual, written, and digital experiences that communicate ideas clearly.", "UX designer, writer, content strategist", "Creativity, observation, storytelling"),
+        "Social Sciences": ("Understand people, behaviour, communities, and the systems that shape society.", "Psychologist, sociologist, policy researcher", "Empathy, research, communication"),
+        "Business & Management": ("Plan, organise, and improve how teams, money, and organisations work.", "Manager, consultant, business analyst", "Planning, leadership, decision making"),
+        "Technology & Product": ("Use technology and user insight to build useful products and services.", "Product manager, UX researcher, developer", "User empathy, problem solving, collaboration"),
+        "Engineering & Operations": ("Design practical processes and make complex work run reliably.", "Operations manager, engineer, supply-chain analyst", "Organisation, systems thinking, execution"),
+        "Management & Entrepreneurship": ("Identify opportunities and turn ideas into sustainable projects or businesses.", "Founder, project manager, growth strategist", "Initiative, resilience, leadership"),
+        "Media & Communication": ("Inform, persuade, and connect people through messages, campaigns, and media.", "Journalist, marketer, communications specialist", "Writing, public speaking, creativity"),
+        "Business & Leadership": ("Guide teams and make strategic decisions that create measurable impact.", "Business leader, consultant, sales manager", "Leadership, negotiation, strategic thinking"),
+        "Public Policy & Social Impact": ("Improve communities through policy, advocacy, education, and social initiatives.", "Policy analyst, NGO professional, social entrepreneur", "Empathy, research, civic awareness"),
+        "Creative Industries": ("Use creative skills to make experiences, media, and culture more meaningful.", "Designer, filmmaker, creative producer", "Original thinking, design, communication"),
+        "Business & Communication": ("Combine commercial understanding with clear communication and relationship building.", "Account manager, marketer, HR professional", "Communication, planning, people skills"),
+        "Technology & Innovation": ("Explore new technologies and apply them to real-world problems.", "Innovator, developer, product specialist", "Curiosity, experimentation, problem solving"),
+        "People & Society": ("Work with people and communities to understand needs and create positive outcomes.", "Counsellor, educator, community professional", "Listening, empathy, communication"),
+    }
     profiles = {
         "Focused Specialist": ("You prefer depth, consistency, and becoming highly capable in one area.", ["Technology & Engineering", "Research & Analytics", "Healthcare & Science"]),
-        "Quiet Explorer": ("You learn through observation, curiosity, and thoughtful independent exploration.", ["Research & Analysis", "Design & Content", "Social Sciences"]),
+        "Quiet Explorer": ("You learn through observation, curiosity, and thoughtful independent exploration.", ["Research & Analytics", "Design & Content", "Social Sciences"]),
         "Strategic Builder": ("You enjoy solving practical problems, planning clearly, and turning ideas into results.", ["Business & Management", "Technology & Product", "Engineering & Operations"]),
         "Dynamic Generalist": ("You adapt quickly, enjoy variety, and can connect ideas across different areas.", ["Management & Entrepreneurship", "Media & Communication", "Technology & Product"]),
-        "Visionary Leader": ("You are drawn to initiative, influence, and creating change with other people.", ["Entrepreneurship", "Business & Leadership", "Public Policy & Social Impact"]),
+        "Visionary Leader": ("You are drawn to initiative, influence, and creating change with other people.", ["Management & Entrepreneurship", "Business & Leadership", "Public Policy & Social Impact"]),
         "Adaptive Explorer": ("You are flexible, open to new experiences, and grow by trying different paths.", ["Creative Industries", "Social Sciences", "Business & Communication"]),
     }
-    summary, domains = profiles.get(archetype, ("Your answers show a unique mix of interests and work preferences that is ready for deeper exploration.", ["Business & Management", "Technology & Innovation", "People & Society"]))
+    summary, domain_names = profiles.get(archetype, ("Your answers show a unique mix of interests and work preferences that is ready for deeper exploration.", ["Business & Management", "Technology & Innovation", "People & Society"]))
+    domains = [{"title": name, "about": domain_library[name][0], "roles": domain_library[name][1], "skills": domain_library[name][2]} for name in domain_names]
     return {"archetype": archetype, "summary": summary, "domains": domains}
 
 def get_razorpay_subscription_plan_id(plan: str) -> str:
@@ -1564,8 +1583,8 @@ async def assessment_start(
                 status_code=status.HTTP_302_FOUND
             )
         
-        # Grade 12 starts at current_phase=0 (Intake Chat), Grade 10 starts at current_phase=1 (Swipe)
-        start_phase = 0 if student_type == "12th" else 1
+        # Every student starts with information collection before moving to cards.
+        start_phase = 0
         
         if result:
             # Clear all previous progress fields
@@ -1647,7 +1666,7 @@ async def assessment_reset(request: Request, db: AsyncSession = Depends(get_db))
                 status_code=status.HTTP_302_FOUND
             )
 
-        start_phase = 0 if result.student_type == "12th" else 1
+        start_phase = 0
         result.current_phase = start_phase
         result.intake_turn = 1
         result.telemetry_logs = None
@@ -1763,7 +1782,7 @@ async def assessment_api_intake(request: Request, payload: dict, db: AsyncSessio
             user.referral_code = referral_code
             
         result.intake_name = name
-        result.intake_grade = 12
+        result.intake_grade = 10 if result.student_type == "10th" else 12
         result.intake_stream = pursuing
         result.raw_answers = {
             "name": name,
