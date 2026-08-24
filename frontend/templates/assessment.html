@@ -2205,6 +2205,10 @@
     window.selectPhase2Option = function(archetypeId, btn) {
         if (btn.disabled) return;
 
+        // Disable all option buttons in this question to prevent double-selection
+        const allBtns = document.querySelectorAll('.quest-option-card');
+        allBtns.forEach(b => b.disabled = true);
+
         // Visual selection feedback
         btn.classList.add("selected-option");
         const indicator = btn.querySelector('.opt-indicator');
@@ -2216,6 +2220,10 @@
         }
         
         const q = phase2Questions[currentQuestionIdx];
+        if (!q) {
+            console.error("selectPhase2Option: question at index", currentQuestionIdx, "is undefined — phase2Questions may be empty.");
+            return;
+        }
         phase2Answers.push({
             question_id: q.id,
             archetype_id: archetypeId
