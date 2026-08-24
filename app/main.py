@@ -1939,15 +1939,46 @@ async def assessment_unlock_verify_payment(request: Request, db: AsyncSession = 
     user = await get_current_user(request, db)
     if not user: raise HTTPException(status_code=401, detail="Unauthorized")
     data = await request.json()
+    order_id = data.get("razorpay_order_id")
+    payment_id = data.get("razorpay_payment_id")
+    signature = data.get("razorpay_signature")
+    if not all([order_id, payment_id, signature]):
+        raise HTTPException(status_code=400, detail="Incomplete payment details")
+
+    # Checkout may retry its success callback.  Treat a previously recorded
+    # payment as successful rather than creating a duplicate access record.
+    existing_payment = (await db.execute(
+        select(models.SimulationPayment).where(
+            models.SimulationPayment.razorpay_payment_id == payment_id
+        )
+    )).scalars().first()
+    if existing_payment:
+        if existing_payment.user_id != user.id:
+            raise HTTPException(status_code=400, detail="This payment belongs to another account")
+        return {"redirect": "/assessment"}
+
     try:
-        get_razorpay_client().utility.verify_payment_signature({"razorpay_order_id": data.get("razorpay_order_id"), "razorpay_payment_id": data.get("razorpay_payment_id"), "razorpay_signature": data.get("razorpay_signature")})
+        client = get_razorpay_client()
+        client.utility.verify_payment_signature({
+            "razorpay_order_id": order_id,
+            "razorpay_payment_id": payment_id,
+            "razorpay_signature": signature,
+        })
+        payment = client.payment.fetch(payment_id)
+        if (
+            payment.get("order_id") != order_id
+            or payment.get("amount") != ASSESSMENT_ALL_ACCESS_PRICE * 100
+            or payment.get("currency") != "INR"
+            or payment.get("status") not in {"authorized", "captured"}
+        ):
+            raise ValueError("Payment does not match the Assessment All Access order")
     except Exception:
         raise HTTPException(status_code=400, detail="Payment verification failed")
     db_user = (await db.execute(select(models.User).where(models.User.id == user.id))).scalars().first()
     db_user.assessment_all_access = True
     result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
     if result and result.current_phase == 6: result.current_phase = 3
-    db.add(models.SimulationPayment(user_id=user.id, razorpay_order_id=data.get("razorpay_order_id"), razorpay_payment_id=data.get("razorpay_payment_id"), amount=ASSESSMENT_ALL_ACCESS_PRICE, career="Assessment All Access"))
+    db.add(models.SimulationPayment(user_id=user.id, razorpay_order_id=order_id, razorpay_payment_id=payment_id, amount=ASSESSMENT_ALL_ACCESS_PRICE, career="Assessment All Access"))
     await db.commit()
     return {"redirect": "/assessment"}
 
