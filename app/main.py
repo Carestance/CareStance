@@ -650,6 +650,7 @@ async def startup_event():
                     ADD COLUMN IF NOT EXISTS simulations_completed INTEGER DEFAULT 0,
                     ADD COLUMN IF NOT EXISTS simulation_paid BOOLEAN DEFAULT FALSE,
                     ADD COLUMN IF NOT EXISTS simulation_credits INTEGER DEFAULT 0,
+                    ADD COLUMN IF NOT EXISTS assessment_all_access BOOLEAN DEFAULT FALSE,
                     ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW(),
                     ADD COLUMN IF NOT EXISTS last_login TIMESTAMP,
                     ADD COLUMN IF NOT EXISTS referral_code VARCHAR;
