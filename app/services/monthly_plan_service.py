@@ -28,6 +28,23 @@ def _resource_suggestions(skill: str) -> list[dict[str, str]]:
     ]
 
 
+def _career_focus_skill(career_title: str) -> str:
+    """Choose a practical starter skill that matches the selected career."""
+    title = career_title.lower()
+    mappings = (
+        (("engineer", "hardware", "architect"), "Systems design"),
+        (("software", "computer", "developer", "data", "cyber"), "Technical problem solving"),
+        (("doctor", "health", "psycholog", "nurs"), "Empathetic communication"),
+        (("design", "writer", "media", "content"), "Creative communication"),
+        (("business", "manager", "consult", "market", "finance"), "Strategic decision making"),
+        (("teacher", "policy", "social", "counsellor"), "People-centred problem solving"),
+    )
+    for keywords, skill in mappings:
+        if any(keyword in title for keyword in keywords):
+            return skill
+    return "Career exploration"
+
+
 def _week_tasks(week_number: int, focus_skill: str) -> list[dict[str, str]]:
     task_sets = {
         1: [
@@ -80,7 +97,8 @@ def _task_prompt(week_number: int, task_number: int, focus_skill: str) -> str:
 
 
 def build_monthly_plan(
-    growth_profile: dict[str, Any], month_key: str, previous_month_summary: str | None = None
+    growth_profile: dict[str, Any], month_key: str, previous_month_summary: str | None = None,
+    career_title: str | None = None,
 ) -> dict[str, Any]:
     """Build a four-week, practical path without depending on an external AI API."""
     if not growth_profile.get("is_ready"):
@@ -88,9 +106,9 @@ def build_monthly_plan(
 
     development_skills = growth_profile.get("skills_to_develop") or []
     strengths = growth_profile.get("strengths") or []
-    focus_skill = development_skills[0] if development_skills else "Reflective career exploration"
+    focus_skill = _career_focus_skill(career_title) if career_title else (development_skills[0] if development_skills else "Reflective career exploration")
     strength = strengths[0] if strengths else "your assessment insights"
-    focus = growth_profile.get("focus") or "your preferred career direction"
+    focus = career_title or growth_profile.get("focus") or "your preferred career direction"
     activity_count = growth_profile.get("activity_count", 0) or 0
     if activity_count:
         progress_summary = f"Your completed simulation activity is being used to keep this path focused on {focus_skill.lower()}."
@@ -100,9 +118,10 @@ def build_monthly_plan(
     return {
         "month_key": month_key,
         "month_label": _month_label(month_key),
-        "title": f"Build {focus_skill}",
-        "milestone": f"By the end of {_month_label(month_key)}, complete one small practice task that demonstrates {focus_skill.lower()}.",
-        "why_this_path": f"This path builds on {strength} and supports your current direction: {focus}.",
+        "career_title": career_title,
+        "title": f"Explore {focus}" if career_title else f"Build {focus_skill}",
+        "milestone": f"By the end of {_month_label(month_key)}, complete one small practice task that helps you explore {focus} through {focus_skill.lower()}.",
+        "why_this_path": f"This path builds on {strength} and is tailored to your selected career: {focus}.",
         "progress_summary": progress_summary,
         "previous_month_summary": previous_month_summary,
         "focus_skill": focus_skill,

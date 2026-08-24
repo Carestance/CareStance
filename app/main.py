@@ -675,13 +675,15 @@ async def startup_event():
                 except Exception as e:
                     print(f"DEBUG: Emergency batch migration failed (likely already patched): {e}", flush=True)
 
+        # New tables are safe to create on every deployment.  This keeps
+        # additive features (such as career-specific growth maps) available
+        # even where full column migrations are intentionally disabled.
+        async with engine.begin() as conn:
+            await conn.run_sync(models.Base.metadata.create_all)
         if RUN_MIGRATIONS_ON_STARTUP or SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
-            # Create all tables asynchronously and run any schema migrations
-            async with engine.begin() as conn:
-                await conn.run_sync(models.Base.metadata.create_all)
             await run_migrations()
         else:
-            print("Startup: Skipping DB migration and schema creation. Set RUN_MIGRATIONS_ON_STARTUP=true to enable.")
+            print("Startup: Created missing tables; skipping optional column migrations. Set RUN_MIGRATIONS_ON_STARTUP=true to enable.")
     except Exception as e:
         print(f"Startup database error: {e}")
 
@@ -2877,8 +2879,8 @@ async def my_growth_profile(request: Request, db: AsyncSession = Depends(get_db)
     })
 
 
-async def _get_monthly_plan(user, db: AsyncSession):
-    """Load the student's current plan, creating it once per calendar month."""
+async def _get_monthly_plan(user, db: AsyncSession, career_title: str | None = None):
+    """Load a monthly plan, with a separate saved map for each selected career."""
     from .services.growth_profile_service import build_growth_profile
     from .services.monthly_plan_service import build_monthly_plan
 
@@ -2887,6 +2889,39 @@ async def _get_monthly_plan(user, db: AsyncSession):
     )).scalars().first()
     growth_profile = build_growth_profile(assessment)
     month_key = datetime.date.today().strftime("%Y-%m")
+    career_title = career_title.strip() if isinstance(career_title, str) else ""
+    if career_title:
+        allowed_careers = {item.get("title") for item in growth_profile.get("career_directions", []) if isinstance(item, dict)}
+        if career_title not in allowed_careers:
+            raise HTTPException(status_code=404, detail="Select a career from your recommended career paths")
+        plan_record = (await db.execute(
+            select(models.CareerGrowthPlan).where(
+                models.CareerGrowthPlan.user_id == user.id,
+                models.CareerGrowthPlan.month_key == month_key,
+                models.CareerGrowthPlan.career_title == career_title,
+            )
+        )).scalars().first()
+        if plan_record is None and growth_profile["is_ready"]:
+            plan_data = build_monthly_plan(growth_profile, month_key, career_title=career_title)
+            plan_record = models.CareerGrowthPlan(
+                user_id=user.id, month_key=month_key, career_title=career_title,
+                milestone=plan_data["milestone"], plan_data=plan_data,
+            )
+            db.add(plan_record)
+            await db.commit()
+        return growth_profile, (plan_record.plan_data if plan_record else None)
+
+    # Keep the most recently generated career-specific map active for the
+    # normal Growth Map links and for all of its weekly actions.
+    latest_career_plan = (await db.execute(
+        select(models.CareerGrowthPlan).where(
+            models.CareerGrowthPlan.user_id == user.id,
+            models.CareerGrowthPlan.month_key == month_key,
+        ).order_by(models.CareerGrowthPlan.updated_at.desc(), models.CareerGrowthPlan.id.desc())
+    )).scalars().first()
+    if latest_career_plan:
+        return growth_profile, latest_career_plan.plan_data
+
     plan_record = (await db.execute(
         select(models.MonthlyGrowthPlan).where(
             models.MonthlyGrowthPlan.user_id == user.id,
@@ -2960,7 +2995,7 @@ async def _monthly_growth_plan_loop(stop_event: asyncio.Event) -> None:
 
 
 @app.get("/my-monthly-path", response_class=HTMLResponse)
-async def my_monthly_path(request: Request, db: AsyncSession = Depends(get_db)):
+async def my_monthly_path(request: Request, career: str = "", db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
@@ -2976,7 +3011,7 @@ async def my_monthly_path(request: Request, db: AsyncSession = Depends(get_db)):
         get_monthly_plan_progress,
         get_week_task_states,
     )
-    growth_profile, plan = await _get_monthly_plan(user, db)
+    growth_profile, plan = await _get_monthly_plan(user, db, career)
     progress = get_monthly_plan_progress(plan)
     return templates.TemplateResponse(request=request, name="monthly_path.html", context={
         "user": user,
@@ -3071,13 +3106,7 @@ async def toggle_monthly_path_week(week_number: int, request: Request, db: Async
     if week_number not in range(1, 5):
         raise HTTPException(status_code=404, detail="Weekly action not found")
 
-    month_key = datetime.date.today().strftime("%Y-%m")
-    plan_record = (await db.execute(
-        select(models.MonthlyGrowthPlan).where(
-            models.MonthlyGrowthPlan.user_id == user.id,
-            models.MonthlyGrowthPlan.month_key == month_key,
-        )
-    )).scalars().first()
+    plan_record = await _get_current_monthly_plan_record(user, db)
     if not plan_record:
         raise HTTPException(status_code=404, detail="Monthly path not found")
 
@@ -3182,6 +3211,14 @@ async def monthly_path_week(week_number: int, request: Request, db: AsyncSession
 
 async def _get_current_monthly_plan_record(user, db: AsyncSession):
     month_key = datetime.date.today().strftime("%Y-%m")
+    career_plan = (await db.execute(
+        select(models.CareerGrowthPlan).where(
+            models.CareerGrowthPlan.user_id == user.id,
+            models.CareerGrowthPlan.month_key == month_key,
+        ).order_by(models.CareerGrowthPlan.updated_at.desc(), models.CareerGrowthPlan.id.desc())
+    )).scalars().first()
+    if career_plan:
+        return career_plan
     plan_record = (await db.execute(
         select(models.MonthlyGrowthPlan).where(
             models.MonthlyGrowthPlan.user_id == user.id,
