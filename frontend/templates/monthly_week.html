@@ -543,7 +543,7 @@
 
     <div class="mx-auto px-4 sm:px-6 lg:px-8 pb-16 space-y-6" style="max-width: 80vw; padding-top: 2.5rem;">
 
-        <a href="/my-monthly-path" class="back-link"><i class="fas fa-arrow-left"></i> Back to monthly path</a>
+        <a href="/my-monthly-path" class="back-link"><i class="fas fa-arrow-left"></i> Back to {% if plan.career_title %}{{ plan.career_title }}{% else %}monthly path{% endif %}</a>
 
         <!-- Part 1: checklist -->
         <section class="dark-card p-6 md:p-8">
@@ -747,4 +747,17 @@
 
     </div>
 </div>
+{% if plan and plan.career_title %}
+<script>
+(() => {
+  const career = {{ plan.career_title|tojson }};
+  document.querySelectorAll('a[href^="/my-monthly-path"], form[action^="/my-monthly-path"]').forEach((element) => {
+    const attribute = element.tagName === 'A' ? 'href' : 'action';
+    const url = new URL(element.getAttribute(attribute), window.location.origin);
+    url.searchParams.set('career', career);
+    element.setAttribute(attribute, `${url.pathname}${url.search}${url.hash}`);
+  });
+})();
+</script>
+{% endif %}
 {% endblock %}

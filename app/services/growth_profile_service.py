@@ -104,13 +104,23 @@ def build_growth_profile(assessment: Any) -> dict[str, Any]:
 
     archetype = report.get("personality_archetype") or getattr(assessment, "phase_2_category", None)
     focus = getattr(assessment, "recommended_stream", None) or dashboard.get("dominant_riasec")
+    # The result page supports both the current report format and legacy
+    # stream_pros recommendations.  Use the same sources here so every
+    # visible career's Growth Map link is valid.
+    final_recommendations = report.get("final_recommendations") if isinstance(report.get("final_recommendations"), list) else []
     top_careers = report.get("top_careers") if isinstance(report.get("top_careers"), list) else []
+    legacy_recommendations = getattr(assessment, "stream_pros", None)
+    legacy_recommendations = legacy_recommendations if isinstance(legacy_recommendations, list) else []
+    career_candidates = final_recommendations + top_careers + legacy_recommendations
     career_directions: list[dict[str, Any]] = []
-    for index, career in enumerate(top_careers[:3]):
+    for index, career in enumerate(career_candidates):
         if not isinstance(career, dict):
             continue
         title = career.get("title") or career.get("career")
         if not isinstance(title, str) or not title.strip():
+            continue
+        title = title.strip()
+        if any(item["title"].casefold() == title.casefold() for item in career_directions):
             continue
         raw_score = career.get("match_percent", career.get("match_score", 0))
         try:
@@ -119,7 +129,7 @@ def build_growth_profile(assessment: Any) -> dict[str, Any]:
         except (TypeError, ValueError):
             score = max(55, 82 - (index * 9))
         career_directions.append({
-            "title": title.strip(),
+            "title": title,
             "confidence": max(1, min(99, int(score))),
             "next_signal": "Complete a real-world experiment and save what you learned.",
         })

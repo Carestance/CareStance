@@ -31,7 +31,7 @@ import hmac
 from html import escape
 
 
-from urllib.parse import urlparse
+from urllib.parse import urlparse, quote
 from . import models
 from .email_utils import (
     send_email, 
@@ -2909,18 +2909,16 @@ async def _get_monthly_plan(user, db: AsyncSession, career_title: str | None = N
             )
             db.add(plan_record)
             await db.commit()
+        elif plan_record and (plan_record.plan_data or {}).get("template_version", 1) < 2:
+            # Refresh untouched early maps so career buttons no longer show
+            # the old shared weekly plan. Never erase a student's evidence.
+            existing_data = plan_record.plan_data or {}
+            if not existing_data.get("task_responses") and not existing_data.get("evidence_locker"):
+                plan_data = build_monthly_plan(growth_profile, month_key, career_title=career_title)
+                plan_record.milestone = plan_data["milestone"]
+                plan_record.plan_data = plan_data
+                await db.commit()
         return growth_profile, (plan_record.plan_data if plan_record else None)
-
-    # Keep the most recently generated career-specific map active for the
-    # normal Growth Map links and for all of its weekly actions.
-    latest_career_plan = (await db.execute(
-        select(models.CareerGrowthPlan).where(
-            models.CareerGrowthPlan.user_id == user.id,
-            models.CareerGrowthPlan.month_key == month_key,
-        ).order_by(models.CareerGrowthPlan.updated_at.desc(), models.CareerGrowthPlan.id.desc())
-    )).scalars().first()
-    if latest_career_plan:
-        return growth_profile, latest_career_plan.plan_data
 
     plan_record = (await db.execute(
         select(models.MonthlyGrowthPlan).where(
@@ -3040,14 +3038,14 @@ async def add_growth_evidence(
     title, detail, link = title.strip(), detail.strip(), link.strip()
     if not 2 <= len(title) <= 100 or not 5 <= len(detail) <= 800 or len(link) > 500:
         raise HTTPException(status_code=400, detail="Please add a short title and a useful description for your evidence")
-    plan_record = await _get_current_monthly_plan_record(user, db)
+    plan_record = await _get_current_monthly_plan_record(user, db, request.query_params.get("career", ""))
     plan_data = dict(plan_record.plan_data or {})
     evidence = list(plan_data.get("evidence_locker") or [])
     evidence.append({"title": title, "detail": detail, "link": link, "date": datetime.date.today().isoformat()})
     plan_data["evidence_locker"] = evidence[-20:]
     plan_record.plan_data = plan_data
     await db.commit()
-    return RedirectResponse(url="/my-monthly-path", status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse(url=_monthly_path_url("/my-monthly-path", request), status_code=status.HTTP_303_SEE_OTHER)
 
 
 @app.post("/my-monthly-path/experiment/{experiment_id}")
@@ -3057,7 +3055,7 @@ async def complete_career_experiment(experiment_id: str, request: Request, db: A
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     if user.role not in ["student", "admin"]:
         raise HTTPException(status_code=403, detail="This action is only available to students and admins")
-    plan_record = await _get_current_monthly_plan_record(user, db)
+    plan_record = await _get_current_monthly_plan_record(user, db, request.query_params.get("career", ""))
     # Make an independent JSON value. A shallow copy shares nested experiment
     # dictionaries with SQLAlchemy's existing JSON value, which can prevent the
     # ORM from detecting the update and persisting it.
@@ -3072,7 +3070,7 @@ async def complete_career_experiment(experiment_id: str, request: Request, db: A
     plan_data["career_experiments"] = experiments
     plan_record.plan_data = plan_data
     await db.commit()
-    return RedirectResponse(url="/my-monthly-path", status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse(url=_monthly_path_url("/my-monthly-path", request), status_code=status.HTTP_303_SEE_OTHER)
 
 
 @app.post("/my-monthly-path/decision-checkpoint")
@@ -3087,12 +3085,12 @@ async def save_decision_checkpoint(
     allowed = {"explore_more", "continue", "compare"}
     if direction not in allowed or len(note.strip()) > 600:
         raise HTTPException(status_code=400, detail="Please choose a valid checkpoint response")
-    plan_record = await _get_current_monthly_plan_record(user, db)
+    plan_record = await _get_current_monthly_plan_record(user, db, request.query_params.get("career", ""))
     plan_data = dict(plan_record.plan_data or {})
     plan_data["decision_checkpoint"] = {"direction": direction, "note": note.strip(), "date": datetime.date.today().isoformat()}
     plan_record.plan_data = plan_data
     await db.commit()
-    return RedirectResponse(url="/my-monthly-path", status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse(url=_monthly_path_url("/my-monthly-path", request), status_code=status.HTTP_303_SEE_OTHER)
 
 
 @app.post("/my-monthly-path/week/{week_number}/toggle")
@@ -3106,7 +3104,7 @@ async def toggle_monthly_path_week(week_number: int, request: Request, db: Async
     if week_number not in range(1, 5):
         raise HTTPException(status_code=404, detail="Weekly action not found")
 
-    plan_record = await _get_current_monthly_plan_record(user, db)
+    plan_record = await _get_current_monthly_plan_record(user, db, request.query_params.get("career", ""))
     if not plan_record:
         raise HTTPException(status_code=404, detail="Monthly path not found")
 
@@ -3122,7 +3120,7 @@ async def toggle_monthly_path_week(week_number: int, request: Request, db: Async
     plan_data["completed_week_numbers"] = sorted(completed_weeks)
     plan_record.plan_data = plan_data
     await db.commit()
-    return RedirectResponse(url="/my-monthly-path", status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse(url=_monthly_path_url("/my-monthly-path", request), status_code=status.HTTP_303_SEE_OTHER)
 
 
 @app.post("/my-monthly-path/week/{week_number}/task/{task_id}/toggle")
@@ -3147,7 +3145,7 @@ async def toggle_monthly_path_task(
         get_monthly_plan_progress,
         get_week_task_states,
     )
-    plan_record = await _get_current_monthly_plan_record(user, db)
+    plan_record = await _get_current_monthly_plan_record(user, db, request.query_params.get("career", ""))
     plan_data, _ = ensure_monthly_plan_structure(plan_record.plan_data)
     progress = get_monthly_plan_progress(plan_data)
     if progress["current_week"] != week_number:
@@ -3168,7 +3166,7 @@ async def toggle_monthly_path_task(
     plan_data["task_responses"] = task_responses
     plan_record.plan_data = plan_data
     await db.commit()
-    return RedirectResponse(url=f"/my-monthly-path/week/{week_number}", status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse(url=_monthly_path_url(f"/my-monthly-path/week/{week_number}", request), status_code=status.HTTP_303_SEE_OTHER)
 
 
 @app.get("/my-monthly-path/week/{week_number}", response_class=HTMLResponse)
@@ -3188,9 +3186,10 @@ async def monthly_path_week(week_number: int, request: Request, db: AsyncSession
         get_monthly_plan_progress,
         get_week_task_states,
     )
-    growth_profile, plan = await _get_monthly_plan(user, db)
+    career = request.query_params.get("career", "")
+    growth_profile, plan = await _get_monthly_plan(user, db, career)
     if not growth_profile["is_ready"] or not plan:
-        return RedirectResponse(url="/my-monthly-path", status_code=status.HTTP_303_SEE_OTHER)
+        return RedirectResponse(url=_monthly_path_url("/my-monthly-path", request), status_code=status.HTTP_303_SEE_OTHER)
     progress = get_monthly_plan_progress(plan)
     if week_number != progress["current_week"] and week_number not in progress["completed_week_numbers"]:
         raise HTTPException(status_code=403, detail="Complete the earlier week before opening this workspace")
@@ -3201,6 +3200,7 @@ async def monthly_path_week(week_number: int, request: Request, db: AsyncSession
     return templates.TemplateResponse(request=request, name="monthly_week.html", context={
         "user": user,
         "plan": plan,
+        "career": career,
         "week": week,
         "progress": progress,
         "task_states": get_week_task_states(plan, week_number),
@@ -3209,15 +3209,19 @@ async def monthly_path_week(week_number: int, request: Request, db: AsyncSession
     })
 
 
-async def _get_current_monthly_plan_record(user, db: AsyncSession):
+async def _get_current_monthly_plan_record(user, db: AsyncSession, career_title: str | None = None):
     month_key = datetime.date.today().strftime("%Y-%m")
-    career_plan = (await db.execute(
-        select(models.CareerGrowthPlan).where(
-            models.CareerGrowthPlan.user_id == user.id,
-            models.CareerGrowthPlan.month_key == month_key,
-        ).order_by(models.CareerGrowthPlan.updated_at.desc(), models.CareerGrowthPlan.id.desc())
-    )).scalars().first()
-    if career_plan:
+    career_title = career_title.strip() if isinstance(career_title, str) else ""
+    if career_title:
+        career_plan = (await db.execute(
+            select(models.CareerGrowthPlan).where(
+                models.CareerGrowthPlan.user_id == user.id,
+                models.CareerGrowthPlan.month_key == month_key,
+                models.CareerGrowthPlan.career_title == career_title,
+            )
+        )).scalars().first()
+        if not career_plan:
+            raise HTTPException(status_code=404, detail="Career-specific monthly path not found")
         return career_plan
     plan_record = (await db.execute(
         select(models.MonthlyGrowthPlan).where(
@@ -3228,6 +3232,12 @@ async def _get_current_monthly_plan_record(user, db: AsyncSession):
     if not plan_record:
         raise HTTPException(status_code=404, detail="Monthly path not found")
     return plan_record
+
+
+def _monthly_path_url(path: str, request: Request) -> str:
+    """Carry the selected career through every Growth Map action and redirect."""
+    career = request.query_params.get("career", "").strip()
+    return f"{path}?career={quote(career, safe='')}" if career else path
 
 
 WEEKLY_CONVERSATION_MIN_SECONDS = 3 * 60
@@ -3263,7 +3273,7 @@ async def weekly_growth_conversation(week_number: int, request: Request, db: Asy
         raise HTTPException(status_code=404, detail="Week not found")
 
     from .services.monthly_plan_service import get_monthly_plan_progress
-    plan_record = await _get_current_monthly_plan_record(user, db)
+    plan_record = await _get_current_monthly_plan_record(user, db, request.query_params.get("career", ""))
     plan_data = dict(plan_record.plan_data or {})
     if get_monthly_plan_progress(plan_data)["current_week"] != week_number:
         raise HTTPException(status_code=403, detail="The weekly conversation is available only for the current week")
@@ -3284,6 +3294,7 @@ async def weekly_growth_conversation(week_number: int, request: Request, db: Asy
     elapsed_seconds = _conversation_elapsed_seconds(conversation)
     return templates.TemplateResponse(request=request, name="monthly_conversation.html", context={
         "user": user,
+        "career": request.query_params.get("career", ""),
         "week_number": week_number,
         "conversation": conversation,
         "remaining_seconds": max(0, WEEKLY_CONVERSATION_MAX_SECONDS - elapsed_seconds),
@@ -3306,7 +3317,7 @@ async def weekly_growth_conversation_message(week_number: int, request: Request,
         raise HTTPException(status_code=400, detail="Write a message between 1 and 1200 characters")
 
     from .services.monthly_plan_service import get_monthly_plan_progress
-    plan_record = await _get_current_monthly_plan_record(user, db)
+    plan_record = await _get_current_monthly_plan_record(user, db, request.query_params.get("career", ""))
     plan_data = dict(plan_record.plan_data or {})
     if get_monthly_plan_progress(plan_data)["current_week"] != week_number:
         raise HTTPException(status_code=403, detail="The weekly conversation is available only for the current week")
@@ -3347,7 +3358,7 @@ async def complete_weekly_growth_conversation(week_number: int, request: Request
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
     from .services.monthly_plan_service import get_monthly_plan_progress
-    plan_record = await _get_current_monthly_plan_record(user, db)
+    plan_record = await _get_current_monthly_plan_record(user, db, request.query_params.get("career", ""))
     plan_data = dict(plan_record.plan_data or {})
     if user.role != "student" or get_monthly_plan_progress(plan_data)["current_week"] != week_number:
         raise HTTPException(status_code=403, detail="This conversation is not available")
@@ -3361,7 +3372,7 @@ async def complete_weekly_growth_conversation(week_number: int, request: Request
     plan_data["weekly_conversations"] = conversations[-8:]
     plan_record.plan_data = plan_data
     await db.commit()
-    return {"redirect": f"/my-monthly-path/week/{week_number}"}
+    return {"redirect": _monthly_path_url(f"/my-monthly-path/week/{week_number}", request)}
 
 
 @app.post("/my-monthly-path/check-in")
@@ -3378,7 +3389,7 @@ async def submit_monthly_checkin(
         raise HTTPException(status_code=400, detail="Please write an update between 1 and 1500 characters")
 
     from .services.monthly_plan_service import build_weekly_reflection_response
-    plan_record = await _get_current_monthly_plan_record(user, db)
+    plan_record = await _get_current_monthly_plan_record(user, db, request.query_params.get("career", ""))
     plan_data = dict(plan_record.plan_data or {})
     from .services.monthly_plan_service import get_monthly_plan_progress
     current_week = get_monthly_plan_progress(plan_data)["current_week"]
@@ -3395,7 +3406,7 @@ async def submit_monthly_checkin(
     plan_data["weekly_checkins"] = checkins[-8:]
     plan_record.plan_data = plan_data
     await db.commit()
-    destination = f"/my-monthly-path/week/{selected_week}"
+    destination = _monthly_path_url(f"/my-monthly-path/week/{selected_week}", request)
     return RedirectResponse(url=destination, status_code=status.HTTP_303_SEE_OTHER)
 
 
@@ -3406,12 +3417,12 @@ async def acknowledge_monthly_encouragement(request: Request, db: AsyncSession =
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     if user.role not in ["student", "admin"]:
         raise HTTPException(status_code=403, detail="This action is only available to students and admins")
-    plan_record = await _get_current_monthly_plan_record(user, db)
+    plan_record = await _get_current_monthly_plan_record(user, db, request.query_params.get("career", ""))
     plan_data = dict(plan_record.plan_data or {})
     plan_data["last_encouragement_seen_on"] = datetime.date.today().isoformat()
     plan_record.plan_data = plan_data
     await db.commit()
-    return RedirectResponse(url="/my-monthly-path", status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse(url=_monthly_path_url("/my-monthly-path", request), status_code=status.HTTP_303_SEE_OTHER)
 
 
 @app.post("/my-monthly-path/weekend-quiz")
@@ -3422,7 +3433,7 @@ async def submit_monthly_weekend_quiz(request: Request, db: AsyncSession = Depen
     if user.role not in ["student", "admin"]:
         raise HTTPException(status_code=403, detail="This action is only available to students and admins")
     form_data = await request.form()
-    plan_record = await _get_current_monthly_plan_record(user, db)
+    plan_record = await _get_current_monthly_plan_record(user, db, request.query_params.get("career", ""))
     plan_data = dict(plan_record.plan_data or {})
     from .services.monthly_plan_service import build_weekend_quiz
     from .services.monthly_plan_service import get_monthly_plan_progress
@@ -3451,7 +3462,7 @@ async def submit_monthly_weekend_quiz(request: Request, db: AsyncSession = Depen
     plan_data["weekend_quizzes"] = quizzes[-8:]
     plan_record.plan_data = plan_data
     await db.commit()
-    destination = f"/my-monthly-path/week/{selected_week}"
+    destination = _monthly_path_url(f"/my-monthly-path/week/{selected_week}", request)
     return RedirectResponse(url=destination, status_code=status.HTTP_303_SEE_OTHER)
 
 
@@ -3468,7 +3479,7 @@ async def submit_month_end_review(
     if not reflection or len(reflection) > 1500:
         raise HTTPException(status_code=400, detail="Please write a reflection between 1 and 1500 characters")
     from .services.monthly_plan_service import build_month_end_summary
-    plan_record = await _get_current_monthly_plan_record(user, db)
+    plan_record = await _get_current_monthly_plan_record(user, db, request.query_params.get("career", ""))
     plan_data = dict(plan_record.plan_data or {})
     from .services.monthly_plan_service import get_monthly_plan_progress
     if get_monthly_plan_progress(plan_data)["percent"] < 100:
@@ -3480,7 +3491,7 @@ async def submit_month_end_review(
     }
     plan_record.plan_data = plan_data
     await db.commit()
-    return RedirectResponse(url="/my-monthly-path", status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse(url=_monthly_path_url("/my-monthly-path", request), status_code=status.HTTP_303_SEE_OTHER)
 
 
 @app.get("/admin", response_class=HTMLResponse)
@@ -5139,17 +5150,21 @@ async def phase3_chat_v2(request: Request, chat_req: Phase3V2ChatRequest, db: As
     user = await get_current_user(request, db)
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
+    if not has_assessment_all_access(user):
+        raise HTTPException(status_code=403, detail="Assessment All Access is required for Career Talk")
 
     from fastapi.responses import JSONResponse
 
     result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+    if not result:
+        raise HTTPException(status_code=404, detail="Complete Phase 2 before starting Career Talk")
     
     # Determine if conversation should wrap up (after ~10 exchanges)
     user_msg_count = sum(1 for m in chat_req.answers if m.get("role") == "user")
     if chat_req.message.strip():
         user_msg_count += 1
         
-    phase1 = result.raw_answers if result and result.raw_answers else {}
+    phase1 = result.raw_answers if isinstance(result.raw_answers, dict) else {}
     
     student_context = {
         "student_name": phase1.get("name", "Student"),
@@ -5211,11 +5226,14 @@ async def phase3_chat_v2(request: Request, chat_req: Phase3V2ChatRequest, db: As
     gclient = get_groq_client()
     if gclient:
         try:
-            completion = await gclient.chat.completions.create(
-                messages=messages,
-                model="llama-3.3-70b-versatile",
-                temperature=0.8,
-                max_tokens=300,
+            completion = await asyncio.wait_for(
+                gclient.chat.completions.create(
+                    messages=messages,
+                    model="llama-3.3-70b-versatile",
+                    temperature=0.8,
+                    max_tokens=300,
+                ),
+                timeout=20,
             )
             ai_text = completion.choices[0].message.content
         except Exception as groq_err:
@@ -5225,7 +5243,7 @@ async def phase3_chat_v2(request: Request, chat_req: Phase3V2ChatRequest, db: As
         try:
             # Fallback to Gemini if Groq not available or failed
             flat_prompt = "\n".join([f"{m['role'].upper()}: {m['content']}" for m in messages])
-            ai_text = await generate_content_with_fallback(flat_prompt)
+            ai_text = await asyncio.wait_for(generate_content_with_fallback(flat_prompt), timeout=20)
         except Exception as gemini_err:
             print(f"Phase 3 Chat Gemini Error: {gemini_err}")
             
