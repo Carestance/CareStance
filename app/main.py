@@ -455,6 +455,7 @@ async def run_migrations():
                 if 'subscription_expires_at' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN subscription_expires_at TIMESTAMP")
                 if 'created_at' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN created_at TIMESTAMP")
                 if 'last_login' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN last_login TIMESTAMP")
+                if 'referral_code' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN referral_code VARCHAR")
                 migrations.append("CREATE INDEX IF NOT EXISTS ix_users_full_name ON users (full_name)")
                 migrations.append("CREATE INDEX IF NOT EXISTS ix_users_onboarded ON users (onboarded)")
                 migrations.append("CREATE INDEX IF NOT EXISTS ix_users_subscription_plan ON users (subscription_plan)")
@@ -649,8 +650,10 @@ async def startup_event():
                     ADD COLUMN IF NOT EXISTS simulations_completed INTEGER DEFAULT 0,
                     ADD COLUMN IF NOT EXISTS simulation_paid BOOLEAN DEFAULT FALSE,
                     ADD COLUMN IF NOT EXISTS simulation_credits INTEGER DEFAULT 0,
+                    ADD COLUMN IF NOT EXISTS assessment_all_access BOOLEAN DEFAULT FALSE,
                     ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW(),
-                    ADD COLUMN IF NOT EXISTS last_login TIMESTAMP;
+                    ADD COLUMN IF NOT EXISTS last_login TIMESTAMP,
+                    ADD COLUMN IF NOT EXISTS referral_code VARCHAR;
                     """
                     await conn.execute(text(sql))
                     print("DEBUG: Emergency batch migration for 'users' table completed.", flush=True)
@@ -1509,8 +1512,9 @@ async def select_role(
         # Save User Metadata in Appwrite DB
         try:
             from appwrite.query import Query
+            from .appwrite_helper import _parse_list_response
             res = tables_db.list_rows(DB_ID, COLLECTIONS["users"], [Query.equal('email', user.email)])
-            documents = res.get('documents', []) if isinstance(res, dict) else getattr(res, 'documents', [])
+            _, documents = _parse_list_response(res)
             
             if documents:
                 doc = documents[0]
@@ -1570,10 +1574,12 @@ async def assessment_start(
         if result and not has_completed_assessment(result):
             return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
 
-        used_free_assessment = (user.assessments_completed or 0) >= 1 or has_completed_assessment(result)
+        user_assessments = getattr(user, "assessments_completed", 0) or 0
+        used_free_assessment = user_assessments >= 1 or has_completed_assessment(result)
         if used_free_assessment and not get_subscription_state(user)["active"]:
-            if (user.assessments_completed or 0) < 1:
-                user.assessments_completed = 1
+            if user_assessments < 1:
+                if hasattr(user, "assessments_completed"):
+                    user.assessments_completed = 1
                 await db.commit()
             return RedirectResponse(
                 url="/subscription?reason=assessment_retake",
@@ -1589,7 +1595,7 @@ async def assessment_start(
             result.student_type = student_type
             result.current_phase = start_phase
             result.intake_turn = 1
-            result.intake_name = user.full_name
+            result.intake_name = getattr(user, "full_name", "") or getattr(user, "name", "Student")
             result.intake_grade = 10 if student_type == "10th" else 12
             result.intake_stream = stream
             result.telemetry_logs = None
@@ -1622,7 +1628,7 @@ async def assessment_start(
                 student_type=student_type,
                 current_phase=start_phase,
                 intake_turn=1,
-                intake_name=user.full_name,
+                intake_name=getattr(user, "full_name", "") or getattr(user, "name", "Student"),
                 intake_grade=10 if student_type == "10th" else 12,
                 intake_stream=stream,
                 chat_turn=0
@@ -1632,7 +1638,11 @@ async def assessment_start(
         await db.commit()
         sync_assessment_to_appwrite(user.id, result)
     except Exception as e:
-        print(f"Assessment start error: {e}")
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"Assessment start error: {e}\n{error_trace}")
+        with open("assessment_error.log", "w") as f:
+            f.write(error_trace)
         await db.rollback()
         return RedirectResponse(url="/dashboard?error=Assessment+failed+to+start", status_code=status.HTTP_302_FOUND)
     
@@ -1750,6 +1760,7 @@ async def assessment_api_intake(request: Request, payload: dict, db: AsyncSessio
         if isinstance(interests, list):
             interests = ", ".join(interests)
         salary_priority = payload.get("salary_priority", "").strip()
+        referral_code = payload.get("referral_code", "").strip()
         family_income = payload.get("family_income", "").strip()
         father_occupation = payload.get("father_occupation", "").strip()
         mother_occupation = payload.get("mother_occupation", "").strip()
@@ -1768,6 +1779,11 @@ async def assessment_api_intake(request: Request, payload: dict, db: AsyncSessio
         if not salary_priority or salary_priority not in ["high_salary", "balanced", "meaningful_work", "unsure"]:
             raise HTTPException(status_code=400, detail="Invalid salary priority")
             
+        if referral_code:
+            if len(referral_code) != 9 or sum(c.isalpha() for c in referral_code) != 4 or sum(c.isdigit() for c in referral_code) != 5:
+                raise HTTPException(status_code=400, detail="Invalid referral code. Must be 4 letters and 5 numbers.")
+            user.referral_code = referral_code
+            
         result.intake_name = name
         result.intake_grade = 10 if result.student_type == "10th" else 12
         result.intake_stream = pursuing
@@ -1778,13 +1794,33 @@ async def assessment_api_intake(request: Request, payload: dict, db: AsyncSessio
             "family_income": family_income,
             "father_occupation": father_occupation,
             "mother_occupation": mother_occupation,
-            "salary_priority": salary_priority
+            "salary_priority": salary_priority,
+            "referral_code": referral_code
         }
         result.intake_turn = 3
         # Always force Phase 1 (swipe cards / behavioral assessment) after intake form completion.
         result.current_phase = 1
         
         await db.commit()
+        
+        # Update referral_code in Appwrite users collection if provided
+        if referral_code:
+            try:
+                from appwrite.query import Query
+                from .appwrite_client import tables_db, DB_ID, COLLECTIONS
+                from .appwrite_helper import _parse_list_response
+                res = tables_db.list_rows(DB_ID, COLLECTIONS["users"], [Query.equal('email', user.email)])
+                _, documents = _parse_list_response(res)
+                if documents:
+                    doc = documents[0]
+                    doc_id = doc.get('$id') if isinstance(doc, dict) else getattr(doc, '$id', getattr(doc, 'id', None))
+                    if doc_id:
+                        tables_db.update_row(DB_ID, COLLECTIONS["users"], doc_id, {
+                            "referral_code": referral_code
+                        })
+            except Exception as e:
+                print(f"Appwrite Sync User Referral Error: {e}")
+
         sync_assessment_to_appwrite(user.id, result)
         
         validation_payload = {

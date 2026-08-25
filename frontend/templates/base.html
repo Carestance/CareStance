@@ -34,10 +34,10 @@
     </noscript>
 
     <!-- AOS animation CSS: non-blocking -->
-    <link rel="preload" href="https://unpkg.com/aos@2.3.1/dist/aos.css" as="style"
+    <link rel="preload" href="/static/css/aos.css" as="style"
         onload="this.onload=null;this.rel='stylesheet'">
     <noscript>
-        <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css">
+        <link rel="stylesheet" href="/static/css/aos.css">
     </noscript>
 
     <!-- Main site CSS: preload for faster rendering -->
@@ -45,7 +45,7 @@
     <link rel="stylesheet" href="/static/css/style.css?v=101">
 
     <!-- Alpine.js: deferred, non-blocking -->
-    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <script src="/static/js/alpine.min.js" defer></script>
 
     <style>
         /* ── Design Tokens ── */
@@ -1022,7 +1022,7 @@
         // Load AOS after page has rendered
         window.addEventListener('load', function () {
             var script = document.createElement('script');
-            script.src = 'https://unpkg.com/aos@2.3.1/dist/aos.js';
+            script.src = '/static/js/aos.js';
             script.onload = function () {
                 AOS.init({ duration: 700, once: true, offset: 60 });
             };

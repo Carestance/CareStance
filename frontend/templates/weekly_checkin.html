@@ -2,6 +2,13 @@
 
 {% block title %}Weekly AI Check-in - CareStance{% endblock %}
 
+{# ── Standalone navbar for this page only ──
+   Deliberately does NOT reuse #base-nav / .nav-links / .nav-logo etc from
+   base.html — new class names under .hero-nav so nothing from base.html's
+   CSS (or any other stylesheet targeting those selectors) can touch it.
+   Element IDs (base-menu-toggle / base-mobile-menu / base-menu-icon) are
+   kept the same so the existing mobile-toggle JS in base.html still wires
+   up automatically — no extra script needed. #}
 {% block navbar %}
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Jersey+10&display=swap');
@@ -12,15 +19,16 @@
         left: 0;
         right: 0;
         width: 100%;
-        z-index: 1100;
+        z-index: 1000;
         background: transparent;
         box-shadow: none;
     }
 
     .hero-nav-inner {
-        max-width: 1500px;
+        max-width: 80vw;
+        width: 80vw;
         margin: 0 auto;
-        padding: 0 2.5rem;
+        padding: 0;
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -30,12 +38,13 @@
     .hero-nav-logo {
         display: flex;
         align-items: center;
-        gap: 1.75rem;
+        gap: 1rem;
         text-decoration: none;
+        margin-right: auto;
     }
 
     .hero-nav-logo-badge {
-        width: 156px; height: 156px;
+        width: 120px; height: 120px;
         display: flex; align-items: center; justify-content: center;
         border-radius: 50%;
         background: #0f172a;
@@ -43,24 +52,25 @@
     }
 
     .hero-nav-logo-badge img {
-        width: 90px; height: 90px;
+        width: 80px; height: 80px;
         border-radius: 50%; object-fit: cover;
         transform: scale(1.6);
     }
 
     .hero-nav-logo-text {
         font-family: 'Jersey 10', 'Playfair Display', serif;
-        font-size: 2rem; font-weight: 700;
-        color: #12202b; white-space: nowrap;
+        font-size: 4rem; font-weight: 400;
+        color: #020c14; white-space: nowrap;
         letter-spacing: 0.02em;
     }
 
     .hero-nav-links {
         display: flex;
         align-items: center;
-        gap: 1.9rem;
-        flex-wrap: wrap;
+        gap: 1.5rem;
+        flex-wrap: nowrap;
         justify-content: flex-end;
+        flex-shrink: 1;
     }
 
     .hero-nav-links a {
@@ -86,28 +96,91 @@
         text-underline-offset: 4px;
     }
 
-    .hero-nav-user-name {
-        font-family: 'Jersey 10', sans-serif;
+    /* ── Fixed settings gear (replaces old logout pill) ── */
+    .hero-settings-fixed {
+        position: fixed;
+        bottom: 50px;
+        right: 50px;
+        z-index: 1100;
+    }
+
+    .hero-settings-gear {
+        width: 68px;
+        height: 68px;
+        border-radius: 50%;
+        background: #000000;
         color: #fff;
-        opacity: 0.75;
-        font-size: 22px;
-        text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+        border: none;
+        font-size: 1.7rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+        transition: transform 0.35s ease, background 0.3s ease;
     }
 
-    .hero-nav-logout {
-        font-family: 'Jersey 10', sans-serif;
-        background: #12202b;
-        color: #fff !important;
-        padding: 0.4rem 1.6rem;
-        border-radius: 999px;
-        font-size: 28px;
-        text-shadow: none;
+    .hero-settings-gear:hover,
+    .hero-settings-fixed:focus-within .hero-settings-gear {
+        background: #1a1a1a;
+        transform: rotate(60deg);
     }
 
-    .hero-nav-logout:hover {
-        transform: scale(1.08);
-        opacity: 1 !important;
-        background: #1e2f3d;
+    .hero-settings-menu {
+        position: absolute;
+        bottom: calc(100% + 12px);
+        right: 0;
+        min-width: 210px;
+        background: #fff;
+        border-radius: 1rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 12px 28px -6px rgba(0,0,0,0.25);
+        padding: 0.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(8px);
+        transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+    }
+
+    .hero-settings-fixed:hover .hero-settings-menu,
+    .hero-settings-fixed:focus-within .hero-settings-menu {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+
+    .hero-settings-menu a {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.65rem 0.75rem;
+        border-radius: 0.6rem;
+        color: #1e293b;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.85rem;
+        transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .hero-settings-menu a:hover {
+        background: #f1f5f9;
+        color: #0d9488;
+    }
+
+    .hero-settings-menu a.hero-settings-logout {
+        color: #b45309;
+    }
+
+    .hero-settings-menu a.hero-settings-logout:hover {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    @media (max-width: 768px) {
+        .hero-settings-fixed { bottom: 24px; right: 24px; }
     }
 
     .hero-mobile-toggle {
@@ -141,6 +214,13 @@
         gap: 0.5rem;
     }
 
+    .hero-mobile-menu a.nav-active {
+        color: var(--primary);
+        font-weight: 700;
+        background: var(--primary-soft);
+        border-radius: 0.5rem;
+    }
+
     .hero-mobile-menu a:last-child { border-bottom: none; }
     .hero-mobile-menu a:hover { color: #0d9488; }
 
@@ -150,17 +230,8 @@
         .hero-nav-logo-badge { width: 64px; height: 64px; }
         .hero-nav-logo-badge img { width: 36px; height: 36px; }
         .hero-nav-logo-text { font-size: 1.4rem; }
-        .hero-nav-inner { padding: 0 1.25rem; }
+        .hero-nav-inner { width: 92vw; max-width: 92vw; }
         .hero-nav { top: 20px; }
-    }
-
-    body { padding-top: 0 !important; }
-
-    :root {
-        --content-top-gap: calc(40px + 156px + 30px);
-    }
-    @media (max-width: 768px) {
-        :root { --content-top-gap: calc(20px + 64px + 30px); }
     }
 </style>
 
@@ -170,16 +241,16 @@
             <span class="hero-nav-logo-badge">
                 <picture>
                     <source srcset="/static/images/image.webp?v=101" type="image/webp">
-                    <img src="/static/images/image.png?v=101" alt="CareStance Logo" width="90" height="90">
+                    <img src="/static/images/logo-1.png" alt="CareStance Logo" width="90" height="90">
                 </picture>
             </span>
-            <span class="hero-nav-logo-text">Carestance</span>
+            <span class="hero-nav-logo-text">CareStance</span>
         </a>
 
         <div class="hero-nav-links">
             {% if user %}
             <a href="/dashboard" class="nav-active">Dashboard</a>
-            {% if user.role == 'student' %}
+            {% if user.role in ['student', 'admin'] %}
             <a href="/my-growth-profile" class="{% if request.url.path == '/my-growth-profile' %}nav-active{% endif %}">Growth Profile</a>
             <a href="/my-monthly-path" class="{% if request.url.path == '/my-monthly-path' %}nav-active{% endif %}">Monthly Path</a>
             {% endif %}
@@ -187,13 +258,9 @@
             <a href="/chatbot">Chat AI</a>
             {% endif %}
             <a href="/community">Community</a>
-            <a href="/feedback">Feedback</a>
-            <a href="/ticket">Support</a>
             {% if user.role == 'admin' %}
             <a href="/admin" class="{% if request.url.path == '/admin' %}nav-active{% endif %}" style="font-weight:700;">Admin</a>
             {% endif %}
-            {% if user.full_name and user.full_name != 'None' %}<span class="hero-nav-user-name">| {{ user.full_name }}</span>{% endif %}
-            <a href="/logout" class="hero-nav-logout">Logout</a>
             {% else %}
             <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}">Home</a>
             <a href="/login" class="{% if request.url.path == '/login' %}nav-active{% endif %}">Log In</a>
@@ -209,7 +276,7 @@
         {% if user %}
         <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i class="fa-solid fa-house"></i>Home</a>
         <a href="/dashboard" class="nav-active"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
-        {% if user.role == 'student' %}
+        {% if user.role in ['student', 'admin'] %}
         <a href="/my-growth-profile" class="{% if request.url.path == '/my-growth-profile' %}nav-active{% endif %}"><i class="fa-solid fa-compass"></i>Growth Profile</a>
         <a href="/my-monthly-path" class="{% if request.url.path == '/my-monthly-path' %}nav-active{% endif %}"><i class="fa-solid fa-route"></i>Monthly Path</a>
         {% endif %}
@@ -217,16 +284,27 @@
         <a href="/chatbot"><i class="fa-solid fa-comment-dots"></i>Chat AI</a>
         {% endif %}
         <a href="/community"><i class="fa-solid fa-users"></i>Community</a>
-        <a href="/feedback"><i class="fa-solid fa-star"></i>Feedback</a>
-        <a href="/ticket"><i class="fa-solid fa-circle-question"></i>Support</a>
         {% if user.role == 'admin' %}<a href="/admin"><i class="fa-solid fa-shield-halved"></i>Admin Panel</a>{% endif %}
-        <a href="/logout" style="color:#b45309;"><i class="fa-solid fa-right-from-bracket"></i>Logout</a>
         {% else %}
         <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i class="fa-solid fa-house"></i>Home</a>
         <a href="/login"><i class="fa-solid fa-right-to-bracket"></i>Log In</a>
         {% endif %}
     </div>
 </nav>
+
+{% if user %}
+<div class="hero-settings-fixed" id="hero-settings-fixed">
+    <button class="hero-settings-gear" aria-label="Settings" aria-haspopup="true" aria-expanded="false">
+        <i class="fa-solid fa-gear"></i>
+    </button>
+    <div class="hero-settings-menu">
+        <a href="/student/{{ user.id }}"><i class="fa-solid fa-user"></i> Student Profile</a>
+        <a href="/feedback"><i class="fa-solid fa-star"></i> Feedback</a>
+        <a href="/ticket"><i class="fa-solid fa-circle-question"></i> Support</a>
+        <a href="/logout" class="hero-settings-logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+    </div>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block extra_head %}
@@ -246,6 +324,10 @@
         --text-primary: #f8fafc;
         --text-secondary: #a1a8c0;
         --pixel-ink: #06131b;
+        --content-top-gap: calc(40px + 120px + 30px);
+    }
+    @media (max-width: 768px) {
+        :root { --content-top-gap: calc(20px + 64px + 30px); }
     }
 
     body {

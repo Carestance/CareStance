@@ -14,6 +14,7 @@ class User(Base):
     bio = Column(Text, nullable=True)
     role = Column(String, nullable=True, index=True)
     is_suspended = Column(Boolean, default=False)
+    referral_code = Column(String, nullable=True, index=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=True)
     last_login = Column(DateTime(timezone=True), nullable=True)
