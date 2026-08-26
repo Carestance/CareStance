@@ -2783,6 +2783,95 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
         )).scalar() or 0
         inactive_clients = total_clients - active_clients
 
+        # Teacher-style student overview.  A counsellor is the currently
+        # available teacher role; this deliberately exposes only actionable
+        # development signals, not private assessment answers.
+        student_overview = []
+        student_by_id = {}
+        for appointment in appointments:
+            student = appointment.student
+            if student and student.id not in student_by_id:
+                student_by_id[student.id] = student
+
+        student_ids = list(student_by_id)
+        month_key = datetime.date.today().strftime("%Y-%m")
+        plan_by_student = {}
+        if student_ids:
+            plan_records = (await db.execute(
+                select(models.MonthlyGrowthPlan).where(
+                    models.MonthlyGrowthPlan.user_id.in_(student_ids),
+                    models.MonthlyGrowthPlan.month_key == month_key,
+                )
+            )).scalars().all()
+            plan_by_student = {plan.user_id: plan.plan_data or {} for plan in plan_records}
+            career_plan_records = (await db.execute(
+                select(models.CareerGrowthPlan).where(
+                    models.CareerGrowthPlan.user_id.in_(student_ids),
+                    models.CareerGrowthPlan.month_key == month_key,
+                ).order_by(models.CareerGrowthPlan.updated_at.desc(), models.CareerGrowthPlan.id.desc())
+            )).scalars().all()
+            # The latest selected career map is the active development map
+            # shown to the student, so it takes priority over the legacy plan.
+            latest_career_plan_by_student = {}
+            for plan in career_plan_records:
+                latest_career_plan_by_student.setdefault(plan.user_id, plan.plan_data or {})
+            plan_by_student.update(latest_career_plan_by_student)
+
+        from .services.monthly_plan_service import get_monthly_plan_progress
+        for student_id, student in student_by_id.items():
+            assessment = getattr(student, "assessment", None)
+            assessment_complete = bool(
+                assessment and (
+                    getattr(assessment, "assessment_report", None)
+                    or (getattr(assessment, "recommended_stream", None) and getattr(assessment, "final_analysis", None))
+                )
+            )
+            plan_data = plan_by_student.get(student_id, {})
+            roadmap_progress = get_monthly_plan_progress(plan_data)["percent"] if plan_data else 0
+            task_responses = plan_data.get("task_responses") or {} if plan_data else {}
+            completed_tasks = len(task_responses)
+            current_week_number = get_monthly_plan_progress(plan_data).get("current_week") if plan_data else None
+            current_week = next((week for week in plan_data.get("weeks", []) if week.get("week") == current_week_number), None) if current_week_number else None
+            weekly_goal = (current_week or {}).get("goal") or "Generate a roadmap to set a weekly goal"
+            weekly_goal_progress = 0
+            if current_week:
+                current_week_tasks = current_week.get("tasks") or []
+                if current_week_tasks:
+                    weekly_goal_progress = round(sum(task.get("id") in task_responses for task in current_week_tasks) / len(current_week_tasks) * 100)
+            if not assessment_complete or roadmap_progress < 25:
+                attention, attention_label = "red", "Needs attention"
+            elif roadmap_progress < 60:
+                attention, attention_label = "amber", "Check in"
+            else:
+                attention, attention_label = "green", "On track"
+            student_overview.append({
+                "id": student_id,
+                "name": student.full_name or "Student",
+                "assessment_completion": 100 if assessment_complete else 0,
+                "career_status": getattr(assessment, "recommended_stream", None) or getattr(assessment, "phase_2_category", None) or "Not started",
+                "roadmap_progress": roadmap_progress,
+                "weekly_activity": min(100, round(completed_tasks / 12 * 100)),
+                "weekly_goal": weekly_goal,
+                "weekly_goal_progress": weekly_goal_progress,
+                "last_active": getattr(student, "last_login", None),
+                "attention": attention,
+                "attention_label": attention_label,
+            })
+        student_overview.sort(key=lambda item: {"red": 0, "amber": 1, "green": 2}[item["attention"]])
+        week_start = datetime.datetime.now(datetime.timezone.utc) - timedelta(days=7)
+        def is_active_this_week(student):
+            last_login = getattr(student, "last_login", None)
+            if not last_login:
+                return False
+            if last_login.tzinfo is None:
+                last_login = last_login.replace(tzinfo=datetime.timezone.utc)
+            return last_login >= week_start
+        active_this_week = sum(is_active_this_week(student) for student in student_by_id.values())
+        assessment_complete_count = sum(item["assessment_completion"] == 100 for item in student_overview)
+        average_progress = round(sum(item["roadmap_progress"] for item in student_overview) / len(student_overview)) if student_overview else 0
+        students_needing_attention = sum(item["attention"] == "red" for item in student_overview)
+        upcoming_tasks = sum(appointment.status in {"requested", "accepted", "scheduled"} for appointment in appointments)
+
         # ⭐ Rating
         avg_rating = profile.average_rating if (profile and profile.average_rating is not None) else 5.0
 
@@ -2802,7 +2891,12 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
             "earnings_monthly": earnings_monthly,
             "active_clients": active_clients,
             "inactive_clients": max(0, inactive_clients),
-            "avg_rating": avg_rating
+            "avg_rating": avg_rating,
+            "students_active_this_week": active_this_week,
+            "assessments_completed": assessment_complete_count,
+            "average_progress": average_progress,
+            "students_needing_attention": students_needing_attention,
+            "upcoming_tasks": upcoming_tasks,
         }
 
         try:
@@ -2814,7 +2908,8 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
                 "appointments": appointments, 
                 "notifications": notifications,
                 "stats": dashboard_stats,
-                "reviews": recent_reviews
+                "reviews": recent_reviews,
+                "student_overview": student_overview,
             })
             return HTMLResponse(content=content)
         except Exception as e:
@@ -2892,6 +2987,163 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
     except Exception as e:
         import traceback
         return HTMLResponse(content=f"Template Error: {e}<br><pre>{traceback.format_exc()}</pre>", status_code=500)
+
+
+@app.get("/teacher/students/{student_id}", response_class=HTMLResponse)
+async def teacher_student_detail(student_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    """Actionable development view for a counsellor's assigned student."""
+    teacher = await get_current_user(request, db)
+    if not teacher:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    if teacher.role != "counsellor":
+        raise HTTPException(status_code=403, detail="This view is available to teachers only")
+
+    assigned = (await db.execute(
+        select(models.Appointment.id).where(
+            models.Appointment.counsellor_id == teacher.id,
+            models.Appointment.student_id == student_id,
+        ).limit(1)
+    )).scalar()
+    if not assigned:
+        raise HTTPException(status_code=404, detail="Student is not assigned to you")
+
+    student = (await db.execute(
+        select(models.User).where(models.User.id == student_id)
+    )).scalars().first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    assessment = (await db.execute(
+        select(models.AssessmentResult).where(models.AssessmentResult.user_id == student_id)
+    )).scalars().first()
+    month_key = datetime.date.today().strftime("%Y-%m")
+    plan_record = (await db.execute(
+        select(models.CareerGrowthPlan).where(
+            models.CareerGrowthPlan.user_id == student_id,
+            models.CareerGrowthPlan.month_key == month_key,
+        ).order_by(models.CareerGrowthPlan.updated_at.desc(), models.CareerGrowthPlan.id.desc())
+    )).scalars().first()
+    if not plan_record:
+        plan_record = (await db.execute(
+            select(models.MonthlyGrowthPlan).where(
+                models.MonthlyGrowthPlan.user_id == student_id,
+                models.MonthlyGrowthPlan.month_key == month_key,
+            )
+        )).scalars().first()
+
+    from .services.monthly_plan_service import get_monthly_plan_progress
+    plan = plan_record.plan_data if plan_record else {}
+    progress = get_monthly_plan_progress(plan)
+    task_responses = plan.get("task_responses") or {}
+    completed_tasks = len(task_responses)
+    total_tasks = sum(len(week.get("tasks") or []) for week in plan.get("weeks") or [])
+    completed_task_items, pending_task_items = [], []
+    for week in plan.get("weeks") or []:
+        for task in week.get("tasks") or []:
+            item = {"week": week.get("week"), "week_title": week.get("title"), "text": task.get("text"), "response": task_responses.get(task.get("id"))}
+            (completed_task_items if item["response"] else pending_task_items).append(item)
+
+    # Only development-level assessment data is extracted. Raw answers and
+    # personal contact data must never enter this teacher-facing context.
+    assessment_scores = []
+    if assessment and isinstance(assessment.stream_scores, dict):
+        assessment_scores = [
+            {"label": str(label), "score": score}
+            for label, score in assessment.stream_scores.items()
+            if isinstance(score, (int, float))
+        ]
+        assessment_scores.sort(key=lambda item: item["score"], reverse=True)
+    skill_gaps = []
+    if assessment and isinstance(assessment.simulation_evaluation, dict):
+        skill_gaps = assessment.simulation_evaluation.get("improvement_areas") or []
+    if not skill_gaps and assessment and isinstance(assessment.assessment_report, dict):
+        for key in ("skill_gaps", "skills_to_develop", "development_areas"):
+            candidate = assessment.assessment_report.get(key)
+            if isinstance(candidate, list):
+                skill_gaps = candidate
+                break
+    skill_gaps = [str(item) for item in skill_gaps if item][:5]
+
+    student_appointments = (await db.execute(
+        select(models.Appointment).where(
+            models.Appointment.counsellor_id == teacher.id,
+            models.Appointment.student_id == student_id,
+        ).order_by(models.Appointment.appointment_time.desc())
+    )).scalars().all()
+    notes = (await db.execute(
+        select(models.TeacherStudentNote).where(
+            models.TeacherStudentNote.teacher_id == teacher.id,
+            models.TeacherStudentNote.student_id == student_id,
+        ).order_by(models.TeacherStudentNote.created_at.desc()).limit(20)
+    )).scalars().all()
+
+    timeline = []
+    if student.created_at:
+        timeline.append({"date": student.created_at, "title": "Student joined CareStance", "detail": "Development profile created."})
+    if assessment and student.last_login:
+        timeline.append({"date": student.last_login, "title": "Assessment activity available", "detail": "Career exploration signals are available for review."})
+    if plan_record:
+        timeline.append({"date": plan_record.updated_at or plan_record.created_at, "title": "Growth roadmap updated", "detail": f"{progress['percent']}% of the current roadmap is complete."})
+    for task in completed_task_items:
+        response = task.get("response") or {}
+        completed_on = response.get("completed_on") if isinstance(response, dict) else None
+        if completed_on:
+            timeline.append({"date": completed_on, "title": f"Completed Week {task['week']} task", "detail": task["text"]})
+    for appointment in student_appointments:
+        timeline.append({"date": appointment.appointment_time, "title": f"Session {appointment.status}", "detail": "Counsellor session activity recorded."})
+    for note in notes:
+        timeline.append({"date": note.created_at, "title": "Teacher note added", "detail": "Private follow-up note recorded."})
+    def timeline_sort_value(entry):
+        value = entry["date"]
+        if isinstance(value, str):
+            try:
+                return datetime.datetime.fromisoformat(value)
+            except ValueError:
+                return datetime.datetime.min
+        if isinstance(value, datetime.datetime):
+            return value.replace(tzinfo=None) if value.tzinfo else value
+        return datetime.datetime.min
+    timeline.sort(key=timeline_sort_value, reverse=True)
+
+    return templates.TemplateResponse(request=request, name="teacher_student_detail.html", context={
+        "teacher": teacher,
+        "student": student,
+        "assessment": assessment,
+        "plan": plan,
+        "progress": progress,
+        "completed_tasks": completed_tasks,
+        "total_tasks": total_tasks,
+        "completed_task_items": completed_task_items,
+        "pending_task_items": pending_task_items,
+        "assessment_scores": assessment_scores,
+        "skill_gaps": skill_gaps,
+        "timeline": timeline[:12],
+        "student_appointments": student_appointments,
+        "notes": notes,
+    })
+
+
+@app.post("/teacher/students/{student_id}/notes")
+async def add_teacher_student_note(student_id: int, request: Request, content: str = Form(...), db: AsyncSession = Depends(get_db)):
+    teacher = await get_current_user(request, db)
+    if not teacher:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    if teacher.role != "counsellor":
+        raise HTTPException(status_code=403, detail="This action is available to teachers only")
+    content = content.strip()
+    if not 2 <= len(content) <= 1200:
+        raise HTTPException(status_code=400, detail="Write a note between 2 and 1200 characters")
+    assigned = (await db.execute(
+        select(models.Appointment.id).where(
+            models.Appointment.counsellor_id == teacher.id,
+            models.Appointment.student_id == student_id,
+        ).limit(1)
+    )).scalar()
+    if not assigned:
+        raise HTTPException(status_code=404, detail="Student is not assigned to you")
+    db.add(models.TeacherStudentNote(teacher_id=teacher.id, student_id=student_id, content=content))
+    await db.commit()
+    return RedirectResponse(url=f"/teacher/students/{student_id}", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @app.get("/my-growth-profile", response_class=HTMLResponse)

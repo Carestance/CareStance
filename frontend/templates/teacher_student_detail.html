@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}{{ student.full_name }} | Student Progress{% endblock %}
+{% block content %}
+<main class="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+  <a href="/dashboard" class="inline-flex items-center gap-2 text-sm font-bold text-teal-700 hover:text-teal-900"><i class="fas fa-arrow-left"></i> Back to teacher dashboard</a>
+
+  <section class="mt-5 rounded-3xl border border-teal-100 bg-gradient-to-br from-teal-50 to-white p-6 shadow-sm sm:p-8">
+    <p class="text-[11px] font-black uppercase tracking-widest text-teal-700">Student development view</p>
+    <div class="mt-3 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div><h1 class="text-3xl font-black text-slate-900">{{ student.full_name }}</h1><p class="mt-2 max-w-2xl text-sm text-slate-600">Actionable career and learning progress only. Personal answers and contact information are intentionally hidden.</p></div>
+      <span class="inline-flex w-fit items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-slate-600 shadow-sm"><i class="fas fa-shield-heart text-teal-600"></i> Privacy-aware view</span>
+    </div>
+  </section>
+
+  <section class="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+    <article class="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm"><p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Assessment</p><p class="mt-2 text-2xl font-black {% if assessment and (assessment.assessment_report or assessment.recommended_stream) %}text-emerald-600{% else %}text-amber-600{% endif %}">{% if assessment and (assessment.assessment_report or assessment.recommended_stream) %}Complete{% else %}In progress{% endif %}</p></article>
+    <article class="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm"><p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Roadmap</p><p class="mt-2 text-2xl font-black text-teal-700">{{ progress.percent }}%</p></article>
+    <article class="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm"><p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Tasks completed</p><p class="mt-2 text-2xl font-black text-slate-900">{{ completed_tasks }}/{{ total_tasks }}</p></article>
+    <article class="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm"><p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Current focus</p><p class="mt-2 text-base font-black text-slate-900">{{ plan.career_title or plan.focus_skill or assessment.recommended_stream or 'Exploring options' }}</p></article>
+  </section>
+
+  <section class="mt-6 grid gap-4 lg:grid-cols-3">
+    <article class="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm"><p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Student profile</p><p class="mt-2 font-black text-slate-900">{{ assessment.selected_class ~ ' grade' if assessment and assessment.selected_class else 'Grade not shared' }}</p><p class="mt-1 text-sm text-slate-500">Only academic and development context is shown.</p></article>
+    <article class="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm"><p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Career interests</p><p class="mt-2 font-black text-slate-900">{{ assessment.recommended_stream or assessment.phase_2_category if assessment else 'Still exploring' }}</p><p class="mt-1 text-sm text-slate-500">Based on completed assessment signals.</p></article>
+    <article class="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm"><p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Last active</p><p class="mt-2 font-black text-slate-900">{{ student.last_login.strftime('%b %d, %Y') if student.last_login else 'No sign-in recorded' }}</p><p class="mt-1 text-sm text-slate-500">Useful only for deciding when to check in.</p></article>
+  </section>
+
+  <section class="mt-6 grid gap-6 lg:grid-cols-3">
+    <div class="space-y-6 lg:col-span-2">
+      <article class="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
+        <h2 class="text-lg font-black text-slate-900"><i class="fas fa-compass mr-2 text-teal-600"></i>Career &amp; skill journey</h2>
+        <dl class="mt-5 grid gap-5 sm:grid-cols-2">
+          <div><dt class="text-[10px] font-black uppercase tracking-widest text-slate-400">Career direction</dt><dd class="mt-1 font-bold text-slate-800">{{ assessment.recommended_stream or assessment.phase_2_category or 'Still exploring' }}</dd></div>
+          <div><dt class="text-[10px] font-black uppercase tracking-widest text-slate-400">Work style</dt><dd class="mt-1 font-bold text-slate-800">{{ assessment.phase_2_category or 'Not assessed yet' }}</dd></div>
+          <div><dt class="text-[10px] font-black uppercase tracking-widest text-slate-400">Current roadmap stage</dt><dd class="mt-1 font-bold text-slate-800">{{ plan.title or 'No active roadmap' }}</dd></div>
+          <div><dt class="text-[10px] font-black uppercase tracking-widest text-slate-400">Simulation signal</dt><dd class="mt-1 font-bold text-slate-800">{% if assessment and assessment.simulation_evaluation %}Simulation completed{% else %}Not explored yet{% endif %}</dd></div>
+        </dl>
+      </article>
+
+      <article class="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
+        <h2 class="text-lg font-black text-slate-900"><i class="fas fa-chart-simple mr-2 text-teal-600"></i>Assessment &amp; skill-gap summary</h2>
+        <div class="mt-5 grid gap-5 sm:grid-cols-2">
+          <div>
+            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Assessment scores</p>
+            {% if assessment_scores %}<div class="mt-3 space-y-2">{% for item in assessment_scores %}<div class="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-sm"><span class="font-semibold text-slate-700">{{ item.label }}</span><span class="font-black text-teal-700">{{ item.score }}</span></div>{% endfor %}</div>{% else %}<p class="mt-3 text-sm text-slate-500">Score summary is not available yet.</p>{% endif %}
+          </div>
+          <div>
+            <p class="text-[10px] font-black uppercase tracking-widest text-slate-400">Development areas</p>
+            {% if skill_gaps %}<ul class="mt-3 space-y-2">{% for gap in skill_gaps %}<li class="rounded-xl bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900"><i class="fas fa-arrow-trend-up mr-2 text-amber-600"></i>{{ gap }}</li>{% endfor %}</ul>{% else %}<p class="mt-3 text-sm text-slate-500">Complete a simulation or assessment to identify development areas.</p>{% endif %}
+          </div>
+        </div>
+      </article>
+
+      <article class="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
+        <div class="flex items-center justify-between gap-3"><h2 class="text-lg font-black text-slate-900"><i class="fas fa-list-check mr-2 text-teal-600"></i>Growth roadmap</h2><span class="text-sm font-black text-teal-700">{{ progress.completed_weeks }}/{{ progress.total_weeks }} weeks</span></div>
+        {% if plan.weeks %}
+        <div class="mt-5 space-y-3">
+          {% for week in plan.weeks %}
+          <div class="rounded-2xl border border-slate-100 p-4"><div class="flex gap-3"><span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full {% if week.week in progress.completed_week_numbers %}bg-emerald-100 text-emerald-700{% else %}bg-slate-100 text-slate-500{% endif %} font-black">{{ week.week }}</span><div><h3 class="font-bold text-slate-900">{{ week.title }}</h3><p class="mt-1 text-sm text-slate-600">{{ week.goal }}</p><p class="mt-2 text-xs font-semibold text-slate-400">Outcome: {{ week.outcome }}</p></div></div></div>
+          {% endfor %}
+        </div>
+        {% else %}<p class="mt-5 rounded-2xl bg-slate-50 p-5 text-sm text-slate-500">This student has not generated a roadmap yet.</p>{% endif %}
+      </article>
+
+      <article class="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
+        <h2 class="text-lg font-black text-slate-900"><i class="fas fa-square-check mr-2 text-teal-600"></i>Completed &amp; pending tasks</h2>
+        <div class="mt-5 grid gap-5 md:grid-cols-2">
+          <div><p class="text-[10px] font-black uppercase tracking-widest text-emerald-600">Completed ({{ completed_task_items|length }})</p><div class="mt-3 space-y-2">{% for task in completed_task_items %}<div class="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900"><span class="font-black">Week {{ task.week }}:</span> {{ task.text }}{% if task.response.completed_on %}<p class="mt-1 text-xs text-emerald-700">Completed {{ task.response.completed_on }}</p>{% endif %}</div>{% else %}<p class="text-sm text-slate-500">No roadmap tasks completed yet.</p>{% endfor %}</div></div>
+          <div><p class="text-[10px] font-black uppercase tracking-widest text-amber-600">Pending ({{ pending_task_items|length }})</p><div class="mt-3 space-y-2">{% for task in pending_task_items %}<div class="rounded-xl bg-amber-50 p-3 text-sm text-amber-950"><span class="font-black">Week {{ task.week }}:</span> {{ task.text }}</div>{% else %}<p class="text-sm text-slate-500">No pending tasks in the current roadmap.</p>{% endfor %}</div></div>
+        </div>
+      </article>
+    </div>
+
+    <aside class="space-y-6">
+      <section class="rounded-3xl border border-amber-100 bg-amber-50 p-6">
+        <h2 class="font-black text-amber-950"><i class="fas fa-lightbulb mr-2 text-amber-600"></i>Suggested teacher action</h2>
+        <p class="mt-3 text-sm leading-relaxed text-amber-900">{% if not assessment %}Encourage {{ student.full_name }} to begin the assessment, then revisit the first recommended direction together.{% elif progress.percent < 25 %}Ask about one small roadmap action they can complete this week and help remove a blocker.{% else %}Review the student’s current roadmap outcome and encourage them to capture evidence of their work.{% endif %}</p>
+      </section>
+
+      <section class="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
+        <h2 class="font-black text-slate-900"><i class="fas fa-note-sticky mr-2 text-teal-600"></i>Private teacher notes</h2>
+        <form action="/teacher/students/{{ student.id }}/notes" method="post" class="mt-4"><textarea name="content" required minlength="2" maxlength="1200" rows="4" class="w-full rounded-xl border border-slate-200 p-3 text-sm focus:border-teal-500 focus:outline-none" placeholder="Add an actionable follow-up note…"></textarea><button class="mt-3 w-full rounded-xl bg-teal-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-teal-800">Save note</button></form>
+        <div class="mt-5 space-y-3">{% for note in notes %}<article class="rounded-xl bg-slate-50 p-3"><p class="text-sm text-slate-700">{{ note.content }}</p><p class="mt-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">{{ note.created_at.strftime('%b %d, %Y') if note.created_at else 'Today' }}</p></article>{% else %}<p class="text-sm text-slate-400">No notes yet.</p>{% endfor %}</div>
+      </section>
+
+      <section class="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
+        <h2 class="font-black text-slate-900"><i class="fas fa-timeline mr-2 text-teal-600"></i>Progress timeline</h2>
+        <div class="mt-4 space-y-4 border-l-2 border-teal-100 pl-4">{% for event in timeline %}<article class="relative"><span class="absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full bg-teal-600"></span><p class="text-sm font-bold text-slate-800">{{ event.title }}</p><p class="mt-1 text-xs text-slate-500">{{ event.detail }}</p><p class="mt-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">{{ event.date.strftime('%b %d, %Y') if event.date is not string else event.date }}</p></article>{% else %}<p class="text-sm text-slate-500">Activity will appear as the student progresses.</p>{% endfor %}</div>
+      </section>
+    </aside>
+  </section>
+</main>
+{% endblock %}

@@ -540,6 +540,11 @@
                     class="cns-tab">
                     <i class="fas fa-calendar-alt"></i> Sessions
                 </button>
+                <button @click="tab = 'students'"
+                    :class="tab === 'students' ? 'cns-tab-active' : ''"
+                    class="cns-tab">
+                    <i class="fas fa-user-graduate"></i> Students
+                </button>
                 <button @click="tab = 'settings'"
                     :class="tab === 'settings' ? 'cns-tab-active' : ''"
                     class="cns-tab">
@@ -842,6 +847,53 @@
                 <p class="text-slate-500 italic">No appointments scheduled today.</p>
             </div>
             {% endif %}
+        </div>
+
+        <!-- Teacher view: action-focused student progress, without private assessment responses. -->
+        <div x-show="tab === 'students'" x-transition x-cloak class="space-y-7">
+            <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+                <div>
+                    <p class="text-[10px] font-black uppercase tracking-widest text-[var(--teal)]">Teacher view</p>
+                    <h4 class="mt-1 text-xl font-black text-slate-900">Student progress &amp; attention</h4>
+                    <p class="mt-1 text-sm text-slate-500">Use development signals to decide who needs a check-in. Private assessment responses are not shown here.</p>
+                </div>
+                <span class="inline-flex w-fit items-center gap-2 rounded-full bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800"><i class="fas fa-shield-heart"></i> Development view only</span>
+            </div>
+
+            <div class="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="cns-tile cns-stat-mint p-5 rounded-3xl"><p class="text-[10px] font-black uppercase tracking-widest text-[var(--teal)]">My students</p><p class="mt-2 text-3xl font-black text-slate-900">{{ stats.total_clients }}</p></div>
+                <div class="cns-tile cns-stat-sky p-5 rounded-3xl"><p class="text-[10px] font-black uppercase tracking-widest text-sky-600">Active this week</p><p class="mt-2 text-3xl font-black text-slate-900">{{ stats.students_active_this_week }}</p></div>
+                <div class="cns-tile cns-stat-mint p-5 rounded-3xl"><p class="text-[10px] font-black uppercase tracking-widest text-emerald-600">Assessments completed</p><p class="mt-2 text-3xl font-black text-slate-900">{{ stats.assessments_completed }}</p></div>
+                <div class="cns-tile cns-stat-sky p-5 rounded-3xl"><p class="text-[10px] font-black uppercase tracking-widest text-sky-600">Average roadmap</p><p class="mt-2 text-3xl font-black text-slate-900">{{ stats.average_progress }}%</p></div>
+                <div class="cns-tile cns-stat-amber p-5 rounded-3xl"><p class="text-[10px] font-black uppercase tracking-widest text-amber-600">Need attention</p><p class="mt-2 text-3xl font-black text-slate-900">{{ stats.students_needing_attention }}</p></div>
+                <div class="cns-tile cns-panel cns-panel-sky p-5 rounded-3xl"><p class="text-[10px] font-black uppercase tracking-widest text-sky-600">Upcoming sessions</p><p class="mt-2 text-3xl font-black text-slate-900">{{ stats.upcoming_tasks }}</p></div>
+            </div>
+
+            <div class="cns-tile overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-sm">
+                <div class="border-b border-slate-100 px-6 py-5"><h5 class="font-black text-slate-900">My student roster</h5><p class="mt-1 text-xs text-slate-500">Assessment and roadmap signals from students who have an active or completed session with you.</p></div>
+                {% if student_overview %}
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-left">
+                        <thead class="bg-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-500"><tr><th class="px-6 py-4">Student</th><th class="px-4 py-4">Assessment</th><th class="px-4 py-4">Career exploration</th><th class="px-4 py-4">Roadmap</th><th class="px-4 py-4">Weekly goal</th><th class="px-4 py-4">Weekly activity</th><th class="px-6 py-4">Attention</th></tr></thead>
+                        <tbody class="divide-y divide-slate-100">
+                            {% for student in student_overview %}
+                            <tr class="hover:bg-slate-50/70">
+                                <td class="px-6 py-4"><a href="/teacher/students/{{ student.id }}" class="font-bold text-slate-900 hover:text-teal-700 hover:underline">{{ student.name }}</a>{% if student.last_active %}<p class="mt-1 text-xs text-slate-400">Last active {{ student.last_active.strftime('%b %d') }}</p>{% else %}<p class="mt-1 text-xs text-slate-400">No recent sign-in recorded</p>{% endif %}</td>
+                                <td class="px-4 py-4"><span class="font-black {% if student.assessment_completion == 100 %}text-emerald-600{% else %}text-amber-600{% endif %}">{{ student.assessment_completion }}%</span></td>
+                                <td class="px-4 py-4 text-sm font-semibold text-slate-600">{{ student.career_status }}</td>
+                                <td class="px-4 py-4"><div class="flex min-w-28 items-center gap-2"><div class="h-2 flex-1 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-[var(--teal)]" style="width:{{ student.roadmap_progress }}%"></div></div><span class="text-xs font-bold text-slate-600">{{ student.roadmap_progress }}%</span></div></td>
+                                <td class="px-4 py-4"><p class="max-w-48 text-xs font-semibold text-slate-600">{{ student.weekly_goal }}</p><p class="mt-1 text-xs font-black text-teal-700">{{ student.weekly_goal_progress }}% done</p></td>
+                                <td class="px-4 py-4 text-sm font-bold text-slate-600">{{ student.weekly_activity }}%</td>
+                                <td class="px-6 py-4"><span class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold {% if student.attention == 'red' %}bg-rose-100 text-rose-700{% elif student.attention == 'amber' %}bg-amber-100 text-amber-700{% else %}bg-emerald-100 text-emerald-700{% endif %}"><i class="fas {% if student.attention == 'red' %}fa-circle-exclamation{% elif student.attention == 'amber' %}fa-circle-dot{% else %}fa-circle-check{% endif %}"></i>{{ student.attention_label }}</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="px-6 py-14 text-center"><i class="fas fa-user-graduate text-4xl text-slate-200"></i><p class="mt-4 font-bold text-slate-600">Your student roster will appear here.</p><p class="mt-1 text-sm text-slate-400">Students are added once they book or are assigned a session with you.</p></div>
+                {% endif %}
+            </div>
         </div>
 
         <!-- Tab 3: Profile & Payout Settings -->
