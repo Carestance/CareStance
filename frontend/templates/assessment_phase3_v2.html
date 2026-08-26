@@ -144,7 +144,7 @@
                             <span class="text-sm sm:text-lg text-white">🤖</span>
                         </div>
                         <div class="bg-white text-slate-700 p-4 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 max-w-[85%]">
-                            <div class="prose prose-emerald prose-sm max-w-none leading-relaxed">${marked.parse(msg.content)}</div>
+                            <div class="prose prose-emerald prose-sm max-w-none leading-relaxed">${renderMentorText(msg.content)}</div>
                         </div>
                     `;
                 } else if (msg.role === 'user') {
@@ -167,6 +167,13 @@
         let timerInterval;
         let conversationDone = false;
         let isProcessing = false;
+
+        function renderMentorText(text) {
+            const safeText = String(text || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return window.marked && typeof window.marked.parse === 'function'
+                ? window.marked.parse(safeText)
+                : safeText.replace(/\n/g, '<br>');
+        }
 
         function updateTimerDisplay() {
             const mins = Math.floor(timeLeft / 60);
@@ -219,7 +226,7 @@
                     <span class="text-sm sm:text-lg text-white">🤖</span>
                 </div>
                 <div class="bg-white text-slate-700 p-4 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 max-w-[85%]">
-                    <div class="prose prose-emerald prose-sm max-w-none leading-relaxed">${marked.parse(text)}</div>
+                    <div class="prose prose-emerald prose-sm max-w-none leading-relaxed">${renderMentorText(text)}</div>
                 </div>
             `;
             chatBox.appendChild(div);
@@ -270,7 +277,11 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ message: userMsg, answers: chatHistory })
                 });
-                const data = await resp.json();
+                const raw = await resp.text();
+                let data = {};
+                try { data = raw ? JSON.parse(raw) : {}; } catch (_) { throw new Error('Career Talk returned an invalid response. Please try again.'); }
+                if (!resp.ok) throw new Error(data.detail || 'Career Talk is unavailable right now. Please try again.');
+                if (!data.response) throw new Error('Career Talk did not return a response. Please try again.');
                 appendMentorMessage(data.response);
                 if (data.recommendation_ready && finishBtn) {
                     finishBtn.classList.remove('hidden');

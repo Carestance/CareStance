@@ -881,9 +881,7 @@
                 </div>
                 <div class="flex flex-wrap items-center gap-3">
                     {% if not is_public_share %}
-                    <a href="/my-monthly-path" class="no-print inline-flex items-center gap-2 px-5 py-3 rounded-xl font-black text-sm text-white transition hover:-translate-y-0.5" style="background:linear-gradient(135deg,#0d9488,#2563eb);box-shadow:0 8px 18px rgba(13,148,136,0.25);">
-                        <i class="fas fa-wand-magic-sparkles"></i> Generate My Growth Map
-                    </a>
+                    <span class="no-print text-sm font-bold text-slate-500">Choose a career below to generate its Growth Map</span>
                     {% endif %}
                     <button onclick="window.print()" class="no-print btn-outline-dark">
                         <i class="fas fa-print"></i> Print Report
@@ -905,8 +903,7 @@
             {% if not is_public_share %}
             <div class="no-print rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center gap-4" style="background:linear-gradient(135deg,rgba(13,148,136,0.12),rgba(37,99,235,0.10));border:1px solid rgba(13,148,136,0.25);">
                 <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style="background:rgba(13,148,136,0.14);color:#0d9488;"><i class="fas fa-route text-lg"></i></div>
-                <div class="flex-1"><h3 class="font-black text-slate-900">Turn your recommendations into a clear action plan</h3><p class="mt-1 text-sm text-slate-600">Generate your personalised Growth Map with a monthly goal, weekly actions, and progress tracking.</p></div>
-                <a href="/my-monthly-path" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm text-white" style="background:#0d9488;"><i class="fas fa-arrow-right"></i> Create my plan</a>
+                <div class="flex-1"><h3 class="font-black text-slate-900">Generate a plan for the career you want to explore</h3><p class="mt-1 text-sm text-slate-600">Each recommended career has its own Growth Map with career-specific goals, actions, and progress tracking.</p></div>
             </div>
             {% endif %}
 
@@ -937,6 +934,9 @@
                             </div>
 
                             <div class="no-print flex flex-wrap gap-3 shrink-0">
+                                <a href="/my-monthly-path?career={{ career_title|urlencode }}" class="rec-action" style="background:#0d9488;color:white;border-color:#0d9488;">
+                                    <i class="fas fa-wand-magic-sparkles"></i> Generate Growth Map
+                                </a>
                                 <a href="/assessment/simulation/start/{{ career_title|urlencode }}" class="rec-action rec-action-sim">
                                     <i class="fas fa-terminal"></i>
                                     {% if simulation_access and simulation_access.is_free %}

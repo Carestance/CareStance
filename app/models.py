@@ -139,6 +139,21 @@ class MonthlyGrowthPlan(Base):
 
     user = relationship("User", back_populates="monthly_growth_plans")
 
+
+class CareerGrowthPlan(Base):
+    """A separate monthly growth map for each career a student wants to explore."""
+    __tablename__ = "career_growth_plans"
+    __table_args__ = (UniqueConstraint("user_id", "month_key", "career_title", name="uq_career_growth_plan_user_month_career"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    month_key = Column(String(7), nullable=False, index=True)
+    career_title = Column(String, nullable=False, index=True)
+    milestone = Column(String, nullable=False)
+    plan_data = Column(JSON, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
+
 # Update User model to include messages, feedback, and growth-plan relationships
 User.messages = relationship("ChatMessage", back_populates="user", order_by="ChatMessage.timestamp")
 User.feedbacks = relationship("Feedback", back_populates="user", order_by="Feedback.timestamp")

@@ -729,7 +729,7 @@
                 <div class="dark-card p-6 md:p-8">
                     <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-5">
                         <div>
-                            <p class="label-eyebrow" style="color: var(--green);">{{ plan.month_label }} milestone</p>
+                            <p class="label-eyebrow" style="color: var(--green);">{{ plan.month_label }} milestone{% if plan.career_title %} · {{ plan.career_title }}{% endif %}</p>
                             <h2 class="mt-2 text-2xl font-black font-outfit" style="color:#fff;">{{ plan.title }}</h2>
                             <p class="mt-3 leading-relaxed max-w-2xl" style="color: var(--text-secondary);">{{ plan.milestone }}</p>
                         </div>
@@ -877,4 +877,17 @@
         {% endif %}
     </div>
 </div>
+{% if plan and plan.career_title %}
+<script>
+(() => {
+  const career = {{ plan.career_title|tojson }};
+  document.querySelectorAll('a[href^="/my-monthly-path"], form[action^="/my-monthly-path"]').forEach((element) => {
+    const attribute = element.tagName === 'A' ? 'href' : 'action';
+    const url = new URL(element.getAttribute(attribute), window.location.origin);
+    url.searchParams.set('career', career);
+    element.setAttribute(attribute, `${url.pathname}${url.search}${url.hash}`);
+  });
+})();
+</script>
+{% endif %}
 {% endblock %}
