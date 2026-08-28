@@ -28,25 +28,25 @@ This project uses a **split deployment model**:
 1. Clone the repo and create a virtual environment:
 
 ```powershell
-git clone https://github.com/Yuvneet22/CareStance.git
+git clone https://github.com/Carestance/CareStance.git
 cd CareStance
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
 
-2. Copy the example environment file and set secrets:
+2. Create a local environment file only when you need external integrations:
 
 ```powershell
-copy .env.example .env
-# Edit .env with your keys (see Environment Variables section below)
+New-Item -ItemType File -Path .env -Force
+# Edit .env and add the keys you need (see Environment Variables below)
 ```
 
 3. Run the application locally:
 
 ```powershell
 python run.py
-# App: http://127.0.0.1:8000
+# App: http://127.0.0.1:8080
 ```
 
 If using WSL/Unix, use `source .venv/bin/activate` instead of the PowerShell activate command.
@@ -104,6 +104,9 @@ Run the app:
 python run.py
 ```
 
+The default local URL is `http://localhost:8080`. To enable automatic reload
+while developing, set `DEV_RELOAD=true` in `.env` before starting the app.
+
 Run a single script (example):
 
 ```powershell
@@ -115,6 +118,25 @@ Run tests (if any):
 ```powershell
 pytest -q
 ```
+
+Validate backend and Jinja templates before raising a PR:
+
+```powershell
+.\.venv\Scripts\python.exe -m py_compile app\main.py app\models.py
+.\.venv\Scripts\python.exe -c "from jinja2 import Environment, FileSystemLoader; e=Environment(loader=FileSystemLoader('frontend/templates')); e.get_template('counsellor_dashboard.html'); e.get_template('teacher_student_detail.html'); print('Templates OK')"
+git diff --check
+```
+
+### Test the teacher/student dashboard
+
+1. Start the application and open `http://localhost:8080/login`.
+2. Log in as a student, open `/counsellors`, and book a session with a counsellor.
+3. Complete the assessment and generate a growth map to populate progress data.
+4. Log in as that counsellor and open `/dashboard` → **Students**.
+5. Open a student name to verify the development summary, roadmap tasks, timeline, and private teacher notes.
+
+Only students assigned through an appointment are visible to a counsellor. The
+teacher view intentionally excludes contact details and raw assessment answers.
 
 ---
 
