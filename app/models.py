@@ -165,6 +165,41 @@ class TeacherStudentNote(Base):
     content = Column(Text, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
+
+class School(Base):
+    """A tenant for institutional data, isolated from direct-to-student accounts."""
+    __tablename__ = "schools"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False, index=True)
+    code = Column(String, unique=True, nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class SchoolMembership(Base):
+    """Connects a user to one school and stores school-only class context."""
+    __tablename__ = "school_memberships"
+    __table_args__ = (UniqueConstraint("school_id", "user_id", name="uq_school_membership"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    school_id = Column(Integer, ForeignKey("schools.id"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    role = Column(String, nullable=False, default="student", index=True)
+    grade = Column(String, nullable=True, index=True)
+    section = Column(String, nullable=True, index=True)
+    teacher_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    parent_user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    joined_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    school = relationship("School", back_populates="memberships")
+    user = relationship("User", foreign_keys=[user_id], back_populates="school_memberships")
+    teacher = relationship("User", foreign_keys=[teacher_id])
+    parent_user = relationship("User", foreign_keys=[parent_user_id])
+
+
+School.memberships = relationship("SchoolMembership", back_populates="school", cascade="all, delete-orphan")
+User.school_memberships = relationship("SchoolMembership", foreign_keys="SchoolMembership.user_id", back_populates="user")
+
 # Update User model to include messages, feedback, and growth-plan relationships
 User.messages = relationship("ChatMessage", back_populates="user", order_by="ChatMessage.timestamp")
 User.feedbacks = relationship("Feedback", back_populates="user", order_by="Feedback.timestamp")

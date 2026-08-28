@@ -2712,6 +2712,12 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
     # New OAuth users must select a role first
     if not user.role:
         return RedirectResponse(url="/select-role", status_code=status.HTTP_302_FOUND)
+
+    # School accounts stay in a separate tenant view.  Their analytics are
+    # derived exclusively from SchoolMembership records, never from consumer
+    # accounts that happen to exist in the wider CareStance database.
+    if user.role == "school_admin":
+        return RedirectResponse(url="/school-admin/dashboard", status_code=status.HTTP_302_FOUND)
         
     if user.role == "counsellor":
         profile = (await db.execute(select(models.CounsellorProfile).where(models.CounsellorProfile.user_id == user.id))).scalars().first()
@@ -2987,6 +2993,128 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
     except Exception as e:
         import traceback
         return HTMLResponse(content=f"Template Error: {e}<br><pre>{traceback.format_exc()}</pre>", status_code=500)
+
+
+@app.get("/school-admin/dashboard", response_class=HTMLResponse)
+async def school_admin_dashboard(request: Request, db: AsyncSession = Depends(get_db)):
+    """Institution-level, privacy-conscious progress dashboard for a school admin."""
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    if user.role != "school_admin":
+        raise HTTPException(status_code=403, detail="This dashboard is available to school administrators only")
+
+    admin_membership = (await db.execute(
+        select(models.SchoolMembership)
+        .options(selectinload(models.SchoolMembership.school))
+        .where(models.SchoolMembership.user_id == user.id, models.SchoolMembership.role == "school_admin")
+        .order_by(models.SchoolMembership.id.asc())
+    )).scalars().first()
+
+    if not admin_membership:
+        return templates.TemplateResponse(request=request, name="school_admin_dashboard.html", context={
+            "user": user, "school": None, "stats": {}, "classes": [], "career_interests": [],
+            "attention_students": [], "engagement": [], "grade_participation": [],
+        })
+
+    school = admin_membership.school
+    memberships = (await db.execute(
+        select(models.SchoolMembership)
+        .options(selectinload(models.SchoolMembership.user), selectinload(models.SchoolMembership.teacher))
+        .where(models.SchoolMembership.school_id == school.id)
+    )).scalars().all()
+    student_memberships = [m for m in memberships if m.role == "student"]
+    teacher_memberships = [m for m in memberships if m.role in {"teacher", "counsellor"}]
+    students = [m.user for m in student_memberships if m.user and not m.user.is_suspended]
+    student_ids = [student.id for student in students]
+    assessments_by_student, plans_by_student = {}, {}
+    if student_ids:
+        assessment_rows = (await db.execute(
+            select(models.AssessmentResult).where(models.AssessmentResult.user_id.in_(student_ids))
+        )).scalars().all()
+        assessments_by_student = {row.user_id: row for row in assessment_rows}
+        plan_rows = (await db.execute(
+            select(models.CareerGrowthPlan)
+            .where(models.CareerGrowthPlan.user_id.in_(student_ids))
+            .order_by(models.CareerGrowthPlan.updated_at.desc(), models.CareerGrowthPlan.id.desc())
+        )).scalars().all()
+        for plan in plan_rows:
+            plans_by_student.setdefault(plan.user_id, plan.plan_data or {})
+        legacy_rows = (await db.execute(
+            select(models.MonthlyGrowthPlan)
+            .where(models.MonthlyGrowthPlan.user_id.in_(student_ids))
+            .order_by(models.MonthlyGrowthPlan.updated_at.desc(), models.MonthlyGrowthPlan.id.desc())
+        )).scalars().all()
+        for plan in legacy_rows:
+            plans_by_student.setdefault(plan.user_id, plan.plan_data or {})
+
+    from .services.monthly_plan_service import get_monthly_plan_progress
+    now = datetime.datetime.now(datetime.timezone.utc)
+    active_cutoff = now - datetime.timedelta(days=7)
+    inactive_cutoff = now - datetime.timedelta(days=14)
+    student_rows, class_map, career_map = [], {}, {}
+    for membership in student_memberships:
+        student = membership.user
+        if not student or student.is_suspended:
+            continue
+        assessment = assessments_by_student.get(student.id)
+        plan = plans_by_student.get(student.id, {})
+        roadmap = get_monthly_plan_progress(plan)["percent"] if plan else 0
+        assessment_complete = bool(assessment and (assessment.assessment_report or assessment.recommended_stream or assessment.final_analysis))
+        last_active = student.last_login
+        if last_active and last_active.tzinfo is None:
+            last_active = last_active.replace(tzinfo=datetime.timezone.utc)
+        active = bool(last_active and last_active >= active_cutoff)
+        inactive = not last_active or last_active < inactive_cutoff
+        task_count = len(plan.get("task_responses") or {})
+        risk_reasons = []
+        if inactive: risk_reasons.append("No activity for 14 days")
+        if not assessment_complete: risk_reasons.append("Assessment incomplete")
+        if plan and roadmap < 25: risk_reasons.append("Roadmap needs momentum")
+        if task_count == 0 and plan: risk_reasons.append("No completed roadmap tasks")
+        risk_level = "high" if len(risk_reasons) >= 2 else "medium" if risk_reasons else "on_track"
+        interest = (getattr(assessment, "recommended_stream", None) or getattr(assessment, "phase_2_category", None) or "Exploring") if assessment else "Exploring"
+        grade = membership.grade or "Unassigned"
+        section = membership.section or "—"
+        class_key = (grade, section)
+        class_entry = class_map.setdefault(class_key, {"grade": grade, "section": section, "students": 0, "active": 0, "assessments": 0, "roadmap_total": 0, "attention": 0, "teacher": membership.teacher.full_name if membership.teacher else "Not assigned"})
+        class_entry["students"] += 1
+        class_entry["active"] += int(active)
+        class_entry["assessments"] += int(assessment_complete)
+        class_entry["roadmap_total"] += roadmap
+        class_entry["attention"] += int(risk_level == "high")
+        career_map[interest] = career_map.get(interest, 0) + 1
+        student_rows.append({"id": student.id, "name": student.full_name or "Student", "grade": grade, "section": section, "interest": interest, "roadmap": roadmap, "assessment_complete": assessment_complete, "last_active": last_active, "risk_level": risk_level, "risk_reasons": risk_reasons})
+
+    classes = []
+    for item in class_map.values():
+        item["assessment_rate"] = round(item["assessments"] / item["students"] * 100) if item["students"] else 0
+        item["roadmap_rate"] = round(item["roadmap_total"] / item["students"]) if item["students"] else 0
+        item["active_rate"] = round(item["active"] / item["students"] * 100) if item["students"] else 0
+        classes.append(item)
+    classes.sort(key=lambda row: (row["grade"], row["section"]))
+    grade_participation = []
+    for grade in sorted({item["grade"] for item in classes}):
+        grade_classes = [item for item in classes if item["grade"] == grade]
+        population = sum(item["students"] for item in grade_classes)
+        grade_participation.append({"grade": grade, "rate": round(sum(item["active"] for item in grade_classes) / population * 100) if population else 0, "students": population})
+
+    total_students = len(student_rows)
+    completed_assessments = sum(item["assessment_complete"] for item in student_rows)
+    active_students = sum(bool(item["last_active"] and item["last_active"] >= active_cutoff) for item in student_rows)
+    stats = {
+        "students": total_students, "teachers": len(teacher_memberships), "classes": len(classes), "active_students": active_students,
+        "assessment_completion": round(completed_assessments / total_students * 100) if total_students else 0,
+        "roadmap_completion": round(sum(item["roadmap"] for item in student_rows) / total_students) if total_students else 0,
+        "attention_count": sum(item["risk_level"] == "high" for item in student_rows),
+    }
+    career_interests = [{"name": name, "count": count, "percent": round(count / total_students * 100) if total_students else 0} for name, count in sorted(career_map.items(), key=lambda pair: pair[1], reverse=True)[:6]]
+    attention_students = sorted((row for row in student_rows if row["risk_level"] != "on_track"), key=lambda row: (row["risk_level"] != "high", row["roadmap"]))[:8]
+    engagement = [{"label": "This week", "value": stats["active_students"]}, {"label": "Assessment complete", "value": completed_assessments}, {"label": "On roadmap", "value": sum(row["roadmap"] >= 50 for row in student_rows)}]
+    return templates.TemplateResponse(request=request, name="school_admin_dashboard.html", context={
+        "user": user, "school": school, "stats": stats, "classes": classes, "career_interests": career_interests,
+        "attention_students": attention_students, "engagement": engagement, "grade_participation": grade_participation,
+    })
 
 
 @app.get("/teacher/students/{student_id}", response_class=HTMLResponse)

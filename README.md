@@ -138,6 +138,16 @@ git diff --check
 Only students assigned through an appointment are visible to a counsellor. The
 teacher view intentionally excludes contact details and raw assessment answers.
 
+### School admin dashboard
+
+School reporting is tenant-scoped: only users linked through `school_memberships`
+for the same `schools` record are included. Assign the school administrator the
+`school_admin` user role and create a `school_memberships` row with
+`role='school_admin'`; the account will then open `/school-admin/dashboard`.
+Student membership rows can include `grade`, `section`, and `teacher_id` for
+class-level reporting. Direct-to-student customer records are never queried by
+this dashboard.
+
 ---
 
 ## Project Structure (short)
