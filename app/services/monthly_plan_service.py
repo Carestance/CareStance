@@ -28,21 +28,55 @@ def _resource_suggestions(skill: str) -> list[dict[str, str]]:
     ]
 
 
-def _career_focus_skill(career_title: str) -> str:
-    """Choose a practical starter skill that matches the selected career."""
-    title = career_title.lower()
-    mappings = (
-        (("engineer", "hardware", "architect"), "Systems design"),
-        (("software", "computer", "developer", "data", "cyber"), "Technical problem solving"),
-        (("doctor", "health", "psycholog", "nurs"), "Empathetic communication"),
-        (("design", "writer", "media", "content"), "Creative communication"),
-        (("business", "manager", "consult", "market", "finance"), "Strategic decision making"),
-        (("teacher", "policy", "social", "counsellor"), "People-centred problem solving"),
+def _career_resource_suggestions(career_title: str, skills: list[str]) -> list[dict[str, str]]:
+    """Attach resources to the exact career selected for this map."""
+    career = career_title.strip()
+    return [
+        {"title": f"{career} role research", "detail": f"Compare two current {career} job descriptions and highlight the skills, tools, and evidence employers ask for."},
+        {"title": f"{career} skill practice", "detail": f"Use a trusted beginner course, official guide, or mentor to practise {skills[0].lower()} through a small exercise."},
+        {"title": f"{career} professional insight", "detail": f"Find one day-in-the-life interview or portfolio from a {career} professional and record one action you can try."},
+    ]
+
+
+def _career_blueprint(career_title: str) -> dict[str, Any]:
+    """Return the skills and practical work appropriate to a selected career.
+
+    The title is deliberately included in every fallback task.  This keeps maps
+    useful for new or niche careers that are not in our keyword catalogue yet.
+    """
+    title = (career_title or "your chosen career").strip()
+    lowered = title.casefold()
+    blueprints = (
+        (("software", "developer", "programmer", "computer", "data", "cyber", "ai", "machine learning"),
+         ["Technical problem solving", "Programming and tools", "Documentation"], "technical"),
+        (("engineer", "architect", "hardware", "civil", "mechanical", "electrical"),
+         ["Systems design", "Quantitative reasoning", "Technical communication"], "engineering"),
+        (("doctor", "health", "medical", "psycholog", "nurs", "therap"),
+         ["Empathetic communication", "Evidence-based reasoning", "Ethical decision making"], "health"),
+        (("law", "legal", "advocat", "attorney"),
+         ["Legal research", "Structured argument", "Professional communication"], "law"),
+        (("design", "writer", "media", "content", "journal", "artist", "film"),
+         ["Creative communication", "Audience research", "Portfolio storytelling"], "creative"),
+        (("business", "manager", "consult", "market", "finance", "account", "entrepreneur", "sales"),
+         ["Strategic decision making", "Business communication", "Data literacy"], "business"),
+        (("teacher", "educat", "policy", "social work", "counsellor", "human resource"),
+         ["People-centred problem solving", "Clear communication", "Planning and facilitation"], "people"),
+        (("scientist", "research", "biolog", "chemist", "physic"),
+         ["Research methods", "Evidence analysis", "Scientific communication"], "research"),
     )
-    for keywords, skill in mappings:
-        if any(keyword in title for keyword in keywords):
-            return skill
-    return "Career exploration"
+    for keywords, skills, family in blueprints:
+        if any(keyword in lowered for keyword in keywords):
+            return {"career": title, "skills": skills, "family": family}
+    return {
+        "career": title,
+        "skills": [f"{title} career literacy", "Problem solving", "Professional communication"],
+        "family": "general",
+    }
+
+
+def _career_focus_skill(career_title: str) -> str:
+    """Choose the first assigned skill for the selected career."""
+    return _career_blueprint(career_title)["skills"][0]
 
 
 def _week_tasks(week_number: int, focus_skill: str) -> list[dict[str, str]]:
@@ -127,18 +161,39 @@ def _career_weeks(career_title: str, focus_skill: str) -> list[dict[str, Any]]:
             ("Iterate with feedback", "Improve your work based on what the audience understood.", "A revised piece with an iteration note.", ["Choose the most useful feedback.", "Make one purposeful revision.", "Explain how the revision improved clarity or impact."]),
             ("Build a mini portfolio", "Present your process and final work.", "A shareable case study or portfolio card.", ["Show the brief, draft, and final version.", "Write a short process summary.", "Reflect on the kind of creative work you want to explore next."]),
         ]
+    elif any(word in career for word in ("law", "legal", "advocat", "attorney")):
+        content = [
+            ("Read the real work", "Explore how a {career} turns facts into a clear, ethical argument.", "A case-brief note in your own words.", ["Choose a public, age-appropriate legal case or legal-news story.", "Separate the key facts, the question, and the possible arguments.", "Write a neutral 150-word case brief without giving legal advice."]),
+            ("Research with evidence", "Practise finding reliable sources a {career} would use.", "A source comparison table.", ["Find two reliable sources about the issue, such as a court, government, or university source.", "Record what each source proves and what it does not prove.", "Explain which source is more useful and why."]),
+            ("Build an argument", "Use evidence to make a structured argument for a realistic {career} scenario.", "A one-page argument outline.", ["State a clear position on the scenario.", "Add two evidence-based supporting points and one counterargument.", "Revise the outline so it is fair, clear, and respectful."]),
+            ("Present professionally", "Show the reasoning and communication expected in {career} work.", "A portfolio-ready case analysis.", ["Combine your brief, research, and argument into one document.", "Add a short reflection on ethics and professional responsibility.", "Ask for feedback on clarity, then make one improvement."]),
+        ]
+    elif any(word in career for word in ("business", "manager", "consult", "market", "finance", "account", "entrepreneur", "sales")):
+        content = [
+            ("Spot a real opportunity", "Observe a customer, team, or market problem a {career} could improve.", "A one-page opportunity brief.", ["Choose a local business, school activity, or product to observe.", "Describe one customer or stakeholder problem using evidence.", "Write one measurable outcome that a better solution could create."]),
+            ("Make a data-backed decision", "Use simple evidence to choose between options as a {career} would.", "A decision table with a recommendation.", ["List two possible solutions to the opportunity.", "Compare them using cost, impact, effort, and risk.", "Recommend one option and explain the trade-off you accepted."]),
+            ("Design a small solution", "Create a practical proposal that responds to the chosen opportunity.", "A mini business, marketing, finance, or operations proposal.", ["Define the audience and the value your solution creates.", "Create a simple plan, budget, message, or workflow.", "Ask one potential user for feedback and record what changed."]),
+            ("Tell the story with evidence", "Present your work as a {career} professional would to a stakeholder.", "A three-slide pitch or one-page executive summary.", ["Show the problem, evidence, and recommendation.", "Use one chart, table, or clear comparison.", "Write the next action you would take if this were a real project."]),
+        ]
+    elif any(word in career for word in ("scientist", "research", "biolog", "chemist", "physic")):
+        content = [
+            ("Ask a researchable question", "Turn curiosity about {career} into a focused question you can investigate.", "A research question and hypothesis.", ["Choose one topic that a {career} might study.", "Write a specific question that could be answered with evidence.", "State a testable hypothesis or expected finding."]),
+            ("Find credible evidence", "Practise the source evaluation expected in {career} work.", "An annotated source list.", ["Find three credible sources, prioritising research institutions or journals.", "Summarise the key finding from each source in your own words.", "Note one limitation, uncertainty, or bias in the evidence."]),
+            ("Analyse and explain", "Use evidence to reach a careful conclusion.", "A short evidence-based explanation.", ["Group the evidence into two or three patterns.", "Write a conclusion that answers your question without overstating certainty.", "Create one simple chart, diagram, or model that explains the result."]),
+            ("Share your investigation", "Communicate your {career} thinking so another learner can understand it.", "A one-page research poster or presentation.", ["Present the question, evidence, and conclusion.", "Include your limitation and one next research question.", "Ask for feedback on clarity and revise once."]),
+        ]
     else:
         return [
-            {"week": week, "title": title, "goal": goal.format(career=career_title), "outcome": outcome, "tasks": [{"id": f"week-{week}-task-{index}", "text": task, "prompt": _task_prompt(week, index, focus_skill)} for index, task in enumerate(tasks, 1)]}
+            {"week": week, "title": title, "goal": goal.format(career=career_title), "outcome": outcome.format(career=career_title, skill=focus_skill), "tasks": [{"id": f"week-{week}-task-{index}", "text": task.format(career=career_title, skill=focus_skill), "prompt": _task_prompt(week, index, focus_skill)} for index, task in enumerate(tasks, 1)]}
             for week, (title, goal, outcome, tasks) in enumerate([
-                ("Understand your starting point", "Spend 30 minutes identifying one situation where {career} work would use your strengths.", "A short note describing the situation and one first action.", ["Describe one real situation where this skill would help you.", "Reserve one focused 20-minute practice slot.", "Choose and write down your first small action."]),
-                ("Practice in a small way", "Complete one guided exercise connected to {career}.", "One completed practice exercise and a brief reflection.", ["Complete one guided practice exercise.", "Write one thing that felt difficult.", "Ask for or use one piece of feedback."]),
-                ("Apply it to a real example", "Use {career} thinking in a mini project or scenario.", "A tangible example you can describe or share.", ["Use the skill in a mini project, scenario, or school task.", "Save one piece of proof of your work.", "Write what you would improve next time."]),
-                ("Review and improve", "Review what you learned about {career}.", "A short reflection to inform your next step.", ["Review the work you completed this month.", "Identify your strongest improvement.", "Write a reflection for next month's path."]),
+                ("Map the career", "Spend 30 minutes identifying where {career} professionals use your strengths.", "A one-page {career} role and skill map.", ["Find one current {career} job description or day-in-the-life source.", "List three responsibilities and the {skill} each one uses.", "Choose one responsibility to practise this month and schedule a 30-minute session."]),
+                ("Build a core skill", "Complete a guided exercise connected to {career}.", "One completed {career} practice exercise and a short learning note.", ["Choose a beginner exercise or case relevant to {career}.", "Complete the exercise and save your first draft or working output.", "Identify one gap, then improve the output using one reliable resource or feedback item."]),
+                ("Apply it in a mini project", "Use {career} thinking to solve a small, real problem.", "A shareable mini project, case response, or work sample.", ["Define a small problem a {career} professional could help solve.", "Create a solution using {skill} and explain your reasoning.", "Save a screenshot, document, or link that proves what you made."]),
+                ("Present your evidence", "Turn your work into evidence for future {career} opportunities.", "A portfolio-ready reflection and next-step plan.", ["Organise your role map, practice output, and mini project in one place.", "Write a 150-word explanation of what you learned about {career} work.", "Choose the next skill to strengthen and set a dated action for next month."]),
             ], 1)
         ]
     return [
-        {"week": week, "title": title, "goal": goal.format(career=career_title), "outcome": outcome, "tasks": [{"id": f"week-{week}-task-{index}", "text": task, "prompt": _task_prompt(week, index, focus_skill)} for index, task in enumerate(tasks, 1)]}
+        {"week": week, "title": title, "goal": goal.format(career=career_title), "outcome": outcome.format(career=career_title), "tasks": [{"id": f"week-{week}-task-{index}", "text": task.format(career=career_title, skill=focus_skill), "prompt": _task_prompt(week, index, focus_skill)} for index, task in enumerate(tasks, 1)]}
         for week, (title, goal, outcome, tasks) in enumerate(content, 1)
     ]
 
@@ -153,7 +208,9 @@ def build_monthly_plan(
 
     development_skills = growth_profile.get("skills_to_develop") or []
     strengths = growth_profile.get("strengths") or []
-    focus_skill = _career_focus_skill(career_title) if career_title else (development_skills[0] if development_skills else "Reflective career exploration")
+    career_blueprint = _career_blueprint(career_title) if career_title else None
+    assigned_skills = career_blueprint["skills"] if career_blueprint else (development_skills[:3] or ["Reflective career exploration"])
+    focus_skill = assigned_skills[0]
     strength = strengths[0] if strengths else "your assessment insights"
     focus = career_title or growth_profile.get("focus") or "your preferred career direction"
     activity_count = growth_profile.get("activity_count", 0) or 0
@@ -163,7 +220,7 @@ def build_monthly_plan(
         progress_summary = "This first path uses your completed assessment as the baseline. Your weekly activity will refine the next one."
 
     return {
-        "template_version": 2,
+        "template_version": 4,
         "month_key": month_key,
         "month_label": _month_label(month_key),
         "career_title": career_title,
@@ -173,6 +230,8 @@ def build_monthly_plan(
         "progress_summary": progress_summary,
         "previous_month_summary": previous_month_summary,
         "focus_skill": focus_skill,
+        "assigned_skills": assigned_skills,
+        "career_family": career_blueprint["family"] if career_blueprint else "personal-growth",
         "completed_week_numbers": [],
         "completed_task_ids": [],
         "task_responses": {},
@@ -185,7 +244,7 @@ def build_monthly_plan(
                 (4, "Review and improve", "Review your work, identify one improvement, and prepare your next focus.", "A short reflection to inform next month's path."),
             ]
         ],
-        "resources": _resource_suggestions(focus_skill),
+        "resources": _career_resource_suggestions(career_title, assigned_skills) if career_title else _resource_suggestions(focus_skill),
         "evidence_locker": [],
         "career_experiments": _career_experiments(focus),
         "decision_checkpoint": None,

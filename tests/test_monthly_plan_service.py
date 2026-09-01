@@ -16,6 +16,24 @@ def test_build_monthly_plan_creates_a_personalised_four_week_path():
     assert get_monthly_plan_progress(plan)["percent"] == 0
 
 
+def test_career_plan_assigns_multiple_skills_and_concrete_career_tasks():
+    plan = build_monthly_plan({"is_ready": True, "strengths": ["Curiosity"]}, "2026-08", career_title="Lawyer")
+
+    assert plan["career_title"] == "Lawyer"
+    assert plan["assigned_skills"] == ["Legal research", "Structured argument", "Professional communication"]
+    assert plan["weeks"][0]["title"] == "Read the real work"
+    assert "legal" in plan["weeks"][0]["tasks"][0]["text"].lower()
+    assert "Lawyer" in plan["resources"][0]["title"]
+
+
+def test_business_career_uses_business_specific_work_not_generic_questions():
+    plan = build_monthly_plan({"is_ready": True}, "2026-08", career_title="Product Manager")
+
+    assert plan["career_family"] == "business"
+    assert plan["weeks"][0]["title"] == "Spot a real opportunity"
+    assert "stakeholder" in plan["weeks"][0]["tasks"][1]["text"].lower()
+
+
 def test_monthly_plan_progress_counts_only_valid_completed_weeks():
     progress = get_monthly_plan_progress({"completed_week_numbers": [1, 1, 3, 7, "4"]})
 
