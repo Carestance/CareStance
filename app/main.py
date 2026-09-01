@@ -3325,15 +3325,21 @@ async def _get_monthly_plan(user, db: AsyncSession, career_title: str | None = N
             )
             db.add(plan_record)
             await db.commit()
-        elif plan_record and (plan_record.plan_data or {}).get("template_version", 1) < 2:
-            # Refresh untouched early maps so career buttons no longer show
-            # the old shared weekly plan. Never erase a student's evidence.
+        elif plan_record and (plan_record.plan_data or {}).get("template_version", 1) < 4:
+            # Version 4 gives every selected career explicit assigned skills,
+            # resources, and practical deliverables. Preserve student progress.
             existing_data = plan_record.plan_data or {}
-            if not existing_data.get("task_responses") and not existing_data.get("evidence_locker"):
-                plan_data = build_monthly_plan(growth_profile, month_key, career_title=career_title)
-                plan_record.milestone = plan_data["milestone"]
-                plan_record.plan_data = plan_data
-                await db.commit()
+            plan_data = build_monthly_plan(growth_profile, month_key, career_title=career_title)
+            for key in (
+                "completed_week_numbers", "completed_task_ids", "task_responses",
+                "evidence_locker", "career_experiments", "decision_checkpoint",
+                "previous_month_summary",
+            ):
+                if key in existing_data:
+                    plan_data[key] = existing_data[key]
+            plan_record.milestone = plan_data["milestone"]
+            plan_record.plan_data = plan_data
+            await db.commit()
         return growth_profile, (plan_record.plan_data if plan_record else None)
 
     plan_record = (await db.execute(
