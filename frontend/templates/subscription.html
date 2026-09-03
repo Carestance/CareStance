@@ -2,19 +2,439 @@
 
 {% block title %}Subscription Plans | CareStance{% endblock %}
 
+{% block navbar %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Jersey+10&display=swap');
+
+    .hero-nav {
+        position: fixed;
+        top: 40px;
+        left: 0;
+        right: 0;
+        width: 100%;
+        z-index: 1100;
+        background: transparent;
+        box-shadow: none;
+    }
+
+    .hero-nav-inner {
+        max-width: 1500px;
+        margin: 0 auto;
+        padding: 0 2.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .hero-nav-logo {
+        display: flex;
+        align-items: center;
+        gap: 1.75rem;
+        text-decoration: none;
+    }
+
+    .hero-nav-logo-badge {
+        width: 156px; height: 156px;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 50%;
+        background: #0f172a;
+        flex-shrink: 0;
+    }
+
+    .hero-nav-logo-badge img {
+        width: 90px; height: 90px;
+        border-radius: 50%; object-fit: cover;
+        transform: scale(1.6);
+    }
+
+    .hero-nav-logo-text {
+        font-family: 'Jersey 10', 'Playfair Display', serif;
+        font-size: 2.9rem; font-weight: 500;
+        color: #111111; white-space: nowrap;
+        letter-spacing: 0.02em;
+      
+        padding: 0.3rem 1.1rem;
+        border-radius: 999px;
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        text-shadow: 0 2px 10px rgba(0,0,0,0.45);
+    }
+
+    .hero-nav-links {
+        display: flex;
+        align-items: center;
+        gap: 1.9rem;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .hero-nav-links a {
+        display: inline-block;
+        font-family: 'Jersey 10', sans-serif;
+        color: #fff;
+        font-size: 30px;
+        font-weight: 400;
+        white-space: nowrap;
+        text-decoration: none;
+        letter-spacing: 0.02em;
+        text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+        transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+
+    .hero-nav-links a:hover {
+        transform: scale(1.1);
+        opacity: 0.75;
+    }
+
+    .hero-nav-links a.nav-active {
+        text-decoration: underline;
+        text-underline-offset: 4px;
+    }
+
+    .hero-nav-user-name {
+        font-family: 'Jersey 10', sans-serif;
+        color: #fff;
+        opacity: 0.75;
+        font-size: 22px;
+        text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+    }
+
+    .hero-nav-logout {
+        font-family: 'Jersey 10', sans-serif;
+        background: #12202b;
+        color: #fff !important;
+        padding: 0.4rem 1.6rem;
+        border-radius: 999px;
+        font-size: 28px;
+        text-shadow: none;
+    }
+
+    .hero-nav-logout:hover {
+        transform: scale(1.08);
+        opacity: 1 !important;
+        background: #1e2f3d;
+    }
+
+    .hero-mobile-toggle {
+        display: none;
+        background: none; border: none;
+        color: #12202b; font-size: 1.35rem;
+        cursor: pointer;
+    }
+
+    .hero-mobile-menu {
+        display: none;
+        position: absolute; top: 100%; left: 1.5rem; right: 1.5rem;
+        margin-top: 0.75rem; padding: 1.5rem;
+        flex-direction: column; gap: 0.75rem;
+        background: #fff; border-radius: 1.25rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.15);
+    }
+
+    .hero-mobile-menu.open { display: flex; }
+
+    .hero-mobile-menu a {
+        padding: 0.8rem 0.5rem;
+        color: var(--text-main);
+        text-decoration: none;
+        font-weight: 500;
+        border-bottom: 1px solid var(--border-soft);
+        transition: color 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .hero-mobile-menu a:last-child { border-bottom: none; }
+    .hero-mobile-menu a:hover { color: #0d9488; }
+
+    @media (max-width: 768px) {
+        .hero-nav-links { display: none; }
+        .hero-mobile-toggle { display: block; }
+        .hero-nav-logo-badge { width: 64px; height: 64px; }
+        .hero-nav-logo-badge img { width: 36px; height: 36px; }
+        .hero-nav-logo-text { font-size: 1.9rem; padding: 0.25rem 0.75rem; }
+        .hero-nav-inner { padding: 0 1.25rem; }
+        .hero-nav { top: 20px; }
+    }
+
+    body { padding-top: 0 !important; }
+
+    :root {
+        --content-top-gap: calc(40px + 156px + 30px);
+    }
+    @media (max-width: 768px) {
+        :root { --content-top-gap: calc(20px + 64px + 30px); }
+    }
+</style>
+
+<nav class="hero-nav">
+    <div class="hero-nav-inner">
+        <a href="/" class="hero-nav-logo">
+            <span class="hero-nav-logo-badge">
+                <picture>
+                    <source srcset="/static/images/image.webp?v=101" type="image/webp">
+                    <img src="/static/images/image.png?v=101" alt="CareStance Logo" width="90" height="90">
+                </picture>
+            </span>
+            <span class="hero-nav-logo-text">Carestance</span>
+        </a>
+
+        <div class="hero-nav-links">
+            {% if user %}
+            <a href="/dashboard" class="nav-active">Dashboard</a>
+            {% if user.role != 'counsellor' %}
+            <a href="/chatbot">Chat AI</a>
+            {% endif %}
+            <a href="/community">Community</a>
+            <a href="/feedback">Feedback</a>
+            <a href="/ticket">Support</a>
+            {% if user.role == 'admin' %}
+            <a href="/admin" class="{% if request.url.path == '/admin' %}nav-active{% endif %}" style="font-weight:700;">Admin</a>
+            {% endif %}
+            {% if user.full_name and user.full_name != 'None' %}<span class="hero-nav-user-name">| {{ user.full_name }}</span>{% endif %}
+            <a href="/logout" class="hero-nav-logout">Logout</a>
+            {% else %}
+            <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}">Home</a>
+            <a href="/login" class="{% if request.url.path == '/login' %}nav-active{% endif %}">Log In</a>
+            {% endif %}
+        </div>
+
+        <button class="hero-mobile-toggle" id="base-menu-toggle" aria-label="Menu">
+            <i class="fa-solid fa-bars" id="base-menu-icon"></i>
+        </button>
+    </div>
+
+    <div class="hero-mobile-menu" id="base-mobile-menu">
+        {% if user %}
+        <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i class="fa-solid fa-house"></i>Home</a>
+        <a href="/dashboard" class="nav-active"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
+        {% if user.role != 'counsellor' %}
+        <a href="/chatbot"><i class="fa-solid fa-comment-dots"></i>Chat AI</a>
+        {% endif %}
+        <a href="/community"><i class="fa-solid fa-users"></i>Community</a>
+        <a href="/feedback"><i class="fa-solid fa-star"></i>Feedback</a>
+        <a href="/ticket"><i class="fa-solid fa-circle-question"></i>Support</a>
+        {% if user.role == 'admin' %}<a href="/admin"><i class="fa-solid fa-shield-halved"></i>Admin Panel</a>{% endif %}
+        <a href="/logout" style="color:#b45309;"><i class="fa-solid fa-right-from-bracket"></i>Logout</a>
+        {% else %}
+        <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i class="fa-solid fa-house"></i>Home</a>
+        <a href="/login"><i class="fa-solid fa-right-to-bracket"></i>Log In</a>
+        {% endif %}
+    </div>
+</nav>
+{% endblock %}
+
+{% block extra_head %}
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --pink-accent: #ec4899;
+        --pink-soft: rgba(236, 72, 153, 0.14);
+        --cyan-accent: #22d3ee;
+        --cyan-soft: rgba(34, 211, 238, 0.14);
+        --gold: #f59e0b;
+        --rose: #fb7185;
+        --navy-bg: #0c0714;
+        --text-secondary: #b9b3ce;
+        --text-muted: #7d7695;
+        --card-border: rgba(255,255,255,0.1);
+    }
+
+    body {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        background-color: var(--navy-bg) !important;
+        color: #f8fafc !important;
+    }
+    .font-outfit { font-family: 'Outfit', sans-serif; }
+
+    .sub-page {
+        position: relative;
+        min-height: 100vh;
+        padding-top: var(--content-top-gap);
+        padding-bottom: 4rem;
+        padding-left: 1rem;
+        padding-right: 1rem;
+        background: url('/static/images/BG3.png') center top / cover no-repeat fixed;
+        overflow: hidden;
+    }
+    .sub-page::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to bottom, rgba(12,7,20,0) 0%, rgba(12,7,20,0.55) 55%, var(--navy-bg) 92%);
+        pointer-events: none;
+    }
+    .sub-page > * { position: relative; z-index: 2; }
+
+    .label-eyebrow {
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--pink-accent);
+    }
+
+    .page-title {
+        font-size: 2rem;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        color: #fff;
+        margin-top: 0.5rem;
+    }
+    @media (min-width: 768px) { .page-title { font-size: 2.6rem; } }
+    .page-title .accent {
+        background: linear-gradient(135deg, #f472b6, var(--pink-accent));
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+
+    .page-desc { color: var(--text-secondary); max-width: 640px; margin-top: 0.75rem; line-height: 1.7; }
+
+    .title-divider {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 1.5rem;
+    }
+    .title-divider .bar {
+        width: 90px;
+        height: 3px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, var(--pink-accent), transparent);
+    }
+    .title-divider .spark { color: var(--pink-accent); font-size: 0.8rem; opacity: 0.85; }
+
+    .active-plan-badge {
+        border: 1px solid rgba(34, 211, 238, 0.35);
+        background: var(--cyan-soft);
+        border-radius: 1.25rem;
+        padding: 1rem 1.4rem;
+    }
+    .active-plan-badge p:first-child {
+        font-size: 0.62rem; font-weight: 800; text-transform: uppercase;
+        letter-spacing: 0.14em; color: var(--cyan-accent);
+    }
+    .active-plan-badge p:last-child { font-size: 0.9rem; font-weight: 700; color: #fff; margin-top: 0.15rem; }
+
+    .notice-banner {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.9rem;
+        border-radius: 1.25rem;
+        border: 1px solid;
+        padding: 1.1rem 1.4rem;
+        font-size: 0.85rem;
+        line-height: 1.6;
+        margin-top: 1.5rem;
+    }
+    .notice-icon {
+        width: 34px; height: 34px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0; font-size: 0.9rem;
+    }
+    .notice-amber { border-color: rgba(245, 158, 11, 0.35); background: rgba(245, 158, 11, 0.08); color: #fcd34d; }
+    .notice-amber .notice-icon { background: rgba(245,158,11,0.16); color: var(--gold); }
+    .notice-amber strong { color: var(--gold); font-weight: 800; }
+    .notice-cyan { border-color: rgba(34, 211, 238, 0.35); background: rgba(34, 211, 238, 0.08); color: #a5f3fc; }
+    .notice-cyan .notice-icon { background: rgba(34,211,238,0.16); color: var(--cyan-accent); }
+    .notice-rose { border-color: rgba(251, 113, 133, 0.35); background: rgba(251, 113, 133, 0.08); color: #fecdd3; }
+    .notice-rose .notice-icon { background: rgba(251,113,133,0.16); color: var(--rose); }
+
+    .plans-grid { display: grid; grid-template-columns: 1fr; gap: 1.5rem; margin-top: 2rem; }
+    @media (min-width: 768px) { .plans-grid { grid-template-columns: 1fr 1fr; } }
+
+    .plan-card {
+        background: rgba(255,255,255,0.03);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border-radius: 1.75rem;
+        border: 1.5px solid var(--card-border);
+        padding: 2rem;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+    }
+    .plan-card.pink { border-color: rgba(236, 72, 153, 0.3); }
+    .plan-card.cyan { border-color: rgba(34, 211, 238, 0.3); }
+
+    .plan-icon-hex {
+        width: 58px; height: 58px;
+        clip-path: polygon(25% 6%, 75% 6%, 100% 50%, 75% 94%, 25% 94%, 0% 50%);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.15rem;
+        flex-shrink: 0;
+    }
+    .plan-card.pink .plan-icon-hex { background: rgba(236,72,153,0.14); border: 1px solid rgba(236,72,153,0.4); color: var(--pink-accent); }
+    .plan-card.cyan .plan-icon-hex { background: rgba(34,211,238,0.14); border: 1px solid rgba(34,211,238,0.4); color: var(--cyan-accent); }
+
+    .plan-name { font-size: 1.35rem; font-weight: 900; color: #fff; }
+    .plan-tagline { font-size: 0.85rem; color: var(--text-muted); margin-top: 0.2rem; }
+
+    .popular-pill {
+        font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em;
+        color: var(--gold); background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.4);
+        border-radius: 999px; padding: 0.35rem 0.9rem; flex-shrink: 0;
+    }
+
+    .plan-price { margin-top: 1.6rem; }
+    .plan-price .amount { font-size: 2.3rem; font-weight: 900; }
+    .plan-card.pink .plan-price .amount { color: var(--pink-accent); }
+    .plan-card.cyan .plan-price .amount { color: var(--cyan-accent); }
+    .plan-price .period { font-size: 0.85rem; color: var(--text-muted); margin-left: 0.35rem; }
+
+    .plan-divider { height: 1px; background: rgba(255,255,255,0.08); margin: 1.4rem 0; }
+
+    .plan-features { flex: 1; display: flex; flex-direction: column; gap: 0.75rem; }
+    .plan-features li { display: flex; align-items: flex-start; gap: 0.65rem; font-size: 0.88rem; color: #e2e8f0; }
+    .plan-card.pink .plan-features i { color: var(--pink-accent); margin-top: 0.2rem; }
+    .plan-card.cyan .plan-features i { color: var(--cyan-accent); margin-top: 0.2rem; }
+
+    .plan-btn {
+        margin-top: 2rem;
+        width: 100%;
+        border: none;
+        border-radius: 1.1rem;
+        padding: 0.95rem;
+        font-weight: 800;
+        font-size: 0.95rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.6rem;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .plan-btn:hover { transform: translateY(-2px); }
+    .plan-card.pink .plan-btn {
+        color: #fff;
+        background: linear-gradient(135deg, #f472b6, var(--pink-accent));
+        box-shadow: 0 15px 30px -10px rgba(236,72,153,0.5);
+    }
+    .plan-card.cyan .plan-btn {
+        color: #06262b;
+        background: linear-gradient(135deg, #67e8f9, var(--cyan-accent));
+        box-shadow: 0 15px 30px -10px rgba(34,211,238,0.5);
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="min-h-screen bg-slate-50 py-10 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-5xl mx-auto space-y-8">
+<div class="sub-page">
+    <div class="max-w-5xl mx-auto px-2 sm:px-4">
         <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
             <div>
                 <p class="text-xs font-black uppercase tracking-widest text-teal-600">Monthly plans</p>
                 <h1 class="text-3xl md:text-4xl font-black text-slate-950 mt-2">Choose Your Guidance Plan</h1>
-                <p class="text-slate-500 mt-2 max-w-2xl">Upgrade your assessment into a guided monthly plan with reports, roadmap, resources, tracking, and recommendations.</p>
+                <p class="text-slate-500 mt-2 max-w-2xl">Upgrade your assessment into a guided monthly plan with reports, resources, tracking, and recommendations.</p>
             </div>
             {% if subscription_state and subscription_state.active %}
-            <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4">
-                <p class="text-[10px] font-black uppercase tracking-widest text-emerald-700">Active Plan</p>
-                <p class="text-sm font-bold text-emerald-900">{{ plans[subscription_state.plan].name if subscription_state.plan in plans else subscription_state.plan }}</p>
+            <div class="active-plan-badge">
+                <p>Active Plan</p>
+                <p>{{ plans[subscription_state.plan].name if subscription_state.plan in plans else subscription_state.plan }}</p>
             </div>
             {% endif %}
         </div>
@@ -32,23 +452,33 @@
         {% endif %}
 
         {% if request.query_params.get('reason') == 'assessment_retake' %}
-        <div class="rounded-2xl border border-teal-200 bg-teal-50 px-5 py-4 text-sm text-teal-800">
-            Your first assessment is free. A Guidance Plan is required to reset and take another full assessment.
+        <div class="notice-banner notice-cyan">
+            <span class="notice-icon"><i class="fas fa-circle-info"></i></span>
+            <span>Your first assessment is free. A Guidance Plan is required to reset and take another full assessment.</span>
         </div>
         {% endif %}
 
-        <div id="subscription-error" class="hidden rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700"></div>
+        <div id="subscription-error" class="hidden notice-banner notice-rose"></div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="plans-grid">
             {% for key, plan in plans.items() %}
-            <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col">
+            <div class="plan-card {% if key == 'customised' %}cyan{% else %}pink{% endif %}">
                 <div class="flex items-start justify-between gap-4">
-                    <div>
-                        <h2 class="text-2xl font-black text-slate-950">{{ plan.name }}</h2>
-                        <p class="text-sm text-slate-500 mt-1">{{ plan.tagline }}</p>
+                    <div class="flex items-start gap-4">
+                        <div class="plan-icon-hex">
+                            {% if key == 'customised' %}
+                            <i class="fas fa-wand-magic-sparkles"></i>
+                            {% else %}
+                            <i class="fas fa-file-lines"></i>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <h2 class="plan-name font-outfit">{{ plan.name }}</h2>
+                            <p class="plan-tagline">{{ plan.tagline }}</p>
+                        </div>
                     </div>
                     {% if key == 'customised' %}
-                    <span class="text-[10px] font-black uppercase tracking-widest text-teal-700 bg-teal-50 border border-teal-100 rounded-full px-3 py-1">Popular</span>
+                    <span class="popular-pill">Popular</span>
                     {% endif %}
                 </div>
 
@@ -62,10 +492,12 @@
                     {% endif %}
                 </div>
 
-                <ul class="mt-6 space-y-3 flex-1">
+                <div class="plan-divider"></div>
+
+                <ul class="plan-features">
                     {% for feature in plan.features %}
-                    <li class="flex gap-3 text-sm text-slate-700">
-                        <i class="fas fa-check-circle text-teal-600 mt-0.5"></i>
+                    <li>
+                        <i class="fas fa-circle-check"></i>
                         <span>{{ feature }}</span>
                     </li>
                     {% endfor %}
@@ -79,7 +511,7 @@
                     {% elif subscription_state and subscription_state.active and subscription_state.plan == key %}
                         Current Plan
                     {% else %}
-                        Start {{ plan.name }}
+                        Start {{ plan.name }} <i class="fas fa-arrow-right"></i>
                     {% endif %}
                 </button>
             </div>
@@ -144,7 +576,7 @@ async function subscribe(plan) {
                     showSubscriptionError(verified.detail || 'Payment verification failed.');
                 }
             },
-            theme: { color: '#0d9488' }
+            theme: { color: '#ec4899' }
         };
         new Razorpay(options).open();
     } catch (error) {

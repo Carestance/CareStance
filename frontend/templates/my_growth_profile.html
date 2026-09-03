@@ -1,0 +1,625 @@
+{% extends "base.html" %}
+
+{% block title %}My Growth Profile | CareStance{% endblock %}
+
+{% block navbar %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Jersey+10&display=swap');
+
+    .hero-nav {
+        position: fixed;
+        top: 40px;
+        left: 0;
+        right: 0;
+        width: 100%;
+        z-index: 1000;
+        background: transparent;
+        box-shadow: none;
+    }
+
+    .hero-nav-inner {
+        max-width: 80vw;
+        width: 80vw;
+        margin: 0 auto;
+        padding: 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .hero-nav-logo {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        text-decoration: none;
+        margin-right: auto;
+    }
+
+    .hero-nav-logo-badge {
+        width: 120px; height: 120px;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 50%;
+        background: #0f172a;
+        flex-shrink: 0;
+    }
+
+    .hero-nav-logo-badge img {
+        width: 80px; height: 80px;
+        border-radius: 50%; object-fit: cover;
+        transform: scale(1.6);
+    }
+
+    .hero-nav-logo-text {
+        font-family: 'Jersey 10', 'Playfair Display', serif;
+        font-size: 4rem; font-weight: 400;
+        color: #020c14; white-space: nowrap;
+        letter-spacing: 0.02em;
+    }
+
+    .hero-nav-links {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        flex-wrap: nowrap;
+        justify-content: flex-end;
+        flex-shrink: 1;
+    }
+
+    .hero-nav-links a {
+        display: inline-block;
+        font-family: 'Jersey 10', sans-serif;
+        color: #fff;
+        font-size: 30px;
+        font-weight: 400;
+        white-space: nowrap;
+        text-decoration: none;
+        letter-spacing: 0.02em;
+        text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+        transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+
+    .hero-nav-links a:hover {
+        transform: scale(1.1);
+        opacity: 0.75;
+    }
+
+    .hero-nav-links a.nav-active {
+        text-decoration: underline;
+        text-underline-offset: 4px;
+    }
+
+    /* ── Fixed settings gear (replaces old logout pill) ── */
+    .hero-settings-fixed {
+        position: fixed;
+        bottom: 50px;
+        right: 50px;
+        z-index: 1100;
+    }
+
+    .hero-settings-gear {
+        width: 68px;
+        height: 68px;
+        border-radius: 50%;
+        background: #000000;
+        color: #fff;
+        border: none;
+        font-size: 1.7rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+        transition: transform 0.35s ease, background 0.3s ease;
+    }
+
+    .hero-settings-gear:hover,
+    .hero-settings-fixed:focus-within .hero-settings-gear {
+        background: #1a1a1a;
+        transform: rotate(60deg);
+    }
+
+    .hero-settings-menu {
+        position: absolute;
+        bottom: calc(100% + 12px);
+        right: 0;
+        min-width: 210px;
+        background: #fff;
+        border-radius: 1rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 12px 28px -6px rgba(0,0,0,0.25);
+        padding: 0.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(8px);
+        transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+    }
+
+    .hero-settings-fixed:hover .hero-settings-menu,
+    .hero-settings-fixed:focus-within .hero-settings-menu {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+
+    .hero-settings-menu a {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.65rem 0.75rem;
+        border-radius: 0.6rem;
+        color: #1e293b;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.85rem;
+        transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .hero-settings-menu a:hover {
+        background: #f1f5f9;
+        color: #0d9488;
+    }
+
+    .hero-settings-menu a.hero-settings-logout {
+        color: #b45309;
+    }
+
+    .hero-settings-menu a.hero-settings-logout:hover {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    @media (max-width: 768px) {
+        .hero-settings-fixed { bottom: 24px; right: 24px; }
+    }
+
+    .hero-mobile-toggle {
+        display: none;
+        background: none; border: none;
+        color: #12202b; font-size: 1.35rem;
+        cursor: pointer;
+    }
+
+    .hero-mobile-menu {
+        display: none;
+        position: absolute; top: 100%; left: 1.5rem; right: 1.5rem;
+        margin-top: 0.75rem; padding: 1.5rem;
+        flex-direction: column; gap: 0.75rem;
+        background: #fff; border-radius: 1.25rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.15);
+    }
+
+    .hero-mobile-menu.open { display: flex; }
+
+    .hero-mobile-menu a {
+        padding: 0.8rem 0.5rem;
+        color: var(--text-main);
+        text-decoration: none;
+        font-weight: 500;
+        border-bottom: 1px solid var(--border-soft);
+        transition: color 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .hero-mobile-menu a.nav-active {
+        color: var(--primary);
+        font-weight: 700;
+        background: var(--primary-soft);
+        border-radius: 0.5rem;
+    }
+
+    .hero-mobile-menu a:last-child { border-bottom: none; }
+    .hero-mobile-menu a:hover { color: #0d9488; }
+
+    @media (max-width: 768px) {
+        .hero-nav-links { display: none; }
+        .hero-mobile-toggle { display: block; }
+        .hero-nav-logo-badge { width: 64px; height: 64px; }
+        .hero-nav-logo-badge img { width: 36px; height: 36px; }
+        .hero-nav-logo-text { font-size: 1.4rem; }
+        .hero-nav-inner { width: 92vw; max-width: 92vw; }
+        .hero-nav { top: 20px; }
+    }
+</style>
+
+<nav class="hero-nav">
+    <div class="hero-nav-inner">
+        <a href="/" class="hero-nav-logo">
+            <span class="hero-nav-logo-badge">
+                <picture>
+                    <source srcset="/static/images/image.webp?v=101" type="image/webp">
+                    <img src="/static/images/logo-1.png" alt="CareStance Logo" width="90" height="90">
+                </picture>
+            </span>
+            <span class="hero-nav-logo-text">CareStance</span>
+        </a>
+
+        <div class="hero-nav-links">
+            {% if user %}
+            <a href="/dashboard" class="nav-active">Dashboard</a>
+            {% if user.role in ['student', 'admin'] %}
+            <a href="/my-growth-profile" class="{% if request.url.path == '/my-growth-profile' %}nav-active{% endif %}">Growth Profile</a>
+            <a href="/my-monthly-path" class="{% if request.url.path == '/my-monthly-path' %}nav-active{% endif %}">Monthly Path</a>
+            {% endif %}
+            {% if user.role != 'counsellor' %}
+            <a href="/chatbot">Chat AI</a>
+            {% endif %}
+            <a href="/community">Community</a>
+            {% if user.role == 'admin' %}
+            <a href="/admin" class="{% if request.url.path == '/admin' %}nav-active{% endif %}" style="font-weight:700;">Admin</a>
+            {% endif %}
+            {% else %}
+            <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}">Home</a>
+            <a href="/login" class="{% if request.url.path == '/login' %}nav-active{% endif %}">Log In</a>
+            {% endif %}
+        </div>
+
+        <button class="hero-mobile-toggle" id="base-menu-toggle" aria-label="Menu">
+            <i class="fa-solid fa-bars" id="base-menu-icon"></i>
+        </button>
+    </div>
+
+    <div class="hero-mobile-menu" id="base-mobile-menu">
+        {% if user %}
+        <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i class="fa-solid fa-house"></i>Home</a>
+        <a href="/dashboard" class="nav-active"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
+        {% if user.role in ['student', 'admin'] %}
+        <a href="/my-growth-profile" class="{% if request.url.path == '/my-growth-profile' %}nav-active{% endif %}"><i class="fa-solid fa-compass"></i>Growth Profile</a>
+        <a href="/my-monthly-path" class="{% if request.url.path == '/my-monthly-path' %}nav-active{% endif %}"><i class="fa-solid fa-route"></i>Monthly Path</a>
+        {% endif %}
+        {% if user.role != 'counsellor' %}
+        <a href="/chatbot"><i class="fa-solid fa-comment-dots"></i>Chat AI</a>
+        {% endif %}
+        <a href="/community"><i class="fa-solid fa-users"></i>Community</a>
+        {% if user.role == 'admin' %}<a href="/admin"><i class="fa-solid fa-shield-halved"></i>Admin Panel</a>{% endif %}
+        {% else %}
+        <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i class="fa-solid fa-house"></i>Home</a>
+        <a href="/login"><i class="fa-solid fa-right-to-bracket"></i>Log In</a>
+        {% endif %}
+    </div>
+</nav>
+
+{% if user %}
+<div class="hero-settings-fixed" id="hero-settings-fixed">
+    <button class="hero-settings-gear" aria-label="Settings" aria-haspopup="true" aria-expanded="false">
+        <i class="fa-solid fa-gear"></i>
+    </button>
+    <div class="hero-settings-menu">
+        <a href="/student/{{ user.id }}"><i class="fa-solid fa-user"></i> Student Profile</a>
+        <a href="/feedback"><i class="fa-solid fa-star"></i> Feedback</a>
+        <a href="/ticket"><i class="fa-solid fa-circle-question"></i> Support</a>
+        <a href="/logout" class="hero-settings-logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_head %}
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+    :root {
+        --content-top-gap: calc(40px + 156px + 30px);
+        --navy-bg: #0a0a18;
+        --card-bg: rgba(255, 255, 255, 0.03);
+        --card-border: rgba(148, 130, 255, 0.16);
+        --teal: #2dd4bf;
+        --teal-soft: rgba(45, 212, 191, 0.14);
+        --purple: #a78bfa;
+        --purple-soft: rgba(167, 139, 250, 0.14);
+        --green: #34d399;
+        --green-soft: rgba(52, 211, 153, 0.14);
+        --gold: #f59e0b;
+        --gold-soft: rgba(245, 158, 11, 0.14);
+        --rose: #fb7185;
+        --rose-soft: rgba(251, 113, 133, 0.14);
+        --text-primary: #f8fafc;
+        --text-secondary: #a1a8c0;
+        --text-muted: #6b7189;
+    }
+    @media (max-width: 768px) {
+        :root { --content-top-gap: calc(20px + 64px + 30px); }
+    }
+
+    body {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        background-color: var(--navy-bg) !important;
+        color: var(--text-primary) !important;
+        padding-top: 0 !important;
+    }
+
+    .font-outfit { font-family: 'Outfit', sans-serif; }
+
+    /* ---------- Generic dark glass card ---------- */
+    .dark-card {
+        background: var(--card-bg);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid var(--card-border);
+        border-radius: 1.75rem;
+        transition: all 0.3s ease;
+    }
+    .dark-card:hover {
+        border-color: rgba(167, 139, 250, 0.32);
+        transform: scale(1.02);
+        box-shadow: 0 20px 40px -20px rgba(0,0,0,0.5);
+    }
+
+    .label-eyebrow {
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+    }
+
+    /* ---------- Hero ---------- */
+    .hero-archetype {
+        position: relative;
+        padding-top: var(--content-top-gap);
+        padding-bottom: 4rem;
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+        text-align: center;
+        background: url('/static/images/BG4.png') center top / cover no-repeat fixed;
+        overflow: hidden;
+    }
+    .hero-archetype::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to bottom, rgba(10,10,24,0) 0%, rgba(10,10,24,0.55) 65%, var(--navy-bg) 100%);
+        pointer-events: none;
+    }
+    .hero-archetype > * { position: relative; z-index: 2; }
+
+    .hero-icon-hex {
+        width: 68px;
+        height: 68px;
+        margin: 0 auto 1.5rem;
+        background: rgba(15, 18, 38, 0.55);
+        border: 1.5px solid rgba(255,255,255,0.28);
+        clip-path: polygon(25% 6%, 75% 6%, 100% 50%, 75% 94%, 25% 94%, 0% 50%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 1.4rem;
+        backdrop-filter: blur(6px);
+    }
+
+    .hero-eyebrow {
+        color: var(--teal);
+        margin-bottom: 0.75rem;
+    }
+
+    .hero-title {
+        font-size: 2.1rem;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        color: #fff;
+        margin-bottom: 1.1rem;
+    }
+    @media (min-width: 768px) { .hero-title { font-size: 3rem; } }
+
+    .hero-title .accent {
+        background: linear-gradient(135deg, #c4b5fd, #818cf8);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+
+    .hero-divider {
+        width: 64px;
+        height: 3px;
+        margin: 0 auto 1.75rem;
+        border-radius: 999px;
+        background: linear-gradient(90deg, var(--teal), var(--purple));
+    }
+
+    .hero-desc {
+        color: #cbd5e1;
+        max-width: 640px;
+        margin: 0 auto;
+        line-height: 1.75;
+        font-size: 1rem;
+    }
+
+    /* ---------- Section headings ---------- */
+    .section-title {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #fff;
+        letter-spacing: -0.01em;
+    }
+    .section-sub { color: var(--text-secondary); margin-top: 0.25rem; }
+
+    /* ---------- Career path action buttons (header) ---------- */
+    .btn-outline-dark {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.65rem 1.25rem;
+        border-radius: 0.9rem;
+        border: 1px solid rgba(255,255,255,0.18);
+        color: #e2e8f0;
+        background: rgba(255,255,255,0.02);
+        font-weight: 700;
+        font-size: 0.82rem;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+    .btn-outline-dark:hover { border-color: rgba(255,255,255,0.35); background: rgba(255,255,255,0.05); }
+
+    .btn-outline-gold {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.65rem 1.25rem;
+        border-radius: 0.9rem;
+        border: 1px solid rgba(245, 158, 11, 0.5);
+        color: var(--gold);
+        background: rgba(245, 158, 11, 0.08);
+        font-weight: 700;
+        font-size: 0.82rem;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+    .btn-outline-gold:hover {
+        background: rgba(245, 158, 11, 0.16);
+        transform: scale(1.05) translateY(-2px);
+        box-shadow: 0 10px 22px -8px rgba(245,158,11,0.45);
+    }
+    .btn-outline-gold:active { transform: scale(0.97); }
+
+    /* ---------- Growth Profile tag pills ---------- */
+    .gp-tag {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.4rem 0.9rem;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        border: 1px solid;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        cursor: default;
+    }
+    .gp-tag:hover { transform: scale(1.08); box-shadow: 0 6px 16px -6px rgba(0,0,0,0.4); }
+    .gp-tag-teal { color: var(--teal); background: var(--teal-soft); border-color: rgba(45,212,191,0.35); }
+    .gp-tag-gold { color: var(--gold); background: var(--gold-soft); border-color: rgba(245,158,11,0.35); }
+    .gp-tag-rose { color: var(--rose); background: var(--rose-soft); border-color: rgba(251,113,133,0.35); }
+
+    .gp-list li {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.6rem;
+        font-size: 0.88rem;
+        color: var(--text-secondary);
+        line-height: 1.6;
+        margin-bottom: 0.6rem;
+    }
+    .gp-list li:last-child { margin-bottom: 0; }
+
+    .gp-section-head { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.4rem; }
+    .gp-section-title { color: #fff; font-weight: 800; font-size: 1.05rem; }
+    .gp-section-sub { color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.25rem; margin-bottom: 1.25rem; }
+
+    /* Print styling overrides */
+    @media print {
+        .no-print { display: none !important; }
+        body { background: white !important; color: #0f172a !important; }
+        .dark-card { background: white !important; border: 1px solid #e2e8f0 !important; box-shadow: none !important; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="background: var(--navy-bg); min-height: 100vh;">
+
+    <!-- HERO -->
+    <div class="hero-archetype">
+        <div class="hero-icon-hex">
+            <i class="fas fa-compass"></i>
+        </div>
+        <h2 class="label-eyebrow hero-eyebrow">Student Growth Map · Step 1</h2>
+        <h1 class="hero-title font-outfit">
+            My <span class="accent">Growth Profile</span>
+        </h1>
+        <div class="hero-divider"></div>
+        <p class="hero-desc">
+            This is the foundation for your personalised monthly path. It reflects what you already do well and the skills to build next.
+        </p>
+    </div>
+
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10 pb-16" style="padding-top: 2.5rem;">
+
+        <!-- Current growth stage -->
+        <div class="dark-card p-6 md:p-8">
+            <p class="label-eyebrow" style="color: var(--teal);">Current growth stage</p>
+            <p class="mt-2 text-xl font-black font-outfit" style="color:#fff;"><i class="fas fa-compass mr-2" style="color: var(--teal);"></i>{{ growth_profile.growth_stage }}</p>
+            <p class="mt-2 text-sm" style="color: var(--text-secondary);">{{ growth_profile.growth_stage_detail }}</p>
+        </div>
+
+        {% if growth_profile.is_ready and growth_profile.career_directions %}
+        <section class="dark-card p-6 md:p-8" style="border-color: rgba(167,139,250,0.32);">
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                <div>
+                    <p class="label-eyebrow" style="color: var(--purple);">Career confidence compass</p>
+                    <h2 class="mt-1 gp-section-title font-outfit">Directions worth exploring</h2>
+                    <p class="mt-2 text-sm" style="color: var(--text-secondary);">These are starting signals from your assessment—not fixed decisions. Real-world experiences will make them clearer.</p>
+                </div>
+                <span class="gp-tag gp-tag-teal"><i class="fas fa-compass mr-1"></i> Keep exploring</span>
+            </div>
+            <div class="mt-5 grid grid-cols-1 md:grid-cols-3 gap-4">
+                {% for direction in growth_profile.career_directions %}
+                <div class="rounded-xl p-4" style="background: rgba(167,139,250,0.08); border: 1px solid rgba(167,139,250,0.25);">
+                    <p class="font-bold" style="color:#fff;">{{ direction.title }}</p>
+                    <div class="mt-3 flex items-center justify-between text-xs font-bold" style="color:#ddd6fe;"><span>Current signal</span><span>{{ direction.confidence }}%</span></div>
+                    <div class="mt-2 h-2 rounded-full overflow-hidden" style="background:rgba(255,255,255,0.1);"><div class="h-full rounded-full" style="width:{{ direction.confidence }}%; background:linear-gradient(90deg,#a78bfa,#2dd4bf);"></div></div>
+                    <p class="mt-3 text-xs" style="color:var(--text-secondary);">{{ direction.next_signal }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+        {% if not growth_profile.is_ready %}
+        <div class="dark-card p-6 md:p-8" style="border-color: rgba(245,158,11,0.35);">
+            <h2 class="gp-section-title font-outfit text-lg"><i class="fas fa-triangle-exclamation mr-2" style="color: var(--gold);"></i>Your profile is waiting for assessment data</h2>
+            <p class="mt-2 text-sm" style="color: var(--text-secondary);">{{ growth_profile.message }}</p>
+            <a href="/assessment" class="btn-outline-gold mt-5"><i class="fas fa-arrow-right"></i> Start assessment</a>
+        </div>
+        {% else %}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            <section class="dark-card p-6">
+                <div class="gp-section-head"><i class="fas fa-bolt" style="color: var(--teal);"></i><h2 class="gp-section-title font-outfit">Your capabilities</h2></div>
+                <p class="gp-section-sub">The qualities that shape your current direction.</p>
+                <div class="flex flex-wrap gap-2">
+                    {% for item in growth_profile.capabilities %}<span class="gp-tag gp-tag-teal">{{ item }}</span>{% endfor %}
+                </div>
+            </section>
+
+            <section class="dark-card p-6">
+                <div class="gp-section-head"><i class="fas fa-star" style="color: var(--purple);"></i><h2 class="gp-section-title font-outfit">Strengths to build on</h2></div>
+                <p class="gp-section-sub">Use these strengths when setting future goals.</p>
+                <ul class="gp-list">
+                    {% for item in growth_profile.strengths %}<li><i class="fas fa-check-circle mt-1" style="color: var(--green);"></i> {{ item }}</li>{% else %}<li style="color: var(--text-muted);">Complete more assessment activities to identify strengths.</li>{% endfor %}
+                </ul>
+            </section>
+
+            <section class="dark-card p-6">
+                <div class="gp-section-head"><i class="fas fa-seedling" style="color: var(--gold);"></i><h2 class="gp-section-title font-outfit">Skills already possessed</h2></div>
+                <p class="gp-section-sub">Skills your assessment indicates you can already apply.</p>
+                <div class="flex flex-wrap gap-2">
+                    {% for item in growth_profile.skills_possessed %}<span class="gp-tag gp-tag-gold">{{ item }}</span>{% else %}<span class="text-sm" style="color: var(--text-muted);">No skills identified yet.</span>{% endfor %}
+                </div>
+            </section>
+
+            <section class="dark-card p-6">
+                <div class="gp-section-head"><i class="fas fa-arrow-trend-up" style="color: var(--rose);"></i><h2 class="gp-section-title font-outfit">Areas to improve</h2></div>
+                <p class="gp-section-sub">These are the areas your next goals should help you strengthen.</p>
+                <ul class="gp-list">
+                    {% for item in growth_profile.growth_areas %}<li><i class="fas fa-circle-arrow-up mt-1" style="color: var(--rose);"></i> {{ item }}</li>{% else %}<li style="color: var(--text-muted);">Your development areas will appear after more activity.</li>{% endfor %}
+                </ul>
+                <div class="mt-5 pt-4" style="border-top: 1px solid rgba(255,255,255,0.08);">
+                    <p class="label-eyebrow" style="color: var(--rose);">Skills to develop or nurture</p>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        {% for item in growth_profile.skills_to_develop %}<span class="gp-tag gp-tag-rose">{{ item }}</span>{% else %}<span class="text-sm" style="color: var(--text-muted);">No skill focus is available yet.</span>{% endfor %}
+                    </div>
+                </div>
+            </section>
+
+        </div>
+        {% endif %}
+
+        <p class="text-center text-sm" style="color: var(--text-secondary);">Next: your first monthly path will turn this profile into one clear skill milestone.</p>
+
+    </div>
+</div>
+{% endblock %}

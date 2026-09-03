@@ -222,177 +222,142 @@
 {% endblock %}
 
 {% block content %}
-<<<<<<< HEAD
-<div class="min-h-screen bg-slate-50/50 py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-xl mx-auto bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-8 border border-slate-100 shadow-xl transition-all duration-300">
-=======
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-
 <style>
-    :root {
-        --pink-accent: #e879a0;
-        --pink-border: rgba(255, 180, 200, 0.45);
-        --card-glass: rgba(255, 248, 252, 0.72);
-        --lavender: #a78bfa;
-        --gold-accent: #f59e0b;
-    }
+    .sp-page {
+        --ink: #f3f0fb;
+        --paper: #120c22;
+        --surface: #1e1735;
+        --pink: #c084fc;
+        --pink-soft: rgba(192, 132, 252, 0.14);
+        --yellow: #f5a623;
+        --yellow-soft: rgba(245, 166, 35, 0.18);
+        --green: #2dd4bf;
+        --green-soft: rgba(45, 212, 191, 0.14);
+        --text-secondary: #c7c0dd;
+        --text-muted: #8f87ab;
+        --line: rgba(255, 255, 255, 0.08);
 
-    .payment-page-wrap {
-        min-height: 100vh;
-        padding: var(--content-top-gap) 1.5rem 3rem;
-        background: url('/static/images/BG1.png') center top / cover no-repeat fixed;
-    }
-
-    .payment-card {
-        background: var(--card-glass);
-        backdrop-filter: blur(22px) saturate(180%);
-        -webkit-backdrop-filter: blur(22px) saturate(180%);
-        border: 1.5px solid var(--pink-border);
-        box-shadow: 0 24px 56px rgba(180, 60, 100, 0.13), 0 2px 0 rgba(255,255,255,0.6) inset;
-        border-radius: 28px;
         position: relative;
+        min-height: 100vh;
+        padding-top: var(--content-top-gap);
+        background: url('/static/images/BG3.png') center top / cover no-repeat fixed;
+        color: var(--ink);
         overflow: hidden;
     }
-
-    .payment-card::before {
+    .sp-page::before {
         content: '';
         position: absolute;
-        top: 0; left: 0; right: 0;
-        height: 3px;
-        background: linear-gradient(90deg, var(--pink-accent), var(--lavender), #0d9488);
-        opacity: 0.7;
+        inset: 0;
+        background: linear-gradient(to bottom, rgba(11,11,15,0.35) 0%, rgba(11,11,15,0.75) 45%, var(--paper) 85%);
+        pointer-events: none;
     }
+    .sp-page > * { position: relative; z-index: 1; }
 
-    .payment-mascot {
-        width: 96px;
-        height: auto;
-        margin: -3.5rem auto 0.5rem;
-        display: block;
-        filter: drop-shadow(0 10px 18px rgba(180, 60, 100, 0.25));
-        animation: mascot-bob 3s ease-in-out infinite;
-        position: relative;
-        z-index: 2;
-    }
+    .sp-card { background: var(--surface); border: 1px solid var(--line); box-shadow: 0 30px 60px -30px rgba(0,0,0,0.6); }
+    .sp-badge { background: var(--yellow-soft); color: var(--yellow); border: 1px solid rgba(245,166,35,0.3); }
+    .sp-icon { background: var(--pink-soft); color: var(--pink); }
+    .sp-title { color: var(--ink); }
+    .sp-subtext { color: var(--text-secondary); }
+    .sp-accent { color: var(--pink); }
+    .sp-warn { border: 1px solid rgba(245,166,35,0.3); background: var(--yellow-soft); color: #f3d9a8; }
+    .sp-error { border: 1px solid rgba(255,107,129,0.3); background: rgba(255,107,129,0.1); color: #ffb3c0; }
 
-    @keyframes mascot-bob {
-        0%, 100% { transform: translateY(0) rotate(-2deg); }
-        50% { transform: translateY(-8px) rotate(2deg); }
-    }
+    .sp-tier { background: var(--surface); border: 2px solid var(--line); border-radius: 20px; transition: all 0.2s ease; }
+    .sp-tier:hover, .peer:checked + .sp-tier { border-color: var(--pink); }
+    .sp-tier-check { color: var(--text-muted); }
+    .peer:checked + .sp-tier .sp-tier-check { color: var(--pink); }
+    .sp-tier-label { color: var(--text-muted); }
+    .sp-tier-price { color: var(--ink); }
+    .sp-tier-desc { color: var(--text-secondary); }
+    .sp-tier-strike { color: var(--text-muted); }
+    .sp-tier-save { color: var(--green); }
+    .sp-best-value { background: var(--pink); color: #fff; }
 
-    .tier-card {
-        border-radius: 20px !important;
-    }
-
-    input:checked ~ .tier-card {
-        border-color: var(--pink-accent) !important;
-        background: #fff5f8 !important;
-    }
-
-    input:checked ~ .tier-card .tier-label,
-    input:checked ~ .tier-card .tier-check {
-        color: var(--pink-accent) !important;
-    }
-
-    .pay-btn {
-        background: linear-gradient(135deg, var(--pink-accent), #d6577f);
-        box-shadow: 0 12px 28px rgba(180, 60, 100, 0.28);
-    }
-    .pay-btn:hover {
-        background: linear-gradient(135deg, #d6577f, var(--pink-accent));
-        box-shadow: 0 16px 36px rgba(180, 60, 100, 0.35);
-    }
+    .sp-pay-btn { background: linear-gradient(120deg, var(--pink), var(--green)); color: #fff; box-shadow: 0 14px 28px -10px rgba(0,0,0,0.5); }
+    .sp-pay-btn:hover { filter: brightness(1.1); }
+    .sp-back-btn { background: rgba(255,255,255,0.04); color: var(--text-secondary); border: 1px solid var(--line); }
+    .sp-back-btn:hover { background: rgba(255,255,255,0.08); }
 </style>
 
-<div class="payment-page-wrap">
-    <div class="max-w-xl mx-auto payment-card p-8">
-        <!-- Mascot -->
-        <img src="/static/images/point.png" alt="Point — your career guide mascot" class="payment-mascot"
-             onerror="this.style.display='none'">
-
->>>>>>> 4978894 (latest)
+<div class="sp-page pb-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-xl mx-auto sp-card rounded-2xl sm:rounded-3xl p-5 sm:p-8 transition-all duration-300">
         <!-- Badge -->
         <div class="flex justify-center mb-6">
-            <span class="px-4 py-1 bg-amber-50 text-amber-700 text-xs font-bold rounded-full border border-amber-200 flex items-center gap-1.5 tracking-wider uppercase">
+            <span class="sp-badge px-4 py-1 text-xs font-bold rounded-full flex items-center gap-1.5 tracking-wider uppercase">
                 <i class="fas fa-lock text-[10px]"></i> Action Required
             </span>
         </div>
 
         <!-- Header -->
         <div class="text-center mb-8">
-            <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 shadow-inner" style="background:rgba(232,121,160,0.12);color:var(--pink-accent);">
+            <div class="sp-icon w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 shadow-inner">
                 <i class="fas fa-rocket"></i>
             </div>
-            <h1 class="text-2xl font-black text-slate-900 leading-tight mb-2">Unlock Career Simulations</h1>
-            <p class="text-xs text-slate-500 font-medium leading-relaxed max-w-sm mx-auto">
-                You've already taken your first free simulation! Choose a package below to continue your journey for <strong style="color: var(--pink-accent);">{{ career_title }}</strong>.
+            <h1 class="sp-title text-2xl font-black leading-tight mb-2">Unlock Career Simulations</h1>
+            <p class="sp-subtext text-xs font-medium leading-relaxed max-w-sm mx-auto">
+                You've already taken your first free simulation! Choose a package below to continue your journey for <strong class="sp-accent">{{ career_title }}</strong>.
             </p>
         </div>
 
         {% if not razorpay_configured %}
-        <div class="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+        <div class="sp-warn mb-5 rounded-2xl p-4 text-sm">
             <div class="font-black flex items-center gap-2"><i class="fas fa-triangle-exclamation"></i> Payment setup required</div>
             <p class="mt-1 text-xs leading-relaxed">Add real Razorpay keys in <strong>.env</strong>: RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET.</p>
         </div>
         {% endif %}
 
-        <div id="payment-error" class="hidden mb-5 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700"></div>
+        <div id="payment-error" class="sp-error hidden mb-5 rounded-2xl p-4 text-sm"></div>
 
         <!-- Pricing Tiers -->
         <div class="grid sm:grid-cols-2 gap-4 mb-8">
             <!-- Single Tier -->
             <label class="cursor-pointer group relative">
                 <input type="radio" name="package" value="single" class="peer sr-only" checked onchange="updateSelection()">
-                <div class="tier-card h-full p-6 bg-white border-2 border-slate-200 transition-all relative overflow-hidden group-hover:border-[var(--pink-border)]" style="border-radius:20px;">
-                    <div class="absolute top-4 right-4 text-slate-300 tier-check">
+                <div class="sp-tier h-full p-6 relative overflow-hidden">
+                    <div class="absolute top-4 right-4 sp-tier-check">
                         <i class="fas fa-check-circle text-xl"></i>
                     </div>
                     <div class="mb-4">
-                        <span class="tier-label text-xs font-bold text-slate-500 uppercase tracking-widest">Single</span>
+                        <span class="sp-tier-label text-xs font-bold uppercase tracking-widest">Single</span>
                     </div>
                     <div class="mb-2">
-                        <span class="text-3xl font-black text-slate-900">Rs. 15</span>
+                        <span class="sp-tier-price text-3xl font-black">Rs. 15</span>
                     </div>
-                    <p class="text-sm font-medium text-slate-600">1x Career Simulation</p>
+                    <p class="sp-tier-desc text-sm font-medium">1x Career Simulation</p>
                 </div>
             </label>
 
             <!-- Bundle Tier -->
             <label class="cursor-pointer group relative">
                 <input type="radio" name="package" value="bundle" class="peer sr-only" onchange="updateSelection()">
-                <div class="tier-card h-full p-6 bg-white border-2 border-slate-200 transition-all relative overflow-hidden group-hover:border-[var(--pink-border)]" style="border-radius:20px;">
-                    <div class="absolute top-0 right-0 text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl z-10" style="background:var(--pink-accent);">
+                <div class="sp-tier h-full p-6 relative overflow-hidden">
+                    <div class="sp-best-value absolute top-0 right-0 text-[10px] font-bold px-3 py-1 rounded-bl-xl z-10">
                         BEST VALUE
                     </div>
-                    <div class="absolute top-4 right-4 text-slate-300 tier-check">
+                    <div class="absolute top-4 right-4 sp-tier-check">
                         <i class="fas fa-check-circle text-xl"></i>
                     </div>
                     <div class="mb-4">
-                        <span class="tier-label text-xs font-bold text-slate-500 uppercase tracking-widest">Bundle</span>
+                        <span class="sp-tier-label text-xs font-bold uppercase tracking-widest">Bundle</span>
                     </div>
                     <div class="mb-2 flex items-baseline gap-2">
-                        <span class="text-3xl font-black text-slate-900">Rs. 35</span>
-                        <span class="text-sm font-bold text-slate-400 line-through">Rs. 45</span>
+                        <span class="sp-tier-price text-3xl font-black">Rs. 35</span>
+                        <span class="sp-tier-strike text-sm font-bold line-through">Rs. 45</span>
                     </div>
-                    <p class="text-sm font-medium text-slate-600">3x Career Simulations</p>
-                    <p class="text-[10px] text-emerald-600 font-bold mt-2"><i class="fas fa-gift mr-1"></i>Save Rs. 10 instantly!</p>
+                    <p class="sp-tier-desc text-sm font-medium">3x Career Simulations</p>
+                    <p class="sp-tier-save text-[10px] font-bold mt-2"><i class="fas fa-gift mr-1"></i>Save Rs. 10 instantly!</p>
                 </div>
             </label>
         </div>
 
         <!-- Payment Actions -->
         <div class="space-y-4">
-<<<<<<< HEAD
             <button id="pay-btn" onclick="startPayment()" 
-                class="w-full py-4 bg-[var(--navy)] hover:bg-[var(--teal)] text-white font-bold rounded-2xl transition shadow-lg shadow-[var(--teal-soft)] hover:shadow-xl flex items-center justify-center gap-2">
+                class="sp-pay-btn w-full py-4 font-bold rounded-2xl transition hover:shadow-xl flex items-center justify-center gap-2">
                 <i class="fas fa-credit-card"></i> <span id="pay-btn-text">Pay Rs. 15 & Start</span>
-=======
-            <button id="pay-btn" onclick="startPayment()"
-                class="pay-btn w-full py-4 text-white font-bold rounded-2xl transition flex items-center justify-center gap-2">
-                <i class="fas fa-credit-card"></i> <span id="pay-btn-text">Pay ₹15 & Start</span>
->>>>>>> 4978894 (latest)
             </button>
             <a href="/dashboard"
-                class="w-full py-4 bg-white hover:bg-slate-50 text-slate-600 font-bold rounded-2xl transition border border-slate-200 flex items-center justify-center gap-2 text-sm">
+                class="sp-back-btn w-full py-4 font-bold rounded-2xl transition flex items-center justify-center gap-2 text-sm">
                 <i class="fas fa-arrow-left text-xs"></i> Back to Dashboard
             </a>
         </div>

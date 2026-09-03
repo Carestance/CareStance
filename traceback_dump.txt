@@ -1,180 +1,278 @@
   + Exception Group Traceback (most recent call last):
-  |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/_utils.py", line 85, in create_collapsing_task_group
-  |     async with anyio.create_task_group() as tg:
+  |   File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\_utils.py", line 81, in collapse_excgroups
+  |     yield
+  |   File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\middleware\base.py", line 192, in __call__
+  |     async with anyio.create_task_group() as task_group:
   |                ~~~~~~~~~~~~~~~~~~~~~~~^^
-  |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/anyio/_backends/_asyncio.py", line 815, in __aexit__
+  |   File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\anyio\_backends\_asyncio.py", line 799, in __aexit__
   |     raise BaseExceptionGroup(
   |         "unhandled errors in a TaskGroup", self._exceptions
   |     ) from None
   | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
   +-+---------------- 1 ----------------
     | Traceback (most recent call last):
-    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    |   File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
     |     await self.app(scope, receive, _send)
-    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 193, in __call__
+    |   File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
+    |     with recv_stream, send_stream, collapse_excgroups():
+    |                                    ~~~~~~~~~~~~~~~~~~^^
+    |   File "C:\Users\ASUS\AppData\Local\Programs\Python\Python314\Lib\contextlib.py", line 162, in __exit__
+    |     self.gen.throw(value)
+    |     ~~~~~~~~~~~~~~^^^^^^^
+    |   File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\_utils.py", line 87, in collapse_excgroups
+    |     raise exc
+    |   File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
     |     response = await self.dispatch_func(request, call_next)
     |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/app/main.py", line 924, in check_suspension
+    |   File "C:\Users\ASUS\CareStance\app\main.py", line 903, in check_suspension
     |     response = await call_next(request)
     |                ^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 168, in call_next
+    |   File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
     |     raise app_exc from app_exc.__cause__ or app_exc.__context__
-    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 144, in coro
+    |   File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
     |     await self.app(scope, receive_or_disconnect, send_no_error)
-    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 193, in __call__
+    |   File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
+    |     with recv_stream, send_stream, collapse_excgroups():
+    |                                    ~~~~~~~~~~~~~~~~~~^^
+    |   File "C:\Users\ASUS\AppData\Local\Programs\Python\Python314\Lib\contextlib.py", line 162, in __exit__
+    |     self.gen.throw(value)
+    |     ~~~~~~~~~~~~~~^^^^^^^
+    |   File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\_utils.py", line 87, in collapse_excgroups
+    |     raise exc
+    |   File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
     |     response = await self.dispatch_func(request, call_next)
     |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/app/main.py", line 868, in add_cache_control_header
+    |   File "C:\Users\ASUS\CareStance\app\main.py", line 847, in add_cache_control_header
     |     response = await call_next(request)
     |                ^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 168, in call_next
+    |   File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
     |     raise app_exc from app_exc.__cause__ or app_exc.__context__
-    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 144, in coro
+    |   File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
     |     await self.app(scope, receive_or_disconnect, send_no_error)
-    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/sessions.py", line 88, in __call__
+    |   File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\middleware\sessions.py", line 88, in __call__
     |     await self.app(scope, receive, send_wrapper)
-    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 88, in __call__
+    |   File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\middleware\cors.py", line 88, in __call__
     |     await self.app(scope, receive, send)
-    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/trustedhost.py", line 51, in __call__
+    |   File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\middleware\trustedhost.py", line 51, in __call__
     |     await self.app(scope, receive, send)
-    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/gzip.py", line 29, in __call__
+    |   File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\middleware\gzip.py", line 29, in __call__
     |     await responder(scope, receive, send)
-    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/gzip.py", line 130, in __call__
+    |   File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\middleware\gzip.py", line 130, in __call__
     |     await super().__call__(scope, receive, send)
-    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/gzip.py", line 46, in __call__
+    |   File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\middleware\gzip.py", line 46, in __call__
     |     await self.app(scope, receive, self.send_with_compression)
-    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 193, in __call__
+    |   File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
+    |     with recv_stream, send_stream, collapse_excgroups():
+    |                                    ~~~~~~~~~~~~~~~~~~^^
+    |   File "C:\Users\ASUS\AppData\Local\Programs\Python\Python314\Lib\contextlib.py", line 162, in __exit__
+    |     self.gen.throw(value)
+    |     ~~~~~~~~~~~~~~^^^^^^^
+    |   File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\_utils.py", line 87, in collapse_excgroups
+    |     raise exc
+    |   File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
     |     response = await self.dispatch_func(request, call_next)
     |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/app/main.py", line 616, in forward_proto_middleware
+    |   File "C:\Users\ASUS\CareStance\app\main.py", line 585, in forward_proto_middleware
     |     return await call_next(request)
     |            ^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 168, in call_next
+    |   File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
     |     raise app_exc from app_exc.__cause__ or app_exc.__context__
-    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 144, in coro
+    |   File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
     |     await self.app(scope, receive_or_disconnect, send_no_error)
-    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    |   File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
     |     await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
-    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    |   File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
     |     raise exc
-    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    |   File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
     |     await app(scope, receive, sender)
-    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    |   File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
     |     await self.app(scope, receive, send)
-    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/routing.py", line 660, in __call__
+    |   File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\routing.py", line 660, in __call__
     |     await self.middleware_stack(scope, receive, send)
-    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/fastapi/routing.py", line 2685, in app
+    |   File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\routing.py", line 680, in app
     |     await route.handle(scope, receive, send)
-    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/fastapi/routing.py", line 1267, in handle
-    |     await super().handle(scope, receive, send)
-    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/routing.py", line 276, in handle
+    |   File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\routing.py", line 276, in handle
     |     await self.app(scope, receive, send)
-    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/fastapi/routing.py", line 151, in app
+    |   File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\fastapi\routing.py", line 134, in app
     |     await wrap_app_handling_exceptions(app, request)(scope, receive, send)
-    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    |   File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
     |     raise exc
-    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    |   File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
     |     await app(scope, receive, sender)
-    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/fastapi/routing.py", line 137, in app
+    |   File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\fastapi\routing.py", line 120, in app
     |     response = await f(request)
     |                ^^^^^^^^^^^^^^^^
-    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/fastapi/routing.py", line 691, in app
+    |   File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\fastapi\routing.py", line 674, in app
     |     raw_response = await run_endpoint_function(
     |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     |     ...<3 lines>...
     |     )
     |     ^
-    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/fastapi/routing.py", line 345, in run_endpoint_function
+    |   File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\fastapi\routing.py", line 328, in run_endpoint_function
     |     return await dependant.call(**values)
     |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/app/main.py", line 4105, in assessment_phase3
-    |     is_completed = result.metadata and result.metadata.get("deep_dive_completed", False)
-    |                                        ^^^^^^^^^^^^^^^^^^^
-    | AttributeError: 'MetaData' object has no attribute 'get'
+    |   File "C:\Users\ASUS\CareStance\app\main.py", line 2852, in my_monthly_path
+    |     growth_profile, plan = await _get_monthly_plan(user, db)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |     ...<8 lines>...
+    |         "weekend_quiz": build_weekend_quiz(plan or {}),
+    |     
+    |   File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\templating.py", line 149, in TemplateResponse
+    |     return _TemplateResponse(
+    |         template,
+    |     ...<4 lines>...
+    |         background=background,
+    |     )
+    |   File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\templating.py", line 43, in __init__
+    |     content = template.render(context)
+    |   File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\jinja2\environment.py", line 1295, in render
+    |     self.environment.handle_exception()
+    |     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+    |   File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\jinja2\environment.py", line 942, in handle_exception
+    |     raise rewrite_traceback_stack(source=source)
+    |   File "C:\Users\ASUS\CareStance\frontend\templates\monthly_path.html", line 1, in top-level template code
+    |     {% extends "base.html" %}
+    |   File "C:\Users\ASUS\CareStance\frontend\templates\base.html", line 1016, in top-level template code
+    |     {% block content %}{% endblock %}
+    |     ^^^^^^^^^^^^^^^^^
+    |   File "C:\Users\ASUS\CareStance\frontend\templates\monthly_path.html", line 671, in block 'content'
+    |     <div class="flex items-start gap-3"><i class="fas fa-fire-flame-curved mt-1" style="color:var(--gold);"></i><div><p class="label-eyebrow" style="color:var(--gold);">Growth momentum</p><h2 class="mt-1 section-title font-outfit text-lg">{{ growth_momentum.weeks }} week{{ '' if growth_momentum.weeks == 1 else 's' }} completed · {{ growth_momentum.evidence_count }} proof{{ '' if growth_momentum.evidence_count == 1 else 's' }} saved</h2><p class="mt-2 text-sm" style="color:var(--text-secondary);">{{ growth_momentum.message }}</p></div></div>
+    |     ^^^^^
+    |   File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\jinja2\environment.py", line 490, in getattr
+    |     return getattr(obj, attribute)
+    | jinja2.exceptions.UndefinedError: 'growth_momentum' is undefined
     +------------------------------------
 
 The above exception was the direct cause of the following exception:
 
 Traceback (most recent call last):
-  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/errors.py", line 164, in __call__
+  File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
     await self.app(scope, receive, _send)
-  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 193, in __call__
+  File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+                                   ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\ASUS\AppData\Local\Programs\Python\Python314\Lib\contextlib.py", line 162, in __exit__
+    self.gen.throw(value)
+    ~~~~~~~~~~~~~~^^^^^^^
+  File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\_utils.py", line 87, in collapse_excgroups
+    raise exc
+  File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
     response = await self.dispatch_func(request, call_next)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/app/main.py", line 924, in check_suspension
+  File "C:\Users\ASUS\CareStance\app\main.py", line 903, in check_suspension
     response = await call_next(request)
                ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 168, in call_next
+  File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
     raise app_exc from app_exc.__cause__ or app_exc.__context__
-  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 144, in coro
+  File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
     await self.app(scope, receive_or_disconnect, send_no_error)
-  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 193, in __call__
+  File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+                                   ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\ASUS\AppData\Local\Programs\Python\Python314\Lib\contextlib.py", line 162, in __exit__
+    self.gen.throw(value)
+    ~~~~~~~~~~~~~~^^^^^^^
+  File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\_utils.py", line 87, in collapse_excgroups
+    raise exc
+  File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
     response = await self.dispatch_func(request, call_next)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/app/main.py", line 868, in add_cache_control_header
+  File "C:\Users\ASUS\CareStance\app\main.py", line 847, in add_cache_control_header
     response = await call_next(request)
                ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 168, in call_next
+  File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
     raise app_exc from app_exc.__cause__ or app_exc.__context__
-  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 144, in coro
+  File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
     await self.app(scope, receive_or_disconnect, send_no_error)
-  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/sessions.py", line 88, in __call__
+  File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\middleware\sessions.py", line 88, in __call__
     await self.app(scope, receive, send_wrapper)
-  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 88, in __call__
+  File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\middleware\cors.py", line 88, in __call__
     await self.app(scope, receive, send)
-  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/trustedhost.py", line 51, in __call__
+  File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\middleware\trustedhost.py", line 51, in __call__
     await self.app(scope, receive, send)
-  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/gzip.py", line 29, in __call__
+  File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\middleware\gzip.py", line 29, in __call__
     await responder(scope, receive, send)
-  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/gzip.py", line 130, in __call__
+  File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\middleware\gzip.py", line 130, in __call__
     await super().__call__(scope, receive, send)
-  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/gzip.py", line 46, in __call__
+  File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\middleware\gzip.py", line 46, in __call__
     await self.app(scope, receive, self.send_with_compression)
-  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 193, in __call__
+  File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+                                   ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\ASUS\AppData\Local\Programs\Python\Python314\Lib\contextlib.py", line 162, in __exit__
+    self.gen.throw(value)
+    ~~~~~~~~~~~~~~^^^^^^^
+  File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\_utils.py", line 87, in collapse_excgroups
+    raise exc
+  File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\middleware\base.py", line 193, in __call__
     response = await self.dispatch_func(request, call_next)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/app/main.py", line 616, in forward_proto_middleware
+  File "C:\Users\ASUS\CareStance\app\main.py", line 585, in forward_proto_middleware
     return await call_next(request)
            ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 168, in call_next
+  File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\middleware\base.py", line 168, in call_next
     raise app_exc from app_exc.__cause__ or app_exc.__context__
-  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 144, in coro
+  File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\middleware\base.py", line 144, in coro
     await self.app(scope, receive_or_disconnect, send_no_error)
-  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+  File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\middleware\exceptions.py", line 63, in __call__
     await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
-  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+  File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
     raise exc
-  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+  File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
     await app(scope, receive, sender)
-  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+  File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\fastapi\middleware\asyncexitstack.py", line 18, in __call__
     await self.app(scope, receive, send)
-  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/routing.py", line 660, in __call__
+  File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\routing.py", line 660, in __call__
     await self.middleware_stack(scope, receive, send)
-  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/fastapi/routing.py", line 2685, in app
+  File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\routing.py", line 680, in app
     await route.handle(scope, receive, send)
-  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/fastapi/routing.py", line 1267, in handle
-    await super().handle(scope, receive, send)
-  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/routing.py", line 276, in handle
+  File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\routing.py", line 276, in handle
     await self.app(scope, receive, send)
-  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/fastapi/routing.py", line 151, in app
+  File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\fastapi\routing.py", line 134, in app
     await wrap_app_handling_exceptions(app, request)(scope, receive, send)
-  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+  File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
     raise exc
-  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+  File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
     await app(scope, receive, sender)
-  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/fastapi/routing.py", line 137, in app
+  File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\fastapi\routing.py", line 120, in app
     response = await f(request)
                ^^^^^^^^^^^^^^^^
-  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/fastapi/routing.py", line 691, in app
+  File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\fastapi\routing.py", line 674, in app
     raw_response = await run_endpoint_function(
                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     ...<3 lines>...
     )
     ^
-  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/fastapi/routing.py", line 345, in run_endpoint_function
+  File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\fastapi\routing.py", line 328, in run_endpoint_function
     return await dependant.call(**values)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/app/main.py", line 4105, in assessment_phase3
-    is_completed = result.metadata and result.metadata.get("deep_dive_completed", False)
-                                       ^^^^^^^^^^^^^^^^^^^
-AttributeError: 'MetaData' object has no attribute 'get'
+  File "C:\Users\ASUS\CareStance\app\main.py", line 2852, in my_monthly_path
+    growth_profile, plan = await _get_monthly_plan(user, db)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<8 lines>...
+        "weekend_quiz": build_weekend_quiz(plan or {}),
+    
+  File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\templating.py", line 149, in TemplateResponse
+    return _TemplateResponse(
+        template,
+    ...<4 lines>...
+        background=background,
+    )
+  File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\starlette\templating.py", line 43, in __init__
+    content = template.render(context)
+  File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\jinja2\environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\jinja2\environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "C:\Users\ASUS\CareStance\frontend\templates\monthly_path.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "C:\Users\ASUS\CareStance\frontend\templates\base.html", line 1016, in top-level template code
+    {% block content %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^
+  File "C:\Users\ASUS\CareStance\frontend\templates\monthly_path.html", line 671, in block 'content'
+    <div class="flex items-start gap-3"><i class="fas fa-fire-flame-curved mt-1" style="color:var(--gold);"></i><div><p class="label-eyebrow" style="color:var(--gold);">Growth momentum</p><h2 class="mt-1 section-title font-outfit text-lg">{{ growth_momentum.weeks }} week{{ '' if growth_momentum.weeks == 1 else 's' }} completed · {{ growth_momentum.evidence_count }} proof{{ '' if growth_momentum.evidence_count == 1 else 's' }} saved</h2><p class="mt-2 text-sm" style="color:var(--text-secondary);">{{ growth_momentum.message }}</p></div></div>
+    ^^^^^
+  File "C:\Users\ASUS\CareStance\.venv\Lib\site-packages\jinja2\environment.py", line 490, in getattr
+    return getattr(obj, attribute)
+jinja2.exceptions.UndefinedError: 'growth_momentum' is undefined

@@ -2,37 +2,481 @@
 
 {% block title %}Top Colleges for {{ rec.career_title }} | CareStance{% endblock %}
 
-{% block content %}
-<div class="min-h-screen bg-[#f8fafc] py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-6xl mx-auto">
+{% block navbar %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Jersey+10&display=swap');
 
-        <!-- Header -->
-        <div class="relative mb-12 text-center">
-            <div class="absolute -top-10 left-1/2 -translate-x-1/2 w-40 h-40 bg-[var(--teal)]/10 blur-3xl rounded-full">
-            </div>
+    .hero-nav {
+        position: fixed;
+        top: 40px;
+        left: 0;
+        right: 0;
+        width: 100%;
+        z-index: 1100;
+        background: transparent;
+        box-shadow: none;
+    }
 
-            <nav class="flex justify-center mb-8" aria-label="Breadcrumb">
-                <ol
-                    class="flex items-center gap-3 px-4 py-2 bg-white/50 backdrop-blur-md rounded-2xl border border-white/80 shadow-sm text-sm">
-                    <li><a href="/dashboard"
-                            class="text-slate-500 hover:text-[var(--navy)] transition-colors">Dashboard</a></li>
-                    <li><i class="fas fa-chevron-right text-[10px] text-slate-300"></i></li>
-                    <li><a href="/career/colleges"
-                            class="text-slate-500 hover:text-[var(--navy)] transition-colors">Colleges</a></li>
-                    <li><i class="fas fa-chevron-right text-[10px] text-slate-300"></i></li>
-                    <li class="font-bold text-[var(--navy)]">{{ rec.career_title }}</li>
-                </ol>
-            </nav>
+    .hero-nav-inner {
+        max-width: 1500px;
+        margin: 0 auto;
+        padding: 0 2.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+    }
 
-            <h1 class="text-4xl md:text-5xl font-black text-slate-900 mb-4 tracking-tight">
-                Top Institutes for <span
-                    class="bg-clip-text text-transparent bg-gradient-to-r from-[var(--navy)] to-[var(--teal)]">{{
-                    rec.career_title }}</span>
-            </h1>
-            <p class="text-slate-500 text-lg max-w-2xl mx-auto leading-relaxed">
-                AI-curated college recommendations personalized for your profile and career goals.
-            </p>
+    .hero-nav-logo {
+        display: flex;
+        align-items: center;
+        gap: 1.75rem;
+        text-decoration: none;
+    }
+
+    .hero-nav-logo-badge {
+        width: 156px; height: 156px;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 50%;
+        background: #0f172a;
+        flex-shrink: 0;
+    }
+
+    .hero-nav-logo-badge img {
+        width: 90px; height: 90px;
+        border-radius: 50%; object-fit: cover;
+        transform: scale(1.6);
+    }
+
+    .hero-nav-logo-text {
+        font-family: 'Jersey 10', 'Playfair Display', serif;
+        font-size: 2rem; font-weight: 700;
+        color: #12202b; white-space: nowrap;
+        letter-spacing: 0.02em;
+    }
+
+    .hero-nav-links {
+        display: flex;
+        align-items: center;
+        gap: 1.9rem;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .hero-nav-links a {
+        display: inline-block;
+        font-family: 'Jersey 10', sans-serif;
+        color: #fff;
+        font-size: 30px;
+        font-weight: 400;
+        white-space: nowrap;
+        text-decoration: none;
+        letter-spacing: 0.02em;
+        text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+        transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+
+    .hero-nav-links a:hover {
+        transform: scale(1.1);
+        opacity: 0.75;
+    }
+
+    .hero-nav-links a.nav-active {
+        text-decoration: underline;
+        text-underline-offset: 4px;
+    }
+
+    .hero-nav-user-name {
+        font-family: 'Jersey 10', sans-serif;
+        color: #fff;
+        opacity: 0.75;
+        font-size: 22px;
+        text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+    }
+
+    .hero-nav-logout {
+        font-family: 'Jersey 10', sans-serif;
+        background: #12202b;
+        color: #fff !important;
+        padding: 0.4rem 1.6rem;
+        border-radius: 999px;
+        font-size: 28px;
+        text-shadow: none;
+    }
+
+    .hero-nav-logout:hover {
+        transform: scale(1.08);
+        opacity: 1 !important;
+        background: #1e2f3d;
+    }
+
+    .hero-mobile-toggle {
+        display: none;
+        background: none; border: none;
+        color: #12202b; font-size: 1.35rem;
+        cursor: pointer;
+    }
+
+    .hero-mobile-menu {
+        display: none;
+        position: absolute; top: 100%; left: 1.5rem; right: 1.5rem;
+        margin-top: 0.75rem; padding: 1.5rem;
+        flex-direction: column; gap: 0.75rem;
+        background: #fff; border-radius: 1.25rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.15);
+    }
+
+    .hero-mobile-menu.open { display: flex; }
+
+    .hero-mobile-menu a {
+        padding: 0.8rem 0.5rem;
+        color: var(--text-main);
+        text-decoration: none;
+        font-weight: 500;
+        border-bottom: 1px solid var(--border-soft);
+        transition: color 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .hero-mobile-menu a:last-child { border-bottom: none; }
+    .hero-mobile-menu a:hover { color: #0d9488; }
+
+    @media (max-width: 768px) {
+        .hero-nav-links { display: none; }
+        .hero-mobile-toggle { display: block; }
+        .hero-nav-logo-badge { width: 64px; height: 64px; }
+        .hero-nav-logo-badge img { width: 36px; height: 36px; }
+        .hero-nav-logo-text { font-size: 1.4rem; }
+        .hero-nav-inner { padding: 0 1.25rem; }
+        .hero-nav { top: 20px; }
+    }
+
+    body { padding-top: 0 !important; }
+
+    :root {
+        --content-top-gap: calc(40px + 156px + 30px);
+    }
+    @media (max-width: 768px) {
+        :root { --content-top-gap: calc(20px + 64px + 30px); }
+    }
+</style>
+
+<nav class="hero-nav">
+    <div class="hero-nav-inner">
+        <a href="/" class="hero-nav-logo">
+            <span class="hero-nav-logo-badge">
+                <picture>
+                    <source srcset="/static/images/image.webp?v=101" type="image/webp">
+                    <img src="/static/images/image.png?v=101" alt="CareStance Logo" width="90" height="90">
+                </picture>
+            </span>
+            <span class="hero-nav-logo-text">Carestance</span>
+        </a>
+
+        <div class="hero-nav-links">
+            {% if user %}
+            <a href="/dashboard" class="nav-active">Dashboard</a>
+            {% if user.role != 'counsellor' %}
+            <a href="/chatbot">Chat AI</a>
+            {% endif %}
+            <a href="/community">Community</a>
+            <a href="/feedback">Feedback</a>
+            <a href="/ticket">Support</a>
+            {% if user.role == 'admin' %}
+            <a href="/admin" class="{% if request.url.path == '/admin' %}nav-active{% endif %}" style="font-weight:700;">Admin</a>
+            {% endif %}
+            {% if user.full_name and user.full_name != 'None' %}<span class="hero-nav-user-name">| {{ user.full_name }}</span>{% endif %}
+            <a href="/logout" class="hero-nav-logout">Logout</a>
+            {% else %}
+            <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}">Home</a>
+            <a href="/login" class="{% if request.url.path == '/login' %}nav-active{% endif %}">Log In</a>
+            {% endif %}
         </div>
+
+        <button class="hero-mobile-toggle" id="base-menu-toggle" aria-label="Menu">
+            <i class="fa-solid fa-bars" id="base-menu-icon"></i>
+        </button>
+    </div>
+
+    <div class="hero-mobile-menu" id="base-mobile-menu">
+        {% if user %}
+        <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i class="fa-solid fa-house"></i>Home</a>
+        <a href="/dashboard" class="nav-active"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
+        {% if user.role != 'counsellor' %}
+        <a href="/chatbot"><i class="fa-solid fa-comment-dots"></i>Chat AI</a>
+        {% endif %}
+        <a href="/community"><i class="fa-solid fa-users"></i>Community</a>
+        <a href="/feedback"><i class="fa-solid fa-star"></i>Feedback</a>
+        <a href="/ticket"><i class="fa-solid fa-circle-question"></i>Support</a>
+        {% if user.role == 'admin' %}<a href="/admin"><i class="fa-solid fa-shield-halved"></i>Admin Panel</a>{% endif %}
+        <a href="/logout" style="color:#b45309;"><i class="fa-solid fa-right-from-bracket"></i>Logout</a>
+        {% else %}
+        <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i class="fa-solid fa-house"></i>Home</a>
+        <a href="/login"><i class="fa-solid fa-right-to-bracket"></i>Log In</a>
+        {% endif %}
+    </div>
+</nav>
+{% endblock %}
+
+{% block extra_head %}
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+    :root {
+        --content-top-gap: calc(40px + 156px + 30px);
+        --ink: #f3f0fb;
+        --paper: #120c22;
+        --surface: #1e1735;
+        --pink: #c084fc;
+        --pink-soft: rgba(192, 132, 252, 0.14);
+        --yellow: #f5a623;
+        --yellow-soft: rgba(245, 166, 35, 0.18);
+        --green: #2dd4bf;
+        --green-soft: rgba(45, 212, 191, 0.14);
+        --text-secondary: #c7c0dd;
+        --text-muted: #8f87ab;
+        --line: rgba(255, 255, 255, 0.08);
+    }
+    @media (max-width: 768px) {
+        :root { --content-top-gap: calc(20px + 64px + 30px); }
+    }
+
+    body {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        background-color: var(--paper) !important;
+        color: var(--ink) !important;
+    }
+
+    .font-outfit { font-family: 'Outfit', sans-serif; }
+
+    /* ---------- Hero ---------- */
+    .cd-hero {
+        position: relative;
+        padding-top: var(--content-top-gap);
+        padding-bottom: 4.5rem;
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+        text-align: center;
+        background: url('/static/images/BG3.png') center top / cover no-repeat fixed;
+        overflow: hidden;
+    }
+    .cd-hero::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to bottom, rgba(11,11,15,0.15) 0%, rgba(11,11,15,0.65) 68%, var(--paper) 100%);
+        pointer-events: none;
+    }
+    .cd-hero > * { position: relative; z-index: 2; }
+
+    .cd-crumb {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.7rem;
+        padding: 0.55rem 1.25rem;
+        background: rgba(255,255,255,0.12);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.25);
+        border-radius: 999px;
+        font-size: 0.82rem;
+        margin-bottom: 2rem;
+    }
+    .cd-crumb a { color: rgba(255,255,255,0.75); text-decoration: none; transition: color 0.2s; }
+    .cd-crumb a:hover { color: var(--yellow); }
+    .cd-crumb span.current { color: #fff; font-weight: 800; }
+    .cd-crumb i { color: rgba(255,255,255,0.4); font-size: 9px; }
+
+    .cd-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--yellow);
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        margin-bottom: 1rem;
+    }
+    .cd-eyebrow .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 10px var(--green); }
+
+    .cd-title {
+        font-size: 2.3rem;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        color: #fff;
+        margin-bottom: 1.1rem;
+        line-height: 1.1;
+    }
+    @media (min-width: 768px) { .cd-title { font-size: 3.1rem; } }
+    .cd-title .accent {
+        background: linear-gradient(120deg, var(--pink), var(--green));
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+    .cd-desc {
+        color: rgba(255,255,255,0.82);
+        max-width: 640px;
+        margin: 0 auto;
+        line-height: 1.7;
+        font-size: 1.02rem;
+    }
+
+    /* ---------- College cards ---------- */
+    .cd-card {
+        background: var(--surface);
+        border-radius: 2rem;
+        border: 1.5px solid var(--line);
+        box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+    .cd-card:hover {
+        box-shadow: 0 30px 60px -24px rgba(0,0,0,0.6);
+        border-color: transparent;
+    }
+
+    .cd-card-head {
+        position: relative;
+        padding: 1.75rem 2rem;
+        overflow: hidden;
+    }
+    .cd-card-head.rank-1 { background: linear-gradient(115deg, var(--pink), #ff7a3d); }
+    .cd-card-head.rank-2 { background: linear-gradient(115deg, #241a3d, #33333d); }
+    .cd-card-head.rank-3 { background: linear-gradient(115deg, var(--yellow), #ff9d3d); }
+    .cd-card-head.rank-4 { background: linear-gradient(115deg, var(--green), #0f7a44); }
+    .cd-card-head.rank-other { background: linear-gradient(115deg, #241a3d, var(--pink)); }
+
+    .cd-rank-badge {
+        background: rgba(255,255,255,0.22);
+        backdrop-filter: blur(8px);
+        color: #fff;
+        border: 1px solid rgba(255,255,255,0.25);
+    }
+    .cd-ranking-badge {
+        background: rgba(255,255,255,0.14);
+        color: rgba(255,255,255,0.92);
+        border: 1px solid rgba(255,255,255,0.16);
+    }
+
+    .cd-stat-box {
+        background: rgba(255,255,255,0.16);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    /* Admission criteria */
+    .cd-admission {
+        background: var(--pink-soft);
+        border: 1px solid rgba(192,132,252,0.22);
+        border-radius: 1.5rem;
+    }
+    .cd-admission h4 { color: var(--pink); }
+
+    /* Courses offered */
+    .cd-courses {
+        background: var(--green-soft);
+        border: 1px solid rgba(45,212,191,0.22);
+        border-radius: 1.5rem;
+    }
+    .cd-courses h4 { color: var(--green); }
+    .cd-course-chip {
+        background: var(--surface);
+        color: var(--green);
+        border: 1px solid rgba(45,212,191,0.3);
+    }
+
+    /* Top recruiters */
+    .cd-recruiters {
+        background: var(--yellow-soft);
+        border: 1px solid rgba(245,166,35,0.3);
+        border-radius: 1.25rem;
+    }
+    .cd-recruiter-chip {
+        background: var(--surface);
+        color: var(--ink);
+        border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .cd-website-link { color: var(--ink); }
+    .cd-website-link:hover { color: var(--pink); }
+
+    /* ---------- Preparation Tips ---------- */
+    .cd-tips {
+        background: linear-gradient(160deg, #1c1530, #120c22);
+        border-radius: 2rem;
+        color: #fff;
+        position: relative;
+        overflow: hidden;
+    }
+    .cd-tips::before {
+        content: '';
+        position: absolute; top: -60px; right: -60px;
+        width: 220px; height: 220px; border-radius: 50%;
+        background: radial-gradient(circle, rgba(255,61,129,0.35), transparent 70%);
+        filter: blur(10px);
+    }
+    .cd-tips::after {
+        content: '';
+        position: absolute; bottom: -60px; left: -60px;
+        width: 180px; height: 180px; border-radius: 50%;
+        background: radial-gradient(circle, rgba(255,204,51,0.28), transparent 70%);
+        filter: blur(10px);
+    }
+    .cd-tip-icon { background: rgba(255,204,51,0.16); }
+    .cd-tip-num { background: var(--pink); color: #fff; }
+    .cd-tip-row { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); }
+
+    /* ---------- Action bar ---------- */
+    .cd-action-bar {
+        background: var(--surface);
+        border: 1.5px solid var(--line);
+        border-radius: 2rem;
+        box-shadow: 0 20px 50px -30px rgba(0,0,0,0.6);
+    }
+    .cd-btn-outline {
+        border: 2px solid rgba(255,255,255,0.14);
+        color: var(--ink);
+    }
+    .cd-btn-outline:hover { background: var(--yellow-soft); border-color: var(--yellow); }
+    .cd-btn-primary {
+        background: linear-gradient(120deg, var(--pink), var(--green));
+        color: #fff;
+        box-shadow: 0 14px 28px -10px rgba(0,0,0,0.5);
+    }
+    .cd-btn-primary:hover { filter: brightness(1.1); box-shadow: 0 14px 28px -10px rgba(192,132,252,0.5); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="background: var(--paper); min-height: 100vh;">
+
+    <!-- Hero -->
+    <div class="cd-hero">
+        <nav class="flex justify-center" aria-label="Breadcrumb">
+            <div class="cd-crumb">
+                <a href="/dashboard">Dashboard</a>
+                <i class="fas fa-chevron-right"></i>
+                <a href="/career/colleges">Colleges</a>
+                <i class="fas fa-chevron-right"></i>
+                <span class="current">{{ rec.career_title }}</span>
+            </div>
+        </nav>
+
+        <h2 class="cd-eyebrow"><span class="dot"></span> Institute Matches</h2>
+        <h1 class="cd-title font-outfit">
+            Top Institutes for <span class="accent">{{ rec.career_title }}</span>
+        </h1>
+        <p class="cd-desc">
+            AI-curated college recommendations personalized for your profile and career goals.
+        </p>
+    </div>
+
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-20">
 
         {% set colleges = rec.college_data.colleges if rec.college_data is mapping and rec.college_data.colleges else []
         %}
@@ -40,26 +484,22 @@
         <!-- College Cards -->
         <div class="space-y-8 mb-12">
             {% for college in colleges %}
-            <div
-                class="bg-white rounded-[32px] shadow-xl shadow-[var(--teal-soft)]/20 border border-white hover:border-[var(--teal-light)] transition-all duration-300 overflow-hidden group">
+            <div class="cd-card group">
 
                 <!-- College Header -->
-                <div
-                    class="bg-gradient-to-r {% if loop.index == 1 %}from-amber-500 to-orange-600{% elif loop.index == 2 %}from-slate-600 to-slate-800{% elif loop.index == 3 %}from-amber-700 to-yellow-800{% elif loop.index == 4 %}from-[var(--navy)] to-[var(--navy)]{% else %}from-emerald-600 to-teal-700{% endif %} px-8 py-6 relative overflow-hidden">
+                <div class="cd-card-head {% if loop.index == 1 %}rank-1{% elif loop.index == 2 %}rank-2{% elif loop.index == 3 %}rank-3{% elif loop.index == 4 %}rank-4{% else %}rank-other{% endif %}">
                     <div class="absolute top-0 right-0 p-6 opacity-10">
                         <i class="fas fa-university text-[80px] text-white"></i>
                     </div>
                     <div class="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div>
                             <div class="flex items-center gap-3 mb-2">
-                                <span
-                                    class="bg-white/20 backdrop-blur-md text-white text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider border border-white/20">
+                                <span class="cd-rank-badge text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider">
                                     #{{ loop.index }}
                                 </span>
                                 {% if college.ranking %}
-                                <span
-                                    class="bg-white/10 text-white/90 text-xs font-bold px-3 py-1 rounded-full border border-white/10">
-                                    <i class="fas fa-trophy mr-1 text-yellow-300"></i> {{ college.ranking }}
+                                <span class="cd-ranking-badge text-xs font-bold px-3 py-1 rounded-full">
+                                    <i class="fas fa-trophy mr-1" style="color: var(--yellow);"></i> {{ college.ranking }}
                                 </span>
                                 {% endif %}
                             </div>
@@ -69,13 +509,11 @@
                             </p>
                         </div>
                         <div class="flex gap-3">
-                            <div
-                                class="bg-white/15 backdrop-blur-md rounded-2xl px-5 py-3 text-center border border-white/20">
+                            <div class="cd-stat-box rounded-2xl px-5 py-3 text-center">
                                 <p class="text-[10px] font-black text-white/70 uppercase tracking-widest">Placement</p>
                                 <p class="text-xl font-black text-white">{{ college.placement_rate or 'N/A' }}</p>
                             </div>
-                            <div
-                                class="bg-white/15 backdrop-blur-md rounded-2xl px-5 py-3 text-center border border-white/20">
+                            <div class="cd-stat-box rounded-2xl px-5 py-3 text-center">
                                 <p class="text-[10px] font-black text-white/70 uppercase tracking-widest">Avg Package
                                 </p>
                                 <p class="text-xl font-black text-white">{{ college.avg_package or 'N/A' }}</p>
@@ -87,33 +525,28 @@
                 <!-- College Body -->
                 <div class="p-8">
                     {% if college.highlights %}
-                    <p class="text-slate-600 leading-relaxed mb-8 text-base">
-                        <i class="fas fa-sparkles text-[var(--teal)] mr-2"></i>{{ college.highlights }}
+                    <p class="leading-relaxed mb-8 text-base" style="color: var(--text-secondary);">
+                        <i class="fas fa-sparkles mr-2" style="color: var(--pink);"></i>{{ college.highlights }}
                     </p>
                     {% endif %}
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <!-- Admission Criteria -->
-                        <div
-                            class="bg-gradient-to-br from-[var(--teal-soft)] to-[var(--teal-soft)] rounded-3xl p-6 border border-[var(--teal-light)]">
-                            <h4
-                                class="flex items-center gap-2 text-sm font-black text-[var(--navy)] uppercase tracking-widest mb-4">
-                                <i class="fas fa-clipboard-check text-[var(--teal)]"></i> Admission Criteria
+                        <div class="cd-admission p-6">
+                            <h4 class="flex items-center gap-2 text-sm font-black uppercase tracking-widest mb-4">
+                                <i class="fas fa-clipboard-check"></i> Admission Criteria
                             </h4>
-                            <p class="text-slate-700 text-sm leading-relaxed">{{ college.admission_criteria }}</p>
+                            <p class="text-sm leading-relaxed" style="color: var(--text-secondary);">{{ college.admission_criteria }}</p>
                         </div>
 
                         <!-- Courses Offered -->
-                        <div
-                            class="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-3xl p-6 border border-emerald-100">
-                            <h4
-                                class="flex items-center gap-2 text-sm font-black text-emerald-900 uppercase tracking-widest mb-4">
-                                <i class="fas fa-book-open text-emerald-500"></i> Courses Offered
+                        <div class="cd-courses p-6">
+                            <h4 class="flex items-center gap-2 text-sm font-black uppercase tracking-widest mb-4">
+                                <i class="fas fa-book-open"></i> Courses Offered
                             </h4>
                             <div class="flex flex-wrap gap-2">
                                 {% for course in college.courses_offered %}
-                                <span
-                                    class="text-xs bg-white text-emerald-800 font-bold px-3 py-1.5 rounded-xl border border-emerald-200 shadow-sm">
+                                <span class="cd-course-chip text-xs font-bold px-3 py-1.5 rounded-xl shadow-sm">
                                     {{ course }}
                                 </span>
                                 {% endfor %}
@@ -122,14 +555,13 @@
                     </div>
 
                     {% if college.top_recruiters %}
-                    <div class="mt-6 bg-slate-50 rounded-2xl p-5 border border-slate-100">
-                        <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
+                    <div class="cd-recruiters mt-6 p-5">
+                        <h4 class="text-[10px] font-black uppercase tracking-widest mb-3" style="color: var(--text-muted);">
                             <i class="fas fa-building mr-1"></i> Top Recruiters
                         </h4>
                         <div class="flex flex-wrap gap-2">
                             {% for recruiter in college.top_recruiters %}
-                            <span
-                                class="text-xs bg-white text-slate-700 font-bold px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm">
+                            <span class="cd-recruiter-chip text-xs font-bold px-3 py-1.5 rounded-xl shadow-sm">
                                 {{ recruiter }}
                             </span>
                             {% endfor %}
@@ -140,7 +572,7 @@
                     {% if college.website %}
                     <div class="mt-6 text-right">
                         <a href="{{ college.website }}" target="_blank" rel="noopener"
-                            class="inline-flex items-center gap-2 text-sm font-bold text-[var(--navy)] hover:text-[var(--navy)] transition-colors group/link">
+                            class="cd-website-link inline-flex items-center gap-2 text-sm font-bold transition-colors group/link">
                             Visit Official Website <i
                                 class="fas fa-external-link-alt text-xs group-hover/link:translate-x-1 transition-transform"></i>
                         </a>
@@ -155,22 +587,18 @@
         {% set tips = rec.college_data.preparation_tips if rec.college_data is mapping and
         rec.college_data.preparation_tips else [] %}
         {% if tips %}
-        <div
-            class="bg-gradient-to-br from-slate-900 to-slate-800 rounded-[32px] p-8 md:p-10 shadow-2xl text-white relative overflow-hidden mb-12">
-            <div class="absolute -top-10 -right-10 w-48 h-48 bg-[var(--teal)]/10 blur-[80px]"></div>
-            <div class="absolute -bottom-10 -left-10 w-32 h-32 bg-[var(--teal)]/10 blur-[60px]"></div>
-
+        <div class="cd-tips p-8 md:p-10 mb-12">
             <h3 class="relative z-10 text-xl font-black mb-6 flex items-center gap-3">
-                <div class="w-10 h-10 bg-[var(--teal)]/20 rounded-xl flex items-center justify-center">
-                    <i class="fas fa-lightbulb text-yellow-400"></i>
+                <div class="w-10 h-10 cd-tip-icon rounded-xl flex items-center justify-center">
+                    <i class="fas fa-lightbulb" style="color: var(--yellow);"></i>
                 </div>
                 Preparation Tips
             </h3>
             <div class="relative z-10 space-y-4">
                 {% for tip in tips %}
-                <div class="flex items-start gap-4 bg-white/5 rounded-2xl p-4 border border-white/10 backdrop-blur-sm">
-                    <div class="w-8 h-8 bg-[var(--teal)]/20 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
-                        <span class="text-sm font-black text-[var(--teal-light)]">{{ loop.index }}</span>
+                <div class="cd-tip-row flex items-start gap-4 rounded-2xl p-4">
+                    <div class="cd-tip-num w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
+                        <span class="text-sm font-black">{{ loop.index }}</span>
                     </div>
                     <p class="text-slate-300 leading-relaxed text-sm">{{ tip }}</p>
                 </div>
@@ -180,19 +608,18 @@
         {% endif %}
 
         <!-- Action Bar -->
-        <div
-            class="flex flex-col md:flex-row justify-between items-center bg-white/50 backdrop-blur-xl p-8 rounded-[32px] border border-white shadow-2xl shadow-[var(--teal-soft)]/30 gap-6">
+        <div class="cd-action-bar flex flex-col md:flex-row justify-between items-center p-8 gap-6">
             <div class="text-center md:text-left">
                 <p class="text-slate-900 font-black text-xl mb-1">Want deeper guidance?</p>
-                <p class="text-slate-500 text-sm">Talk to an expert counsellor or explore your career roadmap.</p>
+                <p class="text-slate-500 text-sm">Talk to an expert counsellor or explore your monthly growth plan.</p>
             </div>
             <div class="flex gap-4">
                 <a href="/career/colleges"
-                    class="px-6 py-3.5 rounded-2xl border-2 border-slate-200 text-slate-600 font-black text-sm hover:bg-slate-50 transition-all flex items-center gap-2">
+                    class="cd-btn-outline px-6 py-3.5 rounded-2xl font-black text-sm hover:bg-slate-50 transition-all flex items-center gap-2">
                     <i class="fas fa-arrow-left"></i> All Recommendations
                 </a>
                 <a href="/counsellors"
-                    class="px-6 py-3.5 rounded-2xl bg-[var(--navy)] text-white font-black text-sm hover:bg-[var(--teal)] hover:shadow-xl hover:shadow-[var(--teal-soft)] hover:-translate-y-1 transition-all shadow-lg shadow-[var(--teal-soft)] flex items-center gap-2 group">
+                    class="cd-btn-primary px-6 py-3.5 rounded-2xl font-black text-sm hover:-translate-y-1 transition-all flex items-center gap-2 group">
                     <i class="fas fa-video group-hover:scale-110 transition-transform"></i>
                     Talk to Expert
                 </a>

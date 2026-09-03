@@ -104,38 +104,71 @@
     </div>
 </div>
 
-<script src="/static/js/voice_client.js"></script>
+<script src="/static/js/marked.min.js"></script>
 <script>
-    // UI Elements
-    const statusText = document.getElementById('conversation-status');
-    const careoContainer = document.getElementById('careo-container');
-    const careoImg = document.getElementById('careo-img');
-    const voiceRing = document.getElementById('voice-ring');
-    const micBtn = document.getElementById('mic-btn');
-    const endBtn = document.getElementById('end-btn');
-    const liveCaption = document.getElementById('live-caption');
-    const captionsBtn = document.getElementById('captions-btn');
-    const thinkingGlow = document.getElementById('thinking-glow');
+    document.addEventListener('DOMContentLoaded', () => {
+        const chatBox = document.getElementById('chat-box');
+        const micBtn = document.getElementById('micBtn');
+        const micIcon = document.getElementById('micIcon');
+        const transcriptDisplay = document.getElementById('transcript-display');
+        const timerSidebar = document.getElementById('timer-sidebar');
+        const timerProgressSidebar = document.getElementById('timer-progress-sidebar');
+        const finishBtn = document.getElementById('finishBtn');
+        const mentorStatusSidebar = document.getElementById('mentor-status-text-sidebar');
+        const sessionOverlay = document.getElementById('session-overlay');
+        const startSessionBtn = document.getElementById('start-session-btn');
 
-    // State
-    let currentUIState = 'IDLE';
-    let captionsEnabled = false;
-    let chatHistory = [];
-    
-    // Audio Context for Lip Sync
-    let audioCtx = null;
-    let analyser = null;
-    let dataArray = null;
-    let animationFrame = null;
-    let audioSource = null;
-    let isSpeakingActive = false; // Flag for TTS playback
+        let chatHistory = {{ (result.chat_messages if result.chat_messages else []) | tojson | safe }};
+        if (!Array.isArray(chatHistory)) chatHistory = [];
+        
+        function renderHistoricalMessages() {
+            chatBox.innerHTML = '';
+            chatHistory.forEach(msg => {
+                const div = document.createElement('div');
+                if (msg.role === 'assistant') {
+                    div.className = 'flex items-start gap-3 animate-fade-in-up';
+                    div.innerHTML = `
+                        <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-br from-emerald-800 to-green-900 flex items-center justify-center flex-shrink-0 shadow-lg shadow-green-200">
+                            <span class="text-sm sm:text-lg text-white">🤖</span>
+                        </div>
+                        <div class="bg-white text-slate-700 p-4 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 max-w-[85%]">
+                            <div class="prose prose-emerald prose-sm max-w-none leading-relaxed">${renderMentorText(msg.content)}</div>
+                        </div>
+                    `;
+                } else if (msg.role === 'user') {
+                    div.className = 'flex items-start gap-3 flex-row-reverse animate-fade-in-up';
+                    div.innerHTML = `
+                        <div class="w-8 h-8 rounded-full bg-slate-200 border-2 border-white flex items-center justify-center flex-shrink-0 shadow-sm">
+                            <span class="text-sm">🗣️</span>
+                        </div>
+                        <div class="bg-emerald-50 text-emerald-900 px-4 py-3 rounded-2xl rounded-tr-none shadow-sm border border-emerald-100 max-w-[75%]">
+                            <p class="text-sm italic">${msg.content}</p>
+                        </div>
+                    `;
+                }
+                chatBox.appendChild(div);
+            });
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
 
-    function toggleCaptions() {
-        captionsEnabled = !captionsEnabled;
-        captionsBtn.classList.toggle('text-emerald-600', captionsEnabled);
-        captionsBtn.classList.toggle('bg-emerald-50', captionsEnabled);
-        liveCaption.classList.toggle('hidden', !captionsEnabled);
-    }
+        let timeLeft = 600;
+        let timerInterval;
+        let conversationDone = false;
+        let isProcessing = false;
+
+        function renderMentorText(text) {
+            const safeText = String(text || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return window.marked && typeof window.marked.parse === 'function'
+                ? window.marked.parse(safeText)
+                : safeText.replace(/\n/g, '<br>');
+        }
+
+        function updateTimerDisplay() {
+            const mins = Math.floor(timeLeft / 60);
+            const secs = timeLeft % 60;
+            if (timerSidebar) timerSidebar.innerText = `${mins}:${secs.toString().padStart(2, '0')}`;
+            if (timerProgressSidebar) timerProgressSidebar.style.width = `${(timeLeft / 600) * 100}%`;
+        }
 
     function updateCaption(text) {
         if (!text) {
@@ -160,61 +193,25 @@
             careoImg.style.transform = 'scale(1)';
         }
 
-        switch(state) {
-            case 'IDLE':
-                statusText.innerText = 'Ready when you are';
-                statusText.className = 'text-xl md:text-2xl font-bold text-slate-500 mb-12 tracking-wide transition-all h-8';
-                careoContainer.classList.add('avatar-idle');
-                micBtn.innerHTML = '🎙️';
-                micBtn.className = 'w-20 h-20 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-xl shadow-emerald-200 flex items-center justify-center text-3xl transition-all transform hover:scale-105 active:scale-95';
-                break;
-                
-            case 'CONNECTING':
-                statusText.innerText = 'Connecting...';
-                statusText.className = 'text-xl md:text-2xl font-bold text-emerald-600 mb-12 tracking-wide transition-all h-8 animate-pulse';
-                micBtn.innerHTML = '⏳';
-                micBtn.className = 'w-20 h-20 rounded-full bg-slate-300 text-white shadow-xl flex items-center justify-center text-3xl transition-all';
-                break;
-                
-            case 'LISTENING':
-                statusText.innerText = 'Listening...';
-                statusText.className = 'text-xl md:text-2xl font-bold text-emerald-500 mb-12 tracking-wide transition-all h-8';
-                voiceRing.classList.add('ring-listening');
-                voiceRing.style.opacity = '0.5';
-                micBtn.innerHTML = '🛑';
-                micBtn.className = 'w-20 h-20 rounded-full bg-rose-500 hover:bg-rose-600 text-white shadow-xl shadow-rose-200 flex items-center justify-center text-3xl transition-all transform hover:scale-105 active:scale-95';
-                endBtn.classList.remove('hidden');
-                break;
-                
-            case 'USER_SPEAKING':
-                statusText.innerText = "I'm listening...";
-                statusText.className = 'text-xl md:text-2xl font-bold text-emerald-600 mb-12 tracking-wide transition-all h-8';
-                voiceRing.classList.add('ring-listening');
-                voiceRing.style.opacity = '0.8';
-                careoContainer.style.transform = 'scale(1.05)';
-                break;
-                
-            case 'THINKING':
-                statusText.innerText = 'Careo is thinking...';
-                statusText.className = 'text-xl md:text-2xl font-bold text-indigo-500 mb-12 tracking-wide transition-all h-8 animate-pulse';
-                voiceRing.classList.add('ring-thinking');
-                voiceRing.style.opacity = '0.6';
-                thinkingGlow.style.opacity = '1';
-                break;
-                
-            case 'AI_SPEAKING':
-                statusText.innerText = 'Careo is speaking';
-                statusText.className = 'text-xl md:text-2xl font-bold text-emerald-600 mb-12 tracking-wide transition-all h-8';
-                isSpeakingActive = true;
-                setupAudioAnalysis();
-                break;
-                
-            case 'ERROR':
-                statusText.innerText = 'Careo is having trouble connecting. Please try again.';
-                statusText.className = 'text-lg font-bold text-rose-500 mb-12 tracking-wide transition-all h-8';
-                micBtn.innerHTML = '🔄';
-                micBtn.className = 'w-20 h-20 rounded-full bg-slate-600 hover:bg-slate-700 text-white shadow-xl flex items-center justify-center text-3xl transition-all transform hover:scale-105 active:scale-95';
-                break;
+        function appendMentorMessage(text) {
+            const div = document.createElement('div');
+            div.className = 'flex items-start gap-3 animate-fade-in-up';
+            div.innerHTML = `
+                <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-br from-emerald-800 to-green-900 flex items-center justify-center flex-shrink-0 shadow-lg shadow-green-200">
+                    <span class="text-sm sm:text-lg text-white">🤖</span>
+                </div>
+                <div class="bg-white text-slate-700 p-4 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 max-w-[85%]">
+                    <div class="prose prose-emerald prose-sm max-w-none leading-relaxed">${renderMentorText(text)}</div>
+                </div>
+            `;
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+            chatHistory.push({ role: "assistant", content: text });
+            
+            const userMsgCount = chatHistory.filter(m => m.role === 'user').length;
+            if (userMsgCount >= 3 && finishBtn) {
+                finishBtn.classList.remove('hidden');
+            }
         }
     }
 
@@ -228,18 +225,26 @@
         
         if (!audioCtx) {
             try {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                analyser = audioCtx.createAnalyser();
-                analyser.fftSize = 256;
-                dataArray = new Uint8Array(analyser.frequencyBinCount);
-                
-                const stream = window.voiceClient.remoteAudio.srcObject;
-                audioSource = audioCtx.createMediaStreamSource(stream);
-                audioSource.connect(analyser);
-            } catch (e) {
-                console.warn("Web Audio API setup failed, using fallback animation", e);
-                fakeLipSync();
-                return;
+                const resp = await fetch('/assessment/phase3/chat_v2', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: userMsg, answers: chatHistory })
+                });
+                const raw = await resp.text();
+                let data = {};
+                try { data = raw ? JSON.parse(raw) : {}; } catch (_) { throw new Error('Career Talk returned an invalid response. Please try again.'); }
+                if (!resp.ok) throw new Error(data.detail || 'Career Talk is unavailable right now. Please try again.');
+                if (!data.response) throw new Error('Career Talk did not return a response. Please try again.');
+                appendMentorMessage(data.response);
+                if (data.recommendation_ready && finishBtn) {
+                    finishBtn.classList.remove('hidden');
+                }
+            } catch (err) {
+                console.error("Chat error:", err);
+                appendMentorMessage("I'm right here. Tell me a bit more about what interests you most!");
+            } finally {
+                isProcessing = false;
+                setMentorStatus('IDLE');
             }
         }
         

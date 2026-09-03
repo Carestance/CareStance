@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Your Career Preview{% endblock %}
+{% block content %}
+<main class="min-h-screen px-4 py-16" style="background:linear-gradient(135deg,#071827,#172554);">
+  <section class="max-w-3xl mx-auto rounded-3xl p-7 md:p-10 shadow-2xl" style="background:rgba(255,255,255,.96);">
+    <p class="text-xs font-black uppercase tracking-widest text-teal-700">Free assessment preview</p>
+    <h1 class="mt-2 text-3xl md:text-4xl font-black text-slate-900">You are a {{ preview.archetype }}</h1>
+    <p class="mt-4 text-slate-600 leading-relaxed">{{ preview.summary }}</p>
+    <div class="mt-8 grid sm:grid-cols-3 gap-4">
+      {% for domain in preview.domains %}<article class="rounded-2xl p-4 border border-teal-100 bg-teal-50"><i class="fa-solid fa-compass text-teal-600"></i><h2 class="mt-2 font-bold text-slate-900">{{ domain.title }}</h2><p class="mt-2 text-xs text-slate-600 leading-relaxed">{{ domain.about }}</p><p class="mt-3 text-xs"><strong class="text-slate-800">Explore:</strong> <span class="text-slate-600">{{ domain.roles }}</span></p><p class="mt-2 text-xs"><strong class="text-slate-800">Build:</strong> <span class="text-slate-600">{{ domain.skills }}</span></p></article>{% endfor %}
+    </div>
+    <div class="mt-9 rounded-2xl p-6 text-white" style="background:linear-gradient(135deg,#0f766e,#0f172a);">
+      <p class="text-xs font-black uppercase tracking-widest text-teal-200">Ready for personalised guidance?</p>
+      <h2 class="mt-2 text-2xl font-black">Try careers before choosing one.</h2>
+      <p class="mt-2 text-sm text-slate-200">Unlock your AI Career Talk, complete results, and career simulations together for a one-time payment of ₹150.</p>
+      <a href="/assessment/unlock" class="mt-5 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 font-black text-teal-800"><i class="fa-solid fa-unlock"></i> Unlock for ₹150</a>
+    </div>
+  </section>
+</main>
+{% endblock %}

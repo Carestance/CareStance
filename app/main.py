@@ -30,10 +30,8 @@ import hashlib
 import hmac
 from html import escape
 
-def sync_assessment_to_appwrite(user_id, result):
-    pass  # Appwrite sync disabled — local DB only
 
-from urllib.parse import urlparse
+from urllib.parse import urlparse, quote
 from . import models
 from .email_utils import (
     send_email, 
@@ -44,7 +42,6 @@ from .email_utils import (
 )
 from itsdangerous import URLSafeTimedSerializer
 from .data.career_keywords import career_keywords
-from .utils.resource_aggregator import ResourceAggregator
 from .services import simulation_service
 from .services import assessment_engine
 
@@ -76,6 +73,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 RUN_MIGRATIONS_ON_STARTUP = False
 ENABLE_CLEANUP_TASK = os.getenv("ENABLE_CLEANUP_TASK", "false").strip().lower() in ("1", "true", "yes")
+ENABLE_GROWTH_PLAN_SCHEDULER = os.getenv("ENABLE_GROWTH_PLAN_SCHEDULER", "true").strip().lower() in ("1", "true", "yes")
 
 @lru_cache(maxsize=4)
 def get_genai_module():
@@ -117,6 +115,7 @@ RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET", "your_key_secret")
 RAZORPAY_CRITICAL_PLAN_ID = os.getenv("RAZORPAY_CRITICAL_PLAN_ID", "").strip()
 RAZORPAY_CUSTOMISED_PLAN_ID = os.getenv("RAZORPAY_CUSTOMISED_PLAN_ID", "").strip()
 RAZORPAY_WEBHOOK_SECRET = os.getenv("RAZORPAY_WEBHOOK_SECRET", "").strip()
+ASSESSMENT_ALL_ACCESS_PRICE = 150
 razorpay_client = None
 
 def is_razorpay_configured():
@@ -140,10 +139,10 @@ SUBSCRIPTION_PLANS = {
     "critical": {
         "name": "Critical",
         "amount": 200,
-        "tagline": "Monthly report and roadmap plan",
+        "tagline": "Monthly report and growth plan",
         "features": [
             "10-15 page detailed assessment report",
-            "Personalized roadmap",
+            "Personalized growth plan",
             "Curated learning resources",
             "Progress tracking",
             "College recommendation",
@@ -222,6 +221,42 @@ def has_customised_subscription(user) -> bool:
     state = get_subscription_state(user)
     return bool(state.get("active") and state.get("plan") == "customised")
 
+def has_assessment_all_access(user) -> bool:
+    """One-time access for Career Talk, complete results, and all simulations."""
+    return bool(getattr(user, "role", None) == "admin" or getattr(user, "assessment_all_access", False))
+
+def build_free_assessment_preview(result) -> dict:
+    archetype = get_assessment_display_archetype(result)
+    domain_library = {
+        "Technology & Engineering": ("Build and improve systems, products, software, and infrastructure.", "Software developer, engineer, data analyst", "Problem solving, maths, technical curiosity"),
+        "Research & Analytics": ("Investigate questions, interpret data, and turn evidence into better decisions.", "Researcher, analyst, scientist", "Critical thinking, data literacy, attention to detail"),
+        "Healthcare & Science": ("Study living systems and use science to improve health and wellbeing.", "Doctor, psychologist, lab scientist", "Empathy, scientific thinking, communication"),
+        "Design & Content": ("Create visual, written, and digital experiences that communicate ideas clearly.", "UX designer, writer, content strategist", "Creativity, observation, storytelling"),
+        "Social Sciences": ("Understand people, behaviour, communities, and the systems that shape society.", "Psychologist, sociologist, policy researcher", "Empathy, research, communication"),
+        "Business & Management": ("Plan, organise, and improve how teams, money, and organisations work.", "Manager, consultant, business analyst", "Planning, leadership, decision making"),
+        "Technology & Product": ("Use technology and user insight to build useful products and services.", "Product manager, UX researcher, developer", "User empathy, problem solving, collaboration"),
+        "Engineering & Operations": ("Design practical processes and make complex work run reliably.", "Operations manager, engineer, supply-chain analyst", "Organisation, systems thinking, execution"),
+        "Management & Entrepreneurship": ("Identify opportunities and turn ideas into sustainable projects or businesses.", "Founder, project manager, growth strategist", "Initiative, resilience, leadership"),
+        "Media & Communication": ("Inform, persuade, and connect people through messages, campaigns, and media.", "Journalist, marketer, communications specialist", "Writing, public speaking, creativity"),
+        "Business & Leadership": ("Guide teams and make strategic decisions that create measurable impact.", "Business leader, consultant, sales manager", "Leadership, negotiation, strategic thinking"),
+        "Public Policy & Social Impact": ("Improve communities through policy, advocacy, education, and social initiatives.", "Policy analyst, NGO professional, social entrepreneur", "Empathy, research, civic awareness"),
+        "Creative Industries": ("Use creative skills to make experiences, media, and culture more meaningful.", "Designer, filmmaker, creative producer", "Original thinking, design, communication"),
+        "Business & Communication": ("Combine commercial understanding with clear communication and relationship building.", "Account manager, marketer, HR professional", "Communication, planning, people skills"),
+        "Technology & Innovation": ("Explore new technologies and apply them to real-world problems.", "Innovator, developer, product specialist", "Curiosity, experimentation, problem solving"),
+        "People & Society": ("Work with people and communities to understand needs and create positive outcomes.", "Counsellor, educator, community professional", "Listening, empathy, communication"),
+    }
+    profiles = {
+        "Focused Specialist": ("You prefer depth, consistency, and becoming highly capable in one area.", ["Technology & Engineering", "Research & Analytics", "Healthcare & Science"]),
+        "Quiet Explorer": ("You learn through observation, curiosity, and thoughtful independent exploration.", ["Research & Analytics", "Design & Content", "Social Sciences"]),
+        "Strategic Builder": ("You enjoy solving practical problems, planning clearly, and turning ideas into results.", ["Business & Management", "Technology & Product", "Engineering & Operations"]),
+        "Dynamic Generalist": ("You adapt quickly, enjoy variety, and can connect ideas across different areas.", ["Management & Entrepreneurship", "Media & Communication", "Technology & Product"]),
+        "Visionary Leader": ("You are drawn to initiative, influence, and creating change with other people.", ["Management & Entrepreneurship", "Business & Leadership", "Public Policy & Social Impact"]),
+        "Adaptive Explorer": ("You are flexible, open to new experiences, and grow by trying different paths.", ["Creative Industries", "Social Sciences", "Business & Communication"]),
+    }
+    summary, domain_names = profiles.get(archetype, ("Your answers show a unique mix of interests and work preferences that is ready for deeper exploration.", ["Business & Management", "Technology & Innovation", "People & Society"]))
+    domains = [{"title": name, "about": domain_library[name][0], "roles": domain_library[name][1], "skills": domain_library[name][2]} for name in domain_names]
+    return {"archetype": archetype, "summary": summary, "domains": domains}
+
 def get_razorpay_subscription_plan_id(plan: str) -> str:
     """Resolve the pre-created Razorpay monthly plan for a CareStance plan."""
     plan_ids = {
@@ -244,9 +279,10 @@ def has_completed_assessment(result) -> bool:
         result
         and (
             result.assessment_report
-            or result.recommended_stream
-            or result.final_analysis
-            or result.phase_2_category
+            # A Phase 2 category is saved before the assessment is finished.
+            # Treating it as completion hides the resume flow and can charge a
+            # first-time user for an unfinished assessment.
+            or (result.recommended_stream and result.final_analysis)
         )
     )
 
@@ -412,12 +448,14 @@ async def run_migrations():
                 if 'simulations_completed' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN simulations_completed INTEGER DEFAULT 0")
                 if 'simulation_paid' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN simulation_paid BOOLEAN DEFAULT FALSE")
                 if 'simulation_credits' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN simulation_credits INTEGER DEFAULT 0")
+                if 'assessment_all_access' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN assessment_all_access BOOLEAN DEFAULT FALSE")
                 if 'subscription_plan' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN subscription_plan VARCHAR")
                 if 'subscription_status' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN subscription_status VARCHAR")
                 if 'subscription_started_at' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN subscription_started_at TIMESTAMP")
                 if 'subscription_expires_at' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN subscription_expires_at TIMESTAMP")
                 if 'created_at' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN created_at TIMESTAMP")
                 if 'last_login' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN last_login TIMESTAMP")
+                if 'referral_code' not in u_cols: migrations.append("ALTER TABLE users ADD COLUMN referral_code VARCHAR")
                 migrations.append("CREATE INDEX IF NOT EXISTS ix_users_full_name ON users (full_name)")
                 migrations.append("CREATE INDEX IF NOT EXISTS ix_users_onboarded ON users (onboarded)")
                 migrations.append("CREATE INDEX IF NOT EXISTS ix_users_subscription_plan ON users (subscription_plan)")
@@ -656,8 +694,10 @@ async def startup_event():
                     ADD COLUMN IF NOT EXISTS simulations_completed INTEGER DEFAULT 0,
                     ADD COLUMN IF NOT EXISTS simulation_paid BOOLEAN DEFAULT FALSE,
                     ADD COLUMN IF NOT EXISTS simulation_credits INTEGER DEFAULT 0,
+                    ADD COLUMN IF NOT EXISTS assessment_all_access BOOLEAN DEFAULT FALSE,
                     ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW(),
-                    ADD COLUMN IF NOT EXISTS last_login TIMESTAMP;
+                    ADD COLUMN IF NOT EXISTS last_login TIMESTAMP,
+                    ADD COLUMN IF NOT EXISTS referral_code VARCHAR;
                     """
                     await conn.execute(text(sql))
                     print("DEBUG: Emergency batch migration for 'users' table completed.", flush=True)
@@ -682,13 +722,15 @@ async def startup_event():
                 except Exception as e:
                     print(f"DEBUG: Emergency batch migration failed (likely already patched): {e}", flush=True)
 
+        # New tables are safe to create on every deployment.  This keeps
+        # additive features (such as career-specific growth maps) available
+        # even where full column migrations are intentionally disabled.
+        async with engine.begin() as conn:
+            await conn.run_sync(models.Base.metadata.create_all)
         if RUN_MIGRATIONS_ON_STARTUP or SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
-            # Create all tables asynchronously and run any schema migrations
-            async with engine.begin() as conn:
-                await conn.run_sync(models.Base.metadata.create_all)
             await run_migrations()
         else:
-            print("Startup: Skipping DB migration and schema creation. Set RUN_MIGRATIONS_ON_STARTUP=true to enable.")
+            print("Startup: Created missing tables; skipping optional column migrations. Set RUN_MIGRATIONS_ON_STARTUP=true to enable.")
     except Exception as e:
         print(f"Startup database error: {e}")
 
@@ -697,6 +739,10 @@ async def startup_event():
         app.state.cleanup_task = asyncio.create_task(_cleanup_old_sessions_loop(app.state.cleanup_stop))
     else:
         print("Startup: Auto-cleanup task disabled. Set ENABLE_CLEANUP_TASK=true to enable.")
+
+    if ENABLE_GROWTH_PLAN_SCHEDULER:
+        app.state.growth_plan_stop = asyncio.Event()
+        app.state.growth_plan_task = asyncio.create_task(_monthly_growth_plan_loop(app.state.growth_plan_stop))
 
 async def _cleanup_old_sessions_loop(stop_event: asyncio.Event):
     """Periodically delete completed/expired video session appointments older than 2 days."""
@@ -753,6 +799,12 @@ async def shutdown_event():
         stop_event.set()
     if cleanup_task:
         await cleanup_task
+    growth_plan_stop = getattr(app.state, "growth_plan_stop", None)
+    growth_plan_task = getattr(app.state, "growth_plan_task", None)
+    if growth_plan_stop:
+        growth_plan_stop.set()
+    if growth_plan_task:
+        await growth_plan_task
 
 # ─── Include Split Payments Router (Razorpay Route) ───────────────────────────
 from .routes.payments import router as payments_router
@@ -973,12 +1025,16 @@ async def get_current_user(request: Request, db: AsyncSession = Depends(get_db))
     token = request.cookies.get("user_id")
     if not token: return None
     user_id = decode_access_token(token)
+    if not user_id and str(token).isdigit():
+        user_id = str(token)
     if not user_id: return None
     try:
         uid = int(user_id)
         stmt = select(models.User).options(selectinload(models.User.assessment)).where(models.User.id == uid)
         result = await db.execute(stmt)
-        return result.scalars().first()
+        db_user = result.scalars().first()
+        if db_user:
+            return db_user
     except Exception: return None
 
 # Routes
@@ -1443,8 +1499,9 @@ async def select_role(
         # Save User Metadata in Appwrite DB
         try:
             from appwrite.query import Query
+            from .appwrite_helper import _parse_list_response
             res = tables_db.list_rows(DB_ID, COLLECTIONS["users"], [Query.equal('email', user.email)])
-            documents = res.get('documents', []) if isinstance(res, dict) else getattr(res, 'documents', [])
+            _, documents = _parse_list_response(res)
             
             if documents:
                 doc = documents[0]
@@ -1499,18 +1556,25 @@ async def assessment_start(
         # Check/Create Result
         result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
 
-        used_free_assessment = (user.assessments_completed or 0) >= 1 or has_completed_assessment(result)
+        # A user who has already begun their free assessment must resume it,
+        # not be sent through the retake gate or have their answers erased.
+        if result and not has_completed_assessment(result):
+            return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
+
+        user_assessments = getattr(user, "assessments_completed", 0) or 0
+        used_free_assessment = user_assessments >= 1 or has_completed_assessment(result)
         if used_free_assessment and not get_subscription_state(user)["active"]:
-            if (user.assessments_completed or 0) < 1:
-                user.assessments_completed = 1
+            if user_assessments < 1:
+                if hasattr(user, "assessments_completed"):
+                    user.assessments_completed = 1
                 await db.commit()
             return RedirectResponse(
                 url="/subscription?reason=assessment_retake",
                 status_code=status.HTTP_302_FOUND
             )
         
-        # Grade 12 starts at current_phase=0 (Intake Chat), Grade 10 starts at current_phase=1 (Swipe)
-        start_phase = 0 if student_type == "12th" else 1
+        # Every student starts with information collection before moving to cards.
+        start_phase = 0
         
         if result:
             # Clear all previous progress fields
@@ -1518,7 +1582,7 @@ async def assessment_start(
             result.student_type = student_type
             result.current_phase = start_phase
             result.intake_turn = 1
-            result.intake_name = user.full_name
+            result.intake_name = getattr(user, "full_name", "") or getattr(user, "name", "Student")
             result.intake_grade = 10 if student_type == "10th" else 12
             result.intake_stream = stream
             result.telemetry_logs = None
@@ -1551,19 +1615,21 @@ async def assessment_start(
                 student_type=student_type,
                 current_phase=start_phase,
                 intake_turn=1,
-                intake_name=user.full_name,
+                intake_name=getattr(user, "full_name", "") or getattr(user, "name", "Student"),
                 intake_grade=10 if student_type == "10th" else 12,
                 intake_stream=stream,
                 chat_turn=0
             )
             db.add(result)
 
-        user.assessments_completed = max(user.assessments_completed or 0, 1)
-        
         await db.commit()
         sync_assessment_to_appwrite(user.id, result)
     except Exception as e:
-        print(f"Assessment start error: {e}")
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"Assessment start error: {e}\n{error_trace}")
+        with open("assessment_error.log", "w") as f:
+            f.write(error_trace)
         await db.rollback()
         return RedirectResponse(url="/dashboard?error=Assessment+failed+to+start", status_code=status.HTTP_302_FOUND)
     
@@ -1590,7 +1656,7 @@ async def assessment_reset(request: Request, db: AsyncSession = Depends(get_db))
                 status_code=status.HTTP_302_FOUND
             )
 
-        start_phase = 0 if result.student_type == "12th" else 1
+        start_phase = 0
         result.current_phase = start_phase
         result.intake_turn = 1
         result.telemetry_logs = None
@@ -1619,7 +1685,7 @@ async def assessment_reset(request: Request, db: AsyncSession = Depends(get_db))
         await db.commit()
         sync_assessment_to_appwrite(user.id, result)
     
-    return RedirectResponse(url="/dashboard?message=Assessment+reset+successfully", status_code=status.HTTP_302_FOUND)
+    return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
 
 @app.get("/assessment", response_class=HTMLResponse)
 async def assessment_page(request: Request, db: AsyncSession = Depends(get_db)):
@@ -1681,6 +1747,7 @@ async def assessment_api_intake(request: Request, payload: dict, db: AsyncSessio
         if isinstance(interests, list):
             interests = ", ".join(interests)
         salary_priority = payload.get("salary_priority", "").strip()
+        referral_code = payload.get("referral_code", "").strip()
         family_income = payload.get("family_income", "").strip()
         father_occupation = payload.get("father_occupation", "").strip()
         mother_occupation = payload.get("mother_occupation", "").strip()
@@ -1699,8 +1766,13 @@ async def assessment_api_intake(request: Request, payload: dict, db: AsyncSessio
         if not salary_priority or salary_priority not in ["high_salary", "balanced", "meaningful_work", "unsure"]:
             raise HTTPException(status_code=400, detail="Invalid salary priority")
             
+        if referral_code:
+            if len(referral_code) != 9 or sum(c.isalpha() for c in referral_code) != 4 or sum(c.isdigit() for c in referral_code) != 5:
+                raise HTTPException(status_code=400, detail="Invalid referral code. Must be 4 letters and 5 numbers.")
+            user.referral_code = referral_code
+            
         result.intake_name = name
-        result.intake_grade = 12
+        result.intake_grade = 10 if result.student_type == "10th" else 12
         result.intake_stream = pursuing
         result.raw_answers = {
             "name": name,
@@ -1709,13 +1781,33 @@ async def assessment_api_intake(request: Request, payload: dict, db: AsyncSessio
             "family_income": family_income,
             "father_occupation": father_occupation,
             "mother_occupation": mother_occupation,
-            "salary_priority": salary_priority
+            "salary_priority": salary_priority,
+            "referral_code": referral_code
         }
         result.intake_turn = 3
         # Always force Phase 1 (swipe cards / behavioral assessment) after intake form completion.
         result.current_phase = 1
         
         await db.commit()
+        
+        # Update referral_code in Appwrite users collection if provided
+        if referral_code:
+            try:
+                from appwrite.query import Query
+                from .appwrite_client import tables_db, DB_ID, COLLECTIONS
+                from .appwrite_helper import _parse_list_response
+                res = tables_db.list_rows(DB_ID, COLLECTIONS["users"], [Query.equal('email', user.email)])
+                _, documents = _parse_list_response(res)
+                if documents:
+                    doc = documents[0]
+                    doc_id = doc.get('$id') if isinstance(doc, dict) else getattr(doc, '$id', getattr(doc, 'id', None))
+                    if doc_id:
+                        tables_db.update_row(DB_ID, COLLECTIONS["users"], doc_id, {
+                            "referral_code": referral_code
+                        })
+            except Exception as e:
+                print(f"Appwrite Sync User Referral Error: {e}")
+
         sync_assessment_to_appwrite(user.id, result)
         
         validation_payload = {
@@ -1794,6 +1886,90 @@ async def assessment_api_archetype_confirm(request: Request, db: AsyncSession = 
     result.current_phase = 3
     await db.commit()
     return {"status": "success", "next_phase": 3}
+
+
+@app.get("/assessment/free-preview", response_class=HTMLResponse)
+async def assessment_free_preview(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    if has_assessment_all_access(user):
+        return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
+    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+    if not result or not result.phase_2_category:
+        return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
+    return templates.TemplateResponse(request=request, name="assessment_free_preview.html", context={"user": user, "preview": build_free_assessment_preview(result)})
+
+
+@app.get("/assessment/unlock", response_class=HTMLResponse)
+async def assessment_unlock_page(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    if has_assessment_all_access(user):
+        return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
+    return templates.TemplateResponse(request=request, name="assessment_unlock.html", context={"user": user, "RAZORPAY_KEY_ID": RAZORPAY_KEY_ID, "razorpay_configured": is_razorpay_configured(), "amount": ASSESSMENT_ALL_ACCESS_PRICE})
+
+
+@app.post("/assessment/unlock/create-order")
+async def assessment_unlock_create_order(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user: raise HTTPException(status_code=401, detail="Unauthorized")
+    if has_assessment_all_access(user): return {"already_unlocked": True}
+    if not is_razorpay_configured(): raise HTTPException(status_code=503, detail="Payment gateway is not configured")
+    try:
+        return get_razorpay_client().order.create({"amount": ASSESSMENT_ALL_ACCESS_PRICE * 100, "currency": "INR", "receipt": f"assessment_access_{uuid.uuid4().hex[:10]}", "payment_capture": 1})
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Could not create payment order: {exc}")
+
+
+@app.post("/assessment/unlock/verify-payment")
+async def assessment_unlock_verify_payment(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user: raise HTTPException(status_code=401, detail="Unauthorized")
+    data = await request.json()
+    order_id = data.get("razorpay_order_id")
+    payment_id = data.get("razorpay_payment_id")
+    signature = data.get("razorpay_signature")
+    if not all([order_id, payment_id, signature]):
+        raise HTTPException(status_code=400, detail="Incomplete payment details")
+
+    # Checkout may retry its success callback.  Treat a previously recorded
+    # payment as successful rather than creating a duplicate access record.
+    existing_payment = (await db.execute(
+        select(models.SimulationPayment).where(
+            models.SimulationPayment.razorpay_payment_id == payment_id
+        )
+    )).scalars().first()
+    if existing_payment:
+        if existing_payment.user_id != user.id:
+            raise HTTPException(status_code=400, detail="This payment belongs to another account")
+        return {"redirect": "/assessment"}
+
+    try:
+        client = get_razorpay_client()
+        client.utility.verify_payment_signature({
+            "razorpay_order_id": order_id,
+            "razorpay_payment_id": payment_id,
+            "razorpay_signature": signature,
+        })
+        payment = client.payment.fetch(payment_id)
+        if (
+            payment.get("order_id") != order_id
+            or payment.get("amount") != ASSESSMENT_ALL_ACCESS_PRICE * 100
+            or payment.get("currency") != "INR"
+            or payment.get("status") not in {"authorized", "captured"}
+        ):
+            raise ValueError("Payment does not match the Assessment All Access order")
+    except Exception:
+        raise HTTPException(status_code=400, detail="Payment verification failed")
+    db_user = (await db.execute(select(models.User).where(models.User.id == user.id))).scalars().first()
+    db_user.assessment_all_access = True
+    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+    if result and result.current_phase == 6: result.current_phase = 3
+    db.add(models.SimulationPayment(user_id=user.id, razorpay_order_id=order_id, razorpay_payment_id=payment_id, amount=ASSESSMENT_ALL_ACCESS_PRICE, career="Assessment All Access"))
+    await db.commit()
+    return {"redirect": "/assessment"}
 
 @app.post("/assessment/api/phase4_complete")
 async def assessment_api_phase4_complete(request: Request, payload: dict, db: AsyncSession = Depends(get_db)):
@@ -2062,17 +2238,21 @@ async def submit_phase2_mcqs(request: Request, payload: dict, db: AsyncSession =
     except Exception as e:
         print(f"Failed to calculate phase 2 score: {e}")
         
-    result.current_phase = 3
+    # Free assessment ends here with an archetype/domain preview. The mentor
+    # talk, complete results, and simulations unlock together after payment.
+    result.current_phase = 3 if has_assessment_all_access(user) else 6
     await db.commit()
     sync_assessment_to_appwrite(user.id, result)
     
-    return {"status": "success", "next_phase": 3}
+    return {"status": "success", "next_phase": result.current_phase, "redirect": "/assessment/free-preview" if result.current_phase == 6 else None}
 
 @app.post("/assessment/api/compile")
 async def assessment_api_compile(request: Request, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
+    if not has_assessment_all_access(user):
+        raise HTTPException(status_code=403, detail="Assessment All Access is required for complete results")
 
     result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
     if not result:
@@ -2239,7 +2419,13 @@ async def assessment_result(request: Request, db: AsyncSession = Depends(get_db)
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     
-    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+    try:
+        from .appwrite_helper import get_assessment_by_user_id
+        result = get_assessment_by_user_id(user.id)
+        if not result:
+            result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+    except Exception:
+        result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
     if not result:
         return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
 
@@ -2269,6 +2455,7 @@ async def assessment_result(request: Request, db: AsyncSession = Depends(get_db)
         "simulation_access": simulation_access,
         "display_archetype": display_archetype,
         "subscription_state": get_subscription_state(user),
+        "assessment_all_access": has_assessment_all_access(user),
     })
 
 def build_detailed_report_sections(user, result):
@@ -2289,12 +2476,12 @@ def build_detailed_report_sections(user, result):
 
     def para_list(items):
         clean = [str(item).strip() for item in items if str(item).strip()]
-        return clean or ["Keep validating this area through roadmap tasks, simulations, and counsellor review."]
+        return clean or ["Keep validating this area through monthly tasks, simulations, and counsellor review."]
 
     strengths = para_list(result.stream_pros or report.get("strengths") or [
         f"Shows alignment with {archetype} style decisions.",
         "Can compare options using structured evidence instead of random guessing.",
-        "Has enough assessment signal to start a guided roadmap."
+        "Has enough assessment signal to start a guided growth plan."
     ])
     growth = para_list(result.stream_cons or report.get("growth_areas") or [
         "Needs practical proof through projects, tasks, and short assessments.",
@@ -2317,7 +2504,7 @@ def build_detailed_report_sections(user, result):
         ]),
         ("Assessment Summary", [
             result.final_analysis or result.reasoning or "The assessment combines interest, decision style, scenario response, and stream fit to identify a practical direction.",
-            "The result should be used as a planning compass, then validated through roadmap tasks and simulations."
+            "The result should be used as a planning compass, then validated through monthly tasks and simulations."
         ]),
         ("Recommended Career Direction", [
             f"The strongest current recommendation is {primary_path}.",
@@ -2331,7 +2518,7 @@ def build_detailed_report_sections(user, result):
         ]),
         ("Strengths to Build On", strengths),
         ("Growth Areas", growth),
-        ("Roadmap Guidance", [
+        ("Growth Plan Guidance", [
             "Use milestones as real checkpoints, not fictional tasks.",
             "Each milestone should include a deliverable, timeline, resources, and a small MCQ-based check.",
             "A milestone is complete only when the student can explain what was done and answer the step check correctly."
@@ -2343,16 +2530,16 @@ def build_detailed_report_sections(user, result):
         ]),
         ("College and Entrance Planning", [
             "Shortlist colleges by course fit, eligibility, entrance route, location, fees, placement signal, and credibility.",
-            "Track application windows and exam dates separately from the career roadmap.",
+            "Track application windows and exam dates separately from the monthly growth plan.",
             "Use college recommendations as a starting list, then verify each college from the official website."
         ]),
         ("Tracking and AI Review", [
-            "After each roadmap step, the student should discuss evidence with the AI tracker.",
+            "After each growth task, the student should discuss evidence with the AI tracker.",
             "For the Customised plan, a weekly AI conversation keeps the plan current and catches blockers early.",
             "Progress should depend on completed work, assessment checks, and follow-up reflection."
         ]),
         ("Next 30 Days", [
-            "Week 1: choose the highest-confidence career path and open its roadmap.",
+            "Week 1: choose the highest-confidence career direction and set a growth goal.",
             "Week 2: complete the first milestone and its MCQ check.",
             "Week 3: collect resources and verify college or course requirements.",
             "Week 4: review progress with CareerBuddy or a counsellor and adjust the next milestone."
@@ -2481,6 +2668,7 @@ async def share_report(result_id: int, request: Request, mode: str = "full", db:
             parsed_trait = json.loads(dominant_trait)
             if isinstance(parsed_trait, dict):
                 # If it's a dict, classify it to get the name
+                from .pipeline.vector_utils import classify_archetype
                 dominant_trait = classify_archetype(parsed_trait)
         except (json.JSONDecodeError, TypeError):
             # If it's not JSON, it's a normal string like "Realistic". Use as is.
@@ -2511,7 +2699,13 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
     # New OAuth users must select a role first
     if not user.role:
         return RedirectResponse(url="/select-role", status_code=status.HTTP_302_FOUND)
-    
+
+    # School accounts stay in a separate tenant view.  Their analytics are
+    # derived exclusively from SchoolMembership records, never from consumer
+    # accounts that happen to exist in the wider CareStance database.
+    if user.role == "school_admin":
+        return RedirectResponse(url="/school-admin/dashboard", status_code=status.HTTP_302_FOUND)
+        
     if user.role == "counsellor":
         profile = (await db.execute(select(models.CounsellorProfile).where(models.CounsellorProfile.user_id == user.id))).scalars().first()
         # Show active/scheduled, requested, accepted, and completed appointments on dashboard
@@ -2582,6 +2776,95 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
         )).scalar() or 0
         inactive_clients = total_clients - active_clients
 
+        # Teacher-style student overview.  A counsellor is the currently
+        # available teacher role; this deliberately exposes only actionable
+        # development signals, not private assessment answers.
+        student_overview = []
+        student_by_id = {}
+        for appointment in appointments:
+            student = appointment.student
+            if student and student.id not in student_by_id:
+                student_by_id[student.id] = student
+
+        student_ids = list(student_by_id)
+        month_key = datetime.date.today().strftime("%Y-%m")
+        plan_by_student = {}
+        if student_ids:
+            plan_records = (await db.execute(
+                select(models.MonthlyGrowthPlan).where(
+                    models.MonthlyGrowthPlan.user_id.in_(student_ids),
+                    models.MonthlyGrowthPlan.month_key == month_key,
+                )
+            )).scalars().all()
+            plan_by_student = {plan.user_id: plan.plan_data or {} for plan in plan_records}
+            career_plan_records = (await db.execute(
+                select(models.CareerGrowthPlan).where(
+                    models.CareerGrowthPlan.user_id.in_(student_ids),
+                    models.CareerGrowthPlan.month_key == month_key,
+                ).order_by(models.CareerGrowthPlan.updated_at.desc(), models.CareerGrowthPlan.id.desc())
+            )).scalars().all()
+            # The latest selected career map is the active development map
+            # shown to the student, so it takes priority over the legacy plan.
+            latest_career_plan_by_student = {}
+            for plan in career_plan_records:
+                latest_career_plan_by_student.setdefault(plan.user_id, plan.plan_data or {})
+            plan_by_student.update(latest_career_plan_by_student)
+
+        from .services.monthly_plan_service import get_monthly_plan_progress
+        for student_id, student in student_by_id.items():
+            assessment = getattr(student, "assessment", None)
+            assessment_complete = bool(
+                assessment and (
+                    getattr(assessment, "assessment_report", None)
+                    or (getattr(assessment, "recommended_stream", None) and getattr(assessment, "final_analysis", None))
+                )
+            )
+            plan_data = plan_by_student.get(student_id, {})
+            roadmap_progress = get_monthly_plan_progress(plan_data)["percent"] if plan_data else 0
+            task_responses = plan_data.get("task_responses") or {} if plan_data else {}
+            completed_tasks = len(task_responses)
+            current_week_number = get_monthly_plan_progress(plan_data).get("current_week") if plan_data else None
+            current_week = next((week for week in plan_data.get("weeks", []) if week.get("week") == current_week_number), None) if current_week_number else None
+            weekly_goal = (current_week or {}).get("goal") or "Generate a roadmap to set a weekly goal"
+            weekly_goal_progress = 0
+            if current_week:
+                current_week_tasks = current_week.get("tasks") or []
+                if current_week_tasks:
+                    weekly_goal_progress = round(sum(task.get("id") in task_responses for task in current_week_tasks) / len(current_week_tasks) * 100)
+            if not assessment_complete or roadmap_progress < 25:
+                attention, attention_label = "red", "Needs attention"
+            elif roadmap_progress < 60:
+                attention, attention_label = "amber", "Check in"
+            else:
+                attention, attention_label = "green", "On track"
+            student_overview.append({
+                "id": student_id,
+                "name": student.full_name or "Student",
+                "assessment_completion": 100 if assessment_complete else 0,
+                "career_status": getattr(assessment, "recommended_stream", None) or getattr(assessment, "phase_2_category", None) or "Not started",
+                "roadmap_progress": roadmap_progress,
+                "weekly_activity": min(100, round(completed_tasks / 12 * 100)),
+                "weekly_goal": weekly_goal,
+                "weekly_goal_progress": weekly_goal_progress,
+                "last_active": getattr(student, "last_login", None),
+                "attention": attention,
+                "attention_label": attention_label,
+            })
+        student_overview.sort(key=lambda item: {"red": 0, "amber": 1, "green": 2}[item["attention"]])
+        week_start = datetime.datetime.now(datetime.timezone.utc) - timedelta(days=7)
+        def is_active_this_week(student):
+            last_login = getattr(student, "last_login", None)
+            if not last_login:
+                return False
+            if last_login.tzinfo is None:
+                last_login = last_login.replace(tzinfo=datetime.timezone.utc)
+            return last_login >= week_start
+        active_this_week = sum(is_active_this_week(student) for student in student_by_id.values())
+        assessment_complete_count = sum(item["assessment_completion"] == 100 for item in student_overview)
+        average_progress = round(sum(item["roadmap_progress"] for item in student_overview) / len(student_overview)) if student_overview else 0
+        students_needing_attention = sum(item["attention"] == "red" for item in student_overview)
+        upcoming_tasks = sum(appointment.status in {"requested", "accepted", "scheduled"} for appointment in appointments)
+
         # ⭐ Rating
         avg_rating = profile.average_rating if (profile and profile.average_rating is not None) else 5.0
 
@@ -2601,7 +2884,12 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
             "earnings_monthly": earnings_monthly,
             "active_clients": active_clients,
             "inactive_clients": max(0, inactive_clients),
-            "avg_rating": avg_rating
+            "avg_rating": avg_rating,
+            "students_active_this_week": active_this_week,
+            "assessments_completed": assessment_complete_count,
+            "average_progress": average_progress,
+            "students_needing_attention": students_needing_attention,
+            "upcoming_tasks": upcoming_tasks,
         }
 
         try:
@@ -2613,15 +2901,22 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
                 "appointments": appointments, 
                 "notifications": notifications,
                 "stats": dashboard_stats,
-                "reviews": recent_reviews
+                "reviews": recent_reviews,
+                "student_overview": student_overview,
             })
             return HTMLResponse(content=content)
         except Exception as e:
             import traceback
             return HTMLResponse(content=f"Template Error: {e}<br><pre>{traceback.format_exc()}</pre>", status_code=500)
     
-    # Fetch assessment result to show on dashboard
-    assessment = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+    # Fetch assessment result to show on dashboard (prefer Appwrite per user request)
+    try:
+        from .appwrite_helper import get_assessment_by_user_id
+        assessment = get_assessment_by_user_id(user.id)
+        if not assessment:
+            assessment = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+    except Exception:
+        assessment = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
     
     # Ensure confidence is populated if assessment exists but analysis is partial
     if assessment and (not assessment.confidence or assessment.confidence < 0.81):
@@ -2631,7 +2926,7 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
             await db.commit()
         except:
             await db.rollback()
-    
+            
     # Fetch student appointments (scheduled & completed for rating) with eager loading to prevent N+1
     appointments = (await db.execute(
         select(models.Appointment).options(
@@ -2654,6 +2949,20 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
         )
     )).scalar() or 0
     
+    # Process dominant trait
+    dominant_trait = assessment.personality if assessment else "Realistic"
+    if dominant_trait and isinstance(dominant_trait, str):
+        try:
+            parsed_trait = json.loads(dominant_trait)
+            if isinstance(parsed_trait, dict):
+                from .pipeline.vector_utils import classify_archetype
+                dominant_trait = classify_archetype(parsed_trait)
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+    if not dominant_trait or not isinstance(dominant_trait, str):
+        dominant_trait = "Realistic"
+    
     try:
         template = templates.get_template("dashboard.html")
         content = template.render({
@@ -2661,6 +2970,7 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
             "user": user, 
             "assessment": assessment,
             "display_archetype": get_assessment_display_archetype(assessment),
+            "dominant_trait": dominant_trait,
             "subscription_state": get_subscription_state(user),
             "appointments": appointments,
             "tickets": tickets,
@@ -2670,6 +2980,928 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
     except Exception as e:
         import traceback
         return HTMLResponse(content=f"Template Error: {e}<br><pre>{traceback.format_exc()}</pre>", status_code=500)
+
+
+@app.get("/school-admin/dashboard", response_class=HTMLResponse)
+async def school_admin_dashboard(request: Request, db: AsyncSession = Depends(get_db)):
+    """Institution-level, privacy-conscious progress dashboard for a school admin."""
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    if user.role != "school_admin":
+        raise HTTPException(status_code=403, detail="This dashboard is available to school administrators only")
+
+    admin_membership = (await db.execute(
+        select(models.SchoolMembership)
+        .options(selectinload(models.SchoolMembership.school))
+        .where(models.SchoolMembership.user_id == user.id, models.SchoolMembership.role == "school_admin")
+        .order_by(models.SchoolMembership.id.asc())
+    )).scalars().first()
+
+    if not admin_membership:
+        return templates.TemplateResponse(request=request, name="school_admin_dashboard.html", context={
+            "user": user, "school": None, "stats": {}, "classes": [], "career_interests": [],
+            "attention_students": [], "engagement": [], "grade_participation": [],
+        })
+
+    school = admin_membership.school
+    memberships = (await db.execute(
+        select(models.SchoolMembership)
+        .options(selectinload(models.SchoolMembership.user), selectinload(models.SchoolMembership.teacher))
+        .where(models.SchoolMembership.school_id == school.id)
+    )).scalars().all()
+    student_memberships = [m for m in memberships if m.role == "student"]
+    teacher_memberships = [m for m in memberships if m.role in {"teacher", "counsellor"}]
+    students = [m.user for m in student_memberships if m.user and not m.user.is_suspended]
+    student_ids = [student.id for student in students]
+    assessments_by_student, plans_by_student = {}, {}
+    if student_ids:
+        assessment_rows = (await db.execute(
+            select(models.AssessmentResult).where(models.AssessmentResult.user_id.in_(student_ids))
+        )).scalars().all()
+        assessments_by_student = {row.user_id: row for row in assessment_rows}
+        plan_rows = (await db.execute(
+            select(models.CareerGrowthPlan)
+            .where(models.CareerGrowthPlan.user_id.in_(student_ids))
+            .order_by(models.CareerGrowthPlan.updated_at.desc(), models.CareerGrowthPlan.id.desc())
+        )).scalars().all()
+        for plan in plan_rows:
+            plans_by_student.setdefault(plan.user_id, plan.plan_data or {})
+        legacy_rows = (await db.execute(
+            select(models.MonthlyGrowthPlan)
+            .where(models.MonthlyGrowthPlan.user_id.in_(student_ids))
+            .order_by(models.MonthlyGrowthPlan.updated_at.desc(), models.MonthlyGrowthPlan.id.desc())
+        )).scalars().all()
+        for plan in legacy_rows:
+            plans_by_student.setdefault(plan.user_id, plan.plan_data or {})
+
+    from .services.monthly_plan_service import get_monthly_plan_progress
+    now = datetime.datetime.now(datetime.timezone.utc)
+    active_cutoff = now - datetime.timedelta(days=7)
+    inactive_cutoff = now - datetime.timedelta(days=14)
+    student_rows, class_map, career_map = [], {}, {}
+    for membership in student_memberships:
+        student = membership.user
+        if not student or student.is_suspended:
+            continue
+        assessment = assessments_by_student.get(student.id)
+        plan = plans_by_student.get(student.id, {})
+        roadmap = get_monthly_plan_progress(plan)["percent"] if plan else 0
+        assessment_complete = bool(assessment and (assessment.assessment_report or assessment.recommended_stream or assessment.final_analysis))
+        last_active = student.last_login
+        if last_active and last_active.tzinfo is None:
+            last_active = last_active.replace(tzinfo=datetime.timezone.utc)
+        active = bool(last_active and last_active >= active_cutoff)
+        inactive = not last_active or last_active < inactive_cutoff
+        task_count = len(plan.get("task_responses") or {})
+        risk_reasons = []
+        if inactive: risk_reasons.append("No activity for 14 days")
+        if not assessment_complete: risk_reasons.append("Assessment incomplete")
+        if plan and roadmap < 25: risk_reasons.append("Roadmap needs momentum")
+        if task_count == 0 and plan: risk_reasons.append("No completed roadmap tasks")
+        risk_level = "high" if len(risk_reasons) >= 2 else "medium" if risk_reasons else "on_track"
+        interest = (getattr(assessment, "recommended_stream", None) or getattr(assessment, "phase_2_category", None) or "Exploring") if assessment else "Exploring"
+        grade = membership.grade or "Unassigned"
+        section = membership.section or "—"
+        class_key = (grade, section)
+        class_entry = class_map.setdefault(class_key, {"grade": grade, "section": section, "students": 0, "active": 0, "assessments": 0, "roadmap_total": 0, "attention": 0, "teacher": membership.teacher.full_name if membership.teacher else "Not assigned"})
+        class_entry["students"] += 1
+        class_entry["active"] += int(active)
+        class_entry["assessments"] += int(assessment_complete)
+        class_entry["roadmap_total"] += roadmap
+        class_entry["attention"] += int(risk_level == "high")
+        career_map[interest] = career_map.get(interest, 0) + 1
+        student_rows.append({"id": student.id, "name": student.full_name or "Student", "grade": grade, "section": section, "interest": interest, "roadmap": roadmap, "assessment_complete": assessment_complete, "last_active": last_active, "risk_level": risk_level, "risk_reasons": risk_reasons})
+
+    classes = []
+    for item in class_map.values():
+        item["assessment_rate"] = round(item["assessments"] / item["students"] * 100) if item["students"] else 0
+        item["roadmap_rate"] = round(item["roadmap_total"] / item["students"]) if item["students"] else 0
+        item["active_rate"] = round(item["active"] / item["students"] * 100) if item["students"] else 0
+        classes.append(item)
+    classes.sort(key=lambda row: (row["grade"], row["section"]))
+    grade_participation = []
+    for grade in sorted({item["grade"] for item in classes}):
+        grade_classes = [item for item in classes if item["grade"] == grade]
+        population = sum(item["students"] for item in grade_classes)
+        grade_participation.append({"grade": grade, "rate": round(sum(item["active"] for item in grade_classes) / population * 100) if population else 0, "students": population})
+
+    total_students = len(student_rows)
+    completed_assessments = sum(item["assessment_complete"] for item in student_rows)
+    active_students = sum(bool(item["last_active"] and item["last_active"] >= active_cutoff) for item in student_rows)
+    stats = {
+        "students": total_students, "teachers": len(teacher_memberships), "classes": len(classes), "active_students": active_students,
+        "assessment_completion": round(completed_assessments / total_students * 100) if total_students else 0,
+        "roadmap_completion": round(sum(item["roadmap"] for item in student_rows) / total_students) if total_students else 0,
+        "attention_count": sum(item["risk_level"] == "high" for item in student_rows),
+    }
+    career_interests = [{"name": name, "count": count, "percent": round(count / total_students * 100) if total_students else 0} for name, count in sorted(career_map.items(), key=lambda pair: pair[1], reverse=True)[:6]]
+    attention_students = sorted((row for row in student_rows if row["risk_level"] != "on_track"), key=lambda row: (row["risk_level"] != "high", row["roadmap"]))[:8]
+    engagement = [{"label": "This week", "value": stats["active_students"]}, {"label": "Assessment complete", "value": completed_assessments}, {"label": "On roadmap", "value": sum(row["roadmap"] >= 50 for row in student_rows)}]
+    return templates.TemplateResponse(request=request, name="school_admin_dashboard.html", context={
+        "user": user, "school": school, "stats": stats, "classes": classes, "career_interests": career_interests,
+        "attention_students": attention_students, "engagement": engagement, "grade_participation": grade_participation,
+    })
+
+
+@app.get("/teacher/students/{student_id}", response_class=HTMLResponse)
+async def teacher_student_detail(student_id: int, request: Request, db: AsyncSession = Depends(get_db)):
+    """Actionable development view for a counsellor's assigned student."""
+    teacher = await get_current_user(request, db)
+    if not teacher:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    if teacher.role != "counsellor":
+        raise HTTPException(status_code=403, detail="This view is available to teachers only")
+
+    assigned = (await db.execute(
+        select(models.Appointment.id).where(
+            models.Appointment.counsellor_id == teacher.id,
+            models.Appointment.student_id == student_id,
+        ).limit(1)
+    )).scalar()
+    if not assigned:
+        raise HTTPException(status_code=404, detail="Student is not assigned to you")
+
+    student = (await db.execute(
+        select(models.User).where(models.User.id == student_id)
+    )).scalars().first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    assessment = (await db.execute(
+        select(models.AssessmentResult).where(models.AssessmentResult.user_id == student_id)
+    )).scalars().first()
+    month_key = datetime.date.today().strftime("%Y-%m")
+    plan_record = (await db.execute(
+        select(models.CareerGrowthPlan).where(
+            models.CareerGrowthPlan.user_id == student_id,
+            models.CareerGrowthPlan.month_key == month_key,
+        ).order_by(models.CareerGrowthPlan.updated_at.desc(), models.CareerGrowthPlan.id.desc())
+    )).scalars().first()
+    if not plan_record:
+        plan_record = (await db.execute(
+            select(models.MonthlyGrowthPlan).where(
+                models.MonthlyGrowthPlan.user_id == student_id,
+                models.MonthlyGrowthPlan.month_key == month_key,
+            )
+        )).scalars().first()
+
+    from .services.monthly_plan_service import get_monthly_plan_progress
+    plan = plan_record.plan_data if plan_record else {}
+    progress = get_monthly_plan_progress(plan)
+    task_responses = plan.get("task_responses") or {}
+    completed_tasks = len(task_responses)
+    total_tasks = sum(len(week.get("tasks") or []) for week in plan.get("weeks") or [])
+    completed_task_items, pending_task_items = [], []
+    for week in plan.get("weeks") or []:
+        for task in week.get("tasks") or []:
+            item = {"week": week.get("week"), "week_title": week.get("title"), "text": task.get("text"), "response": task_responses.get(task.get("id"))}
+            (completed_task_items if item["response"] else pending_task_items).append(item)
+
+    # Only development-level assessment data is extracted. Raw answers and
+    # personal contact data must never enter this teacher-facing context.
+    assessment_scores = []
+    if assessment and isinstance(assessment.stream_scores, dict):
+        assessment_scores = [
+            {"label": str(label), "score": score}
+            for label, score in assessment.stream_scores.items()
+            if isinstance(score, (int, float))
+        ]
+        assessment_scores.sort(key=lambda item: item["score"], reverse=True)
+    skill_gaps = []
+    if assessment and isinstance(assessment.simulation_evaluation, dict):
+        skill_gaps = assessment.simulation_evaluation.get("improvement_areas") or []
+    if not skill_gaps and assessment and isinstance(assessment.assessment_report, dict):
+        for key in ("skill_gaps", "skills_to_develop", "development_areas"):
+            candidate = assessment.assessment_report.get(key)
+            if isinstance(candidate, list):
+                skill_gaps = candidate
+                break
+    skill_gaps = [str(item) for item in skill_gaps if item][:5]
+
+    student_appointments = (await db.execute(
+        select(models.Appointment).where(
+            models.Appointment.counsellor_id == teacher.id,
+            models.Appointment.student_id == student_id,
+        ).order_by(models.Appointment.appointment_time.desc())
+    )).scalars().all()
+    notes = (await db.execute(
+        select(models.TeacherStudentNote).where(
+            models.TeacherStudentNote.teacher_id == teacher.id,
+            models.TeacherStudentNote.student_id == student_id,
+        ).order_by(models.TeacherStudentNote.created_at.desc()).limit(20)
+    )).scalars().all()
+
+    timeline = []
+    if student.created_at:
+        timeline.append({"date": student.created_at, "title": "Student joined CareStance", "detail": "Development profile created."})
+    if assessment and student.last_login:
+        timeline.append({"date": student.last_login, "title": "Assessment activity available", "detail": "Career exploration signals are available for review."})
+    if plan_record:
+        timeline.append({"date": plan_record.updated_at or plan_record.created_at, "title": "Growth roadmap updated", "detail": f"{progress['percent']}% of the current roadmap is complete."})
+    for task in completed_task_items:
+        response = task.get("response") or {}
+        completed_on = response.get("completed_on") if isinstance(response, dict) else None
+        if completed_on:
+            timeline.append({"date": completed_on, "title": f"Completed Week {task['week']} task", "detail": task["text"]})
+    for appointment in student_appointments:
+        timeline.append({"date": appointment.appointment_time, "title": f"Session {appointment.status}", "detail": "Counsellor session activity recorded."})
+    for note in notes:
+        timeline.append({"date": note.created_at, "title": "Teacher note added", "detail": "Private follow-up note recorded."})
+    def timeline_sort_value(entry):
+        value = entry["date"]
+        if isinstance(value, str):
+            try:
+                return datetime.datetime.fromisoformat(value)
+            except ValueError:
+                return datetime.datetime.min
+        if isinstance(value, datetime.datetime):
+            return value.replace(tzinfo=None) if value.tzinfo else value
+        return datetime.datetime.min
+    timeline.sort(key=timeline_sort_value, reverse=True)
+
+    return templates.TemplateResponse(request=request, name="teacher_student_detail.html", context={
+        "teacher": teacher,
+        "student": student,
+        "assessment": assessment,
+        "plan": plan,
+        "progress": progress,
+        "completed_tasks": completed_tasks,
+        "total_tasks": total_tasks,
+        "completed_task_items": completed_task_items,
+        "pending_task_items": pending_task_items,
+        "assessment_scores": assessment_scores,
+        "skill_gaps": skill_gaps,
+        "timeline": timeline[:12],
+        "student_appointments": student_appointments,
+        "notes": notes,
+    })
+
+
+@app.post("/teacher/students/{student_id}/notes")
+async def add_teacher_student_note(student_id: int, request: Request, content: str = Form(...), db: AsyncSession = Depends(get_db)):
+    teacher = await get_current_user(request, db)
+    if not teacher:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    if teacher.role != "counsellor":
+        raise HTTPException(status_code=403, detail="This action is available to teachers only")
+    content = content.strip()
+    if not 2 <= len(content) <= 1200:
+        raise HTTPException(status_code=400, detail="Write a note between 2 and 1200 characters")
+    assigned = (await db.execute(
+        select(models.Appointment.id).where(
+            models.Appointment.counsellor_id == teacher.id,
+            models.Appointment.student_id == student_id,
+        ).limit(1)
+    )).scalar()
+    if not assigned:
+        raise HTTPException(status_code=404, detail="Student is not assigned to you")
+    db.add(models.TeacherStudentNote(teacher_id=teacher.id, student_id=student_id, content=content))
+    await db.commit()
+    return RedirectResponse(url=f"/teacher/students/{student_id}", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@app.get("/my-growth-profile", response_class=HTMLResponse)
+async def my_growth_profile(request: Request, db: AsyncSession = Depends(get_db)):
+    """Private foundation for the student's monthly growth journey."""
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    if user.role not in ["student", "admin"]:
+        raise HTTPException(status_code=403, detail="This page is only available to students and admins")
+
+    assessment = (await db.execute(
+        select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id)
+    )).scalars().first()
+    from .services.growth_profile_service import build_growth_profile
+
+    return templates.TemplateResponse(request=request, name="my_growth_profile.html", context={
+        "user": user,
+        "assessment": assessment,
+        "growth_profile": build_growth_profile(assessment),
+    })
+
+
+async def _get_monthly_plan(user, db: AsyncSession, career_title: str | None = None):
+    """Load a monthly plan, with a separate saved map for each selected career."""
+    from .services.growth_profile_service import build_growth_profile
+    from .services.monthly_plan_service import build_monthly_plan
+
+    assessment = (await db.execute(
+        select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id)
+    )).scalars().first()
+    growth_profile = build_growth_profile(assessment)
+    month_key = datetime.date.today().strftime("%Y-%m")
+    career_title = career_title.strip() if isinstance(career_title, str) else ""
+    if career_title:
+        allowed_careers = {item.get("title") for item in growth_profile.get("career_directions", []) if isinstance(item, dict)}
+        if career_title not in allowed_careers:
+            raise HTTPException(status_code=404, detail="Select a career from your recommended career paths")
+        plan_record = (await db.execute(
+            select(models.CareerGrowthPlan).where(
+                models.CareerGrowthPlan.user_id == user.id,
+                models.CareerGrowthPlan.month_key == month_key,
+                models.CareerGrowthPlan.career_title == career_title,
+            )
+        )).scalars().first()
+        if plan_record is None and growth_profile["is_ready"]:
+            plan_data = build_monthly_plan(growth_profile, month_key, career_title=career_title)
+            plan_record = models.CareerGrowthPlan(
+                user_id=user.id, month_key=month_key, career_title=career_title,
+                milestone=plan_data["milestone"], plan_data=plan_data,
+            )
+            db.add(plan_record)
+            await db.commit()
+        elif plan_record and (plan_record.plan_data or {}).get("template_version", 1) < 4:
+            # Version 4 gives every selected career explicit assigned skills,
+            # resources, and practical deliverables. Preserve student progress.
+            existing_data = plan_record.plan_data or {}
+            plan_data = build_monthly_plan(growth_profile, month_key, career_title=career_title)
+            for key in (
+                "completed_week_numbers", "completed_task_ids", "task_responses",
+                "evidence_locker", "career_experiments", "decision_checkpoint",
+                "previous_month_summary",
+            ):
+                if key in existing_data:
+                    plan_data[key] = existing_data[key]
+            plan_record.milestone = plan_data["milestone"]
+            plan_record.plan_data = plan_data
+            await db.commit()
+        return growth_profile, (plan_record.plan_data if plan_record else None)
+
+    plan_record = (await db.execute(
+        select(models.MonthlyGrowthPlan).where(
+            models.MonthlyGrowthPlan.user_id == user.id,
+            models.MonthlyGrowthPlan.month_key == month_key,
+        )
+    )).scalars().first()
+
+    if growth_profile["is_ready"] and plan_record is None:
+        previous_record = (await db.execute(
+            select(models.MonthlyGrowthPlan)
+            .where(models.MonthlyGrowthPlan.user_id == user.id, models.MonthlyGrowthPlan.month_key < month_key)
+            .order_by(models.MonthlyGrowthPlan.month_key.desc())
+            .limit(1)
+        )).scalars().first()
+        previous_summary = None
+        if previous_record and isinstance(previous_record.plan_data, dict):
+            previous_review = previous_record.plan_data.get("month_end_review") or {}
+            previous_summary = previous_review.get("summary")
+        plan_data = build_monthly_plan(growth_profile, month_key, previous_summary)
+        if plan_record is None:
+            plan_record = models.MonthlyGrowthPlan(
+                user_id=user.id,
+                month_key=month_key,
+                milestone=plan_data["milestone"],
+                plan_data=plan_data,
+            )
+            db.add(plan_record)
+        await db.commit()
+        await db.refresh(plan_record)
+
+    if plan_record:
+        from .services.monthly_plan_service import ensure_monthly_plan_structure
+        normalised_plan, changed = ensure_monthly_plan_structure(plan_record.plan_data)
+        if changed:
+            plan_record.plan_data = normalised_plan
+            await db.commit()
+        return growth_profile, normalised_plan
+    return growth_profile, None
+
+
+async def _generate_monthly_growth_plans_for_all_students() -> None:
+    """Create the current calendar month's plan for every eligible student."""
+    async with AsyncSessionLocal() as db:
+        students = (await db.execute(
+            select(models.User).where(models.User.role == "student")
+        )).scalars().all()
+        for student in students:
+            try:
+                await _get_monthly_plan(student, db)
+            except Exception as exc:
+                await db.rollback()
+                print(f"Growth-plan generation skipped for user {student.id}: {exc}")
+
+
+async def _monthly_growth_plan_loop(stop_event: asyncio.Event) -> None:
+    """Generate plans on startup and re-check hourly for a new calendar month."""
+    last_processed_month = None
+    while not stop_event.is_set():
+        current_month = datetime.date.today().strftime("%Y-%m")
+        if current_month != last_processed_month:
+            try:
+                await _generate_monthly_growth_plans_for_all_students()
+                last_processed_month = current_month
+                print(f"Growth plans generated for {current_month}.")
+            except Exception as exc:
+                print(f"Growth-plan scheduler error: {exc}")
+        try:
+            await asyncio.wait_for(stop_event.wait(), timeout=60 * 60)
+        except asyncio.TimeoutError:
+            continue
+
+
+@app.get("/my-monthly-path", response_class=HTMLResponse)
+async def my_monthly_path(request: Request, career: str = "", db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    if user.role not in ["student", "admin"]:
+        raise HTTPException(status_code=403, detail="This page is only available to students and admins")
+
+    from .services.monthly_plan_service import (
+        build_monthly_growth_report,
+        build_weekend_quiz,
+        get_encouragement_message,
+        get_growth_momentum,
+        get_monthly_cycle_status,
+        get_monthly_plan_progress,
+        get_week_task_states,
+    )
+    growth_profile, plan = await _get_monthly_plan(user, db, career)
+    progress = get_monthly_plan_progress(plan)
+    return templates.TemplateResponse(request=request, name="monthly_path.html", context={
+        "user": user,
+        "growth_profile": growth_profile,
+        "plan": plan,
+        "progress": progress,
+        "current_task_states": get_week_task_states(plan or {}, progress["current_week"] or 1),
+        "cycle": get_monthly_cycle_status(plan),
+        "weekend_quiz": build_weekend_quiz(plan or {}),
+        "encouragement_message": get_encouragement_message(plan or {}),
+        "growth_report": build_monthly_growth_report(plan or {}),
+        "growth_momentum": get_growth_momentum(plan or {}),
+    })
+
+
+@app.post("/my-monthly-path/evidence")
+async def add_growth_evidence(
+    request: Request, title: str = Form(...), detail: str = Form(...), link: str = Form(""), db: AsyncSession = Depends(get_db)
+):
+    """Save optional student-owned proof alongside the automatically saved task evidence."""
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    if user.role not in ["student", "admin"]:
+        raise HTTPException(status_code=403, detail="This action is only available to students and admins")
+    title, detail, link = title.strip(), detail.strip(), link.strip()
+    if not 2 <= len(title) <= 100 or not 5 <= len(detail) <= 800 or len(link) > 500:
+        raise HTTPException(status_code=400, detail="Please add a short title and a useful description for your evidence")
+    plan_record = await _get_current_monthly_plan_record(user, db, request.query_params.get("career", ""))
+    plan_data = dict(plan_record.plan_data or {})
+    evidence = list(plan_data.get("evidence_locker") or [])
+    evidence.append({"title": title, "detail": detail, "link": link, "date": datetime.date.today().isoformat()})
+    plan_data["evidence_locker"] = evidence[-20:]
+    plan_record.plan_data = plan_data
+    await db.commit()
+    return RedirectResponse(url=_monthly_path_url("/my-monthly-path", request), status_code=status.HTTP_303_SEE_OTHER)
+
+
+@app.post("/my-monthly-path/experiment/{experiment_id}")
+async def complete_career_experiment(experiment_id: str, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    if user.role not in ["student", "admin"]:
+        raise HTTPException(status_code=403, detail="This action is only available to students and admins")
+    plan_record = await _get_current_monthly_plan_record(user, db, request.query_params.get("career", ""))
+    # Make an independent JSON value. A shallow copy shares nested experiment
+    # dictionaries with SQLAlchemy's existing JSON value, which can prevent the
+    # ORM from detecting the update and persisting it.
+    import copy
+    plan_data = copy.deepcopy(plan_record.plan_data or {})
+    experiments = plan_data.get("career_experiments") or []
+    experiment = next((item for item in experiments if item.get("id") == experiment_id), None)
+    if not experiment:
+        raise HTTPException(status_code=404, detail="Career experiment not found")
+    experiment["completed_on"] = datetime.date.today().isoformat()
+    experiment["completed"] = True
+    plan_data["career_experiments"] = experiments
+    plan_record.plan_data = plan_data
+    await db.commit()
+    return RedirectResponse(url=_monthly_path_url("/my-monthly-path", request), status_code=status.HTTP_303_SEE_OTHER)
+
+
+@app.post("/my-monthly-path/decision-checkpoint")
+async def save_decision_checkpoint(
+    request: Request, direction: str = Form(...), note: str = Form(""), db: AsyncSession = Depends(get_db)
+):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    if user.role not in ["student", "admin"]:
+        raise HTTPException(status_code=403, detail="This action is only available to students and admins")
+    allowed = {"explore_more", "continue", "compare"}
+    if direction not in allowed or len(note.strip()) > 600:
+        raise HTTPException(status_code=400, detail="Please choose a valid checkpoint response")
+    plan_record = await _get_current_monthly_plan_record(user, db, request.query_params.get("career", ""))
+    plan_data = dict(plan_record.plan_data or {})
+    plan_data["decision_checkpoint"] = {"direction": direction, "note": note.strip(), "date": datetime.date.today().isoformat()}
+    plan_record.plan_data = plan_data
+    await db.commit()
+    return RedirectResponse(url=_monthly_path_url("/my-monthly-path", request), status_code=status.HTTP_303_SEE_OTHER)
+
+
+@app.post("/my-monthly-path/week/{week_number}/toggle")
+async def toggle_monthly_path_week(week_number: int, request: Request, db: AsyncSession = Depends(get_db)):
+    """Persist completion of a single weekly action for the signed-in student."""
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    if user.role not in ["student", "admin"]:
+        raise HTTPException(status_code=403, detail="This action is only available to students and admins")
+    if week_number not in range(1, 5):
+        raise HTTPException(status_code=404, detail="Weekly action not found")
+
+    plan_record = await _get_current_monthly_plan_record(user, db, request.query_params.get("career", ""))
+    if not plan_record:
+        raise HTTPException(status_code=404, detail="Monthly path not found")
+
+    plan_data = dict(plan_record.plan_data or {})
+    completed_weeks = {
+        week for week in plan_data.get("completed_week_numbers", [])
+        if isinstance(week, int) and 1 <= week <= 4
+    }
+    if week_number in completed_weeks:
+        completed_weeks.remove(week_number)
+    else:
+        completed_weeks.add(week_number)
+    plan_data["completed_week_numbers"] = sorted(completed_weeks)
+    plan_record.plan_data = plan_data
+    await db.commit()
+    return RedirectResponse(url=_monthly_path_url("/my-monthly-path", request), status_code=status.HTTP_303_SEE_OTHER)
+
+
+@app.post("/my-monthly-path/week/{week_number}/task/{task_id}/toggle")
+async def toggle_monthly_path_task(
+    week_number: int, task_id: str, request: Request, response: str = Form(...), db: AsyncSession = Depends(get_db)
+):
+    """Save evidence for the next unlocked task in the current week."""
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    if user.role not in ["student", "admin"]:
+        raise HTTPException(status_code=403, detail="This action is only available to students and admins")
+    if week_number not in range(1, 5):
+        raise HTTPException(status_code=404, detail="Weekly task not found")
+
+    response = response.strip()
+    if len(response) < 10 or len(response) > 1500:
+        raise HTTPException(status_code=400, detail="Please write a response between 10 and 1500 characters")
+
+    from .services.monthly_plan_service import (
+        ensure_monthly_plan_structure,
+        get_monthly_plan_progress,
+        get_week_task_states,
+    )
+    plan_record = await _get_current_monthly_plan_record(user, db, request.query_params.get("career", ""))
+    plan_data, _ = ensure_monthly_plan_structure(plan_record.plan_data)
+    progress = get_monthly_plan_progress(plan_data)
+    if progress["current_week"] != week_number:
+        raise HTTPException(status_code=403, detail="Complete the current week before unlocking this week")
+    selected_week = next((week for week in plan_data.get("weeks", []) if week.get("week") == week_number), None)
+    if not selected_week or task_id not in {task.get("id") for task in selected_week.get("tasks", [])}:
+        raise HTTPException(status_code=404, detail="Weekly task not found")
+
+    open_task = next((task for task in get_week_task_states(plan_data, week_number) if task["is_open"]), None)
+    if not open_task or open_task["id"] != task_id:
+        raise HTTPException(status_code=403, detail="Complete the current subtask before unlocking the next one")
+
+    task_responses = dict(plan_data.get("task_responses") or {})
+    task_responses[task_id] = {
+        "text": response,
+        "completed_on": datetime.date.today().isoformat(),
+    }
+    plan_data["task_responses"] = task_responses
+    plan_record.plan_data = plan_data
+    await db.commit()
+    return RedirectResponse(url=_monthly_path_url(f"/my-monthly-path/week/{week_number}", request), status_code=status.HTTP_303_SEE_OTHER)
+
+
+@app.get("/my-monthly-path/week/{week_number}", response_class=HTMLResponse)
+async def monthly_path_week(week_number: int, request: Request, db: AsyncSession = Depends(get_db)):
+    """Dedicated workspace for the student's current unlocked week."""
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    if user.role not in ["student", "admin"]:
+        raise HTTPException(status_code=403, detail="This page is only available to students and admins")
+    if week_number not in range(1, 5):
+        raise HTTPException(status_code=404, detail="Week not found")
+
+    from .services.monthly_plan_service import (
+        build_weekend_quiz,
+        get_monthly_cycle_status,
+        get_monthly_plan_progress,
+        get_week_task_states,
+    )
+    career = request.query_params.get("career", "")
+    growth_profile, plan = await _get_monthly_plan(user, db, career)
+    if not growth_profile["is_ready"] or not plan:
+        return RedirectResponse(url=_monthly_path_url("/my-monthly-path", request), status_code=status.HTTP_303_SEE_OTHER)
+    progress = get_monthly_plan_progress(plan)
+    if week_number != progress["current_week"] and week_number not in progress["completed_week_numbers"]:
+        raise HTTPException(status_code=403, detail="Complete the earlier week before opening this workspace")
+    week = next((item for item in plan.get("weeks", []) if item.get("week") == week_number), None)
+    if not week:
+        raise HTTPException(status_code=404, detail="Week not found")
+    cycle = get_monthly_cycle_status(plan, week_number=week_number)
+    return templates.TemplateResponse(request=request, name="monthly_week.html", context={
+        "user": user,
+        "plan": plan,
+        "career": career,
+        "week": week,
+        "progress": progress,
+        "task_states": get_week_task_states(plan, week_number),
+        "cycle": cycle,
+        "weekend_quiz": build_weekend_quiz(plan),
+    })
+
+
+async def _get_current_monthly_plan_record(user, db: AsyncSession, career_title: str | None = None):
+    month_key = datetime.date.today().strftime("%Y-%m")
+    career_title = career_title.strip() if isinstance(career_title, str) else ""
+    if career_title:
+        career_plan = (await db.execute(
+            select(models.CareerGrowthPlan).where(
+                models.CareerGrowthPlan.user_id == user.id,
+                models.CareerGrowthPlan.month_key == month_key,
+                models.CareerGrowthPlan.career_title == career_title,
+            )
+        )).scalars().first()
+        if not career_plan:
+            raise HTTPException(status_code=404, detail="Career-specific monthly path not found")
+        return career_plan
+    plan_record = (await db.execute(
+        select(models.MonthlyGrowthPlan).where(
+            models.MonthlyGrowthPlan.user_id == user.id,
+            models.MonthlyGrowthPlan.month_key == month_key,
+        )
+    )).scalars().first()
+    if not plan_record:
+        raise HTTPException(status_code=404, detail="Monthly path not found")
+    return plan_record
+
+
+def _monthly_path_url(path: str, request: Request) -> str:
+    """Carry the selected career through every Growth Map action and redirect."""
+    career = request.query_params.get("career", "").strip()
+    return f"{path}?career={quote(career, safe='')}" if career else path
+
+
+WEEKLY_CONVERSATION_MIN_SECONDS = 3 * 60
+WEEKLY_CONVERSATION_MAX_SECONDS = 4 * 60
+
+
+def _conversation_elapsed_seconds(conversation: dict) -> int:
+    try:
+        started_at = datetime.datetime.fromisoformat(conversation["started_at"])
+        if started_at.tzinfo is None:
+            started_at = started_at.replace(tzinfo=datetime.timezone.utc)
+        return max(0, int((datetime.datetime.now(datetime.timezone.utc) - started_at).total_seconds()))
+    except (KeyError, TypeError, ValueError):
+        return WEEKLY_CONVERSATION_MAX_SECONDS
+
+
+def _weekly_conversation_opening(plan: dict, week_number: int) -> str:
+    skill = plan.get("focus_skill", "your focus skill")
+    return (
+        f"Welcome to your Week {week_number} growth conversation. We will focus on {skill.lower()}. "
+        "Tell me what you tried this week, what felt difficult, and one result you are proud of."
+    )
+
+
+@app.get("/my-monthly-path/week/{week_number}/conversation", response_class=HTMLResponse)
+async def weekly_growth_conversation(week_number: int, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    if user.role != "student":
+        raise HTTPException(status_code=403, detail="This page is only available to students")
+    if week_number not in range(1, 5):
+        raise HTTPException(status_code=404, detail="Week not found")
+
+    from .services.monthly_plan_service import get_monthly_plan_progress
+    plan_record = await _get_current_monthly_plan_record(user, db, request.query_params.get("career", ""))
+    plan_data = dict(plan_record.plan_data or {})
+    if get_monthly_plan_progress(plan_data)["current_week"] != week_number:
+        raise HTTPException(status_code=403, detail="The weekly conversation is available only for the current week")
+
+    conversations = list(plan_data.get("weekly_conversations", []))
+    conversation = next((item for item in reversed(conversations) if item.get("week") == week_number), None)
+    if conversation is None:
+        now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        conversation = {
+            "week": week_number,
+            "started_at": now,
+            "messages": [{"role": "assistant", "content": _weekly_conversation_opening(plan_data, week_number), "timestamp": now}],
+        }
+        conversations.append(conversation)
+        plan_data["weekly_conversations"] = conversations[-8:]
+        plan_record.plan_data = plan_data
+        await db.commit()
+    elapsed_seconds = _conversation_elapsed_seconds(conversation)
+    return templates.TemplateResponse(request=request, name="monthly_conversation.html", context={
+        "user": user,
+        "career": request.query_params.get("career", ""),
+        "week_number": week_number,
+        "conversation": conversation,
+        "remaining_seconds": max(0, WEEKLY_CONVERSATION_MAX_SECONDS - elapsed_seconds),
+        "minimum_remaining_seconds": max(0, WEEKLY_CONVERSATION_MIN_SECONDS - elapsed_seconds),
+    })
+
+
+@app.post("/my-monthly-path/week/{week_number}/conversation/message")
+async def weekly_growth_conversation_message(week_number: int, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    if user.role != "student" or week_number not in range(1, 5):
+        raise HTTPException(status_code=403, detail="This conversation is not available")
+    try:
+        message = str((await request.json()).get("message", "")).strip()
+    except (TypeError, ValueError):
+        message = ""
+    if not 1 <= len(message) <= 1200:
+        raise HTTPException(status_code=400, detail="Write a message between 1 and 1200 characters")
+
+    from .services.monthly_plan_service import get_monthly_plan_progress
+    plan_record = await _get_current_monthly_plan_record(user, db, request.query_params.get("career", ""))
+    plan_data = dict(plan_record.plan_data or {})
+    if get_monthly_plan_progress(plan_data)["current_week"] != week_number:
+        raise HTTPException(status_code=403, detail="The weekly conversation is available only for the current week")
+    conversations = list(plan_data.get("weekly_conversations", []))
+    conversation = next((item for item in reversed(conversations) if item.get("week") == week_number), None)
+    if not conversation or conversation.get("completed_at"):
+        raise HTTPException(status_code=400, detail="Start a new weekly conversation first")
+    if _conversation_elapsed_seconds(conversation) >= WEEKLY_CONVERSATION_MAX_SECONDS:
+        raise HTTPException(status_code=403, detail="This four-minute conversation has ended")
+
+    messages = list(conversation.get("messages", []))
+    now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    messages.append({"role": "user", "content": message, "timestamp": now})
+    history = "\n".join(f"{item.get('role', 'student')}: {item.get('content', '')}" for item in messages[-8:])
+    prompt = f"""
+You are CareStance, a supportive weekly growth coach. Hold a short, natural back-and-forth conversation with a student.
+This is Week {week_number} of their monthly plan, focused on: {plan_data.get('focus_skill', 'career growth')}.
+Conversation so far:
+{history}
+
+Reply in 70 words or fewer. Ask one helpful follow-up question or offer one concrete suggestion. Do not end the session yet.
+"""
+    try:
+        ai_reply = await generate_content_with_fallback(prompt)
+    except Exception:
+        ai_reply = "That is a useful observation. What is one small action you can take before your next practice session?"
+    messages.append({"role": "assistant", "content": ai_reply.strip(), "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat()})
+    conversation["messages"] = messages[-16:]
+    plan_data["weekly_conversations"] = conversations[-8:]
+    plan_record.plan_data = plan_data
+    await db.commit()
+    return {"response": ai_reply, "remaining_seconds": max(0, WEEKLY_CONVERSATION_MAX_SECONDS - _conversation_elapsed_seconds(conversation))}
+
+
+@app.post("/my-monthly-path/week/{week_number}/conversation/complete")
+async def complete_weekly_growth_conversation(week_number: int, request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    from .services.monthly_plan_service import get_monthly_plan_progress
+    plan_record = await _get_current_monthly_plan_record(user, db, request.query_params.get("career", ""))
+    plan_data = dict(plan_record.plan_data or {})
+    if user.role != "student" or get_monthly_plan_progress(plan_data)["current_week"] != week_number:
+        raise HTTPException(status_code=403, detail="This conversation is not available")
+    conversations = list(plan_data.get("weekly_conversations", []))
+    conversation = next((item for item in reversed(conversations) if item.get("week") == week_number), None)
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Weekly conversation not found")
+    if _conversation_elapsed_seconds(conversation) < WEEKLY_CONVERSATION_MIN_SECONDS:
+        raise HTTPException(status_code=400, detail="Continue for at least three minutes before completing the conversation")
+    conversation["completed_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    plan_data["weekly_conversations"] = conversations[-8:]
+    plan_record.plan_data = plan_data
+    await db.commit()
+    return {"redirect": _monthly_path_url(f"/my-monthly-path/week/{week_number}", request)}
+
+
+@app.post("/my-monthly-path/check-in")
+async def submit_monthly_checkin(
+    request: Request, message: str = Form(...), return_week: int = Form(0), db: AsyncSession = Depends(get_db)
+):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    if user.role not in ["student", "admin"]:
+        raise HTTPException(status_code=403, detail="This action is only available to students and admins")
+    message = message.strip()
+    if not message or len(message) > 1500:
+        raise HTTPException(status_code=400, detail="Please write an update between 1 and 1500 characters")
+
+    from .services.monthly_plan_service import build_weekly_reflection_response
+    plan_record = await _get_current_monthly_plan_record(user, db, request.query_params.get("career", ""))
+    plan_data = dict(plan_record.plan_data or {})
+    from .services.monthly_plan_service import get_monthly_plan_progress
+    current_week = get_monthly_plan_progress(plan_data)["current_week"]
+    selected_week = return_week or current_week
+    if selected_week not in range(1, 5) or selected_week != current_week:
+        raise HTTPException(status_code=403, detail="Weekly reflections can only be submitted for the current week")
+    checkins = list(plan_data.get("weekly_checkins", []))
+    checkins.append({
+        "date": datetime.date.today().isoformat(),
+        "week": selected_week,
+        "message": message,
+        "response": build_weekly_reflection_response(plan_data, message),
+    })
+    plan_data["weekly_checkins"] = checkins[-8:]
+    plan_record.plan_data = plan_data
+    await db.commit()
+    destination = _monthly_path_url(f"/my-monthly-path/week/{selected_week}", request)
+    return RedirectResponse(url=destination, status_code=status.HTTP_303_SEE_OTHER)
+
+
+@app.post("/my-monthly-path/encouragement/read")
+async def acknowledge_monthly_encouragement(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    if user.role not in ["student", "admin"]:
+        raise HTTPException(status_code=403, detail="This action is only available to students and admins")
+    plan_record = await _get_current_monthly_plan_record(user, db, request.query_params.get("career", ""))
+    plan_data = dict(plan_record.plan_data or {})
+    plan_data["last_encouragement_seen_on"] = datetime.date.today().isoformat()
+    plan_record.plan_data = plan_data
+    await db.commit()
+    return RedirectResponse(url=_monthly_path_url("/my-monthly-path", request), status_code=status.HTTP_303_SEE_OTHER)
+
+
+@app.post("/my-monthly-path/weekend-quiz")
+async def submit_monthly_weekend_quiz(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    if user.role not in ["student", "admin"]:
+        raise HTTPException(status_code=403, detail="This action is only available to students and admins")
+    form_data = await request.form()
+    plan_record = await _get_current_monthly_plan_record(user, db, request.query_params.get("career", ""))
+    plan_data = dict(plan_record.plan_data or {})
+    from .services.monthly_plan_service import build_weekend_quiz
+    from .services.monthly_plan_service import get_monthly_plan_progress
+    progress = get_monthly_plan_progress(plan_data)
+    current_week = progress["current_week"]
+    try:
+        return_week = int(form_data.get("return_week", 0))
+    except (TypeError, ValueError):
+        return_week = 0
+    selected_week = return_week or current_week
+    if selected_week not in range(1, 5) or selected_week != current_week:
+        raise HTTPException(status_code=403, detail="Progress checks can only be submitted for the current week")
+    questions = build_weekend_quiz(plan_data)
+    answers = []
+    for index, question in enumerate(questions):
+        try:
+            answer = int(form_data.get(f"answer_{index}", ""))
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=400, detail="Please answer all five questions")
+        if answer not in range(len(question["options"])):
+            raise HTTPException(status_code=400, detail="Please answer all five questions")
+        answers.append(answer)
+    score = sum(answer == question["correct_index"] for answer, question in zip(answers, questions))
+    quizzes = list(plan_data.get("weekend_quizzes", []))
+    quizzes.append({"date": datetime.date.today().isoformat(), "week": selected_week, "score": score, "total": len(questions)})
+    plan_data["weekend_quizzes"] = quizzes[-8:]
+    plan_record.plan_data = plan_data
+    await db.commit()
+    destination = _monthly_path_url(f"/my-monthly-path/week/{selected_week}", request)
+    return RedirectResponse(url=destination, status_code=status.HTTP_303_SEE_OTHER)
+
+
+@app.post("/my-monthly-path/month-end-review")
+async def submit_month_end_review(
+    request: Request, reflection: str = Form(...), db: AsyncSession = Depends(get_db)
+):
+    user = await get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    if user.role not in ["student", "admin"]:
+        raise HTTPException(status_code=403, detail="This action is only available to students and admins")
+    reflection = reflection.strip()
+    if not reflection or len(reflection) > 1500:
+        raise HTTPException(status_code=400, detail="Please write a reflection between 1 and 1500 characters")
+    from .services.monthly_plan_service import build_month_end_summary
+    plan_record = await _get_current_monthly_plan_record(user, db, request.query_params.get("career", ""))
+    plan_data = dict(plan_record.plan_data or {})
+    from .services.monthly_plan_service import get_monthly_plan_progress
+    if get_monthly_plan_progress(plan_data)["percent"] < 100:
+        raise HTTPException(status_code=403, detail="Complete all four weeks before submitting the month-end review")
+    plan_data["month_end_review"] = {
+        "date": datetime.date.today().isoformat(),
+        "reflection": reflection,
+        "summary": build_month_end_summary(plan_data, reflection),
+    }
+    plan_record.plan_data = plan_data
+    await db.commit()
+    return RedirectResponse(url=_monthly_path_url("/my-monthly-path", request), status_code=status.HTTP_303_SEE_OTHER)
+
 
 @app.get("/admin", response_class=HTMLResponse)
 async def admin_dashboard(
@@ -4087,7 +5319,6 @@ async def reject_appointment(appt_id: int, request: Request, background_tasks: B
 
     return RedirectResponse(url="/dashboard?message=Appointment+rejected", status_code=status.HTTP_302_FOUND)
 
-@app.post("/career/roadmap/delete/{path_id}")
 async def delete_roadmap(path_id: int, request: Request, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
     if not user:
@@ -4111,6 +5342,8 @@ async def assessment_phase3(request: Request, mode: str = "chat", db: AsyncSessi
     user = await get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    if not has_assessment_all_access(user):
+        return RedirectResponse(url="/assessment/unlock", status_code=status.HTTP_302_FOUND)
         
     result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
     if not result:
@@ -4136,6 +5369,8 @@ async def assessment_phase3_submit(
     user = await get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    if not has_assessment_all_access(user):
+        return RedirectResponse(url="/assessment/unlock", status_code=status.HTTP_302_FOUND)
 
     try:
         form_data = await request.form()
@@ -4207,6 +5442,8 @@ async def phase3_chat(request: Request, chat_req: Phase3ChatRequest, db: AsyncSe
     user = await get_current_user(request, db)
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
+    if not has_assessment_all_access(user):
+        raise HTTPException(status_code=403, detail="Assessment All Access is required for Career Talk")
 
     result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
     if not result or not result.phase_2_category:
@@ -4334,17 +5571,21 @@ async def phase3_chat_v2(request: Request, chat_req: Phase3V2ChatRequest, db: As
     user = await get_current_user(request, db)
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
+    if not has_assessment_all_access(user):
+        raise HTTPException(status_code=403, detail="Assessment All Access is required for Career Talk")
 
     from fastapi.responses import JSONResponse
 
     result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+    if not result:
+        raise HTTPException(status_code=404, detail="Complete Phase 2 before starting Career Talk")
     
     # Determine if conversation should wrap up (after ~10 exchanges)
     user_msg_count = sum(1 for m in chat_req.answers if m.get("role") == "user")
     if chat_req.message.strip():
         user_msg_count += 1
         
-    phase1 = result.raw_answers if result and result.raw_answers else {}
+    phase1 = result.raw_answers if isinstance(result.raw_answers, dict) else {}
     
     student_context = {
         "student_name": phase1.get("name", "Student"),
@@ -4420,7 +5661,7 @@ async def phase3_chat_v2(request: Request, chat_req: Phase3V2ChatRequest, db: As
         try:
             # Fallback to Gemini if Groq not available or failed
             flat_prompt = "\n".join([f"{m['role'].upper()}: {m['content']}" for m in messages])
-            ai_text = await generate_content_with_fallback(flat_prompt)
+            ai_text = await asyncio.wait_for(generate_content_with_fallback(flat_prompt), timeout=20)
         except Exception as gemini_err:
             print(f"Phase 3 Chat Gemini Error: {gemini_err}")
             
@@ -5273,6 +6514,16 @@ async def simulation_verify_payment(request: Request, db: AsyncSession = Depends
         
     return {"status": "ok"}
 
+def _restore_live_simulation_session(result, session_id: str):
+    """Restore a live simulation after a request is served by another worker."""
+    stored_session = result.simulation_questions if result else None
+    if not isinstance(stored_session, dict):
+        return None
+    if stored_session.get("session_id") != session_id:
+        return None
+    return stored_session
+
+
 @app.post("/simulation/start")
 async def live_simulation_start(
     request: Request,
@@ -5287,17 +6538,20 @@ async def live_simulation_start(
     result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
     if not result:
         raise HTTPException(status_code=404, detail="Assessment result not found")
+    if not has_assessment_all_access(user):
+        raise HTTPException(status_code=402, detail="Assessment All Access is required for simulations")
 
     db_user = (await db.execute(select(models.User).where(models.User.id == user.id))).scalars().first()
     sims_completed = max(result.simulations_completed or 0, (db_user.simulations_completed or 0) if db_user else 0)
     sim_credits = max(result.simulation_credits or 0, (db_user.simulation_credits or 0) if db_user else 0)
 
-    if getattr(user, "role", None) != "admin" and sims_completed >= 1 and sim_credits <= 0:
+    if not has_assessment_all_access(user) and getattr(user, "role", None) != "admin" and sims_completed >= 1 and sim_credits <= 0:
         raise HTTPException(status_code=402, detail="Simulation payment required")
 
     scenarios = await simulation_service.build_live_simulation(career_title, difficulty)
     session_id = uuid.uuid4().hex
-    LIVE_SIMULATION_SESSIONS[session_id] = {
+    session = {
+        "session_id": session_id,
         "user_id": user.id,
         "career_title": career_title,
         "difficulty": difficulty,
@@ -5306,6 +6560,7 @@ async def live_simulation_start(
         "moves": [],
         "final_evaluation": None,
     }
+    LIVE_SIMULATION_SESSIONS[session_id] = session
 
     if sims_completed >= 1:
         if result.simulation_credits and result.simulation_credits > 0:
@@ -5314,11 +6569,10 @@ async def live_simulation_start(
             db_user.simulation_credits -= 1
 
     result.simulation_career = career_title
-    # Store a readable audit trail while keeping compatibility with the
-    # legacy simulation-question route, which expects a list of strings.
-    result.simulation_questions = [mcq["question"] for mcq in scenarios[0].get("mcqs", [])] + [
-        scenarios[1]["scenario"], scenarios[2]["scenario"]
-    ]
+    # Persist the full state as well as caching it locally.  The local cache
+    # alone works in development, but production requests can use different
+    # workers and therefore cannot rely on process memory.
+    result.simulation_questions = session
     result.simulation_answers = []
     result.simulation_evaluation = None
     result.simulation_paid = False
@@ -5346,9 +6600,11 @@ async def live_simulation_step(
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
-    session = LIVE_SIMULATION_SESSIONS.get(session_id)
+    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+    session = LIVE_SIMULATION_SESSIONS.get(session_id) or _restore_live_simulation_session(result, session_id)
     if not session or session["user_id"] != user.id:
         raise HTTPException(status_code=404, detail="Simulation session not found")
+    LIVE_SIMULATION_SESSIONS[session_id] = session
 
     index = session["current_index"]
     scenarios = session["scenarios"]
@@ -5365,8 +6621,10 @@ async def live_simulation_step(
     })
     session["current_index"] += 1
 
-    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
     if result:
+        result.simulation_questions = session
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(result, "simulation_questions")
         result.simulation_answers = [move["answer"] for move in session["moves"]]
         update_assessment_simulation(user.id, answers=result.simulation_answers)
         await db.commit()
@@ -5389,16 +6647,20 @@ async def simulation_workspace(session_id: str, request: Request, db: AsyncSessi
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
-    session = LIVE_SIMULATION_SESSIONS.get(session_id)
+    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+    session = LIVE_SIMULATION_SESSIONS.get(session_id) or _restore_live_simulation_session(result, session_id)
     career_title = "General"
     if session and session.get("user_id") == user.id:
+        LIVE_SIMULATION_SESSIONS[session_id] = session
         career_title = session.get("career_title", "General")
     else:
-        result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
         if result and result.simulation_career:
             career_title = result.simulation_career
 
-    workspace_path = os.path.join(os.path.dirname(__file__), "assessment_data", "Phase 4 UI.html")
+    # The interactive Phase 2 workspace is a frontend template, not an
+    # assessment-data file.  Looking in assessment_data caused every Phase 2
+    # simulation to render a 404 inside its iframe.
+    workspace_path = os.path.join(TEMPLATES_DIR, "Phase 4 UI.html")
     if not os.path.exists(workspace_path):
         raise HTTPException(status_code=404, detail="Workspace template not found")
 
@@ -5422,7 +6684,17 @@ async def simulation_workspace(session_id: str, request: Request, db: AsyncSessi
                 }
             }, window.location.origin);
 """
-    workspace_html = workspace_html.replace("            // Mock logic for export UI", completion_hook, 1)
+    # Keep the workspace's existing success feedback, then notify the parent
+    # simulation.  The previous implementation targeted an old placeholder
+    # comment that is no longer present in the Phase 4 workspace template.
+    export_success_line = "document.getElementById('success-modal').classList.remove('hidden');"
+    if export_success_line not in workspace_html:
+        raise HTTPException(status_code=500, detail="Workspace export hook could not be installed")
+    workspace_html = workspace_html.replace(
+        export_success_line,
+        f"{export_success_line}\n{completion_hook}",
+        1,
+    )
     return HTMLResponse(workspace_html)
 
 @app.get("/simulation/session/{session_id}")
@@ -5431,9 +6703,11 @@ async def live_simulation_session(session_id: str, request: Request, db: AsyncSe
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
-    session = LIVE_SIMULATION_SESSIONS.get(session_id)
+    result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+    session = LIVE_SIMULATION_SESSIONS.get(session_id) or _restore_live_simulation_session(result, session_id)
     if not session or session["user_id"] != user.id:
         raise HTTPException(status_code=404, detail="Simulation session not found")
+    LIVE_SIMULATION_SESSIONS[session_id] = session
 
     if not session.get("final_evaluation"):
         await _finalize_live_simulation_session(user.id, session, db)
@@ -5454,6 +6728,9 @@ async def _finalize_live_simulation_session(user_id: int, session: dict, db: Asy
 
     result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user_id))).scalars().first()
     if result:
+        result.simulation_questions = session
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(result, "simulation_questions")
         result.simulation_answers = [move["answer"] for move in session["moves"]]
         result.simulation_evaluation = evaluation
         result.simulations_completed = (result.simulations_completed or 0) + 1
@@ -5479,6 +6756,8 @@ async def simulation_start(career_title: str, request: Request, db: AsyncSession
     result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
     if not result:
         return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
+    if not has_assessment_all_access(user):
+        return RedirectResponse(url="/assessment/unlock", status_code=status.HTTP_302_FOUND)
     
     db_user = (await db.execute(select(models.User).where(models.User.id == user.id))).scalars().first()
     sims_completed = max(result.simulations_completed or 0, db_user.simulations_completed or 0 if db_user else 0)
@@ -5488,7 +6767,7 @@ async def simulation_start(career_title: str, request: Request, db: AsyncSession
     if getattr(user, "role", None) == "admin":
         # Proceed without checking credits
         pass
-    elif sims_completed >= 1 and sim_credits <= 0:
+    elif not has_assessment_all_access(user) and sims_completed >= 1 and sim_credits <= 0:
         return RedirectResponse(url=f"/assessment/simulation/pay/{career_title}", status_code=status.HTTP_302_FOUND)
     
     # Handle Class 10th Academic Discovery simulation
@@ -6644,7 +7923,6 @@ async def submit_ticket(
 class CareerPathRequest(BaseModel):
     career_title: str
 
-@app.post("/assessment/generate_path")
 async def generate_career_path(request: Request, path_req: CareerPathRequest, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
     if not user:
@@ -7028,7 +8306,6 @@ Do not create direct URLs. For every course/resource, provide only a real resour
         print(f"Career Path Generation Error: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to generate career path: {str(e)}")
 
-@app.post("/career/roadmap/{path_id}/step/{step_index}/toggle")
 async def toggle_step_completion(path_id: int, step_index: int, request: Request, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
     if not user:
@@ -7088,7 +8365,6 @@ async def toggle_step_completion(path_id: int, step_index: int, request: Request
         "progress": data.get("progress_percentage", 0) if isinstance(data, dict) else 0
     }
 
-@app.get("/career/roadmaps", response_class=HTMLResponse)
 async def view_roadmaps(request: Request, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
     if not user:
@@ -7169,7 +8445,6 @@ def evaluate_step_mcq(step: dict, selected_index: int) -> dict:
     step["mcq_result"] = result
     return result
 
-@app.get("/career/roadmap/{path_id}/step/{step_index}/chat", response_class=HTMLResponse)
 async def roadmap_step_chat_page(path_id: int, step_index: int, request: Request, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
     if not user:
@@ -7204,7 +8479,6 @@ async def roadmap_step_chat_page(path_id: int, step_index: int, request: Request
         "step": step
     })
 
-@app.post("/career/roadmap/{path_id}/step/{step_index}/chat/message")
 async def roadmap_step_chat_message(path_id: int, step_index: int, request: Request, chat_req: RoadmapStepChatRequest, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
     if not user:
@@ -7299,7 +8573,6 @@ async def roadmap_step_chat_message(path_id: int, step_index: int, request: Requ
         "recommendation_ready": recommendation_ready
     }
 
-@app.post("/career/roadmap/{path_id}/step/{step_index}/chat/finalize")
 async def roadmap_step_chat_finalize(path_id: int, step_index: int, request: Request, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
     if not user:
@@ -7361,7 +8634,6 @@ async def roadmap_step_chat_finalize(path_id: int, step_index: int, request: Req
         
     return {"redirect": f"/career/roadmap/{path_id}"}
 
-@app.get("/career/roadmap/{path_id}", response_class=HTMLResponse)
 async def view_roadmap_detail(path_id: int, request: Request, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
     if not user:
@@ -7392,7 +8664,6 @@ async def view_roadmap_detail(path_id: int, request: Request, db: AsyncSession =
 
 
 
-@app.get("/career/roadmap/{path_id}/resources", response_class=HTMLResponse)
 async def view_roadmap_resources(path_id: int, request: Request, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
     if not user:

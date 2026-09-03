@@ -34,10 +34,10 @@
     </noscript>
 
     <!-- AOS animation CSS: non-blocking -->
-    <link rel="preload" href="https://unpkg.com/aos@2.3.1/dist/aos.css" as="style"
+    <link rel="preload" href="/static/css/aos.css" as="style"
         onload="this.onload=null;this.rel='stylesheet'">
     <noscript>
-        <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css">
+        <link rel="stylesheet" href="/static/css/aos.css">
     </noscript>
 
     <!-- Main site CSS: preload for faster rendering -->
@@ -45,7 +45,7 @@
     <link rel="stylesheet" href="/static/css/style.css?v=101">
 
     <!-- Alpine.js: deferred, non-blocking -->
-    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <script src="/static/js/alpine.min.js" defer></script>
 
     <style>
         /* ── Design Tokens ── */
@@ -928,6 +928,10 @@
             <div class="nav-links">
                 {% if user %}
                 <a href="/dashboard"><i class="fa-solid fa-house" style="margin-right:0.25rem;"></i>Dashboard</a>
+                {% if user.role in ['student', 'admin'] %}
+                <a href="/my-growth-profile" class="{% if request.url.path == '/my-growth-profile' %}nav-active{% endif %}"><i class="fa-solid fa-compass" style="margin-right:0.25rem;"></i>Growth Profile</a>
+                <a href="/my-monthly-path" class="{% if request.url.path == '/my-monthly-path' %}nav-active{% endif %}"><i class="fa-solid fa-route" style="margin-right:0.25rem;"></i>Monthly Path</a>
+                {% endif %}
                 {% if user.role != 'counsellor' %}
                 <a href="/chatbot"><i class="fa-solid fa-comment-dots" style="margin-right:0.25rem;"></i>Chat AI</a>
                 {% endif %}
@@ -960,6 +964,12 @@
                     class="fa-solid fa-house"></i>Home</a>
             <a href="/dashboard" class="{% if request.url.path == '/dashboard' %}nav-active{% endif %}"><i
                     class="fa-solid fa-gauge-high"></i>Dashboard</a>
+            {% if user.role in ['student', 'admin'] %}
+            <a href="/my-growth-profile" class="{% if request.url.path == '/my-growth-profile' %}nav-active{% endif %}"><i
+                    class="fa-solid fa-compass"></i>Growth Profile</a>
+            <a href="/my-monthly-path" class="{% if request.url.path == '/my-monthly-path' %}nav-active{% endif %}"><i
+                    class="fa-solid fa-route"></i>Monthly Path</a>
+            {% endif %}
             {% if user.role != 'counsellor' %}
             <a href="/chatbot" class="{% if request.url.path == '/chatbot' %}nav-active{% endif %}"><i
                     class="fa-solid fa-comment-dots"></i>Chat AI</a>
@@ -1012,7 +1022,7 @@
         // Load AOS after page has rendered
         window.addEventListener('load', function () {
             var script = document.createElement('script');
-            script.src = 'https://unpkg.com/aos@2.3.1/dist/aos.js';
+            script.src = '/static/js/aos.js';
             script.onload = function () {
                 AOS.init({ duration: 700, once: true, offset: 60 });
             };

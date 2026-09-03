@@ -1573,6 +1573,8 @@
             } else if (phase === 5) {
                 renderCompilePhase();
                 hideLoader();
+            } else if (phase === 6) {
+                window.location.href = '/assessment/free-preview';
             }
         } catch (e) {
             console.error("Critical failure during question load state", e);
@@ -1833,6 +1835,14 @@
                         <div class="error-msg" style="color:#f87171;font-size:0.72rem;margin-top:4px;display:none;">Please select a priority.</div>`
                     )}
 
+                    ${missionRow('fa-ticket-alt','#f43f5e','rgba(244,63,94,0.1)',
+                        'Referral Code (Optional)','Do you have a referral code?',
+                        `<input type="text" name="referral_code" placeholder="e.g. ABCD12345"
+                            class="w-full px-4 py-3 text-sm text-slate-900 placeholder-slate-400 mission-input"
+                            style="font-size:0.875rem;">
+                        <div class="error-msg" style="color:#f87171;font-size:0.72rem;margin-top:4px;display:none;">Invalid referral code. Must be exactly 9 characters (4 letters, 5 numbers).</div>`
+                    )}
+
                     <!-- Submit row -->
                     <div style="display:flex;justify-content:space-between;align-items:center;padding-top:1.25rem;margin-top:0.5rem;border-top:1px solid rgba(255,200,225,0.35);">
                         <div style="display:flex;align-items:center;gap:6px;font-size:0.72rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;">
@@ -1862,6 +1872,7 @@
         const fatherOccupationVal = form.father_occupation.value;
         const motherOccupationVal = form.mother_occupation.value;
         const salaryPriorityVal = form.salary_priority.value;
+        const referralCodeVal = form.referral_code ? form.referral_code.value.trim() : "";
         
         let isValid = true;
         
@@ -1908,6 +1919,23 @@
         
         if (!salaryPriorityVal) toggleError("salary_priority", true);
         else toggleError("salary_priority", false);
+
+        if (referralCodeVal) {
+            let letters = 0;
+            let numbers = 0;
+            for (let char of referralCodeVal) {
+                if (/[a-zA-Z]/.test(char)) letters++;
+                else if (/[0-9]/.test(char)) numbers++;
+            }
+            if (referralCodeVal.length !== 9 || letters !== 4 || numbers !== 5) {
+                toggleError("referral_code", true);
+                isValid = false;
+            } else {
+                toggleError("referral_code", false);
+            }
+        } else {
+            toggleError("referral_code", false);
+        }
         
         if (!isValid) return;
         
@@ -1927,7 +1955,8 @@
                     family_income: familyIncomeVal,
                     father_occupation: fatherOccupationVal,
                     mother_occupation: motherOccupationVal,
-                    salary_priority: salaryPriorityVal
+                    salary_priority: salaryPriorityVal,
+                    referral_code: referralCodeVal
                 })
             });
             const data = await res.json();
@@ -2037,6 +2066,10 @@
             });
             const data = await res.json();
             if (data.status === "success") {
+                if (data.redirect) {
+                    window.location.href = data.redirect;
+                    return;
+                }
                 await refreshState();
             } else {
                 hideLoader();
@@ -2172,6 +2205,10 @@
     window.selectPhase2Option = function(archetypeId, btn) {
         if (btn.disabled) return;
 
+        // Disable all option buttons in this question to prevent double-selection
+        const allBtns = document.querySelectorAll('.quest-option-card');
+        allBtns.forEach(b => b.disabled = true);
+
         // Visual selection feedback
         btn.classList.add("selected-option");
         const indicator = btn.querySelector('.opt-indicator');
@@ -2183,6 +2220,10 @@
         }
         
         const q = phase2Questions[currentQuestionIdx];
+        if (!q) {
+            console.error("selectPhase2Option: question at index", currentQuestionIdx, "is undefined — phase2Questions may be empty.");
+            return;
+        }
         phase2Answers.push({
             question_id: q.id,
             archetype_id: archetypeId

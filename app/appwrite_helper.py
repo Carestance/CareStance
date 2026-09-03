@@ -47,6 +47,20 @@ def doc_to_model(doc, db=None):
         if 'email' in data: 
              model.assessment = get_assessment_by_user_id(data['id'])
         
+        # Unpack JSON strings that we serialized during sync
+        json_fields = [
+            "telemetry_logs", "chat_messages", "proxy_answers",
+            "scenario_answers", "assessment_report", "raw_answers",
+            "phase3_answers", "final_answers", "stream_scores",
+            "stream_pros", "stream_cons"
+        ]
+        for jf in json_fields:
+            if jf in data and isinstance(data[jf], str):
+                try:
+                    setattr(model, jf, json.loads(data[jf]))
+                except Exception:
+                    pass
+
         # If it's an assessment result, unpack consolidated JSON blobs
         if 'simulation_data' in data and data['simulation_data']:
             try:

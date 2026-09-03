@@ -1,110 +1,656 @@
 {% extends "base.html" %}
 
-{% block title %}Find a Counsellor{% endblock %}
+{% block title %}Find a Counsellor | CareStance{% endblock %}
 
-{% block content %}
-<div class="bg-white/70 backdrop-blur-xl rounded-3xl overflow-hidden shadow-2xl border border-white/50">
-    <div
-        class="px-6 py-6 sm:px-8 bg-[var(--teal-soft)]/50 border-b border-[var(--teal-light)] flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-            <h3 class="text-2xl leading-6 font-bold text-slate-900">Expert Counsellors</h3>
-            <p class="mt-2 max-w-2xl text-sm text-slate-500">Connect with industry experts via 1-on-1 video calls.</p>
+{# ── Standalone navbar for this page only ──
+   Copied 1:1 from dashboard.html so this page shares the same floating
+   pill nav + fixed settings gear. New class names under .hero-nav so
+   nothing from base.html's CSS touches it. Element IDs kept the same
+   so the existing mobile-toggle JS in base.html still wires up
+   automatically — no extra script needed. #}
+{% block navbar %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Jersey+10&display=swap');
+
+    .hero-nav {
+        position: fixed;
+        top: 40px;
+        left: 0;
+        right: 0;
+        width: 100%;
+        z-index: 1000;
+        background: transparent;
+        box-shadow: none;
+    }
+
+    .hero-nav-inner {
+        max-width: 80vw;
+        width: 80vw;
+        margin: 0 auto;
+        padding: 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .hero-nav-logo {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        text-decoration: none;
+        margin-right: auto;
+    }
+
+    .hero-nav-logo-badge {
+        width: 120px; height: 120px;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 50%;
+        background: #0f172a;
+        flex-shrink: 0;
+    }
+
+    .hero-nav-logo-badge img {
+        width: 80px; height: 80px;
+        border-radius: 50%; object-fit: cover;
+        transform: scale(1.6);
+    }
+
+    .hero-nav-logo-text {
+        font-family: 'Jersey 10', 'Playfair Display', serif;
+        font-size: 4rem; font-weight: 400;
+        color: #020c14; white-space: nowrap;
+        letter-spacing: 0.02em;
+    }
+
+    .hero-nav-links {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        flex-wrap: nowrap;
+        justify-content: flex-end;
+        flex-shrink: 1;
+    }
+
+    .hero-nav-links a {
+        display: inline-block;
+        font-family: 'Jersey 10', sans-serif;
+        color: #fff;
+        font-size: 30px;
+        font-weight: 400;
+        white-space: nowrap;
+        text-decoration: none;
+        letter-spacing: 0.02em;
+        text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+        transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+
+    .hero-nav-links a:hover {
+        transform: scale(1.1);
+        opacity: 0.75;
+    }
+
+    .hero-nav-links a.nav-active {
+        text-decoration: underline;
+        text-underline-offset: 4px;
+    }
+
+    /* ── Fixed settings gear (replaces old logout pill) ── */
+    .hero-settings-fixed {
+        position: fixed;
+        bottom: 50px;
+        right: 50px;
+        z-index: 1100;
+    }
+
+    .hero-settings-gear {
+        width: 68px;
+        height: 68px;
+        border-radius: 50%;
+        background: #000000;
+        color: #fff;
+        border: none;
+        font-size: 1.7rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+        transition: transform 0.35s ease, background 0.3s ease;
+    }
+
+    .hero-settings-gear:hover,
+    .hero-settings-fixed:focus-within .hero-settings-gear {
+        background: #1a1a1a;
+        transform: rotate(60deg);
+    }
+
+    .hero-settings-menu {
+        position: absolute;
+        bottom: calc(100% + 12px);
+        right: 0;
+        min-width: 210px;
+        background: #fff;
+        border-radius: 1rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 12px 28px -6px rgba(0,0,0,0.25);
+        padding: 0.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(8px);
+        transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+    }
+
+    .hero-settings-fixed:hover .hero-settings-menu,
+    .hero-settings-fixed:focus-within .hero-settings-menu {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+
+    .hero-settings-menu a {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.65rem 0.75rem;
+        border-radius: 0.6rem;
+        color: #1e293b;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.85rem;
+        transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .hero-settings-menu a:hover {
+        background: #f1f5f9;
+        color: #0d9488;
+    }
+
+    .hero-settings-menu a.hero-settings-logout {
+        color: #b45309;
+    }
+
+    .hero-settings-menu a.hero-settings-logout:hover {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    @media (max-width: 768px) {
+        .hero-settings-fixed { bottom: 24px; right: 24px; }
+    }
+
+    .hero-mobile-toggle {
+        display: none;
+        background: none; border: none;
+        color: #12202b; font-size: 1.35rem;
+        cursor: pointer;
+    }
+
+    .hero-mobile-menu {
+        display: none;
+        position: absolute; top: 100%; left: 1.5rem; right: 1.5rem;
+        margin-top: 0.75rem; padding: 1.5rem;
+        flex-direction: column; gap: 0.75rem;
+        background: #fff; border-radius: 1.25rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.15);
+    }
+
+    .hero-mobile-menu.open { display: flex; }
+
+    .hero-mobile-menu a {
+        padding: 0.8rem 0.5rem;
+        color: var(--text-main);
+        text-decoration: none;
+        font-weight: 500;
+        border-bottom: 1px solid var(--border-soft);
+        transition: color 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .hero-mobile-menu a.nav-active {
+        color: var(--primary);
+        font-weight: 700;
+        background: var(--primary-soft);
+        border-radius: 0.5rem;
+    }
+
+    .hero-mobile-menu a:last-child { border-bottom: none; }
+    .hero-mobile-menu a:hover { color: #0d9488; }
+
+    @media (max-width: 768px) {
+        .hero-nav-links { display: none; }
+        .hero-mobile-toggle { display: block; }
+        .hero-nav-logo-badge { width: 64px; height: 64px; }
+        .hero-nav-logo-badge img { width: 36px; height: 36px; }
+        .hero-nav-logo-text { font-size: 1.4rem; }
+        .hero-nav-inner { width: 92vw; max-width: 92vw; }
+        .hero-nav { top: 20px; }
+    }
+</style>
+
+<nav class="hero-nav">
+    <div class="hero-nav-inner">
+        <a href="/" class="hero-nav-logo">
+            <span class="hero-nav-logo-badge">
+                <picture>
+                    <source srcset="/static/images/image.webp?v=101" type="image/webp">
+                    <img src="/static/images/logo-1.png" alt="CareStance Logo" width="90" height="90">
+                </picture>
+            </span>
+            <span class="hero-nav-logo-text">CareStance</span>
+        </a>
+
+        <div class="hero-nav-links">
+            {% if user %}
+            <a href="/dashboard" class="{% if request.url.path == '/dashboard' %}nav-active{% endif %}">Dashboard</a>
+            {% if user.role in ['student', 'admin'] %}
+            <a href="/my-growth-profile" class="{% if request.url.path == '/my-growth-profile' %}nav-active{% endif %}">Growth Profile</a>
+            <a href="/my-monthly-path" class="{% if request.url.path == '/my-monthly-path' %}nav-active{% endif %}">Monthly Path</a>
+            {% endif %}
+            {% if user.role != 'counsellor' %}
+            <a href="/chatbot">Chat AI</a>
+            {% endif %}
+            <a href="/community">Community</a>
+            <a href="/counsellors" class="nav-active">Counsellors</a>
+            {% if user.role == 'admin' %}
+            <a href="/admin" class="{% if request.url.path == '/admin' %}nav-active{% endif %}" style="font-weight:700;">Admin</a>
+            {% endif %}
+            {% else %}
+            <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}">Home</a>
+            <a href="/login" class="{% if request.url.path == '/login' %}nav-active{% endif %}">Log In</a>
+            {% endif %}
         </div>
-        <div>
-            <a href="/dashboard"
-                class="inline-flex items-center px-4 py-2 border border-slate-300 shadow-sm text-sm font-medium rounded-xl text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--teal)] transition-colors">
-                Back to Dashboard
-            </a>
-        </div>
+
+        <button class="hero-mobile-toggle" id="base-menu-toggle" aria-label="Menu">
+            <i class="fa-solid fa-bars" id="base-menu-icon"></i>
+        </button>
     </div>
 
-    <div class="px-6 py-6 sm:p-8">
+    <div class="hero-mobile-menu" id="base-mobile-menu">
+        {% if user %}
+        <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i class="fa-solid fa-house"></i>Home</a>
+        <a href="/dashboard" class="{% if request.url.path == '/dashboard' %}nav-active{% endif %}"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
+        {% if user.role in ['student', 'admin'] %}
+        <a href="/my-growth-profile" class="{% if request.url.path == '/my-growth-profile' %}nav-active{% endif %}"><i class="fa-solid fa-compass"></i>Growth Profile</a>
+        <a href="/my-monthly-path" class="{% if request.url.path == '/my-monthly-path' %}nav-active{% endif %}"><i class="fa-solid fa-route"></i>Monthly Path</a>
+        {% endif %}
+        {% if user.role != 'counsellor' %}
+        <a href="/chatbot"><i class="fa-solid fa-comment-dots"></i>Chat AI</a>
+        {% endif %}
+        <a href="/community"><i class="fa-solid fa-users"></i>Community</a>
+        <a href="/counsellors" class="nav-active"><i class="fa-solid fa-user-tie"></i>Counsellors</a>
+        {% if user.role == 'admin' %}<a href="/admin"><i class="fa-solid fa-shield-halved"></i>Admin Panel</a>{% endif %}
+        {% else %}
+        <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i class="fa-solid fa-house"></i>Home</a>
+        <a href="/login"><i class="fa-solid fa-right-to-bracket"></i>Log In</a>
+        {% endif %}
+    </div>
+</nav>
+
+{% if user %}
+<div class="hero-settings-fixed" id="hero-settings-fixed">
+    <button class="hero-settings-gear" aria-label="Settings" aria-haspopup="true" aria-expanded="false">
+        <i class="fa-solid fa-gear"></i>
+    </button>
+    <div class="hero-settings-menu">
+        <a href="/student/{{ user.id }}"><i class="fa-solid fa-user"></i> Student Profile</a>
+        <a href="/feedback"><i class="fa-solid fa-star"></i> Feedback</a>
+        <a href="/ticket"><i class="fa-solid fa-circle-question"></i> Support</a>
+        <a href="/logout" class="hero-settings-logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_head %}
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+    /* ===================================================================
+       Dark "career blueprint" language, ported from result.html so this
+       page shares the same navy glass-card system, type scale and accent
+       palette as the rest of the assessment/report flow.
+       =================================================================== */
+    :root {
+        --content-top-gap: calc(40px + 120px + 30px);
+        --navy-bg: #0a0a18;
+        --card-bg: rgba(255, 255, 255, 0.03);
+        --card-border: rgba(148, 130, 255, 0.16);
+        --teal: #2dd4bf;
+        --teal-soft: rgba(45, 212, 191, 0.14);
+        --purple: #a78bfa;
+        --purple-soft: rgba(167, 139, 250, 0.14);
+        --green: #34d399;
+        --green-soft: rgba(52, 211, 153, 0.14);
+        --gold: #f59e0b;
+        --gold-soft: rgba(245, 158, 11, 0.14);
+        --rose: #fb7185;
+        --text-primary: #f8fafc;
+        --text-secondary: #a1a8c0;
+        --text-muted: #6b7189;
+    }
+    @media (max-width: 768px) {
+        :root { --content-top-gap: calc(20px + 64px + 30px); }
+    }
+
+    body {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        background-color: var(--navy-bg) !important;
+        color: var(--text-primary) !important;
+        padding-top: 0 !important;
+    }
+    .font-outfit { font-family: 'Outfit', sans-serif; }
+
+    .dark-card {
+        background: var(--card-bg);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid var(--card-border);
+        border-radius: 1.75rem;
+        transition: all 0.3s ease;
+    }
+
+    .label-eyebrow {
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+    }
+
+    /* ---------- Hero ---------- */
+    .cl-hero {
+        position: relative;
+        padding-top: var(--content-top-gap);
+        padding-bottom: 4rem;
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+        text-align: center;
+        background: url('/static/images/BG4.png') center top / cover no-repeat fixed;
+        overflow: hidden;
+    }
+    .cl-hero::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to bottom, rgba(10,10,24,0) 0%, rgba(10,10,24,0.55) 65%, var(--navy-bg) 100%);
+        pointer-events: none;
+    }
+    .cl-hero > * { position: relative; z-index: 2; }
+    .cl-hero-icon {
+        width: 68px;
+        height: 68px;
+        margin: 0 auto 1.25rem;
+        background: rgba(15, 18, 38, 0.55);
+        border: 1.5px solid rgba(255,255,255,0.24);
+        clip-path: polygon(25% 6%, 75% 6%, 100% 50%, 75% 94%, 25% 94%, 0% 50%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 1.4rem;
+        backdrop-filter: blur(6px);
+    }
+    .cl-hero-eyebrow { color: var(--teal); margin-bottom: 0.75rem; }
+    .cl-hero-title {
+        font-size: 2rem;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        color: #fff;
+        margin-bottom: 0.9rem;
+    }
+    @media (min-width: 768px) { .cl-hero-title { font-size: 2.6rem; } }
+    .cl-hero-title .accent {
+        background: linear-gradient(135deg, #c4b5fd, #818cf8);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+    .cl-hero-desc {
+        color: #cbd5e1;
+        max-width: 600px;
+        margin: 0 auto;
+        line-height: 1.75;
+        font-size: 0.95rem;
+    }
+
+    /* ---------- Buttons ---------- */
+    .btn-outline-dark {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.65rem 1.25rem;
+        border-radius: 0.9rem;
+        border: 1px solid rgba(255,255,255,0.18);
+        color: #e2e8f0;
+        background: rgba(255,255,255,0.02);
+        font-weight: 700;
+        font-size: 0.82rem;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+    .btn-outline-dark:hover { border-color: rgba(255,255,255,0.35); background: rgba(255,255,255,0.05); }
+
+    /* ---------- Section heading ---------- */
+    .section-title { font-size: 1.5rem; font-weight: 800; color: #fff; letter-spacing: -0.01em; }
+    .section-sub { color: var(--text-secondary); margin-top: 0.25rem; }
+
+    /* ---------- Counsellor card ---------- */
+    .cs-card {
+        background: rgba(255,255,255,0.03);
+        border: 1px solid var(--card-border);
+        border-radius: 1.5rem;
+        padding: 1.75rem;
+        transition: all 0.3s ease;
+    }
+    .cs-card:hover {
+        border-color: rgba(45, 212, 191, 0.4);
+        transform: translateY(-3px);
+    }
+
+    .cs-avatar {
+        width: 64px; height: 64px;
+        border-radius: 1.1rem;
+        object-fit: cover;
+        border: 1.5px solid rgba(45, 212, 191, 0.35);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+        flex-shrink: 0;
+    }
+    .cs-name { color: #fff; font-weight: 800; font-size: 1.05rem; letter-spacing: -0.01em; }
+
+    .status-pill {
+        display: inline-flex; align-items: center; gap: 0.35rem;
+        padding: 0.26rem 0.75rem; border-radius: 999px;
+        font-size: 0.58rem; font-weight: 800;
+        text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .status-pill .dot { width: 6px; height: 6px; border-radius: 50%; }
+    .status-verified { color: var(--green); background: var(--green-soft); border: 1px solid rgba(52,211,153,0.35); }
+    .status-verified .dot { background: var(--green); }
+    .status-founding { color: var(--gold); background: var(--gold-soft); border: 1px solid rgba(245,158,11,0.35); }
+
+    .cs-fee { color: var(--teal); font-weight: 800; font-size: 0.92rem; }
+    .cs-fee span { color: var(--text-muted); font-weight: 500; font-size: 0.7rem; }
+
+    .cs-field {
+        background: rgba(255,255,255,0.02);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 1.1rem;
+        padding: 0.9rem 1rem;
+        display: flex; gap: 0.75rem; align-items: flex-start;
+    }
+    .cs-field i { color: var(--teal); margin-top: 0.2rem; flex-shrink: 0; }
+    .cs-field-label {
+        font-size: 0.6rem; font-weight: 800;
+        text-transform: uppercase; letter-spacing: 0.1em;
+        color: var(--text-muted); margin-bottom: 0.3rem;
+    }
+    .cs-field-value { color: var(--text-secondary); font-size: 0.82rem; line-height: 1.55; }
+
+    .cs-slot-chip {
+        display: inline-flex; align-items: center; gap: 4px;
+        padding: 0.22rem 0.6rem; background: var(--teal-soft); color: var(--teal);
+        font-size: 0.62rem; font-weight: 700; border-radius: 0.6rem;
+        border: 1px solid rgba(45,212,191,0.3);
+    }
+    .cs-slot-chip .t { color: var(--text-secondary); font-weight: 500; }
+
+    .cs-input-label {
+        display: block; font-size: 0.62rem; font-weight: 800;
+        text-transform: uppercase; letter-spacing: 0.1em;
+        color: var(--text-muted); margin-bottom: 0.5rem;
+    }
+    .cs-input-wrap { position: relative; }
+    .cs-input-wrap i {
+        position: absolute; left: 1rem; top: 50%; transform: translateY(-50%);
+        color: var(--text-muted); pointer-events: none;
+    }
+    .cs-input {
+        width: 100%;
+        padding: 0.85rem 1rem 0.85rem 2.75rem;
+        border-radius: 1rem;
+        border: 1px solid rgba(255,255,255,0.12);
+        background: rgba(255,255,255,0.03);
+        color: #f8fafc;
+        outline: none;
+        font-weight: 500;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        color-scheme: dark;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .cs-input:focus { border-color: rgba(45,212,191,0.5); box-shadow: 0 0 0 3px rgba(45,212,191,0.15); }
+
+    .cs-book-btn {
+        width: 100%;
+        padding: 0.95rem 1.5rem;
+        border-radius: 1rem;
+        border: none;
+        cursor: pointer;
+        background: linear-gradient(135deg, var(--teal), #5eead4);
+        color: #0a0a18;
+        font-weight: 800;
+        font-size: 0.88rem;
+        transition: all 0.2s ease;
+    }
+    .cs-book-btn:hover { transform: translateY(-2px); box-shadow: 0 14px 28px -8px rgba(45,212,191,0.5); }
+    .cs-book-btn:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+
+    .cs-secure-note {
+        font-size: 0.65rem; text-align: center;
+        color: var(--text-muted); font-weight: 600; margin-top: 0.85rem;
+    }
+
+    .cs-empty { text-align: center; padding: 4rem 1.5rem; }
+
+    @media print {
+        body { background: white !important; color: #0f172a !important; }
+        .dark-card, .cs-card { background: white !important; border: 1px solid #e2e8f0 !important; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="background: var(--navy-bg); min-height: 100vh;">
+
+    <!-- HERO -->
+    <div class="cl-hero">
+        <div class="cl-hero-icon">
+            <i class="fas fa-user-tie"></i>
+        </div>
+        <h2 class="label-eyebrow cl-hero-eyebrow">Book A 1-on-1 Session</h2>
+        <h1 class="cl-hero-title font-outfit">
+            Find Your <span class="accent">Expert Counsellor</span>
+        </h1>
+        <p class="cl-hero-desc">
+            Connect with industry experts via 1-on-1 video calls and get personalised guidance on your career path.
+        </p>
+    </div>
+
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-16" style="padding-top: 1.5rem;">
+
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+            <div>
+                <h2 class="section-title font-outfit">Expert Counsellors</h2>
+                <p class="section-sub">Choose a slot and lock in your session in a couple of clicks.</p>
+            </div>
+            <a href="/dashboard" class="btn-outline-dark">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+
         {% if counsellors %}
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {% for c in counsellors %}
-            <div
-                class="bg-white/90 backdrop-blur-sm rounded-3xl p-8 shadow-sm border border-slate-100 hover:shadow-2xl hover:border-[var(--teal-light)] transition-all duration-500 group">
-                <div class="flex items-center gap-4 mb-6">
+            <div class="cs-card">
+                <div class="flex items-center gap-4 mb-5">
                     <img src="{{ c.user.profile_photo if c.user.profile_photo else 'https://ui-avatars.com/api/?name=' ~ (c.user.full_name or 'User') }}"
                         alt="{{ c.user.full_name }}"
                         title="{{ c.user.full_name }}"
-                        class="h-16 w-16 rounded-2xl object-cover border-2 border-[var(--teal-soft)] shadow-md group-hover:scale-110 transition-transform duration-500"
+                        class="cs-avatar"
                         loading="lazy">
-                    <div>
-                        <h4 class="text-xl font-extrabold text-slate-800 tracking-tight">{{ c.user.full_name }}</h4>
-                        <!-- Star Rating -->
-                        <div class="flex items-center gap-1 mt-0.5 mb-1.5">
+                    <div class="min-w-0">
+                        <h4 class="cs-name">{{ c.user.full_name }}</h4>
+                        <div class="flex items-center gap-1 mt-1 mb-1.5">
                             {% for i in range(5) %}
-                            <i
-                                class="fas fa-star text-[10px] {{ 'text-amber-400' if i < (c.average_rating|default(5.0)|int) else 'text-slate-200' }}"></i>
+                            <i class="fas fa-star text-[10px] {{ 'text-amber-400' if i < (c.average_rating|default(5.0)|int) else 'text-slate-600' }}"></i>
                             {% endfor %}
-                            <span class="text-[10px] font-bold text-slate-400 ml-1">
+                            <span class="text-[10px] font-bold ml-1" style="color: var(--text-muted);">
                                 {{ "%.1f"|format(c.average_rating|default(5.0)) }}
                                 {% if c.rating_count %} ({{ c.rating_count }} reviews){% endif %}
                             </span>
                         </div>
-                        <div class="flex items-center gap-2 mt-1">
-                            <span
-                                class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded-md uppercase tracking-wide">Verified
-                                Expert</span>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="status-pill status-verified"><span class="dot"></span> Verified Expert</span>
                             {% if c.is_founding_counsellor %}
-                            <span
-                                class="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded-md uppercase tracking-wide border border-amber-200">🏆
-                                Founding Coach</span>
+                            <span class="status-pill status-founding">🏆 Founding Coach</span>
                             {% endif %}
-                            <span class="text-sm font-bold text-[var(--navy)]">₹{{ c.fee }}<span
-                                    class="text-xs text-slate-400 font-normal">/session</span></span>
                         </div>
                     </div>
                 </div>
 
-                <div class="space-y-4 mb-8">
-                    <div
-                        class="flex items-start gap-3 p-4 bg-slate-50/50 rounded-2xl border border-slate-100 group-hover:bg-white group-hover:border-[var(--teal-soft)] transition-colors">
-                        <i class="fas fa-briefcase text-[var(--teal)] mt-1"></i>
+                <div class="mb-5">
+                    <span class="cs-fee">₹{{ c.fee }}<span> /session</span></span>
+                </div>
+
+                <div class="space-y-3 mb-6">
+                    <div class="cs-field">
+                        <i class="fas fa-briefcase"></i>
                         <div>
-                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Knowledge &
-                                Exp.</p>
-                            <p class="text-sm text-slate-600 font-medium leading-relaxed italic">{{ c.experience if
-                                c.experience else 'Expert career guidance and roadmap strategy.' }}</p>
+                            <p class="cs-field-label">Knowledge & Exp.</p>
+                            <p class="cs-field-value" style="font-style:italic;">{{ c.experience if c.experience else 'Expert career guidance and growth strategy.' }}</p>
                         </div>
                     </div>
 
-                    <div
-                        class="flex items-start gap-3 p-4 bg-slate-50/50 rounded-2xl border border-slate-100 group-hover:bg-white group-hover:border-[var(--teal-soft)] transition-colors">
-                        <i class="fas fa-clock text-[var(--teal)] mt-1"></i>
-                        <div>
-                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Availability
-                            </p>
+                    <div class="cs-field">
+                        <i class="fas fa-clock"></i>
+                        <div style="width:100%;">
+                            <p class="cs-field-label">Availability</p>
                             {% if c.availability and c.availability.get('slots') %}
                             <div class="flex flex-wrap gap-1.5">
                                 {% for day, slot in c.availability.get('slots', {}).items() %}
-                                <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-[var(--teal-soft)] text-[var(--navy)] text-[10px] font-bold rounded-lg border border-[var(--teal-light)]">
+                                <span class="cs-slot-chip">
                                     {{ day[:3] }}
-                                    <span class="text-[9px] text-[var(--teal)] font-medium">
-                                        {{ slot.get('start', '09:00') }}-{{ slot.get('end', '17:00') }}
-                                    </span>
+                                    <span class="t">{{ slot.get('start', '09:00') }}-{{ slot.get('end', '17:00') }}</span>
                                 </span>
                                 {% endfor %}
                             </div>
                             {% else %}
-                            <p class="text-sm text-slate-600 font-semibold leading-relaxed">{{
-                                c.availability.get('text', 'Flexible Hours') if c.availability else 'Flexible Hours' }}
-                            </p>
+                            <p class="cs-field-value" style="font-weight:600;">{{ c.availability.get('text', 'Flexible Hours') if c.availability else 'Flexible Hours' }}</p>
                             {% endif %}
                         </div>
                     </div>
                 </div>
 
-                <div class="space-y-5">
-                    <div class="relative">
-                        <label for="time_{{ c.user_id }}"
-                            class="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Schedule
-                            Your Session</label>
-                        <div class="relative">
-                            <i class="fas fa-calendar-day absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                            <input type="datetime-local" id="time_{{ c.user_id }}" title="Choose a date and time for your session"
-                                class="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-slate-100 bg-white text-slate-900 outline-none font-medium focus:ring-2 focus:ring-[var(--teal)]">
+                <div class="space-y-4">
+                    <div>
+                        <label for="time_{{ c.user_id }}" class="cs-input-label">Schedule Your Session</label>
+                        <div class="cs-input-wrap">
+                            <i class="fas fa-calendar-day"></i>
+                            <input type="datetime-local" id="time_{{ c.user_id }}" title="Choose a date and time for your session" class="cs-input">
                         </div>
                         <!-- Availability feedback message -->
                         <p id="avail_msg_{{ c.user_id }}" class="text-[10px] mt-1.5 ml-1 font-medium hidden"></p>
@@ -113,7 +659,7 @@
                     <button id="btn_{{ c.user_id }}"
                         onclick="payNow('{{ c.user_id }}', '{{ c.fee }}', '{{ c.user.full_name }}')"
                         title="Book your session"
-                        class="w-full py-4 px-6 rounded-2xl bg-[var(--navy)] text-white font-bold hover:bg-[var(--teal)] transition-all shadow-lg shadow-[var(--teal-soft)]">
+                        class="cs-book-btn">
                         {% if user and user.role == 'admin' %}
                             Book Session (Free for Admin)
                         {% else %}
@@ -121,7 +667,7 @@
                         {% endif %}
                     </button>
 
-                    <p class="text-[10px] text-center text-slate-400 font-medium">
+                    <p class="cs-secure-note">
                         <i class="fas fa-shield-alt mr-1"></i> Secure payment & instant meeting link
                     </p>
                 </div>
@@ -129,9 +675,12 @@
             {% endfor %}
         </div>
         {% else %}
-        <div class="text-center py-12">
-            <h3 class="mt-2 text-lg font-bold text-slate-900">No counsellors found</h3>
-            <p class="mt-1 text-sm text-slate-500">Check back soon as more experts join our platform.</p>
+        <div class="cs-empty dark-card">
+            <div class="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style="background: var(--teal-soft);">
+                <i class="fas fa-user-tie text-2xl" style="color: var(--teal);"></i>
+            </div>
+            <h3 class="text-lg font-bold" style="color:#fff;">No counsellors found</h3>
+            <p class="mt-1 text-sm" style="color: var(--text-secondary);">Check back soon as more experts join our platform.</p>
         </div>
         {% endif %}
     </div>
@@ -161,7 +710,7 @@
             const availData = await availResp.json();
             if (!availData.available) {
                 msgEl.textContent = `⚠️ ${availData.error}`;
-                msgEl.className = "text-[10px] mt-1.5 ml-1 font-medium text-red-500";
+                msgEl.className = "text-[10px] mt-1.5 ml-1 font-medium text-rose-400";
                 msgEl.classList.remove("hidden");
                 btn.disabled = false;
                 btn.innerHTML = originalContent;
@@ -169,7 +718,7 @@
             }
             // Clear any previous error
             msgEl.textContent = "✓ Counsellor is available at this time.";
-            msgEl.className = "text-[10px] mt-1.5 ml-1 font-medium text-emerald-600";
+            msgEl.className = "text-[10px] mt-1.5 ml-1 font-medium text-emerald-400";
             msgEl.classList.remove("hidden");
         } catch (err) {
             console.error("Availability check failed:", err);
@@ -258,7 +807,7 @@
                 "email": "{{ user.email }}"
             },
             "theme": {
-                "color": "#4F46E5"
+                "color": "#2dd4bf"
             }
         };
 
@@ -287,16 +836,16 @@
             const msgEl = document.getElementById(`avail_msg_${counsellorId}`);
             const apptTime = this.value;
             if (!apptTime) { msgEl.classList.add('hidden'); return; }
-            
+
             try {
                 const resp = await fetch(`/check_availability/${counsellorId}?appointment_time=${encodeURIComponent(apptTime)}`);
                 const data = await resp.json();
                 if (data.available) {
                     msgEl.textContent = "✓ Counsellor is available at this time.";
-                    msgEl.className = "text-[10px] mt-1.5 ml-1 font-medium text-emerald-600";
+                    msgEl.className = "text-[10px] mt-1.5 ml-1 font-medium text-emerald-400";
                 } else {
                     msgEl.textContent = `⚠️ ${data.error}`;
-                    msgEl.className = "text-[10px] mt-1.5 ml-1 font-medium text-red-500";
+                    msgEl.className = "text-[10px] mt-1.5 ml-1 font-medium text-rose-400";
                 }
                 msgEl.classList.remove("hidden");
             } catch (e) {

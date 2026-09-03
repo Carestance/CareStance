@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Text, ForeignKey, JSON, Boolean, DateTime, func
+from sqlalchemy import Column, Integer, String, Float, Text, ForeignKey, JSON, Boolean, DateTime, UniqueConstraint, func
 from sqlalchemy.orm import relationship
 from .database import Base
 
@@ -14,6 +14,7 @@ class User(Base):
     bio = Column(Text, nullable=True)
     role = Column(String, nullable=True, index=True)
     is_suspended = Column(Boolean, default=False)
+    referral_code = Column(String, nullable=True, index=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=True)
     last_login = Column(DateTime(timezone=True), nullable=True)
@@ -23,6 +24,7 @@ class User(Base):
     simulations_completed = Column(Integer, default=0, nullable=False)
     simulation_paid = Column(Boolean, default=False, nullable=False)
     simulation_credits = Column(Integer, default=0, nullable=False)
+    assessment_all_access = Column(Boolean, default=False, nullable=False)
     subscription_plan = Column(String, nullable=True, index=True)
     subscription_status = Column(String, nullable=True, index=True)
     subscription_started_at = Column(DateTime(timezone=True), nullable=True)
@@ -122,23 +124,87 @@ class Ticket(Base):
     timestamp = Column(DateTime(timezone=True), server_default=func.now(), index=True)
     user = relationship("User", back_populates="tickets")
 
-class CareerPath(Base):
-    __tablename__ = "career_paths"
+class MonthlyGrowthPlan(Base):
+    """One saved, personalised growth path per student per calendar month."""
+    __tablename__ = "monthly_growth_plans"
+    __table_args__ = (UniqueConstraint("user_id", "month_key", name="uq_monthly_growth_plan_user_month"),)
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), index=True)
-    career_title = Column(String, index=True)
-    path_data = Column(JSON) # Detailed path steps
-    reminders = Column(JSON) # List of reminders/milestones
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    month_key = Column(String(7), nullable=False, index=True)  # YYYY-MM
+    milestone = Column(String, nullable=False)
+    plan_data = Column(JSON, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
 
-    user = relationship("User", back_populates="career_paths")
+    user = relationship("User", back_populates="monthly_growth_plans")
 
-# Update User model to include messages, feedback, and career paths relationships
+
+class CareerGrowthPlan(Base):
+    """A separate monthly growth map for each career a student wants to explore."""
+    __tablename__ = "career_growth_plans"
+    __table_args__ = (UniqueConstraint("user_id", "month_key", "career_title", name="uq_career_growth_plan_user_month_career"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    month_key = Column(String(7), nullable=False, index=True)
+    career_title = Column(String, nullable=False, index=True)
+    milestone = Column(String, nullable=False)
+    plan_data = Column(JSON, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now(), nullable=True)
+
+
+class TeacherStudentNote(Base):
+    """Private, actionable notes a teacher keeps for an assigned student."""
+    __tablename__ = "teacher_student_notes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    teacher_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    student_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    content = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class School(Base):
+    """A tenant for institutional data, isolated from direct-to-student accounts."""
+    __tablename__ = "schools"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False, index=True)
+    code = Column(String, unique=True, nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class SchoolMembership(Base):
+    """Connects a user to one school and stores school-only class context."""
+    __tablename__ = "school_memberships"
+    __table_args__ = (UniqueConstraint("school_id", "user_id", name="uq_school_membership"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    school_id = Column(Integer, ForeignKey("schools.id"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    role = Column(String, nullable=False, default="student", index=True)
+    grade = Column(String, nullable=True, index=True)
+    section = Column(String, nullable=True, index=True)
+    teacher_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    parent_user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    joined_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    school = relationship("School", back_populates="memberships")
+    user = relationship("User", foreign_keys=[user_id], back_populates="school_memberships")
+    teacher = relationship("User", foreign_keys=[teacher_id])
+    parent_user = relationship("User", foreign_keys=[parent_user_id])
+
+
+School.memberships = relationship("SchoolMembership", back_populates="school", cascade="all, delete-orphan")
+User.school_memberships = relationship("SchoolMembership", foreign_keys="SchoolMembership.user_id", back_populates="user")
+
+# Update User model to include messages, feedback, and growth-plan relationships
 User.messages = relationship("ChatMessage", back_populates="user", order_by="ChatMessage.timestamp")
 User.feedbacks = relationship("Feedback", back_populates="user", order_by="Feedback.timestamp")
 User.tickets = relationship("Ticket", back_populates="user", order_by="Ticket.timestamp")
-User.career_paths = relationship("CareerPath", back_populates="user", order_by="CareerPath.created_at.desc()")
+User.monthly_growth_plans = relationship("MonthlyGrowthPlan", back_populates="user", order_by="MonthlyGrowthPlan.month_key.desc()")
 
 class CounsellorProfile(Base):
     __tablename__ = "counsellor_profiles"

@@ -25,9 +25,10 @@
     }
 
     .hero-nav-inner {
-        max-width: 1500px;
+        max-width: 80vw;
+        width: 80vw;
         margin: 0 auto;
-        padding: 0 2.5rem;
+        padding: 0;
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -37,12 +38,13 @@
     .hero-nav-logo {
         display: flex;
         align-items: center;
-        gap: 1.75rem;
+        gap: 1rem;
         text-decoration: none;
+        margin-right: auto;
     }
 
     .hero-nav-logo-badge {
-        width: 156px; height: 156px;
+        width: 120px; height: 120px;
         display: flex; align-items: center; justify-content: center;
         border-radius: 50%;
         background: #0f172a;
@@ -50,24 +52,25 @@
     }
 
     .hero-nav-logo-badge img {
-        width: 90px; height: 90px;
+        width: 80px; height: 80px;
         border-radius: 50%; object-fit: cover;
         transform: scale(1.6);
     }
 
     .hero-nav-logo-text {
         font-family: 'Jersey 10', 'Playfair Display', serif;
-        font-size: 2rem; font-weight: 700;
-        color: #12202b; white-space: nowrap;
+        font-size: 4rem; font-weight: 400;
+        color: #020c14; white-space: nowrap;
         letter-spacing: 0.02em;
     }
 
     .hero-nav-links {
         display: flex;
         align-items: center;
-        gap: 1.9rem;
-        flex-wrap: wrap;
+        gap: 1.5rem;
+        flex-wrap: nowrap;
         justify-content: flex-end;
+        flex-shrink: 1;
     }
 
     .hero-nav-links a {
@@ -93,28 +96,91 @@
         text-underline-offset: 4px;
     }
 
-    .hero-nav-user-name {
-        font-family: 'Jersey 10', sans-serif;
+    /* ── Fixed settings gear (replaces old logout pill) ── */
+    .hero-settings-fixed {
+        position: fixed;
+        bottom: 50px;
+        right: 50px;
+        z-index: 1100;
+    }
+
+    .hero-settings-gear {
+        width: 68px;
+        height: 68px;
+        border-radius: 50%;
+        background: #000000;
         color: #fff;
-        opacity: 0.75;
-        font-size: 22px;
-        text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+        border: none;
+        font-size: 1.7rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+        transition: transform 0.35s ease, background 0.3s ease;
     }
 
-    .hero-nav-logout {
-        font-family: 'Jersey 10', sans-serif;
-        background: #12202b;
-        color: #fff !important;
-        padding: 0.4rem 1.6rem;
-        border-radius: 999px;
-        font-size: 28px;
-        text-shadow: none;
+    .hero-settings-gear:hover,
+    .hero-settings-fixed:focus-within .hero-settings-gear {
+        background: #1a1a1a;
+        transform: rotate(60deg);
     }
 
-    .hero-nav-logout:hover {
-        transform: scale(1.08);
-        opacity: 1 !important;
-        background: #1e2f3d;
+    .hero-settings-menu {
+        position: absolute;
+        bottom: calc(100% + 12px);
+        right: 0;
+        min-width: 210px;
+        background: #fff;
+        border-radius: 1rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 12px 28px -6px rgba(0,0,0,0.25);
+        padding: 0.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(8px);
+        transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+    }
+
+    .hero-settings-fixed:hover .hero-settings-menu,
+    .hero-settings-fixed:focus-within .hero-settings-menu {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+
+    .hero-settings-menu a {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.65rem 0.75rem;
+        border-radius: 0.6rem;
+        color: #1e293b;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.85rem;
+        transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .hero-settings-menu a:hover {
+        background: #f1f5f9;
+        color: #0d9488;
+    }
+
+    .hero-settings-menu a.hero-settings-logout {
+        color: #b45309;
+    }
+
+    .hero-settings-menu a.hero-settings-logout:hover {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    @media (max-width: 768px) {
+        .hero-settings-fixed { bottom: 24px; right: 24px; }
     }
 
     .hero-mobile-toggle {
@@ -164,7 +230,7 @@
         .hero-nav-logo-badge { width: 64px; height: 64px; }
         .hero-nav-logo-badge img { width: 36px; height: 36px; }
         .hero-nav-logo-text { font-size: 1.4rem; }
-        .hero-nav-inner { padding: 0 1.25rem; }
+        .hero-nav-inner { width: 92vw; max-width: 92vw; }
         .hero-nav { top: 20px; }
     }
 </style>
@@ -175,26 +241,26 @@
             <span class="hero-nav-logo-badge">
                 <picture>
                     <source srcset="/static/images/image.webp?v=101" type="image/webp">
-                    <img src="/static/images/image.png?v=101" alt="CareStance Logo" width="90" height="90">
+                    <img src="/static/images/logo-1.png" alt="CareStance Logo" width="90" height="90">
                 </picture>
             </span>
-            <span class="hero-nav-logo-text">Carestance</span>
+            <span class="hero-nav-logo-text">CareStance</span>
         </a>
 
         <div class="hero-nav-links">
             {% if user %}
             <a href="/dashboard" class="nav-active">Dashboard</a>
+            {% if user.role in ['student', 'admin'] %}
+            <a href="/my-growth-profile" class="{% if request.url.path == '/my-growth-profile' %}nav-active{% endif %}">Growth Profile</a>
+            <a href="/my-monthly-path" class="{% if request.url.path == '/my-monthly-path' %}nav-active{% endif %}">Monthly Path</a>
+            {% endif %}
             {% if user.role != 'counsellor' %}
             <a href="/chatbot">Chat AI</a>
             {% endif %}
             <a href="/community">Community</a>
-            <a href="/feedback">Feedback</a>
-            <a href="/ticket">Support</a>
             {% if user.role == 'admin' %}
             <a href="/admin" class="{% if request.url.path == '/admin' %}nav-active{% endif %}" style="font-weight:700;">Admin</a>
             {% endif %}
-            {% if user.full_name and user.full_name != 'None' %}<span class="hero-nav-user-name">| {{ user.full_name }}</span>{% endif %}
-            <a href="/logout" class="hero-nav-logout">Logout</a>
             {% else %}
             <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}">Home</a>
             <a href="/login" class="{% if request.url.path == '/login' %}nav-active{% endif %}">Log In</a>
@@ -210,20 +276,35 @@
         {% if user %}
         <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i class="fa-solid fa-house"></i>Home</a>
         <a href="/dashboard" class="nav-active"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
+        {% if user.role in ['student', 'admin'] %}
+        <a href="/my-growth-profile" class="{% if request.url.path == '/my-growth-profile' %}nav-active{% endif %}"><i class="fa-solid fa-compass"></i>Growth Profile</a>
+        <a href="/my-monthly-path" class="{% if request.url.path == '/my-monthly-path' %}nav-active{% endif %}"><i class="fa-solid fa-route"></i>Monthly Path</a>
+        {% endif %}
         {% if user.role != 'counsellor' %}
         <a href="/chatbot"><i class="fa-solid fa-comment-dots"></i>Chat AI</a>
         {% endif %}
         <a href="/community"><i class="fa-solid fa-users"></i>Community</a>
-        <a href="/feedback"><i class="fa-solid fa-star"></i>Feedback</a>
-        <a href="/ticket"><i class="fa-solid fa-circle-question"></i>Support</a>
         {% if user.role == 'admin' %}<a href="/admin"><i class="fa-solid fa-shield-halved"></i>Admin Panel</a>{% endif %}
-        <a href="/logout" style="color:#b45309;"><i class="fa-solid fa-right-from-bracket"></i>Logout</a>
         {% else %}
         <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i class="fa-solid fa-house"></i>Home</a>
         <a href="/login"><i class="fa-solid fa-right-to-bracket"></i>Log In</a>
         {% endif %}
     </div>
 </nav>
+
+{% if user %}
+<div class="hero-settings-fixed" id="hero-settings-fixed">
+    <button class="hero-settings-gear" aria-label="Settings" aria-haspopup="true" aria-expanded="false">
+        <i class="fa-solid fa-gear"></i>
+    </button>
+    <div class="hero-settings-menu">
+        <a href="/student/{{ user.id }}"><i class="fa-solid fa-user"></i> Student Profile</a>
+        <a href="/feedback"><i class="fa-solid fa-star"></i> Feedback</a>
+        <a href="/ticket"><i class="fa-solid fa-circle-question"></i> Support</a>
+        <a href="/logout" class="hero-settings-logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+    </div>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block extra_head %}
@@ -236,7 +317,7 @@
     /* Dashboard page padding & container */
     main>* { padding: 1.5rem; }
     @media(min-width: 768px) { main>* { padding: 2rem; } }
-    .db-page { max-width: 1280px; margin: 0 auto; }
+    .db-page { max-width: 80vw; width: 80vw; margin: 0 auto; }
 
     /* ── Pink glass token palette ── */
     :root {
@@ -343,26 +424,101 @@
     }
     @keyframes db-shimmer { to { left: 200%; } }
 
-    /* ── Tool grid card ── */
+    /* ── Hover scale utility for CTA buttons ── */
+    .db-hover-scale { will-change: transform; }
+    .db-hover-scale:hover {
+        transform: scale(1.06) translateY(-2px);
+        box-shadow: 0 10px 24px -6px rgba(232,121,160,0.4);
+    }
+    .db-hover-scale:active { transform: scale(0.97); }
+
+    /* ── Tool grid: circular quest badges, not boxes ── */
     .db-tool-card {
-        background: rgba(255,255,255,0.65);
-        border: 1.5px solid rgba(255,200,225,0.4);
-        border-radius: 18px;
-        padding: 1.1rem 0.75rem;
+        --tool-c: var(--db-pink-accent);
+        --tool-glow: rgba(232,121,160,0.35);
+        background: transparent;
+        border: none;
+        border-radius: 20px;
+        padding: 0.6rem 0.35rem 0.75rem;
         text-align: center;
-        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.35s ease, box-shadow 0.35s ease;
         text-decoration: none;
         display: flex;
         flex-direction: column;
         align-items: center;
         gap: 0.5rem;
         position: relative;
-        overflow: hidden;
     }
+
+    /* Gentle wave so the row doesn't read as a flat grid of boxes */
+    .db-tool-card:nth-child(3n+2) { transform: translateY(10px); }
+    .db-tool-card:nth-child(3n+3) { transform: translateY(4px); }
+
+    /* Soft glow bloom behind the badge on hover */
+    .db-tool-card::before {
+        content: '';
+        position: absolute;
+        top: 50%; left: 50%;
+        width: 94px; height: 94px;
+        border-radius: 50%;
+        background: radial-gradient(circle, var(--tool-c) 0%, transparent 72%);
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.6);
+        transition: opacity 0.4s ease, transform 0.4s ease;
+        pointer-events: none;
+        z-index: 0;
+    }
+
     .db-tool-card:hover {
-        border-color: var(--db-pink-accent);
-        box-shadow: 0 8px 24px rgba(232,121,160,0.18);
-        transform: translateY(-4px) scale(1.03);
+        background: rgba(255,255,255,0.4);
+        box-shadow: 0 10px 24px -8px var(--tool-glow), 0 1px 0 rgba(255,255,255,0.6) inset;
+        transform: translateY(-6px) scale(1.04);
+    }
+    .db-tool-card:nth-child(3n+2):hover { transform: translateY(4px) scale(1.04); }
+    .db-tool-card:nth-child(3n+3):hover { transform: translateY(-2px) scale(1.04); }
+    .db-tool-card:hover::before { opacity: 0.28; transform: translate(-50%, -50%) scale(1); }
+    .db-tool-card:active { transform: translateY(-2px) scale(0.97); }
+
+    /* Ring: circular gradient border like the match-score badge */
+    .db-tool-ring {
+        width: 76px; height: 76px;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        padding: 3px;
+        background: conic-gradient(from 180deg, var(--tool-c), rgba(255,255,255,0.15) 65%, var(--tool-c));
+        position: relative; z-index: 1;
+        animation: db-tool-float 3.4s ease-in-out infinite;
+        animation-delay: var(--float-delay, 0s);
+        transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), padding 0.3s ease;
+    }
+    .db-tool-inner {
+        width: 100%; height: 100%;
+        border-radius: 50%;
+        background: rgba(255,251,253,0.92);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.4rem;
+        color: var(--tool-c);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.06) inset;
+    }
+    .db-tool-card:hover .db-tool-ring {
+        transform: scale(1.14) rotate(-8deg);
+        padding: 3.5px;
+    }
+    .db-tool-label {
+        font-size: 0.72rem;
+        font-weight: 800;
+        color: #1e293b;
+        line-height: 1.2;
+        transition: color 0.3s ease;
+    }
+    .db-tool-card:hover .db-tool-label { color: var(--tool-c); }
+
+    @keyframes db-tool-float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-4px); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .db-tool-ring { animation: none; }
     }
 
     /* ── Stat pill ── */
@@ -555,7 +711,7 @@
 
 {% block content %}
 <div class="db-page space-y-8">
-    {% set has_dashboard_assessment = assessment and (assessment.assessment_report or assessment.phase_2_category or assessment.recommended_stream or assessment.final_analysis) %}
+    {% set has_dashboard_assessment = assessment and (assessment.assessment_report or (assessment.recommended_stream and assessment.final_analysis)) %}
 
     {# Admin denied / generic error message banner (used by admin_auth redirects) #}
     {% if request.query_params.get('error') %}
@@ -567,7 +723,7 @@
 
     <!-- STATE 1: WELCOME INTRO FLOW (No Assessment or Assessment in Progress) -->
     {% if not has_dashboard_assessment %}
-    <div x-data="{
+    <div class="mascot-scene-card" x-data="{
         step: 1,
         isReturning: {% if assessment %}true{% else %}false{% endif %},
         dialogues: {
@@ -595,110 +751,23 @@
                 this.step--;
             }
         }
-    }" class="py-2">
-
-        <!-- Mascot Scene Banner (single full-bleed background, 3 slides via step) -->
-        <div class="mascot-scene-card">
-            <div class="mascot-scene-inner">
-
-                <img src="/static/images/G1.png" alt="Careo Mascot" class="mascot-scene-char mascot-container">
-
-                <div class="mascot-scene-panel">
-
-                    <!-- Slides 1 & 2: dialogue + dots + skip/back/next -->
-                    <template x-if="step < 3">
-                        <div>
-                            <p class="mascot-scene-text" x-text="currentText"></p>
-
-                            <div class="flex items-center justify-between mt-6">
-                                <!-- Navigation Dots / Steps -->
-                                <div class="flex gap-2">
-                                    <template x-for="i in 3">
-                                        <span class="w-2.5 h-2.5 rounded-full transition-all duration-300"
-                                              :class="step === i ? 'bg-[var(--teal)] scale-125' : 'bg-slate-200'"></span>
-                                    </template>
-                                </div>
-
-                                <!-- Navigation Buttons -->
-                                <div class="flex items-center gap-2">
-                                    <button x-show="step < 3" @click="step = 3" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors mr-2">
-                                        Skip Intro
-                                    </button>
-
-                                    <button x-show="step > 1" @click="prevStep()" class="px-4 py-2 text-sm font-bold text-slate-500 hover:text-slate-800 transition-colors">
-                                        Back
-                                    </button>
-
-                                    <button x-show="step < 3" @click="nextStep()" class="px-6 py-2.5 btn-teal-primary text-white text-sm font-bold rounded-xl shadow-md transition-all">
-                                        Next <i class="fas fa-arrow-right ml-1"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </template>
-
-                    <!-- Slide 3: action panel (same banner, no separate box below) -->
-                    <template x-if="step === 3">
-                        <div x-transition:enter="transition ease-out duration-500" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0">
-
-                            <!-- CASE A: NEW USER (No Assessment started yet) -->
-                            <template x-if="!isReturning">
-                                <div class="flex flex-col gap-4">
-                                    <div class="flex items-center gap-3">
-                                        <div class="h-12 w-12 bg-[var(--teal-soft)] text-[var(--teal)] rounded-2xl flex items-center justify-center text-2xl flex-shrink-0">
-                                            <i class="fas fa-rocket"></i>
-                                        </div>
-                                        <div>
-                                            <h4 class="text-xl font-bold text-slate-900">Start Your Assessment</h4>
-                                            <p class="text-slate-500 text-sm leading-relaxed">Discover your ideal career path and strengths.</p>
-                                        </div>
-                                    </div>
-
-                                    <div class="flex items-center justify-between">
-                                        <button @click="step = 1" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors">
-                                            <i class="fas fa-arrow-left mr-1"></i> Back
-                                        </button>
-                                        <a href="/assessment/start?class_level=12th" class="px-6 py-3 bg-[var(--navy)] hover:bg-[var(--teal)] text-white text-center font-bold rounded-2xl shadow-lg shadow-[var(--teal-soft)] transition-all">
-                                            Start Assessment <i class="fas fa-arrow-right ml-1.5"></i>
-                                        </a>
-                                    </div>
-                                </div>
-                            </template>
-
-                            <!-- CASE B: RETURNING USER (Assessment in progress) -->
-                            <template x-if="isReturning">
-                                <div class="flex flex-col gap-4">
-                                    <div class="flex items-center gap-3">
-                                        <div class="h-12 w-12 bg-[var(--teal-soft)] text-[var(--teal)] rounded-2xl flex items-center justify-center text-2xl flex-shrink-0">
-                                            <i class="fas fa-play"></i>
-                                        </div>
-                                        <div>
-                                            <h4 class="text-xl font-bold text-slate-900">Your Assessment is Waiting</h4>
-                                            <p class="text-slate-500 text-sm leading-relaxed">Let's continue where you left off and finish discovering your best-suited careers.</p>
-                                        </div>
-                                    </div>
-
-                                    <div class="flex flex-col sm:flex-row items-center gap-3">
-                                        <button @click="step = 1" class="text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors sm:mr-auto">
-                                            <i class="fas fa-arrow-left mr-1"></i> Back
-                                        </button>
-                                        <a href="/assessment" class="w-full sm:w-auto px-6 py-3 bg-[var(--navy)] hover:bg-[var(--teal)] text-white text-center font-bold rounded-2xl shadow-lg shadow-[var(--teal-soft)] transition-all">
-                                            Continue Assessment <i class="fas fa-arrow-right ml-1"></i>
-                                        </a>
-                                        <a href="/assessment/reset" onclick="return confirm('Are you sure you want to start fresh? This will clear your current assessment progress.')" class="w-full sm:w-auto px-6 py-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 text-center font-bold rounded-2xl transition-all">
-                                            Start Fresh / Reset
-                                        </a>
-                                    </div>
-                                </div>
-                            </template>
-
-                        </div>
-                    </template>
-
+    }">
+        <div class="mascot-scene-inner">
+            <img src="/static/images/G1.png" alt="Careo Mascot" class="mascot-scene-char mascot-container">
+            <div class="mascot-scene-panel">
+                <p class="mascot-scene-text" x-text="currentText"></p>
+                <div class="flex items-center justify-between gap-3 mt-6">
+                    <button x-show="step < 3" @click="step = 3" class="text-sm font-bold text-slate-500 hover:text-slate-800">Skip intro</button>
+                    <div class="flex gap-2 ml-auto">
+                        <button x-show="step > 1" @click="prevStep()" class="px-4 py-2 text-sm font-bold text-slate-600">Back</button>
+                        <button x-show="step < 3" @click="nextStep()" class="btn-teal-primary px-5 py-2 text-sm font-bold">Next</button>
+                        <a x-show="step === 3" href="{% if assessment %}/assessment{% else %}/assessment/start?class_level=12th{% endif %}" class="btn-teal-primary px-5 py-2 text-sm font-bold">
+                            {{ 'Resume assessment' if assessment else 'Start assessment' }}
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
-
     </div>
 
 
@@ -711,51 +780,77 @@
         <!-- Left Column: Main Results, Action and Sessions -->
         <div class="lg:col-span-2 space-y-6">
 
-            <!-- ── Career Unlocked Summary Card ── -->
-            <div class="db-card db-card-accent p-7 flex flex-col md:flex-row gap-6 items-center db-stagger">
-                <!-- Circular match score -->
-                <div class="flex-shrink-0 relative" style="width:112px;height:112px;">
-                    <div style="width:112px;height:112px;border-radius:50%;padding:4px;background:linear-gradient(135deg,var(--db-pink-accent),#a78bfa,#0d9488);">
-                        <div style="width:100%;height:100%;background:rgba(255,248,252,0.95);border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;">
-                            <span style="font-size:1.75rem;font-weight:900;color:#1e293b;line-height:1;">
-                                {{ ((assessment.confidence or 0.85) * 100) | int }}%
-                            </span>
-                            <span style="font-size:0.65rem;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Match</span>
+            <!-- ── Career Unlocked Summary: split into two adjacent tiles (40:60) ── -->
+            <div class="db-stagger" style="display:grid;grid-template-columns:40% 60%;gap:1rem;align-items:stretch;">
+
+                <!-- Tile 1 (40%): Match score -->
+                <div class="db-card db-card-accent" style="padding:1rem;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-width:0;">
+                    <div class="relative" style="width:112px;height:112px;">
+                        <div style="width:112px;height:112px;border-radius:50%;padding:4px;background:linear-gradient(135deg,var(--db-pink-accent),#a78bfa,#0d9488);">
+                            <div style="width:100%;height:100%;background:rgba(255,248,252,0.95);border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                                <span style="font-family:'Jersey 10','Playfair Display',serif;font-weight:400;font-size:2.4rem;color:#1e293b;line-height:1;">
+                                    {{ ((assessment.confidence or 0.85) * 100) | int }}%
+                                </span>
+                                <span style="font-size:0.65rem;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Match</span>
+                            </div>
                         </div>
+                        <!-- Orbit ring animation -->
+                        <div style="position:absolute;inset:-6px;border-radius:50%;border:2px solid rgba(232,121,160,0.2);animation:journey-pulse 3s infinite;"></div>
                     </div>
-                    <!-- Orbit ring animation -->
-                    <div style="position:absolute;inset:-6px;border-radius:50%;border:2px solid rgba(232,121,160,0.2);animation:journey-pulse 3s infinite;"></div>
+                    <span style="margin-top:0.85rem;font-family:'Jersey 10','Playfair Display',serif;font-weight:400;font-size:1.75rem;letter-spacing:0.03em;color:#1e293b;line-height:1.15;">{{ assessment.phase_2_category }}</span>
                 </div>
-                
-                <div class="flex-1 text-center md:text-left">
-                    <!-- Phase badge -->
-                    <span class="db-phase-badge" style="margin-bottom:0.6rem;">
+
+                <!-- Tile 2 (60%): Career Unlocked badge (centered) + 4 evenly-sized action tiles -->
+                <div class="db-card db-card-accent" style="padding:1.25rem;min-width:0;display:flex;flex-direction:column;align-items:center;">
+                    <!-- Phase badge, centered -->
+                    <span class="db-phase-badge" style="margin:0 auto 1rem;">
                         <i class="fas fa-trophy" style="font-size:0.55rem;"></i>
                         Career Unlocked
                     </span>
-                    <h2 style="font-size:1.4rem;font-weight:900;color:#1e293b;margin:0.3rem 0;">
-                        {{ assessment.phase_2_category }}
-                    </h2>
-                    <p style="color:#64748b;font-size:0.82rem;margin-bottom:1rem;">
-                        Personality: <strong style="color:#0d9488;">{{ assessment.personality }}</strong> &nbsp;·&nbsp;
-                        <strong style="color:#be185d;">{{ ((assessment.confidence or 0.85) * 100) | int }}% AI match confidence</strong>
-                    </p>
-                    
-                    <div style="display:flex;flex-wrap:wrap;gap:0.6rem;justify-content:center;" class="md:justify-start">
-                        <a href="/assessment/result"
-                           style="padding:0.7rem 1.5rem;background:linear-gradient(135deg,var(--db-pink-accent),#a78bfa);color:white;border-radius:14px;font-weight:800;font-size:0.82rem;text-decoration:none;display:inline-flex;align-items:center;gap:0.4rem;box-shadow:0 6px 18px rgba(232,121,160,0.3);transition:all 0.3s;">
-                            <i class="fas fa-scroll"></i> View Full Report
+
+                    <div style="display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:0.75rem;width:100%;flex:1;">
+                        <a href="/assessment/result" class="db-hover-scale"
+                           style="background:linear-gradient(135deg,var(--db-pink-accent),#a78bfa);color:white;border-radius:14px;font-weight:800;font-size:0.85rem;text-decoration:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.4rem;box-shadow:0 6px 18px rgba(232,121,160,0.3);transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1),box-shadow 0.3s ease;text-align:center;padding:0.75rem;">
+                            <i class="fas fa-scroll" style="font-size:1.1rem;"></i> View Full Report
                         </a>
-                        <a href="/chatbot"
-                           style="padding:0.7rem 1.5rem;background:rgba(255,255,255,0.75);border:1.5px solid rgba(255,200,225,0.5);color:#1e293b;border-radius:14px;font-weight:700;font-size:0.82rem;text-decoration:none;display:inline-flex;align-items:center;gap:0.4rem;transition:all 0.3s;">
-                            <i class="fas fa-comment-dots" style="color:#0d9488;"></i> Ask CareerBuddy AI
+                        <a href="/chatbot" class="db-hover-scale"
+                           style="background:rgba(255,255,255,0.75);border:1.5px solid rgba(255,200,225,0.5);color:#1e293b;border-radius:14px;font-weight:700;font-size:0.85rem;text-decoration:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.4rem;transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1),box-shadow 0.3s ease;text-align:center;padding:0.75rem;">
+                            <i class="fas fa-comment-dots" style="color:#0d9488;font-size:1.1rem;"></i> Ask CareerBuddy AI
                         </a>
-                        <a href="/assessment/simulation/start/{{ dashboard_sim_career | urlencode }}"
-                            class="w-full sm:w-auto text-center px-6 py-3.5 bg-amber-500 text-white rounded-xl font-bold hover:bg-amber-600 transition shadow-lg shadow-amber-100">
-                            Try Career Simulation
+                        <a href="/assessment/simulation/start/{{ dashboard_sim_career | urlencode }}" class="db-hover-scale"
+                            style="background:#f59e0b;color:white;border-radius:14px;font-weight:800;font-size:0.85rem;text-decoration:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.4rem;box-shadow:0 6px 18px rgba(245,158,11,0.25);transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1),box-shadow 0.3s ease;text-align:center;padding:0.75rem;">
+                            <i class="fas fa-vr-cardboard" style="font-size:1.1rem;"></i> Try Career Simulation
                         </a>
+                        <button type="button" onclick="document.getElementById('retake-modal').classList.remove('hidden')" class="db-hover-scale"
+                           style="background:#fecaca;color:#b91c1c;border:none;border-radius:14px;font-weight:800;font-size:0.85rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.4rem;box-shadow:0 6px 18px rgba(248,113,113,0.25);transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1),box-shadow 0.3s ease;text-align:center;padding:0.75rem;">
+                            <i class="fas fa-undo" style="font-size:1.1rem;"></i> Retake Assessment
+                        </button>
                     </div>
                 </div>
+            </div>
+
+            <!-- ── Quest Tools Grid ── -->
+            <div class="grid grid-cols-3 gap-2 db-stagger" style="animation-delay:0.15s;">
+                <a href="/career/colleges" class="db-tool-card" style="--tool-c:#6366f1;--tool-glow:rgba(99,102,241,0.35);--float-delay:0.45s;">
+                    <span class="db-tool-ring"><span class="db-tool-inner"><i class="fas fa-university"></i></span></span>
+                    <span class="db-tool-label">Colleges</span>
+                </a>
+                <a href="/counsellors" class="db-tool-card" style="--tool-c:var(--db-pink-accent);--tool-glow:rgba(232,121,160,0.35);--float-delay:0.6s;">
+                    <span class="db-tool-ring"><span class="db-tool-inner"><i class="fas fa-video"></i></span></span>
+                    <span class="db-tool-label">Talk to Expert</span>
+                </a>
+                <a href="/assessment/simulation/start/{{ dashboard_sim_career | urlencode }}" class="db-tool-card" style="--tool-c:#a78bfa;--tool-glow:rgba(167,139,250,0.35);--float-delay:0.9s;">
+                    <span class="db-tool-ring"><span class="db-tool-inner"><i class="fas fa-vr-cardboard"></i></span></span>
+                    <span class="db-tool-label">Simulation</span>
+                </a>
+                <a href="/subscription" class="db-tool-card" style="--tool-c:#eab308;--tool-glow:rgba(234,179,8,0.35);--float-delay:1.05s;">
+                    <span class="db-tool-ring"><span class="db-tool-inner"><i class="fas fa-crown"></i></span></span>
+                    <span class="db-tool-label">Plans</span>
+                </a>
+                <a href="/weekly-checkin" class="db-tool-card" style="--tool-c:#10b981;--tool-glow:rgba(16,185,129,0.35);--float-delay:1.2s;grid-column:3;">
+                    <span class="db-tool-ring"><span class="db-tool-inner"><i class="fas fa-calendar-check"></i></span></span>
+                    <span class="db-tool-label">Weekly AI</span>
+                </a>
             </div>
 
             <!-- ── Scheduled Sessions ── -->
@@ -998,7 +1093,7 @@
                 </div>
                 <div style="flex:1;min-width:0;">
                     <div style="font-size:1rem;font-weight:900;color:#1e293b;line-height:1.2;">{{ user.full_name }}</div>
-                    <div style="font-size:0.68rem;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-top:2px;">{{ user.role or 'Explorer' }}</div>
+                    <div style="font-size:0.68rem;color:#475569;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-top:2px;">{{ user.role or 'Explorer' }}</div>
                 </div>
                 <span class="db-xp-badge">
                     <i class="fas fa-bolt" style="font-size:0.55rem;"></i> Active
@@ -1032,59 +1127,11 @@
                 </div>
             </div>
 
-            <!-- ── Quest Tools Grid ── -->
-            <div class="grid grid-cols-2 gap-3 db-stagger" style="animation-delay:0.2s;">
-                <a href="/career/roadmaps" class="db-tool-card">
-                    <div style="width:38px;height:38px;background:rgba(13,148,136,0.1);color:#0d9488;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1rem;">
-                        <i class="fas fa-route"></i>
-                    </div>
-                    <span style="font-size:0.72rem;font-weight:800;color:#1e293b;">My Roadmaps</span>
-                </a>
-                <a href="/career/colleges" class="db-tool-card">
-                    <div style="width:38px;height:38px;background:rgba(99,102,241,0.1);color:#6366f1;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1rem;">
-                        <i class="fas fa-university"></i>
-                    </div>
-                    <span style="font-size:0.72rem;font-weight:800;color:#1e293b;">Colleges</span>
-                </a>
-                <a href="/counsellors" class="db-tool-card">
-                    <div style="width:38px;height:38px;background:rgba(232,121,160,0.1);color:var(--db-pink-accent);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1rem;">
-                        <i class="fas fa-video"></i>
-                    </div>
-                    <span style="font-size:0.72rem;font-weight:800;color:#1e293b;">Talk to Expert</span>
-                </a>
-                <a href="/chatbot" class="db-tool-card">
-                    <div style="width:38px;height:38px;background:rgba(245,158,11,0.1);color:#f59e0b;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1rem;">
-                        <i class="fas fa-comments"></i>
-                    </div>
-                    <span style="font-size:0.72rem;font-weight:800;color:#1e293b;">CareerBuddy AI</span>
-                </a>
-                <a href="/assessment/simulation/start/{{ dashboard_sim_career | urlencode }}" class="bg-white p-4 rounded-2xl border border-amber-100 shadow-sm hover:border-amber-300 hover:-translate-y-0.5 transition-all text-center">
-                    <div class="w-10 h-10 mx-auto bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mb-2">
-                        <i class="fas fa-vr-cardboard"></i>
-                    </div>
-                    <span class="text-xs font-bold text-slate-700 block">Simulation</span>
-                </a>
-                <a href="/subscription" class="bg-white p-4 rounded-2xl border border-amber-100 shadow-sm hover:border-amber-300 hover:-translate-y-0.5 transition-all text-center">
-                    <div class="w-10 h-10 mx-auto bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mb-2">
-                        <i class="fas fa-crown"></i>
-                    </div>
-                    <span class="text-xs font-bold text-slate-700 block">Plans</span>
-                </a>
-                {% if subscription_state and subscription_state.active and subscription_state.plan == 'customised' %}
-                <a href="/weekly-checkin" class="bg-white p-4 rounded-2xl border border-teal-100 shadow-sm hover:border-[var(--teal)] hover:-translate-y-0.5 transition-all text-center">
-                    <div class="w-10 h-10 mx-auto bg-teal-50 text-teal-600 rounded-full flex items-center justify-center mb-2">
-                        <i class="fas fa-calendar-check"></i>
-                    </div>
-                    <span class="text-xs font-bold text-slate-700 block">Weekly AI</span>
-                </a>
-                {% endif %}
-            </div>
-
-            <!-- ── Bio Section ── -->
-            <div class="db-card p-5 db-stagger" style="animation-delay:0.25s;">
-                <div style="font-size:0.68rem;font-weight:800;color:#be185d;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:0.75rem;display:flex;align-items:center;gap:6px;">
-                    <i class="fas fa-user-circle"></i> Your Bio
-                </div>
+            <!-- Bio Section -->
+            <div class="db-card p-5">
+                <h4 class="font-bold mb-3 flex items-center gap-2 text-sm" style="color:var(--text-main);">
+                    <i class="fas fa-user-circle" style="color:var(--primary);"></i> Your Bio
+                </h4>
                 <div x-data="{ editing: false }">
                     <div x-show="!editing">
                         <p style="font-size:0.82rem;color:#475569;line-height:1.55;" class="{% if not user.bio %}italic{% endif %}">
@@ -1112,15 +1159,45 @@
                 </div>
             </div>
 
-            <!-- ── Retake ── -->
-            <div class="db-card p-4 text-center db-stagger" style="animation-delay:0.3s;">
-                <p style="font-size:0.72rem;color:#94a3b8;margin-bottom:0.5rem;">Want to map a different academic stage?</p>
-                <a href="/assessment/reset"
-                   onclick="return confirm('Are you sure you want to retake the assessment? This will clear your current results.')"
-                   style="font-size:0.75rem;font-weight:700;color:#f87171;display:inline-flex;align-items:center;gap:4px;text-decoration:none;transition:color 0.2s;">
-                    <i class="fas fa-undo"></i> Retake Assessment
-                </a>
+            <!-- Retake Class-Level Modal -->
+            <div id="retake-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(15,23,42,0.65);backdrop-filter:blur(8px);">
+                <div class="bg-white rounded-3xl w-full max-w-sm p-8 shadow-2xl" style="border:1.5px solid rgba(255,200,225,0.4);">
+                    <h3 class="text-xl font-black text-slate-900 mb-1 text-center">Retake Assessment</h3>
+                    <p class="text-sm text-slate-500 mb-6 text-center">Choose your current academic stage to begin a fresh assessment.</p>
+                    <div class="flex flex-col gap-3">
+                        <a href="/assessment/start?class_level=12th"
+                           class="flex items-center gap-3 p-4 rounded-2xl border border-teal-100 hover:border-teal-400 hover:bg-teal-50 transition-all"
+                           onclick="return confirm('This will clear your current results and start fresh. Continue?')">
+                            <div class="w-10 h-10 bg-teal-50 text-teal-700 rounded-xl flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-graduation-cap"></i>
+                            </div>
+                            <div class="text-left">
+                                <div class="font-black text-slate-900 text-sm">Class 12th / Above</div>
+                                <div class="text-xs text-slate-500">Science, Commerce, Arts streams</div>
+                            </div>
+                        </a>
+                        <a href="/assessment/start?class_level=10th"
+                           class="flex items-center gap-3 p-4 rounded-2xl border border-indigo-100 hover:border-indigo-400 hover:bg-indigo-50 transition-all"
+                           onclick="return confirm('This will clear your current results and start fresh. Continue?')">
+                            <div class="w-10 h-10 bg-indigo-50 text-indigo-700 rounded-xl flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-school"></i>
+                            </div>
+                            <div class="text-left">
+                                <div class="font-black text-slate-900 text-sm">Class 10th</div>
+                                <div class="text-xs text-slate-500">Explore career paths early</div>
+                            </div>
+                        </a>
+                    </div>
+                    <button onclick="document.getElementById('retake-modal').classList.add('hidden')"
+                            class="mt-5 w-full py-3 text-sm font-bold text-slate-500 rounded-2xl hover:bg-slate-100 transition-all">
+                        Cancel
+                    </button>
+                </div>
             </div>
+
+            <!-- ── Sleeping mascot: sits in the open background space below the panels ── -->
+            <img src="/static/images/mascot_sleeping.png" alt="Sleeping mascot" class="mascot-container"
+                 style="width:400px;height:auto;display:block;margin:1.5rem auto 0 auto;filter:drop-shadow(0 10px 18px rgba(0,0,0,0.25));">
 
         </div>
     </div>

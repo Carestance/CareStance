@@ -2,205 +2,462 @@
 
 {% block title %}Support Tickets{% endblock %}
 
-{% block content %}
-<!-- GLOBAL ANIMATED BACKGROUND: teal/turquoise waves + floating glass bubbles, fixed behind all content (copied from landing.html) -->
-<div class="site-bg" aria-hidden="true">
-    <div class="site-bg-waves">
-        <svg class="site-bg-wave wave-1" viewBox="0 0 800 1400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-            <path d="M0,1400 L0,300 C150,250 220,420 320,480 C440,560 520,380 620,460 C700,520 760,700 800,780 L800,1400 Z" fill="#cdeeec" />
-        </svg>
-        <svg class="site-bg-wave wave-2" viewBox="0 0 800 1400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-            <path d="M0,1400 L0,520 C120,460 200,620 300,640 C420,665 500,520 610,560 C700,592 760,760 800,860 L800,1400 Z" fill="#9fdcd8" />
-        </svg>
-        <svg class="site-bg-wave wave-3" viewBox="0 0 800 1400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-            <path d="M0,1400 L0,760 C140,720 240,860 360,880 C480,900 560,780 660,820 C730,848 780,950 800,1020 L800,1400 Z" fill="#6fc1bd" />
-        </svg>
+{% block navbar %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Jersey+10&display=swap');
+
+    .hero-nav {
+        position: fixed;
+        top: 40px;
+        left: 0;
+        right: 0;
+        width: 100%;
+        z-index: 1100;
+        background: transparent;
+        box-shadow: none;
+    }
+
+    .hero-nav-inner {
+        max-width: 1500px;
+        margin: 0 auto;
+        padding: 0 2.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .hero-nav-logo {
+        display: flex;
+        align-items: center;
+        gap: 1.75rem;
+        text-decoration: none;
+    }
+
+    .hero-nav-logo-badge {
+        width: 156px; height: 156px;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 50%;
+        background: #0f172a;
+        flex-shrink: 0;
+    }
+
+    .hero-nav-logo-badge img {
+        width: 90px; height: 90px;
+        border-radius: 50%; object-fit: cover;
+        transform: scale(1.6);
+    }
+
+    .hero-nav-logo-text {
+        font-family: 'Jersey 10', 'Playfair Display', serif;
+        font-size: 3rem; font-weight: 500;
+        color: #0d151b; white-space: nowrap;
+        letter-spacing: 0.02em;
+    }
+
+    .hero-nav-links {
+        display: flex;
+        align-items: center;
+        gap: 1.9rem;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .hero-nav-links a {
+        display: inline-block;
+        font-family: 'Jersey 10', sans-serif;
+        color: #fff;
+        font-size: 30px;
+        font-weight: 400;
+        white-space: nowrap;
+        text-decoration: none;
+        letter-spacing: 0.02em;
+        text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+        transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+
+    .hero-nav-links a:hover {
+        transform: scale(1.1);
+        opacity: 0.75;
+    }
+
+    .hero-nav-links a.nav-active {
+        text-decoration: underline;
+        text-underline-offset: 4px;
+    }
+
+    .hero-nav-user-name {
+        font-family: 'Jersey 10', sans-serif;
+        color: #fff;
+        opacity: 0.75;
+        font-size: 22px;
+        text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+    }
+
+    .hero-nav-logout {
+        font-family: 'Jersey 10', sans-serif;
+        background: #12202b;
+        color: #fff !important;
+        padding: 0.4rem 1.6rem;
+        border-radius: 999px;
+        font-size: 28px;
+        text-shadow: none;
+    }
+
+    .hero-nav-logout:hover {
+        transform: scale(1.08);
+        opacity: 1 !important;
+        background: #1e2f3d;
+    }
+
+    .hero-mobile-toggle {
+        display: none;
+        background: none; border: none;
+        color: #12202b; font-size: 1.35rem;
+        cursor: pointer;
+    }
+
+    .hero-mobile-menu {
+        display: none;
+        position: absolute; top: 100%; left: 1.5rem; right: 1.5rem;
+        margin-top: 0.75rem; padding: 1.5rem;
+        flex-direction: column; gap: 0.75rem;
+        background: #fff; border-radius: 1.25rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.15);
+    }
+
+    .hero-mobile-menu.open { display: flex; }
+
+    .hero-mobile-menu a {
+        padding: 0.8rem 0.5rem;
+        color: var(--text-main);
+        text-decoration: none;
+        font-weight: 500;
+        border-bottom: 1px solid var(--border-soft);
+        transition: color 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .hero-mobile-menu a:last-child { border-bottom: none; }
+    .hero-mobile-menu a:hover { color: #0d9488; }
+
+    @media (max-width: 768px) {
+        .hero-nav-links { display: none; }
+        .hero-mobile-toggle { display: block; }
+        .hero-nav-logo-badge { width: 64px; height: 64px; }
+        .hero-nav-logo-badge img { width: 36px; height: 36px; }
+        .hero-nav-logo-text { font-size: 1.4rem; }
+        .hero-nav-inner { padding: 0 1.25rem; }
+        .hero-nav { top: 20px; }
+    }
+
+    body { padding-top: 0 !important; }
+
+    :root {
+        --content-top-gap: calc(40px + 156px + 30px);
+    }
+    @media (max-width: 768px) {
+        :root { --content-top-gap: calc(20px + 64px + 30px); }
+    }
+</style>
+
+<nav class="hero-nav">
+    <div class="hero-nav-inner">
+        <a href="/" class="hero-nav-logo">
+            <span class="hero-nav-logo-badge">
+                <picture>
+                    <source srcset="/static/images/image.webp?v=101" type="image/webp">
+                    <img src="/static/images/image.png?v=101" alt="CareStance Logo" width="90" height="90">
+                </picture>
+            </span>
+            <span class="hero-nav-logo-text">Carestance</span>
+        </a>
+
+        <div class="hero-nav-links">
+            {% if user %}
+            <a href="/dashboard" class="nav-active">Dashboard</a>
+            {% if user.role == 'student' %}
+            <a href="/my-growth-profile" class="{% if request.url.path == '/my-growth-profile' %}nav-active{% endif %}">Growth Profile</a>
+            <a href="/my-monthly-path" class="{% if request.url.path == '/my-monthly-path' %}nav-active{% endif %}">Monthly Path</a>
+            {% endif %}
+            {% if user.role != 'counsellor' %}
+            <a href="/chatbot">Chat AI</a>
+            {% endif %}
+            <a href="/community">Community</a>
+            <a href="/feedback">Feedback</a>
+            <a href="/ticket">Support</a>
+            {% if user.role == 'admin' %}
+            <a href="/admin" class="{% if request.url.path == '/admin' %}nav-active{% endif %}" style="font-weight:700;">Admin</a>
+            {% endif %}
+            {% if user.full_name and user.full_name != 'None' %}<span class="hero-nav-user-name">| {{ user.full_name }}</span>{% endif %}
+            <a href="/logout" class="hero-nav-logout">Logout</a>
+            {% else %}
+            <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}">Home</a>
+            <a href="/login" class="{% if request.url.path == '/login' %}nav-active{% endif %}">Log In</a>
+            {% endif %}
+        </div>
+
+        <button class="hero-mobile-toggle" id="base-menu-toggle" aria-label="Menu">
+            <i class="fa-solid fa-bars" id="base-menu-icon"></i>
+        </button>
     </div>
-    <div class="site-bg-bubble b1"></div>
-    <div class="site-bg-bubble b2"></div>
-    <div class="site-bg-bubble b3"></div>
-    <div class="site-bg-bubble b4"></div>
-    <div class="site-bg-bubble b5"></div>
-    <div class="site-bg-bubble b6"></div>
-</div>
+
+    <div class="hero-mobile-menu" id="base-mobile-menu">
+        {% if user %}
+        <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i class="fa-solid fa-house"></i>Home</a>
+        <a href="/dashboard" class="nav-active"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
+        {% if user.role == 'student' %}
+        <a href="/my-growth-profile" class="{% if request.url.path == '/my-growth-profile' %}nav-active{% endif %}"><i class="fa-solid fa-compass"></i>Growth Profile</a>
+        <a href="/my-monthly-path" class="{% if request.url.path == '/my-monthly-path' %}nav-active{% endif %}"><i class="fa-solid fa-route"></i>Monthly Path</a>
+        {% endif %}
+        {% if user.role != 'counsellor' %}
+        <a href="/chatbot"><i class="fa-solid fa-comment-dots"></i>Chat AI</a>
+        {% endif %}
+        <a href="/community"><i class="fa-solid fa-users"></i>Community</a>
+        <a href="/feedback"><i class="fa-solid fa-star"></i>Feedback</a>
+        <a href="/ticket"><i class="fa-solid fa-circle-question"></i>Support</a>
+        {% if user.role == 'admin' %}<a href="/admin"><i class="fa-solid fa-shield-halved"></i>Admin Panel</a>{% endif %}
+        <a href="/logout" style="color:#b45309;"><i class="fa-solid fa-right-from-bracket"></i>Logout</a>
+        {% else %}
+        <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i class="fa-solid fa-house"></i>Home</a>
+        <a href="/login"><i class="fa-solid fa-right-to-bracket"></i>Log In</a>
+        {% endif %}
+    </div>
+</nav>
+{% endblock %}
+
+{% block content %}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+<link href="https://fonts.googleapis.com/css2?family=Jersey+10&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
 
 <style>
     /* ===================================================================
-       GLOBAL ANIMATED BACKGROUND — copied 1:1 from landing.html: layered
-       teal/turquoise wave SVGs + floating glass bubbles, fixed behind
-       everything via position:fixed + z-index:-1 (so it always shows,
-       even above/behind the navbar, regardless of any parent background).
+       CareStance Support Tickets — restyled to match the Community
+       "Party Finder" HUD (dark, glassy, glow-bordered game-lobby look).
+       Self-contained CSS only.
        =================================================================== */
-    .site-bg {
+
+    :root {
+        --game-navy: #0a0a18;
+        --game-panel: rgba(255, 255, 255, 0.04);
+        --game-panel-border: rgba(148, 130, 255, 0.18);
+        --teal: #2dd4bf;
+        --teal-soft: rgba(45, 212, 191, 0.14);
+        --purple: #a78bfa;
+        --purple-soft: rgba(167, 139, 250, 0.14);
+        --gold: #f5b93f;
+        --gold-soft: rgba(245, 185, 63, 0.16);
+        --rose: #fb7185;
+        --rose-soft: rgba(251, 113, 133, 0.14);
+        --text-primary: #f8fafc;
+        --text-secondary: #a1a8c0;
+        --text-muted: #6b7189;
+    }
+
+    .tk-wrap {
+        font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        color: var(--text-primary);
+        position: relative;
+        padding-top: var(--content-top-gap, 6rem);
+    }
+
+    .font-jersey { font-family: 'Jersey 10', 'Outfit', sans-serif; letter-spacing: 0.03em; }
+    .font-outfit { font-family: 'Outfit', sans-serif; }
+
+    /* ---------- Full-page game backdrop (same as Community) ---------- */
+    .tk-game-bg {
         position: fixed;
         inset: 0;
-        width: 100vw;
-        height: 100vh;
-        z-index: -1;
-        overflow: hidden;
-        background: linear-gradient(160deg, #d7f3f1 0%, #bfe9e6 28%, #9ddcd9 55%, #6fc4c2 78%, #4fb0ae 100%);
+        z-index: -2;
+        background: url('/static/images/BG1.png') center center / cover no-repeat fixed;
     }
-
-    .site-bg-waves {
-        position: absolute;
-        inset: -10% -10% -10% -10%;
-        width: 120%;
-        height: 120%;
-    }
-
-    .site-bg-wave {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-    }
-
-    .site-bg-wave.wave-1 { animation: bgDrift1 38s ease-in-out infinite; opacity: 0.55; }
-    .site-bg-wave.wave-2 { animation: bgDrift2 46s ease-in-out infinite; opacity: 0.5; }
-    .site-bg-wave.wave-3 { animation: bgDrift3 54s ease-in-out infinite; opacity: 0.4; }
-
-    @keyframes bgDrift1 { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(-2%, 2%) scale(1.04); } }
-    @keyframes bgDrift2 { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(2.5%, -1.5%) scale(1.05); } }
-    @keyframes bgDrift3 { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(-1.5%, -2%) scale(1.03); } }
-
-    /* Floating glassy bubbles, like the reference image */
-    .site-bg-bubble {
-        position: absolute;
-        border-radius: 50%;
-        background: radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.85) 0%, rgba(102, 158, 167, 0.25) 35%, rgba(103, 211, 210, 0.383) 70%, transparent 100%);
-        filter: blur(0.5px);
-        will-change: transform;
-    }
-
-    .site-bg-bubble.b1 { width: 380px; height: 380px; top: -6%; right: 4%; animation: bubbleFloat1 24s ease-in-out infinite; }
-    .site-bg-bubble.b2 {
-        width: 220px; height: 220px; top: 18%; right: 22%;
-        background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.9) 0%, rgba(56, 189, 248, 0.55) 40%, rgba(13, 148, 136, 0.2) 75%, transparent 100%);
-        animation: bubbleFloat2 19s ease-in-out infinite;
-    }
-    .site-bg-bubble.b3 {
-        width: 120px; height: 120px; top: 38%; right: 6%;
-        background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.95) 0%, rgba(45, 212, 191, 0.6) 45%, transparent 100%);
-        animation: bubbleFloat3 16s ease-in-out infinite;
-    }
-    .site-bg-bubble.b4 { width: 150px; height: 150px; top: 58%; left: 4%; animation: bubbleFloat2 21s ease-in-out infinite reverse; }
-    .site-bg-bubble.b5 {
-        width: 90px; height: 90px; top: 80%; left: 18%;
-        background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.9) 0%, rgba(56, 189, 248, 0.5) 45%, transparent 100%);
-        animation: bubbleFloat1 17s ease-in-out infinite reverse;
-    }
-    .site-bg-bubble.b6 { width: 260px; height: 260px; bottom: -8%; right: 12%; animation: bubbleFloat3 27s ease-in-out infinite; }
-
-    @keyframes bubbleFloat1 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-18px, 22px); } }
-    @keyframes bubbleFloat2 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(16px, -20px); } }
-    @keyframes bubbleFloat3 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-14px, -16px); } }
-
-    @media (max-width: 768px) {
-        .site-bg-bubble.b1 { width: 220px; height: 220px; }
-        .site-bg-bubble.b2 { width: 130px; height: 130px; }
-        .site-bg-bubble.b6 { width: 160px; height: 160px; }
-    }
-
-    /* Self-contained, dependable CSS — avoids bracket-syntax Tailwind
-       gradients like bg-gradient-to-r from-blue-600 to-[var(--teal)] and
-       from-[var(--teal-soft)] to-[var(--teal-soft)], which your build's
-       purge step strips since it can't statically detect the dynamic-
-       looking arbitrary values. Real CSS below always ships. */
-
-    .tk-page {
-        font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-        border-radius: 2rem;
-        padding: clamp(1.5rem, 4vw, 3rem) 1rem;
-    }
-
-    .tk-card {
-        background: rgba(255, 255, 255, 0.95);
-        border: 1px solid #e7f3ee;
-        border-radius: 1.5rem;
-        overflow: hidden;
-        box-shadow: 0 25px 55px -25px rgba(14, 42, 46, 0.3);
-        transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .tk-card:hover {
-        box-shadow: 0 32px 65px -25px rgba(14, 42, 46, 0.35);
-    }
-
-    .tk-header {
-        position: relative;
-        overflow: hidden;
-        padding: 2.25rem 2rem;
-        background: linear-gradient(120deg, #0E2A2E 0%, #14524E 55%, #0D9488 140%);
-        text-align: center;
-    }
-    .tk-header::before {
+    .tk-game-bg::after {
         content: '';
         position: absolute;
-        width: 220px; height: 220px;
-        top: -90px; left: -60px;
+        inset: 0;
+        background:
+            linear-gradient(to bottom, rgba(10,10,24,0.55) 0%, rgba(10,10,24,0.86) 45%, var(--game-navy) 100%);
+    }
+
+    .tk-pixel {
+        position: fixed;
+        z-index: -1;
+        pointer-events: none;
+        opacity: 0.55;
+        image-rendering: pixelated;
+        animation: tk-pixel-float linear infinite;
+    }
+    @keyframes tk-pixel-float {
+        0%   { transform: translateY(0) rotate(0deg); }
+        50%  { transform: translateY(-22px) rotate(8deg); }
+        100% { transform: translateY(0) rotate(0deg); }
+    }
+
+    /* ---------- Hero HUD panel ---------- */
+    .tk-hero {
+        position: relative;
+        overflow: hidden;
+        max-width: 80vw;
+        margin: 0 auto;
+        border-radius: 1.5rem;
+        background: url('/static/images/BG3.png') center / cover no-repeat, linear-gradient(135deg, #14464B 0%, #1C5B57 45%, #0D9488 130%);
+        background-blend-mode: overlay;
+        color: #fff;
+        border: 2px solid rgba(45, 212, 191, 0.35);
+        box-shadow: 0 25px 60px -20px rgba(0, 0, 0, 0.65), inset 0 0 0 1px rgba(255,255,255,0.05);
+    }
+    .tk-hero::before, .tk-hero::after {
+        content: '';
+        position: absolute;
         border-radius: 50%;
-        filter: blur(45px);
-        background: radial-gradient(circle, rgba(56, 189, 248, 0.35), transparent 70%);
+        filter: blur(60px);
+        pointer-events: none;
     }
-    .tk-header-icon {
-        width: 3rem; height: 3rem; border-radius: 1rem;
-        margin: 0 auto 0.9rem;
-        background: rgba(255, 255, 255, 0.14);
-        border: 1px solid rgba(255, 255, 255, 0.2);
+    .tk-hero::before {
+        width: 320px; height: 320px;
+        top: -110px; right: -80px;
+        background: radial-gradient(circle, rgba(167, 139, 250, 0.35), transparent 70%);
+    }
+    .tk-hero::after {
+        width: 300px; height: 300px;
+        bottom: -120px; left: -60px;
+        background: radial-gradient(circle, rgba(245, 185, 63, 0.22), transparent 70%);
+    }
+    .tk-hero-inner { position: relative; z-index: 2; background: rgba(8, 12, 16, 0.38); }
+
+    .tk-hero-badge {
+        display: inline-flex; align-items: center; gap: 0.5rem;
+        padding: 0.3rem 0.85rem;
+        border-radius: 999px;
+        background: rgba(245, 185, 63, 0.16);
+        border: 1px solid rgba(245, 185, 63, 0.5);
+        color: var(--gold);
+        font-size: 0.68rem; font-weight: 800;
+        text-transform: uppercase; letter-spacing: 0.14em;
+    }
+
+    .tk-hero-icon {
+        width: 3.25rem; height: 3.25rem;
+        clip-path: polygon(25% 6%, 75% 6%, 100% 50%, 75% 94%, 25% 94%, 0% 50%);
+        background: linear-gradient(135deg, #2DD4BF, #0D9488);
         display: flex; align-items: center; justify-content: center;
-        color: #fff; font-size: 1.1rem;
-        backdrop-filter: blur(6px);
+        box-shadow: 0 10px 20px -6px rgba(13, 148, 136, 0.7);
+        border: 1.5px solid rgba(255,255,255,0.35);
     }
 
-    .tk-body { padding: 2.25rem 2rem; }
+    .tk-hero-title {
+        font-size: 2.2rem;
+        line-height: 1;
+    }
+    @media (min-width: 768px) { .tk-hero-title { font-size: 2.75rem; } }
 
+    /* ---------- Section headers ---------- */
+    .tk-section-icon {
+        width: 2.6rem; height: 2.6rem;
+        clip-path: polygon(25% 6%, 75% 6%, 100% 50%, 75% 94%, 25% 94%, 0% 50%);
+        display: flex; align-items: center; justify-content: center;
+        color: #fff; font-weight: 800;
+        background: linear-gradient(135deg, var(--teal), #0D9488);
+        box-shadow: 0 8px 18px -6px rgba(13,148,136,0.45), inset 0 0 0 1.5px rgba(255,255,255,0.25);
+    }
+    .tk-section-title {
+        font-size: 1.4rem;
+        font-weight: 800;
+        color: #fff;
+    }
+    .tk-section-sub { color: var(--text-secondary); font-size: 0.85rem; }
+
+    /* ---------- Glass panel (form card + tickets card) ---------- */
+    .tk-panel {
+        max-width: 80vw;
+        margin: 0 auto;
+        background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border: 1.5px solid var(--teal-soft);
+        border-radius: 1.5rem;
+        overflow: hidden;
+        box-shadow: 0 20px 45px -24px rgba(0,0,0,0.7);
+        transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    .tk-panel:hover {
+        border-color: rgba(45, 212, 191, 0.4);
+        box-shadow: 0 28px 55px -24px rgba(45, 212, 191, 0.22);
+    }
+    .tk-panel-body { padding: 2rem 1.75rem; }
+    @media (min-width: 640px) { .tk-panel-body { padding: 2.5rem 2.5rem; } }
+
+    /* ---------- Form fields ---------- */
+    .tk-label {
+        display: block;
+        font-size: 0.72rem;
+        font-weight: 800;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 0.6rem;
+    }
     .tk-input {
         width: 100%;
-        padding: 1rem 1.15rem;
-        background: #f8fafc;
-        border: 1.5px solid #e2e8f0;
-        border-radius: 1rem;
+        padding: 0.9rem 1.1rem;
+        border-radius: 0.9rem;
+        background: rgba(0, 0, 0, 0.28);
+        border: 1.5px solid rgba(255, 255, 255, 0.18);
+        color: #fff;
+        font-size: 0.9rem;
+        font-weight: 500;
         outline: none;
         resize: none;
-        transition: border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+        transition: box-shadow 0.25s ease, background 0.25s ease, border-color 0.25s ease;
     }
+    .tk-input::placeholder { color: rgba(255, 255, 255, 0.4); }
     .tk-input:focus {
-        border-color: #0d9488;
-        background: #fff;
-        box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.12);
+        background: rgba(0, 0, 0, 0.4);
+        border-color: var(--teal);
+        box-shadow: 0 0 0 4px rgba(45, 212, 191, 0.22);
     }
 
-    .tk-submit {
-        width: 100%;
-        padding: 1.05rem;
-        border: none;
-        border-radius: 1rem;
+    /* ---------- Buttons (chunky, pressable — matches Community) ---------- */
+    .tk-btn {
+        display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+        font-size: 0.85rem; font-weight: 800;
+        padding: 0.95rem 1.5rem;
+        border-radius: 0.9rem;
+        transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.22s ease;
+        border: none; cursor: pointer; width: 100%;
+        text-transform: uppercase; letter-spacing: 0.03em;
+    }
+    .tk-btn:active { transform: translateY(3px); }
+    .tk-btn-primary {
+        background: linear-gradient(135deg, #2DD4BF, #0D9488);
         color: #fff;
-        font-weight: 800;
-        font-size: 1.05rem;
-        letter-spacing: 0.02em;
-        background: linear-gradient(120deg, #0E2A2E 0%, #14524E 55%, #0D9488 140%);
-        box-shadow: 0 16px 32px -14px rgba(13, 148, 136, 0.5);
-        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease;
-        cursor: pointer;
+        box-shadow: 0 5px 0 #0D9488, 0 14px 26px -10px rgba(13,148,136,0.6);
     }
-    .tk-submit:hover {
-        transform: translateY(-3px) scale(1.015);
-        box-shadow: 0 22px 42px -16px rgba(13, 148, 136, 0.6);
-    }
-    .tk-submit:active { transform: scale(0.97); }
+    .tk-btn-primary:active { box-shadow: 0 1px 0 #0D9488; }
 
+    /* ---------- Individual ticket cards ---------- */
     .tk-ticket {
-        background: #fff;
-        border: 1px solid #eef2f0;
-        border-radius: 1.25rem;
+        position: relative;
+        background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border: 1.5px solid var(--game-panel-border);
+        border-radius: 1.1rem;
         padding: 1.5rem;
-        transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.32s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.32s ease;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s ease;
     }
     .tk-ticket:hover {
-        transform: translateY(-4px) scale(1.008);
-        box-shadow: 0 18px 36px -18px rgba(14, 42, 46, 0.22);
-        border-color: #cdeee0;
+        transform: translateY(-4px);
+        box-shadow: 0 20px 40px -18px rgba(167, 139, 250, 0.28);
+        border-color: var(--purple);
     }
+
+    .tk-ticket-subject { font-weight: 800; color: #fff; font-size: 1.05rem; font-family: 'Outfit', sans-serif; }
+    .tk-ticket-date { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem; }
 
     .tk-badge {
         display: inline-flex; align-items: center; gap: 0.3rem;
@@ -210,25 +467,31 @@
         font-weight: 800;
         text-transform: uppercase;
         letter-spacing: 0.04em;
+        white-space: nowrap;
     }
-    .tk-badge-resolved { background: #d1fae5; color: #047857; border: 1px solid #a7f3d0; }
-    .tk-badge-pending  { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+    .tk-badge-resolved { background: var(--teal-soft); color: #6ee7b7; border: 1px solid rgba(45,212,191,0.5); }
+    .tk-badge-pending  { background: var(--gold-soft); color: var(--gold); border: 1px solid rgba(245,185,63,0.5); }
 
     .tk-message-box {
-        background: #f8fafc;
-        border: 1px solid #eef2f0;
+        background: rgba(0, 0, 0, 0.22);
+        border: 1px solid rgba(255,255,255,0.08);
         border-radius: 1rem;
         padding: 1rem 1.15rem;
         margin-bottom: 1rem;
     }
+    .tk-message-label {
+        font-size: 0.62rem; font-weight: 800; color: var(--text-muted);
+        text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.4rem;
+    }
+    .tk-message-text { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6; }
 
     .tk-reply-box {
         position: relative;
         overflow: hidden;
         border-radius: 1rem;
         padding: 1.1rem 1.25rem;
-        background: linear-gradient(155deg, #E3FBF2 0%, #FFFFFF 75%);
-        border: 1px solid #BFEEDD;
+        background: linear-gradient(155deg, rgba(45,212,191,0.14) 0%, rgba(255,255,255,0.03) 75%);
+        border: 1px solid rgba(45, 212, 191, 0.35);
     }
     .tk-reply-box::before {
         content: '';
@@ -236,129 +499,159 @@
         top: -20px; right: -20px;
         width: 90px; height: 90px;
         border-radius: 50%;
-        background: rgba(13, 148, 136, 0.08);
+        background: rgba(45, 212, 191, 0.12);
     }
     .tk-reply-icon {
         width: 1.6rem; height: 1.6rem; border-radius: 0.5rem;
-        background: #0d9488; color: #fff;
+        background: linear-gradient(135deg, #2DD4BF, #0D9488); color: #fff;
         display: inline-flex; align-items: center; justify-content: center;
         font-size: 0.65rem;
     }
+    .tk-reply-label {
+        font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em;
+        margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; color: #6ee7b7;
+    }
+    .tk-reply-text { font-size: 0.85rem; color: var(--text-primary); line-height: 1.6; }
+    .tk-resolved-note {
+        margin-top: 0.85rem; padding-top: 0.85rem;
+        border-top: 1px solid rgba(45, 212, 191, 0.25);
+        font-size: 0.72rem; font-style: italic; color: var(--teal);
+        position: relative; z-index: 1;
+    }
+    .tk-resolved-note a { color: #fff; font-weight: 800; text-decoration: underline; }
 
     .tk-awaiting {
-        background: #f8fafc;
-        border: 1.5px dashed #d8e2e0;
+        background: rgba(0, 0, 0, 0.18);
+        border: 1.5px dashed rgba(255,255,255,0.16);
         border-radius: 1rem;
         padding: 1rem 1.15rem;
         text-align: center;
     }
+    .tk-awaiting p { font-size: 0.75rem; color: var(--text-muted); font-style: italic; }
 </style>
 
-<div class="tk-page">
-    <div class="max-w-3xl mx-auto space-y-8">
+<!-- Game backdrop -->
+<div class="tk-game-bg" aria-hidden="true"></div>
+<span class="tk-pixel" style="top:12%; left:8%; font-size:1.4rem;" aria-hidden="true">&#10022;</span>
+<span class="tk-pixel" style="top:22%; right:10%; font-size:1.1rem; animation-duration: 7s;" aria-hidden="true">&#9670;</span>
+<span class="tk-pixel" style="top:55%; left:5%; font-size:1rem; animation-duration: 9s;" aria-hidden="true">&#10022;</span>
+<span class="tk-pixel" style="top:70%; right:6%; font-size:1.3rem; animation-duration: 6.5s;" aria-hidden="true">&#9670;</span>
+<span class="tk-pixel" style="top:88%; left:20%; font-size:0.9rem; animation-duration: 8s;" aria-hidden="true">&#10022;</span>
 
-        <!-- Submit New Ticket -->
-        <div class="tk-card">
-            <div class="tk-header">
-                <div class="relative z-10">
-                    <div class="tk-header-icon"><i class="fas fa-life-ring"></i></div>
-                    <h2 class="text-2xl sm:text-3xl font-extrabold text-white mb-2">Submit a Query</h2>
-                    <p style="color:#a7f3d0;" class="max-w-md mx-auto text-sm sm:text-base">Having an issue or need
-                        help? Create a ticket and our admin team will review it.</p>
+<div class="tk-wrap space-y-10">
+
+    <!-- Hero Header -->
+    <div class="tk-hero">
+        <div class="tk-hero-inner relative z-10 px-8 py-12 sm:px-12">
+            <div class="max-w-2xl mx-auto text-center">
+                <span class="tk-hero-badge mb-4"><i class="fas fa-life-ring"></i> Support</span>
+                <div class="flex items-center justify-center gap-3 mb-4 mt-3">
+                    <div class="tk-hero-icon">
+                        <i class="fas fa-headset text-xl"></i>
+                    </div>
+                    <h1 class="tk-hero-title font-jersey font-extrabold tracking-tight">Support Tickets</h1>
+                </div>
+                <p class="text-[#cdeeec] max-w-xl mx-auto text-lg">
+                    Having an issue or need help? Create a ticket and our admin team will review it.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Submit New Ticket -->
+    <div class="tk-panel">
+        <div class="tk-panel-body">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="tk-section-icon"><i class="fas fa-plus"></i></div>
+                <div>
+                    <h2 class="tk-section-title font-outfit">Submit a Query</h2>
+                    <p class="tk-section-sub">Tell us what's going on and we'll get back to you</p>
                 </div>
             </div>
 
-            <div class="tk-body">
-                <form action="/ticket/submit" method="POST" class="space-y-6">
-                    <div>
-                        <label for="subject"
-                            class="block text-sm font-bold text-slate-700 uppercase tracking-wide mb-2">Subject</label>
-                        <input type="text" id="subject" name="subject" required class="tk-input"
-                            placeholder="Brief description of your query">
-                    </div>
+            <form action="/ticket/submit" method="POST" class="space-y-6">
+                <div>
+                    <label for="subject" class="tk-label">Subject</label>
+                    <input type="text" id="subject" name="subject" required class="tk-input"
+                        placeholder="Brief description of your query">
+                </div>
 
-                    <div>
-                        <label for="description"
-                            class="block text-sm font-bold text-slate-700 uppercase tracking-wide mb-2">Description</label>
-                        <textarea id="description" name="description" rows="5" required class="tk-input"
-                            placeholder="Provide detailed information about your query or issue..."></textarea>
-                    </div>
+                <div>
+                    <label for="description" class="tk-label">Description</label>
+                    <textarea id="description" name="description" rows="5" required class="tk-input"
+                        placeholder="Provide detailed information about your query or issue..."></textarea>
+                </div>
 
-                    <button type="submit" class="tk-submit">
-                        Submit Ticket
-                    </button>
-                </form>
-            </div>
+                <button type="submit" class="tk-btn tk-btn-primary">
+                    <i class="fas fa-paper-plane"></i> Submit Ticket
+                </button>
+            </form>
         </div>
+    </div>
 
-        <!-- Previous Tickets -->
-        {% if tickets %}
-        <div class="tk-card">
-            <div class="tk-body">
-                <h3 class="text-xl font-extrabold text-slate-800 mb-6 flex items-center gap-2">
-                    <i class="fas fa-ticket-alt" style="color:#0d9488;"></i> Your Tickets
-                </h3>
+    <!-- Previous Tickets -->
+    {% if tickets %}
+    <div class="tk-panel">
+        <div class="tk-panel-body">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="tk-section-icon"><i class="fas fa-ticket-alt"></i></div>
+                <div>
+                    <h2 class="tk-section-title font-outfit">Your Tickets</h2>
+                    <p class="tk-section-sub">{{ tickets|length }} ticket{{ 's' if tickets|length > 1 else '' }}</p>
+                </div>
+            </div>
 
-                <div class="space-y-5">
-                    {% for ticket in tickets %}
-                    <div class="tk-ticket">
-                        <!-- Ticket Header -->
-                        <div class="flex justify-between items-start mb-3 gap-3">
-                            <div>
-                                <h4 class="font-bold text-slate-900 text-lg">{{ ticket.subject }}</h4>
-                                <p class="text-xs text-slate-400 mt-0.5">
-                                    {{ ticket.timestamp.strftime('%b %d, %Y at %I:%M %p') if ticket.timestamp else '' }}
-                                </p>
-                            </div>
-                            {% if ticket.status == 'Closed' %}
-                            <span class="tk-badge tk-badge-resolved">✅ Resolved</span>
-                            {% else %}
-                            <span class="tk-badge tk-badge-pending">⏳ {{ ticket.status }}</span>
-                            {% endif %}
-                        </div>
-
-                        <!-- Your Message -->
-                        <div class="tk-message-box">
-                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Your
-                                Message</p>
-                            <p class="text-sm text-slate-600 leading-relaxed">{{ ticket.description }}</p>
-                        </div>
-
-                        <!-- Admin Reply -->
-                        {% if ticket.admin_reply %}
-                        <div class="tk-reply-box">
-                            <div class="relative z-10">
-                                <p class="text-[10px] font-bold uppercase tracking-wider mb-1.5 flex items-center gap-1.5"
-                                    style="color:#0E2A2E;">
-                                    <span class="tk-reply-icon"><i class="fas fa-user-shield"></i></span> Admin
-                                    Response
-                                </p>
-                                <p class="text-sm text-slate-700 leading-relaxed">{{ ticket.admin_reply }}</p>
-                            </div>
-
-                            {% if ticket.status == 'Closed' %}
-                            <div class="mt-3 pt-3 relative z-10" style="border-top: 1px solid #BFEEDD;">
-                                <p class="text-[11px] font-medium italic" style="color:#0d9488;">
-                                    This ticket has been resolved. If you still need help, please
-                                    <a href="/ticket" class="underline font-bold" style="color:#0E2A2E;">submit a new
-                                        ticket</a>.
-                                </p>
-                            </div>
-                            {% endif %}
-                        </div>
-                        {% else %}
-                        <div class="tk-awaiting">
-                            <p class="text-xs text-slate-400 italic">
-                                <i class="fas fa-clock mr-1"></i> Awaiting admin response...
+            <div class="space-y-5">
+                {% for ticket in tickets %}
+                <div class="tk-ticket">
+                    <!-- Ticket Header -->
+                    <div class="flex justify-between items-start mb-3 gap-3">
+                        <div>
+                            <h4 class="tk-ticket-subject">{{ ticket.subject }}</h4>
+                            <p class="tk-ticket-date">
+                                {{ ticket.timestamp.strftime('%b %d, %Y at %I:%M %p') if ticket.timestamp else '' }}
                             </p>
+                        </div>
+                        {% if ticket.status == 'Closed' %}
+                        <span class="tk-badge tk-badge-resolved">&#9989; Resolved</span>
+                        {% else %}
+                        <span class="tk-badge tk-badge-pending">&#8987; {{ ticket.status }}</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Your Message -->
+                    <div class="tk-message-box">
+                        <p class="tk-message-label">Your Message</p>
+                        <p class="tk-message-text">{{ ticket.description }}</p>
+                    </div>
+
+                    <!-- Admin Reply -->
+                    {% if ticket.admin_reply %}
+                    <div class="tk-reply-box">
+                        <div class="relative z-10">
+                            <p class="tk-reply-label">
+                                <span class="tk-reply-icon"><i class="fas fa-user-shield"></i></span> Admin Response
+                            </p>
+                            <p class="tk-reply-text">{{ ticket.admin_reply }}</p>
+                        </div>
+
+                        {% if ticket.status == 'Closed' %}
+                        <div class="tk-resolved-note">
+                            This ticket has been resolved. If you still need help, please
+                            <a href="/ticket">submit a new ticket</a>.
                         </div>
                         {% endif %}
                     </div>
-                    {% endfor %}
+                    {% else %}
+                    <div class="tk-awaiting">
+                        <p><i class="fas fa-clock mr-1"></i> Awaiting admin response...</p>
+                    </div>
+                    {% endif %}
                 </div>
+                {% endfor %}
             </div>
         </div>
-        {% endif %}
     </div>
+    {% endif %}
 </div>
 {% endblock %}

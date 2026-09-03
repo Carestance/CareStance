@@ -2,21 +2,322 @@
 
 {% block title %}AI Career Guide{% endblock %}
 
+{% block navbar %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Jersey+10&display=swap');
+
+    .hero-nav {
+        position: fixed;
+        top: 40px;
+        left: 0;
+        right: 0;
+        width: 100%;
+        z-index: 1000;
+        background: transparent;
+        box-shadow: none;
+    }
+
+    .hero-nav-inner {
+        max-width: 80vw;
+        width: 80vw;
+        margin: 0 auto;
+        padding: 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .hero-nav-logo {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        text-decoration: none;
+        margin-right: auto;
+    }
+
+    .hero-nav-logo-badge {
+        width: 120px; height: 120px;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 50%;
+        background: #0f172a;
+        flex-shrink: 0;
+    }
+
+    .hero-nav-logo-badge img {
+        width: 80px; height: 80px;
+        border-radius: 50%; object-fit: cover;
+        transform: scale(1.6);
+    }
+
+    .hero-nav-logo-text {
+        font-family: 'Jersey 10', 'Playfair Display', serif;
+        font-size: 4rem; font-weight: 400;
+        color: #020c14; white-space: nowrap;
+        letter-spacing: 0.02em;
+    }
+
+    .hero-nav-links {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        flex-wrap: nowrap;
+        justify-content: flex-end;
+        flex-shrink: 1;
+    }
+
+    .hero-nav-links a {
+        display: inline-block;
+        font-family: 'Jersey 10', sans-serif;
+        color: #fff;
+        font-size: 30px;
+        font-weight: 400;
+        white-space: nowrap;
+        text-decoration: none;
+        letter-spacing: 0.02em;
+        text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+        transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+
+    .hero-nav-links a:hover {
+        transform: scale(1.1);
+        opacity: 0.75;
+    }
+
+    .hero-nav-links a.nav-active {
+        text-decoration: underline;
+        text-underline-offset: 4px;
+    }
+
+    /* ── Fixed settings gear (replaces old logout pill) ── */
+    .hero-settings-fixed {
+        position: fixed;
+        bottom: 50px;
+        right: 50px;
+        z-index: 1100;
+    }
+
+    .hero-settings-gear {
+        width: 68px;
+        height: 68px;
+        border-radius: 50%;
+        background: #000000;
+        color: #fff;
+        border: none;
+        font-size: 1.7rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+        transition: transform 0.35s ease, background 0.3s ease;
+    }
+
+    .hero-settings-gear:hover,
+    .hero-settings-fixed:focus-within .hero-settings-gear {
+        background: #1a1a1a;
+        transform: rotate(60deg);
+    }
+
+    .hero-settings-menu {
+        position: absolute;
+        bottom: calc(100% + 12px);
+        right: 0;
+        min-width: 210px;
+        background: #fff;
+        border-radius: 1rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 12px 28px -6px rgba(0,0,0,0.25);
+        padding: 0.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(8px);
+        transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+    }
+
+    .hero-settings-fixed:hover .hero-settings-menu,
+    .hero-settings-fixed:focus-within .hero-settings-menu {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+
+    .hero-settings-menu a {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.65rem 0.75rem;
+        border-radius: 0.6rem;
+        color: #1e293b;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.85rem;
+        transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .hero-settings-menu a:hover {
+        background: #f1f5f9;
+        color: #0d9488;
+    }
+
+    .hero-settings-menu a.hero-settings-logout {
+        color: #b45309;
+    }
+
+    .hero-settings-menu a.hero-settings-logout:hover {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    @media (max-width: 768px) {
+        .hero-settings-fixed { bottom: 24px; right: 24px; }
+    }
+
+    .hero-mobile-toggle {
+        display: none;
+        background: none; border: none;
+        color: #12202b; font-size: 1.35rem;
+        cursor: pointer;
+    }
+
+    .hero-mobile-menu {
+        display: none;
+        position: absolute; top: 100%; left: 1.5rem; right: 1.5rem;
+        margin-top: 0.75rem; padding: 1.5rem;
+        flex-direction: column; gap: 0.75rem;
+        background: #fff; border-radius: 1.25rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.15);
+    }
+
+    .hero-mobile-menu.open { display: flex; }
+
+    .hero-mobile-menu a {
+        padding: 0.8rem 0.5rem;
+        color: var(--text-main);
+        text-decoration: none;
+        font-weight: 500;
+        border-bottom: 1px solid var(--border-soft);
+        transition: color 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .hero-mobile-menu a.nav-active {
+        color: var(--primary);
+        font-weight: 700;
+        background: var(--primary-soft);
+        border-radius: 0.5rem;
+    }
+
+    .hero-mobile-menu a:last-child { border-bottom: none; }
+    .hero-mobile-menu a:hover { color: #0d9488; }
+
+    @media (max-width: 768px) {
+        .hero-nav-links { display: none; }
+        .hero-mobile-toggle { display: block; }
+        .hero-nav-logo-badge { width: 64px; height: 64px; }
+        .hero-nav-logo-badge img { width: 36px; height: 36px; }
+        .hero-nav-logo-text { font-size: 1.4rem; }
+        .hero-nav-inner { width: 92vw; max-width: 92vw; }
+        .hero-nav { top: 20px; }
+    }
+</style>
+
+<nav class="hero-nav">
+    <div class="hero-nav-inner">
+        <a href="/" class="hero-nav-logo">
+            <span class="hero-nav-logo-badge">
+                <picture>
+                    <source srcset="/static/images/image.webp?v=101" type="image/webp">
+                    <img src="/static/images/logo-1.png" alt="CareStance Logo" width="90" height="90">
+                </picture>
+            </span>
+            <span class="hero-nav-logo-text">CareStance</span>
+        </a>
+
+        <div class="hero-nav-links">
+            {% if user %}
+            <a href="/dashboard" class="nav-active">Dashboard</a>
+            {% if user.role in ['student', 'admin'] %}
+            <a href="/my-growth-profile" class="{% if request.url.path == '/my-growth-profile' %}nav-active{% endif %}">Growth Profile</a>
+            <a href="/my-monthly-path" class="{% if request.url.path == '/my-monthly-path' %}nav-active{% endif %}">Monthly Path</a>
+            {% endif %}
+            {% if user.role != 'counsellor' %}
+            <a href="/chatbot">Chat AI</a>
+            {% endif %}
+            <a href="/community">Community</a>
+            {% if user.role == 'admin' %}
+            <a href="/admin" class="{% if request.url.path == '/admin' %}nav-active{% endif %}" style="font-weight:700;">Admin</a>
+            {% endif %}
+            {% else %}
+            <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}">Home</a>
+            <a href="/login" class="{% if request.url.path == '/login' %}nav-active{% endif %}">Log In</a>
+            {% endif %}
+        </div>
+
+        <button class="hero-mobile-toggle" id="base-menu-toggle" aria-label="Menu">
+            <i class="fa-solid fa-bars" id="base-menu-icon"></i>
+        </button>
+    </div>
+
+    <div class="hero-mobile-menu" id="base-mobile-menu">
+        {% if user %}
+        <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i class="fa-solid fa-house"></i>Home</a>
+        <a href="/dashboard" class="nav-active"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
+        {% if user.role in ['student', 'admin'] %}
+        <a href="/my-growth-profile" class="{% if request.url.path == '/my-growth-profile' %}nav-active{% endif %}"><i class="fa-solid fa-compass"></i>Growth Profile</a>
+        <a href="/my-monthly-path" class="{% if request.url.path == '/my-monthly-path' %}nav-active{% endif %}"><i class="fa-solid fa-route"></i>Monthly Path</a>
+        {% endif %}
+        {% if user.role != 'counsellor' %}
+        <a href="/chatbot"><i class="fa-solid fa-comment-dots"></i>Chat AI</a>
+        {% endif %}
+        <a href="/community"><i class="fa-solid fa-users"></i>Community</a>
+        {% if user.role == 'admin' %}<a href="/admin"><i class="fa-solid fa-shield-halved"></i>Admin Panel</a>{% endif %}
+        {% else %}
+        <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i class="fa-solid fa-house"></i>Home</a>
+        <a href="/login"><i class="fa-solid fa-right-to-bracket"></i>Log In</a>
+        {% endif %}
+    </div>
+</nav>
+
+{% if user %}
+<div class="hero-settings-fixed" id="hero-settings-fixed">
+    <button class="hero-settings-gear" aria-label="Settings" aria-haspopup="true" aria-expanded="false">
+        <i class="fa-solid fa-gear"></i>
+    </button>
+    <div class="hero-settings-menu">
+        <a href="/student/{{ user.id }}"><i class="fa-solid fa-user"></i> Student Profile</a>
+        <a href="/feedback"><i class="fa-solid fa-star"></i> Feedback</a>
+        <a href="/ticket"><i class="fa-solid fa-circle-question"></i> Support</a>
+        <a href="/logout" class="hero-settings-logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
 {% block content %}
 <!-- Adventure Sky Backdrop -->
 <div class="quest-sky">
     <div class="quest-sky-overlay"></div>
 </div>
 
+<!-- Fixed, non-scrolling viewport shell that clears the hero-nav above -->
+<div class="quest-page-shell">
+
 <!-- Main Layout Container -->
-<div class="quest-ui max-w-7xl mx-auto h-[calc(100vh-5rem)] md:h-[calc(100vh-8rem)] min-h-[500px] flex gap-6">
+<div class="quest-ui max-w-7xl mx-auto h-full flex gap-6">
 
     <!-- SIDEBAR: Context & Profile (Hidden on Mobile) -->
     <div class="hidden lg:flex flex-col w-80 gap-4 h-full shrink-0">
         <!-- Profile Card -->
         <div class="pixel-frame">
             <div class="pixel-frame-inner flex flex-col items-center text-center p-6">
-                <div class="relative w-24 h-24 mb-4">
+                <div class="relative w-20 h-20 mb-3">
                     <!-- Animated Orb Background -->
                     <div
                         class="absolute inset-0 bg-[var(--teal)] rounded-full blur-xl opacity-40 animate-pulse">
@@ -24,14 +325,11 @@
                     <!-- The Orb -->
                     <div id="talking-buddy"
                         class="relative w-full h-full bg-[var(--navy)] rounded-full border-4 border-[var(--parchment)] shadow-xl flex items-center justify-center overflow-hidden transition-transform duration-300 quest-ring">
+                        <video src="/static/images/peek.mp4" autoplay muted loop playsinline
+                               class="absolute inset-0 w-full h-full object-cover rounded-full"></video>
                         <div
-                            class="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.35),transparent)]">
+                            class="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.35),transparent)] pointer-events-none">
                         </div>
-                        <span class="text-4xl relative z-10">🎓</span>
-                    </div>
-                    <!-- Status Dot -->
-                    <div id="buddy-status"
-                        class="absolute bottom-1 right-1 w-5 h-5 bg-slate-400 border-2 border-[var(--parchment)] rounded-full shadow-md transition-colors duration-300">
                     </div>
                 </div>
                 <h2 class="quest-heading text-lg text-[var(--ink)]">AI Career Guide</h2>
@@ -126,12 +424,12 @@
             <!-- Welcome Message -->
             <div class="flex items-start gap-4 animate-fade-in-up">
                 <div class="quest-avatar quest-avatar--ai">
-                    <span class="text-lg text-white">🤖</span>
+                    <img src="/static/images/pfp.png" alt="AI" class="w-full h-full object-cover rounded-[0.85rem]">
                 </div>
                 <div class="bubble bubble--ai max-w-[90%] sm:max-w-[80%]">
                     <p class="leading-relaxed text-sm sm:text-base">Hello! I'm your personal AI career guide. I have
                         access to your assessment data and can help you explore career paths, suggest degrees, or create
-                        a roadmap. What's on your mind today?</p>
+                        a growth plan. What's on your mind today?</p>
                 </div>
             </div>
 
@@ -153,7 +451,7 @@
                 {% else %}
                 <!-- AI Avatar -->
                 <div class="quest-avatar quest-avatar--ai">
-                    <span class="text-lg">🤖</span>
+                    <img src="/static/images/pfp.png" alt="AI" class="w-full h-full object-cover rounded-[0.85rem]">
                 </div>
                 <!-- AI Bubble -->
                 <div class="bubble bubble--ai max-w-[90%] sm:max-w-[80%]">
@@ -205,11 +503,9 @@
                 </div>
 
                 <button type="submit" id="send-btn"
-                    class="bg-[var(--navy)] text-white p-4 rounded-2xl shadow-lg transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transform rotate-90" fill="none"
-                        viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    class="bg-black text-white p-4 rounded-full shadow-lg transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
                     </svg>
                 </button>
             </form>
@@ -218,6 +514,8 @@
       </div>
     </div>
 </div>
+
+</div><!-- /.quest-page-shell -->
 
 <!-- STYLES -->
 <style>
@@ -230,6 +528,33 @@
         --ink: #2a2140;
         --teal-deep: #0d7d72;
         font-family: 'Baloo 2', 'Nunito', sans-serif;
+    }
+
+    /* Lock the whole page to the viewport — no outer scrollbar.
+       Panels below (chat history, sidebar) still scroll internally. */
+    html:has(.quest-page-shell),
+    body:has(.quest-page-shell) {
+        height: 100vh;
+        overflow: hidden;
+    }
+
+    .quest-page-shell {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        box-sizing: border-box;
+        padding: 200px 2.5rem 1.25rem;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+    @media (max-width: 1024px) {
+        .quest-page-shell { padding: 150px 1.5rem 1rem; }
+    }
+
+    @media (max-width: 768px) {
+        .quest-page-shell { padding: 95px 0.75rem 0.75rem; }
     }
 
     .quest-heading,
@@ -515,14 +840,14 @@
 
         #send-btn {
             padding: 0.875rem;
-            border-radius: 1rem;
+            border-radius: 9999px;
             flex-shrink: 0;
         }
     }
 </style>
 
 <!-- SCRIPTS -->
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="/static/js/marked.min.js"></script>
 
 <script>
     const chatBox = document.getElementById('chat-box');
@@ -557,9 +882,11 @@
         voiceBtn.classList.toggle('text-rose-500', listening);
         voiceBtn.classList.toggle('bg-rose-50', listening);
         voiceBtn.classList.toggle('animate-pulse', listening);
-        buddyStatus.classList.toggle('bg-slate-400', !listening);
-        buddyStatus.classList.toggle('bg-rose-500', listening);
-        buddyStatus.classList.toggle('shadow-[0_0_8px_#f43f5e]', listening);
+        if (buddyStatus) {
+            buddyStatus.classList.toggle('bg-slate-400', !listening);
+            buddyStatus.classList.toggle('bg-rose-500', listening);
+            buddyStatus.classList.toggle('shadow-[0_0_8px_#f43f5e]', listening);
+        }
         voiceBtn.setAttribute('aria-pressed', String(listening));
         voiceBtn.title = listening ? 'Listening — tap to stop' : 'Start voice input';
     }
@@ -731,7 +1058,7 @@
             </div>
         ` : `
             <div class="quest-avatar quest-avatar--ai">
-                <span class="text-lg text-white">🤖</span>
+                <img src="/static/images/pfp.png" alt="AI" class="w-full h-full object-cover rounded-[0.85rem]">
             </div>
         `;
 
@@ -774,7 +1101,7 @@
         div.className = 'flex items-start gap-4 animate-fade-in-up';
         div.innerHTML = `
             <div class="quest-avatar quest-avatar--ai">
-                <span class="text-lg text-white">🤖</span>
+                <img src="/static/images/pfp.png" alt="AI" class="w-full h-full object-cover rounded-[0.85rem]">
             </div>
             <div class="bubble bubble--ai max-w-[90%] sm:max-w-[80%]">
                 <div id="ai-response-content" class="prose prose-emerald prose-sm max-w-none">

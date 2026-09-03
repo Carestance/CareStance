@@ -1,0 +1,900 @@
+{% extends "base.html" %}
+
+{% block title %}My Monthly Path | CareStance{% endblock %}
+
+{% block navbar %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Jersey+10&display=swap');
+
+    .hero-nav {
+        position: fixed;
+        top: 40px;
+        left: 0;
+        right: 0;
+        width: 100%;
+        z-index: 1000;
+        background: transparent;
+        box-shadow: none;
+    }
+
+    .hero-nav-inner {
+        max-width: 80vw;
+        width: 80vw;
+        margin: 0 auto;
+        padding: 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .hero-nav-logo {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        text-decoration: none;
+        margin-right: auto;
+    }
+
+    .hero-nav-logo-badge {
+        width: 120px; height: 120px;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 50%;
+        background: #0f172a;
+        flex-shrink: 0;
+    }
+
+    .hero-nav-logo-badge img {
+        width: 80px; height: 80px;
+        border-radius: 50%; object-fit: cover;
+        transform: scale(1.6);
+    }
+
+    .hero-nav-logo-text {
+        font-family: 'Jersey 10', 'Playfair Display', serif;
+        font-size: 4rem; font-weight: 400;
+        color: #020c14; white-space: nowrap;
+        letter-spacing: 0.02em;
+    }
+
+    .hero-nav-links {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        flex-wrap: nowrap;
+        justify-content: flex-end;
+        flex-shrink: 1;
+    }
+
+    .hero-nav-links a {
+        display: inline-block;
+        font-family: 'Jersey 10', sans-serif;
+        color: #fff;
+        font-size: 30px;
+        font-weight: 400;
+        white-space: nowrap;
+        text-decoration: none;
+        letter-spacing: 0.02em;
+        text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+        transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+
+    .hero-nav-links a:hover {
+        transform: scale(1.1);
+        opacity: 0.75;
+    }
+
+    .hero-nav-links a.nav-active {
+        text-decoration: underline;
+        text-underline-offset: 4px;
+    }
+
+    /* ── Fixed settings gear (replaces old logout pill) ── */
+    .hero-settings-fixed {
+        position: fixed;
+        bottom: 50px;
+        right: 50px;
+        z-index: 1100;
+    }
+
+    .hero-settings-gear {
+        width: 68px;
+        height: 68px;
+        border-radius: 50%;
+        background: #000000;
+        color: #fff;
+        border: none;
+        font-size: 1.7rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+        transition: transform 0.35s ease, background 0.3s ease;
+    }
+
+    .hero-settings-gear:hover,
+    .hero-settings-fixed:focus-within .hero-settings-gear {
+        background: #1a1a1a;
+        transform: rotate(60deg);
+    }
+
+    .hero-settings-menu {
+        position: absolute;
+        bottom: calc(100% + 12px);
+        right: 0;
+        min-width: 210px;
+        background: #fff;
+        border-radius: 1rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 12px 28px -6px rgba(0,0,0,0.25);
+        padding: 0.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(8px);
+        transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+    }
+
+    .hero-settings-fixed:hover .hero-settings-menu,
+    .hero-settings-fixed:focus-within .hero-settings-menu {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+
+    .hero-settings-menu a {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.65rem 0.75rem;
+        border-radius: 0.6rem;
+        color: #1e293b;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.85rem;
+        transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .hero-settings-menu a:hover {
+        background: #f1f5f9;
+        color: #0d9488;
+    }
+
+    .hero-settings-menu a.hero-settings-logout {
+        color: #b45309;
+    }
+
+    .hero-settings-menu a.hero-settings-logout:hover {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    @media (max-width: 768px) {
+        .hero-settings-fixed { bottom: 24px; right: 24px; }
+    }
+
+    .hero-mobile-toggle {
+        display: none;
+        background: none; border: none;
+        color: #12202b; font-size: 1.35rem;
+        cursor: pointer;
+    }
+
+    .hero-mobile-menu {
+        display: none;
+        position: absolute; top: 100%; left: 1.5rem; right: 1.5rem;
+        margin-top: 0.75rem; padding: 1.5rem;
+        flex-direction: column; gap: 0.75rem;
+        background: #fff; border-radius: 1.25rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.15);
+    }
+
+    .hero-mobile-menu.open { display: flex; }
+
+    .hero-mobile-menu a {
+        padding: 0.8rem 0.5rem;
+        color: var(--text-main);
+        text-decoration: none;
+        font-weight: 500;
+        border-bottom: 1px solid var(--border-soft);
+        transition: color 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .hero-mobile-menu a.nav-active {
+        color: var(--primary);
+        font-weight: 700;
+        background: var(--primary-soft);
+        border-radius: 0.5rem;
+    }
+
+    .hero-mobile-menu a:last-child { border-bottom: none; }
+    .hero-mobile-menu a:hover { color: #0d9488; }
+
+    @media (max-width: 768px) {
+        .hero-nav-links { display: none; }
+        .hero-mobile-toggle { display: block; }
+        .hero-nav-logo-badge { width: 64px; height: 64px; }
+        .hero-nav-logo-badge img { width: 36px; height: 36px; }
+        .hero-nav-logo-text { font-size: 1.4rem; }
+        .hero-nav-inner { width: 92vw; max-width: 92vw; }
+        .hero-nav { top: 20px; }
+    }
+</style>
+
+<nav class="hero-nav">
+    <div class="hero-nav-inner">
+        <a href="/" class="hero-nav-logo">
+            <span class="hero-nav-logo-badge">
+                <picture>
+                    <source srcset="/static/images/image.webp?v=101" type="image/webp">
+                    <img src="/static/images/logo-1.png" alt="CareStance Logo" width="90" height="90">
+                </picture>
+            </span>
+            <span class="hero-nav-logo-text">CareStance</span>
+        </a>
+
+        <div class="hero-nav-links">
+            {% if user %}
+            <a href="/dashboard" class="nav-active">Dashboard</a>
+            {% if user.role in ['student', 'admin'] %}
+            <a href="/my-growth-profile" class="{% if request.url.path == '/my-growth-profile' %}nav-active{% endif %}">Growth Profile</a>
+            <a href="/my-monthly-path" class="{% if request.url.path == '/my-monthly-path' %}nav-active{% endif %}">Monthly Path</a>
+            {% endif %}
+            {% if user.role != 'counsellor' %}
+            <a href="/chatbot">Chat AI</a>
+            {% endif %}
+            <a href="/community">Community</a>
+            {% if user.role == 'admin' %}
+            <a href="/admin" class="{% if request.url.path == '/admin' %}nav-active{% endif %}" style="font-weight:700;">Admin</a>
+            {% endif %}
+            {% else %}
+            <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}">Home</a>
+            <a href="/login" class="{% if request.url.path == '/login' %}nav-active{% endif %}">Log In</a>
+            {% endif %}
+        </div>
+
+        <button class="hero-mobile-toggle" id="base-menu-toggle" aria-label="Menu">
+            <i class="fa-solid fa-bars" id="base-menu-icon"></i>
+        </button>
+    </div>
+
+    <div class="hero-mobile-menu" id="base-mobile-menu">
+        {% if user %}
+        <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i class="fa-solid fa-house"></i>Home</a>
+        <a href="/dashboard" class="nav-active"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
+        {% if user.role in ['student', 'admin'] %}
+        <a href="/my-growth-profile" class="{% if request.url.path == '/my-growth-profile' %}nav-active{% endif %}"><i class="fa-solid fa-compass"></i>Growth Profile</a>
+        <a href="/my-monthly-path" class="{% if request.url.path == '/my-monthly-path' %}nav-active{% endif %}"><i class="fa-solid fa-route"></i>Monthly Path</a>
+        {% endif %}
+        {% if user.role != 'counsellor' %}
+        <a href="/chatbot"><i class="fa-solid fa-comment-dots"></i>Chat AI</a>
+        {% endif %}
+        <a href="/community"><i class="fa-solid fa-users"></i>Community</a>
+        {% if user.role == 'admin' %}<a href="/admin"><i class="fa-solid fa-shield-halved"></i>Admin Panel</a>{% endif %}
+        {% else %}
+        <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i class="fa-solid fa-house"></i>Home</a>
+        <a href="/login"><i class="fa-solid fa-right-to-bracket"></i>Log In</a>
+        {% endif %}
+    </div>
+</nav>
+
+{% if user %}
+<div class="hero-settings-fixed" id="hero-settings-fixed">
+    <button class="hero-settings-gear" aria-label="Settings" aria-haspopup="true" aria-expanded="false">
+        <i class="fa-solid fa-gear"></i>
+    </button>
+    <div class="hero-settings-menu">
+        <a href="/student/{{ user.id }}"><i class="fa-solid fa-user"></i> Student Profile</a>
+        <a href="/feedback"><i class="fa-solid fa-star"></i> Feedback</a>
+        <a href="/ticket"><i class="fa-solid fa-circle-question"></i> Support</a>
+        <a href="/logout" class="hero-settings-logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_head %}
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+    :root {
+        --content-top-gap: calc(40px + 156px + 30px);
+        --navy-bg: #0a0a18;
+        --card-bg: rgba(255, 255, 255, 0.03);
+        --card-border: rgba(52, 211, 153, 0.16);
+        --teal: #2dd4bf;
+        --teal-soft: rgba(45, 212, 191, 0.14);
+        --purple: #a78bfa;
+        --purple-soft: rgba(167, 139, 250, 0.14);
+        --green: #34d399;
+        --green-soft: rgba(52, 211, 153, 0.14);
+        --gold: #f59e0b;
+        --gold-soft: rgba(245, 158, 11, 0.14);
+        --rose: #fb7185;
+        --rose-soft: rgba(251, 113, 133, 0.14);
+        --blue: #60a5fa;
+        --blue-soft: rgba(96, 165, 250, 0.14);
+        --text-primary: #f8fafc;
+        --text-secondary: #a1a8c0;
+        --text-muted: #6b7189;
+    }
+    @media (max-width: 768px) {
+        :root { --content-top-gap: calc(20px + 64px + 30px); }
+    }
+
+    body {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        background-color: var(--navy-bg) !important;
+        color: var(--text-primary) !important;
+        padding-top: 0 !important;
+    }
+
+    .font-outfit { font-family: 'Outfit', sans-serif; }
+
+    /* ---------- Generic dark glass card ---------- */
+    .dark-card {
+        background: var(--card-bg);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid var(--card-border);
+        border-radius: 1.75rem;
+        transition: all 0.3s ease;
+    }
+    .dark-card:hover {
+        border-color: rgba(52, 211, 153, 0.34);
+        transform: scale(1.015);
+        box-shadow: 0 20px 40px -20px rgba(0,0,0,0.5);
+    }
+
+    .label-eyebrow {
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+    }
+
+    /* ---------- Hero ---------- */
+    .hero-archetype {
+        position: relative;
+        padding-top: var(--content-top-gap);
+        padding-bottom: 4rem;
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+        text-align: center;
+        background: url('/static/images/BG3.png') center top / cover no-repeat fixed;
+        overflow: hidden;
+    }
+    .hero-archetype::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to bottom, rgba(10,10,24,0) 0%, rgba(10,10,24,0.55) 65%, var(--navy-bg) 100%);
+        pointer-events: none;
+    }
+    .hero-archetype > * { position: relative; z-index: 2; }
+
+    .hero-icon-hex {
+        width: 68px;
+        height: 68px;
+        margin: 0 auto 1.5rem;
+        background: rgba(15, 18, 38, 0.55);
+        border: 1.5px solid rgba(255,255,255,0.28);
+        clip-path: polygon(25% 6%, 75% 6%, 100% 50%, 75% 94%, 25% 94%, 0% 50%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 1.4rem;
+        backdrop-filter: blur(6px);
+    }
+
+    .hero-eyebrow {
+        color: var(--green);
+        margin-bottom: 0.75rem;
+    }
+
+    .hero-title {
+        font-size: 2.1rem;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        color: #fff;
+        margin-bottom: 1.1rem;
+    }
+    @media (min-width: 768px) { .hero-title { font-size: 3rem; } }
+
+    .hero-title .accent {
+        background: linear-gradient(135deg, #5eead4, #34d399);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+
+    .hero-divider {
+        width: 64px;
+        height: 3px;
+        margin: 0 auto 1.75rem;
+        border-radius: 999px;
+        background: linear-gradient(90deg, var(--teal), var(--green));
+    }
+
+    .hero-desc {
+        color: #cbd5e1;
+        max-width: 640px;
+        margin: 0 auto;
+        line-height: 1.75;
+        font-size: 1rem;
+    }
+
+    /* ---------- Section headings ---------- */
+    .section-title {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #fff;
+        letter-spacing: -0.01em;
+    }
+    .section-sub { color: var(--text-secondary); margin-top: 0.25rem; }
+
+    /* ---------- Buttons ---------- */
+    .btn-outline-dark {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.65rem 1.25rem;
+        border-radius: 0.9rem;
+        border: 1px solid rgba(255,255,255,0.18);
+        color: #e2e8f0;
+        background: rgba(255,255,255,0.02);
+        font-weight: 700;
+        font-size: 0.82rem;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+    .btn-outline-dark:hover {
+        border-color: rgba(255,255,255,0.35);
+        background: rgba(255,255,255,0.05);
+        transform: scale(1.05) translateY(-2px);
+    }
+    .btn-outline-dark:active { transform: scale(0.97); }
+
+    .btn-solid-teal {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.65rem 1.25rem;
+        border-radius: 0.9rem;
+        border: 1px solid transparent;
+        color: #06251f;
+        background: linear-gradient(135deg, var(--teal), var(--green));
+        font-weight: 800;
+        font-size: 0.82rem;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        box-shadow: 0 10px 22px -10px rgba(45,212,191,0.55);
+    }
+    .btn-solid-teal:hover { transform: scale(1.05) translateY(-2px); box-shadow: 0 14px 28px -10px rgba(45,212,191,0.65); }
+    .btn-solid-teal:active { transform: scale(0.97); }
+
+    .btn-solid-gold {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.6rem 1.1rem;
+        border-radius: 0.85rem;
+        border: 1px solid rgba(245,158,11,0.5);
+        color: #2b1602;
+        background: linear-gradient(135deg, #fde68a, var(--gold));
+        font-weight: 800;
+        font-size: 0.8rem;
+        text-decoration: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .btn-solid-gold:hover { transform: scale(1.05) translateY(-2px); box-shadow: 0 12px 24px -10px rgba(245,158,11,0.55); }
+    .btn-solid-gold:active { transform: scale(0.97); }
+
+    .btn-outline-blue {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0.9rem;
+        border-radius: 0.75rem;
+        border: 1px solid rgba(96,165,250,0.4);
+        color: var(--blue);
+        background: rgba(96,165,250,0.1);
+        font-weight: 700;
+        font-size: 0.75rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .btn-outline-blue:hover { transform: scale(1.05); background: rgba(96,165,250,0.18); }
+
+    .btn-outline-rose {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.65rem 1.2rem;
+        border-radius: 0.9rem;
+        border: 1px solid rgba(251,113,133,0.4);
+        color: var(--rose);
+        background: rgba(251,113,133,0.1);
+        font-weight: 800;
+        font-size: 0.82rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .btn-outline-rose:hover { transform: scale(1.05) translateY(-2px); background: rgba(251,113,133,0.18); }
+    .btn-outline-rose:active { transform: scale(0.97); }
+
+    .mp-tag {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.45rem 1rem;
+        border-radius: 999px;
+        font-size: 0.82rem;
+        font-weight: 800;
+        border: 1px solid;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .mp-tag:hover { transform: scale(1.08); box-shadow: 0 6px 16px -6px rgba(0,0,0,0.4); }
+
+    /* ---------- Progress bar ---------- */
+    .mp-progress-bg {
+        height: 0.7rem;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.06);
+        overflow: hidden;
+    }
+    .mp-progress-fill {
+        height: 100%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, var(--teal), var(--green));
+        transition: width 0.6s ease;
+    }
+
+    /* ---------- Week timeline cards ---------- */
+    .week-card {
+        border-radius: 1.5rem;
+        padding: 1.5rem;
+        border: 1.5px solid;
+        background: rgba(255,255,255,0.02);
+        transition: all 0.3s ease;
+    }
+    .week-card:hover { transform: scale(1.02); }
+    .week-card.complete { border-color: rgba(52,211,153,0.45); background: rgba(52,211,153,0.05); }
+    .week-card.current { border-color: rgba(45,212,191,0.55); background: rgba(45,212,191,0.06); }
+    .week-card.locked { border-color: rgba(255,255,255,0.08); }
+
+    .week-num {
+        width: 34px; height: 34px;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-weight: 900; font-size: 0.85rem;
+        flex-shrink: 0;
+    }
+    .week-card.complete .week-num { background: var(--green-soft); color: var(--green); border: 1px solid rgba(52,211,153,0.4); }
+    .week-card.current .week-num { background: var(--teal-soft); color: var(--teal); border: 1px solid rgba(45,212,191,0.4); }
+    .week-card.locked .week-num { background: rgba(255,255,255,0.05); color: var(--text-muted); border: 1px solid rgba(255,255,255,0.1); }
+
+    .week-status-pill {
+        display: inline-flex; align-items: center; gap: 0.3rem;
+        padding: 0.22rem 0.65rem; border-radius: 999px;
+        font-size: 0.6rem; font-weight: 800;
+        text-transform: uppercase; letter-spacing: 0.06em;
+        flex-shrink: 0;
+    }
+    .week-status-pill.complete { color: var(--green); background: var(--green-soft); border: 1px solid rgba(52,211,153,0.35); }
+    .week-status-pill.locked { color: var(--text-muted); background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); }
+
+    /* ---------- Two column layout ---------- */
+    .mp-columns {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+        align-items: start;
+    }
+    @media (min-width: 1024px) {
+        .mp-columns { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 2rem; }
+    }
+    .mp-col { display: flex; flex-direction: column; gap: 1.5rem; }
+
+    /* ---------- Week connector timeline ---------- */
+    .week-track { display: flex; flex-direction: column; }
+    .week-track-item { position: relative; }
+    .week-connector {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        height: 2.25rem;
+        padding-left: 41px;
+    }
+    .week-connector-line {
+        width: 3px;
+        flex: 1;
+        border-radius: 3px;
+        background: rgba(255,255,255,0.1);
+    }
+    .week-connector.active .week-connector-line {
+        background: linear-gradient(to bottom, var(--teal), var(--green));
+    }
+    .week-connector-node {
+        width: 22px; height: 22px;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.6rem;
+        flex-shrink: 0;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.15);
+        color: var(--text-muted);
+        transition: all 0.3s ease;
+    }
+    .week-connector.active .week-connector-node {
+        background: var(--teal-soft);
+        border-color: rgba(45,212,191,0.5);
+        color: var(--teal);
+        box-shadow: 0 0 0 4px rgba(45,212,191,0.08);
+    }
+
+    /* ---------- End of month sticky note ---------- */
+    .sticky-note {
+        position: relative;
+        padding: 1.85rem 1.85rem 2.15rem;
+        background: linear-gradient(160deg, rgba(251,113,133,0.16), rgba(190,24,93,0.07));
+        border: 1px solid rgba(251,113,133,0.32);
+        border-radius: 3px 26px 3px 26px;
+        box-shadow: 10px 16px 32px -14px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.03);
+        transform: rotate(-1.15deg);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .sticky-note:hover {
+        transform: rotate(0deg) translateY(-3px);
+        box-shadow: 14px 22px 38px -16px rgba(0,0,0,0.65), inset 0 0 0 1px rgba(255,255,255,0.04);
+    }
+    .sticky-note::before {
+        content: '';
+        position: absolute;
+        top: -13px; left: 50%;
+        width: 86px; height: 24px;
+        transform: translateX(-50%) rotate(-3deg);
+        background: repeating-linear-gradient(45deg, rgba(251,113,133,0.55), rgba(251,113,133,0.55) 6px, rgba(251,113,133,0.32) 6px, rgba(251,113,133,0.32) 12px);
+        border-radius: 2px;
+        box-shadow: 0 3px 8px rgba(0,0,0,0.4);
+        opacity: 0.9;
+    }
+    .sticky-note::after {
+        content: '';
+        position: absolute;
+        bottom: 0; right: 0;
+        width: 0; height: 0;
+        border-style: solid;
+        border-width: 0 0 26px 26px;
+        border-color: transparent transparent rgba(10,10,24,0.55) transparent;
+        border-radius: 0 0 3px 0;
+    }
+
+    /* Print styling overrides */
+    @media print {
+        .no-print { display: none !important; }
+        body { background: white !important; color: #0f172a !important; }
+        .dark-card, .week-card { background: white !important; border: 1px solid #e2e8f0 !important; box-shadow: none !important; }
+        .sticky-note { transform: none !important; box-shadow: none !important; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="background: var(--navy-bg); min-height: 100vh;">
+
+    <!-- HERO -->
+    <div class="hero-archetype">
+        <div class="hero-icon-hex">
+            <i class="fas fa-route"></i>
+        </div>
+        <h2 class="label-eyebrow hero-eyebrow">Student Growth Map · Step 2</h2>
+        <h1 class="hero-title font-outfit">
+            My Monthly <span class="accent">Path</span>
+        </h1>
+        <div class="hero-divider"></div>
+        <p class="hero-desc">
+            One focused milestone and four small actions, personalised from your current growth profile.
+        </p>
+    </div>
+
+    <div class="mx-auto px-4 sm:px-6 lg:px-8 space-y-10 pb-16" style="padding-top: 2.5rem; max-width: 80vw;">
+
+        {% if not growth_profile.is_ready %}
+        <div class="dark-card p-6 md:p-8" style="border-color: rgba(245,158,11,0.35);">
+            <h2 class="section-title font-outfit text-lg"><i class="fas fa-triangle-exclamation mr-2" style="color: var(--gold);"></i>Set up your growth profile first</h2>
+            <p class="mt-2 text-sm" style="color: var(--text-secondary);">Complete the assessment before generating a monthly path.</p>
+            <a href="/my-growth-profile" class="btn-solid-gold mt-5"><i class="fas fa-compass"></i> Open Growth Profile</a>
+        </div>
+        {% else %}
+
+        {# Safe defaults keep the existing path available during a server reload or for legacy route contexts. #}
+        {% set momentum = growth_momentum|default({'weeks': 0, 'evidence_count': 0, 'message': 'Your first small action will create the evidence your future choices need.'}, true) %}
+        {% set report = growth_report|default({'completed_weeks': 0, 'total_weeks': 4, 'evidence_count': 0, 'focus_skill': plan.focus_skill, 'strongest_habit': 'Choosing a clear first action', 'next_focus': 'Continue with one small, visible action next week.'}, true) %}
+
+        <div class="mp-columns">
+            <!-- LEFT COLUMN: Build clarity (milestone) + Suggested resources -->
+            <div class="mp-col">
+
+                <!-- Milestone card -->
+                <div class="dark-card p-6 md:p-8">
+                    <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-5">
+                        <div>
+                            <p class="label-eyebrow" style="color: var(--green);">{{ plan.month_label }} milestone{% if plan.career_title %} · {{ plan.career_title }}{% endif %}</p>
+                            <h2 class="mt-2 text-2xl font-black font-outfit" style="color:#fff;">{{ plan.title }}</h2>
+                            <p class="mt-3 leading-relaxed max-w-2xl" style="color: var(--text-secondary);">{{ plan.milestone }}</p>
+                        </div>
+                        <span class="mp-tag shrink-0 self-start" style="color: var(--green); background: var(--green-soft); border-color: rgba(52,211,153,0.35); align-self: flex-start;"><i class="fas fa-bullseye mr-2"></i>{{ plan.focus_skill }}</span>
+                    </div>
+                    <div class="mt-6 rounded-xl p-4 text-sm" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); color: var(--text-secondary);"><strong style="color:#fff;">Why this path:</strong> {{ plan.why_this_path }}</div>
+                    {% if plan.assigned_skills %}
+                    <div class="mt-3 rounded-xl p-4 text-sm" style="background:rgba(45,212,191,0.08);border:1px solid rgba(45,212,191,0.25);">
+                        <p class="font-bold" style="color:#fff;"><i class="fas fa-screwdriver-wrench mr-2" style="color:var(--teal);"></i>Skills assigned for {{ plan.career_title or 'this path' }}</p>
+                        <div class="mt-3 flex flex-wrap gap-2">{% for skill in plan.assigned_skills %}<span class="mp-tag" style="color:#ccfbf1;background:rgba(45,212,191,0.12);border-color:rgba(45,212,191,0.32);">{{ loop.index }}. {{ skill }}</span>{% endfor %}</div>
+                    </div>
+                    {% endif %}
+                    <div class="mt-3 rounded-xl p-4 text-sm" style="background: var(--teal-soft); border: 1px solid rgba(45,212,191,0.25); color: #d1fae5;"><strong>Current progress assessed:</strong> {{ plan.progress_summary }}</div>
+                    <div class="mt-5">
+                        <div class="flex items-center justify-between text-sm font-bold" style="color:#e2e8f0;"><span>Monthly path progress</span><span>{{ progress.completed_weeks }}/{{ progress.total_weeks }} weeks complete · {{ progress.percent }}%</span></div>
+                        <div class="mt-2 mp-progress-bg"><div class="mp-progress-fill" style="width: {{ progress.percent }}%"></div></div>
+                    </div>
+                </div>
+
+                <div class="dark-card p-6" style="border-color: rgba(245,158,11,0.30);">
+                    <div class="flex items-start gap-3"><i class="fas fa-fire-flame-curved mt-1" style="color:var(--gold);"></i><div><p class="label-eyebrow" style="color:var(--gold);">Growth momentum</p><h2 class="mt-1 section-title font-outfit text-lg">{{ momentum.weeks }} week{{ '' if momentum.weeks == 1 else 's' }} completed · {{ momentum.evidence_count }} proof{{ '' if momentum.evidence_count == 1 else 's' }} saved</h2><p class="mt-2 text-sm" style="color:var(--text-secondary);">{{ momentum.message }}</p></div></div>
+                </div>
+
+                {% if plan.previous_month_summary %}
+                <div class="dark-card p-6" style="border-color: rgba(167,139,250,0.35);">
+                    <p class="label-eyebrow" style="color: var(--purple);">From last month</p>
+                    <p class="mt-2 text-sm leading-relaxed" style="color: var(--text-secondary);">{{ plan.previous_month_summary }}</p>
+                </div>
+                {% endif %}
+
+                {% if cycle.encouragement_due %}
+                <div class="dark-card p-6 flex flex-col sm:flex-row sm:items-center gap-4" style="border-color: rgba(245,158,11,0.35);">
+                    <div class="flex-1"><p class="label-eyebrow" style="color: var(--gold);">Two-day encouragement</p><p class="mt-2 text-sm font-semibold" style="color:#fde9c8;">{{ encouragement_message }}</p></div>
+                    <form action="/my-monthly-path/encouragement/read" method="post"><button class="btn-solid-gold"><i class="fas fa-heart mr-2"></i>Got it</button></form>
+                </div>
+                {% endif %}
+
+                <div class="dark-card p-6" style="border-color: rgba(129,140,248,0.35);">
+                    <h2 class="section-title font-outfit text-lg"><i class="fas fa-book-open mr-2" style="color:#818cf8;"></i>Suggested resources</h2>
+                    <div class="mt-4 grid grid-cols-1 gap-3">{% for resource in plan.resources %}<div class="rounded-xl p-4" style="background: rgba(129,140,248,0.1); border:1px solid rgba(129,140,248,0.25);"><p class="font-bold" style="color:#fff;">{{ resource.title }}</p><p class="mt-1 text-sm" style="color: var(--text-secondary);">{{ resource.detail }}</p></div>{% endfor %}</div>
+                </div>
+
+                <section class="dark-card p-6" style="border-color: rgba(45,212,191,0.30);">
+                    <p class="label-eyebrow" style="color:var(--teal);">Achievement locker</p>
+                    <h2 class="mt-1 section-title font-outfit text-lg">Keep proof of your growth</h2>
+                    <p class="mt-2 text-sm" style="color:var(--text-secondary);">Save a project, certificate, link, note, or outcome you are proud of. Your completed weekly responses already count as proof too.</p>
+                    <form action="/my-monthly-path/evidence" method="post" class="mt-4 grid grid-cols-1 gap-3">
+                        <input name="title" required minlength="2" maxlength="100" class="rounded-lg p-3 text-sm" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.14);color:#fff;" placeholder="e.g. My first career interview note">
+                        <textarea name="detail" required minlength="5" maxlength="800" rows="2" class="rounded-lg p-3 text-sm" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.14);color:#fff;" placeholder="What did you create, learn, or complete?"></textarea>
+                        <input name="link" maxlength="500" type="url" class="rounded-lg p-3 text-sm" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.14);color:#fff;" placeholder="Optional link to your work">
+                        <button class="btn-solid-teal justify-self-start"><i class="fas fa-box-archive mr-2"></i>Save proof</button>
+                    </form>
+                    {% if plan.evidence_locker %}<div class="mt-5 space-y-2">{% for evidence in plan.evidence_locker|reverse %}<div class="rounded-lg p-3" style="background:rgba(45,212,191,0.07);border:1px solid rgba(45,212,191,0.18);"><p class="text-sm font-bold" style="color:#fff;">{{ evidence.title }}</p><p class="mt-1 text-xs" style="color:var(--text-secondary);">{{ evidence.detail }}</p>{% if evidence.link %}<a href="{{ evidence.link }}" target="_blank" rel="noopener" class="mt-2 inline-block text-xs font-bold" style="color:var(--teal);">Open evidence <i class="fas fa-arrow-up-right-from-square ml-1"></i></a>{% endif %}</div>{% endfor %}</div>{% endif %}
+                </section>
+
+            </div>
+
+            <!-- RIGHT COLUMN: Your four-week path (connected tiles) + End of month sticky note -->
+            <div class="mp-col">
+
+                <section>
+                    <div class="flex items-center justify-between mb-4 flex-wrap gap-2"><h2 class="section-title font-outfit">Your four-week path</h2><span class="text-sm" style="color: var(--text-secondary);">Complete one week before the next opens</span></div>
+                    <div class="week-track">
+                        {% for week in plan.weeks %}
+                        {% set is_complete = week.week in progress["completed_week_numbers"] %}
+                        {% set is_current = week.week == progress["current_week"] %}
+                        <div class="week-track-item">
+                        <article class="week-card {% if is_complete %}complete{% elif is_current %}current{% else %}locked{% endif %}">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <span class="week-num">{{ week.week }}</span>
+                            <div>
+                                <p class="label-eyebrow" style="color: {% if is_complete %}var(--green){% elif is_current %}var(--teal){% else %}var(--text-muted){% endif %};">Week {{ week.week }}</p>
+                                <h3 class="font-black font-outfit" style="color:#fff;">{{ week.title }}</h3>
+                            </div>
+                        </div>
+                        {% if is_complete %}<span class="week-status-pill complete"><i class="fas fa-check"></i>Complete</span>{% elif not is_current %}<span class="week-status-pill locked"><i class="fas fa-lock"></i>Locked</span>{% endif %}
+                    </div>
+                    {% if is_current %}
+                    <p class="mt-3 text-sm" style="color:var(--text-secondary);"><strong style="color:#fff;">Assigned outcome:</strong> {{ week.outcome }}</p>
+                    <a href="/my-monthly-path/week/{{ week.week }}{% if plan.career_title %}?career={{ plan.career_title|urlencode }}{% endif %}" class="btn-solid-teal mt-4"><i class="fas fa-arrow-right"></i> Open Week {{ week.week }} tasks</a>
+                    {% if false %}
+                    <details class="mt-4"><summary class="cursor-pointer text-sm font-bold" style="color: var(--teal);">Click to open Week {{ week.week }} tasks</summary><p class="mt-3 text-sm" style="color: var(--text-secondary);">{{ week.goal }}</p><div class="mt-4 space-y-3">{% for task in current_task_states %}{% if task.is_complete %}<div class="rounded-xl p-3 text-sm" style="border:1px solid rgba(52,211,153,0.35); background: var(--green-soft); color:#d1fae5;"><p class="font-bold"><i class="fas fa-check-circle mr-2"></i>{{ task.text }}</p><p class="mt-2 pt-2" style="border-top:1px solid rgba(52,211,153,0.25);">{{ task.response.text }}</p></div>{% elif task.is_open %}<form action="/my-monthly-path/week/{{ week.week }}/task/{{ task.id }}/toggle" method="post" class="rounded-xl p-4" style="border:1px solid rgba(45,212,191,0.35); background: var(--teal-soft);"><p class="font-bold" style="color:#fff;"><i class="fas fa-pen-to-square mr-2" style="color: var(--teal);"></i>{{ task.text }}</p><label class="mt-3 block text-sm font-semibold" style="color:#e2e8f0;">{{ task.prompt }}</label><textarea name="response" required minlength="10" maxlength="1500" rows="3" class="mt-2 w-full rounded-lg p-3 text-sm" style="background: rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.14); color:#fff;" placeholder="Write your response here..."></textarea><button class="mt-3 btn-solid-teal">Save and unlock next task</button></form>{% else %}<div class="rounded-xl p-3 text-sm" style="border:1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.02); color: var(--text-muted);"><i class="fas fa-lock mr-2"></i>{{ task.text }} — complete the previous subtask first.</div>{% endif %}{% endfor %}</div><p class="mt-4 text-xs font-semibold" style="color: var(--text-muted);"><i class="fas fa-flag-checkered mr-1" style="color: var(--green);"></i>{{ week.outcome }}</p></details>
+                    <div class="mt-5 space-y-4 pt-5" style="border-top:1px solid rgba(255,255,255,0.08);">
+                        <div class="rounded-xl p-4" style="border:1px solid rgba(45,212,191,0.3); background: var(--teal-soft);"><div class="flex items-center justify-between gap-3"><div><p class="label-eyebrow" style="color: var(--teal);">Weekly · 3–4 minute conversation</p><h4 class="mt-1 font-black" style="color:#fff;">Weekly AI reflection</h4></div><span class="text-xs font-bold" style="color: var(--teal);">{% if cycle.weekly_checkin_due %}Due now{% else %}Logged this week{% endif %}</span></div><form action="/my-monthly-path/check-in" method="post" class="mt-3"><textarea name="message" required maxlength="1500" rows="3" class="w-full rounded-lg p-3 text-sm" style="background: rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.14); color:#fff;" placeholder="What did you complete, where were you stuck, and what is your next action?"></textarea><button class="mt-2 btn-outline-blue" style="border-color: rgba(45,212,191,0.4); color: var(--teal); background: rgba(45,212,191,0.1);">Save weekly reflection</button></form></div>
+                        <div class="rounded-xl p-4" style="border:1px solid rgba(96,165,250,0.3); background: var(--blue-soft);"><div class="flex items-center justify-between gap-3"><div><p class="label-eyebrow" style="color: var(--blue);">Weekend · 5 MCQs</p><h4 class="mt-1 font-black" style="color:#fff;">Week {{ week.week }} progress check</h4></div>{% if cycle.latest_quiz %}<span class="text-xs font-bold" style="color: var(--blue);">{{ cycle.latest_quiz.score }}/{{ cycle.latest_quiz.total }}</span>{% endif %}</div>{% if cycle.weekend_quiz_due %}<form action="/my-monthly-path/weekend-quiz" method="post" class="mt-3 space-y-3">{% for question in weekend_quiz %}{% set question_index = loop.index0 %}<fieldset><legend class="text-sm font-semibold" style="color:#e2e8f0;">{{ loop.index }}. {{ question.question }}</legend>{% for option in question.options %}<label class="mt-1 flex items-center gap-2 rounded p-2 text-xs" style="border:1px solid rgba(96,165,250,0.25); background: rgba(255,255,255,0.03); color:#e2e8f0;"><input required type="radio" name="answer_{{ question_index }}" value="{{ loop.index0 }}">{{ option }}</label>{% endfor %}</fieldset>{% endfor %}<button class="btn-outline-blue">Submit weekend check</button></form>{% elif cycle.latest_quiz %}<p class="mt-3 text-sm" style="color: var(--blue);">This week’s check is complete. A new one appears next weekend.</p>{% else %}<p class="mt-3 text-sm" style="color: var(--blue);">Available on Saturday or Sunday.</p>{% endif %}</div>
+                    </div>
+                    {% endif %}
+                    {% elif is_complete %}<a href="/my-monthly-path/week/{{ week.week }}{% if plan.career_title %}?career={{ plan.career_title|urlencode }}{% endif %}" class="mt-4 inline-flex items-center gap-2 text-sm font-bold" style="color: var(--green);"><i class="fas fa-check-circle"></i> View completed Week {{ week.week }}</a>
+                    {% else %}<p class="mt-4 text-sm" style="color: var(--text-muted);">Complete the earlier week to reveal this week’s tasks.</p>{% endif %}
+                        </article>
+                        </div>
+                        {% if not loop.last %}
+                        <div class="week-connector {% if is_complete %}active{% endif %}">
+                            <span class="week-connector-line"></span>
+                            <span class="week-connector-node">{% if is_complete %}<i class="fas fa-check"></i>{% else %}<i class="fas fa-arrow-down"></i>{% endif %}</span>
+                            <span class="week-connector-line"></span>
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                </section>
+
+                <!-- End of month (sticky note) -->
+                <div class="sticky-note">
+                    <p class="label-eyebrow" style="color: var(--rose);">End of month</p><h2 class="mt-1 text-xl font-black font-outfit" style="color:#fff;">Reflect and prepare the next path</h2>
+                    {% if cycle.month_end_review %}<p class="mt-4 rounded-xl p-4 text-sm" style="background: rgba(0,0,0,0.15); color:#ffe4e6;">{{ cycle.month_end_review.summary }}</p>{% elif progress.percent == 100 %}<p class="mt-3 text-sm" style="color: var(--text-secondary);">Your four weekly goals are complete. Record what worked and what should change; the next month’s path will use this reflection.</p><form action="/my-monthly-path/month-end-review" method="post" class="mt-4"><textarea name="reflection" required maxlength="1500" rows="3" class="w-full rounded-xl p-3 text-sm" style="background: rgba(0,0,0,0.15); border:1px solid rgba(255,255,255,0.14); color:#fff;" placeholder="What did you complete, what was difficult, and what should the next path focus on?"></textarea><button class="mt-3 btn-outline-rose">Save month-end reflection</button></form>{% else %}<p class="mt-4 rounded-xl p-4 text-sm" style="background: rgba(0,0,0,0.15); color:#ffe4e6;"><i class="fas fa-lock mr-1"></i>Complete all four weekly goals to unlock your month-end reflection ({{ progress.completed_weeks }}/{{ progress.total_weeks }} complete).</p>{% endif %}
+                </div>
+
+                <section class="dark-card p-6" style="border-color: rgba(167,139,250,0.35);">
+                    <p class="label-eyebrow" style="color:var(--purple);">Try before you decide</p>
+                    <h2 class="mt-1 section-title font-outfit text-lg">Real-world career experiments</h2>
+                    <p class="mt-2 text-sm" style="color:var(--text-secondary);">A career direction becomes clearer when you test it. Complete any experiment, then save what you learned in your Achievement Locker.</p>
+                    <div class="mt-4 space-y-3">{% for experiment in plan.career_experiments %}<div class="rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-3" style="background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.23);"><div class="flex-1"><p class="font-bold text-sm" style="color:#fff;">{% if experiment.get('completed_on') %}<i class="fas fa-circle-check mr-2" style="color:var(--green);"></i>{% else %}<i class="fas fa-flask mr-2" style="color:var(--purple);"></i>{% endif %}{{ experiment.title }}</p><p class="mt-1 text-xs" style="color:var(--text-secondary);">{{ experiment.detail }}</p></div>{% if experiment.get('completed_on') %}<span class="text-xs font-bold" style="color:var(--green);">Completed</span>{% else %}<form action="/my-monthly-path/experiment/{{ experiment.id }}" method="post"><button class="btn-outline-blue" style="border-color:rgba(167,139,250,0.4);color:#ddd6fe;">Mark explored</button></form>{% endif %}</div>{% endfor %}</div>
+                </section>
+
+                <section class="dark-card p-6" style="border-color: rgba(96,165,250,0.35);">
+                    <p class="label-eyebrow" style="color:var(--blue);">Decision checkpoint</p>
+                    <h2 class="mt-1 section-title font-outfit text-lg">How does this direction feel now?</h2>
+                    <p class="mt-2 text-sm" style="color:var(--text-secondary);">There is no wrong answer. Your response helps keep the next path relevant to you.</p>
+                    {% if plan.decision_checkpoint %}<div class="mt-4 rounded-lg p-3 text-sm" style="background:var(--blue-soft);color:#dbeafe;"><strong>Your latest decision:</strong> {{ plan.decision_checkpoint.direction|replace('_', ' ')|title }}{% if plan.decision_checkpoint.note %} · {{ plan.decision_checkpoint.note }}{% endif %}</div>{% endif %}
+                    <form action="/my-monthly-path/decision-checkpoint" method="post" class="mt-4"><div class="grid grid-cols-1 sm:grid-cols-3 gap-2">{% for value, label in [('explore_more','Explore more'), ('continue','Continue this path'), ('compare','Compare another path')] %}<label class="rounded-lg p-3 text-sm cursor-pointer" style="border:1px solid rgba(96,165,250,0.30);color:#e2e8f0;"><input required type="radio" name="direction" value="{{ value }}" class="mr-2">{{ label }}</label>{% endfor %}</div><textarea name="note" maxlength="600" rows="2" class="mt-3 w-full rounded-lg p-3 text-sm" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.14);color:#fff;" placeholder="Optional: what made you feel this way?"></textarea><button class="mt-3 btn-outline-blue">Save checkpoint</button></form>
+                </section>
+
+                <section class="dark-card p-6" style="border-color: rgba(52,211,153,0.35);">
+                    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3"><div><p class="label-eyebrow" style="color:var(--green);">Monthly growth report</p><h2 class="mt-1 section-title font-outfit text-lg">A shareable view of your progress</h2></div><button type="button" onclick="window.print()" class="btn-outline-blue" style="border-color:rgba(52,211,153,0.4);color:#a7f3d0;"><i class="fas fa-print mr-2"></i>Print / save PDF</button></div>
+                    <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-center">{% for label, value in [('Weeks complete', report.completed_weeks ~ '/' ~ report.total_weeks), ('Evidence saved', report.evidence_count), ('Focus skill', report.focus_skill), ('Strongest habit', report.strongest_habit)] %}<div class="rounded-lg p-3" style="background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.18);"><p class="text-xs font-bold" style="color:var(--green);">{{ label }}</p><p class="mt-1 text-sm font-bold" style="color:#fff;">{{ value }}</p></div>{% endfor %}</div>
+                    <p class="mt-4 text-sm" style="color:var(--text-secondary);"><strong style="color:#fff;">Next focus:</strong> {{ report.next_focus }}</p>
+                </section>
+
+            </div>
+        </div>
+
+        {% if false %}
+        <section class="dark-card p-6">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"><div><p class="label-eyebrow" style="color: var(--teal);">Weekly · 3–4 minute conversation</p><h2 class="mt-1 text-xl font-black font-outfit" style="color:#fff;">Weekly AI reflection</h2></div><span class="mp-tag" style="color: var(--teal); background: var(--teal-soft); border-color: rgba(45,212,191,0.35);">{% if cycle.weekly_checkin_due %}Due now{% else %}Logged this week{% endif %}</span></div>
+            <p class="mt-3 text-sm" style="color: var(--text-secondary);">Share what you completed, where you got stuck, and your next small action. Your update stays attached to this month’s path.</p>
+            <form action="/my-monthly-path/check-in" method="post" class="mt-4"><textarea name="message" required maxlength="1500" rows="3" class="w-full rounded-xl p-3 text-sm" style="background: rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.14); color:#fff;" placeholder="This week I completed…, my blocker was…, and next I will…"></textarea><button class="mt-3 btn-solid-teal"><i class="fas fa-comment-dots mr-2"></i>Send weekly reflection</button></form>
+            {% for entry in cycle.latest_checkins|reverse %}<div class="mt-4 rounded-xl p-4 text-sm" style="background: rgba(255,255,255,0.03);"><p class="font-bold" style="color:#fff;">You · {{ entry.date }}</p><p class="mt-1" style="color: var(--text-secondary);">{{ entry.message }}</p><p class="mt-3 pt-3" style="border-top:1px solid rgba(255,255,255,0.08); color: var(--teal);"><i class="fas fa-sparkles mr-1"></i>{{ entry.response }}</p></div>{% endfor %}
+        </section>
+
+        <section class="dark-card p-6">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"><div><p class="label-eyebrow" style="color: var(--blue);">Every weekend · 5 MCQs</p><h2 class="mt-1 text-xl font-black font-outfit" style="color:#fff;">Progress check</h2></div>{% if cycle.latest_quiz %}<span class="mp-tag" style="color: var(--blue); background: var(--blue-soft); border-color: rgba(96,165,250,0.35);">Latest score: {{ cycle.latest_quiz.score }}/{{ cycle.latest_quiz.total }}</span>{% endif %}</div>
+            <p class="mt-3 text-sm" style="color: var(--text-secondary);">A short check to reinforce the habits behind your monthly milestone.</p>
+            {% if cycle.weekend_quiz_due %}
+            <form action="/my-monthly-path/weekend-quiz" method="post" class="mt-5 space-y-5">{% for question in weekend_quiz %}{% set question_index = loop.index0 %}<fieldset><legend class="font-bold text-sm" style="color:#e2e8f0;">{{ loop.index }}. {{ question.question }}</legend><div class="mt-2 grid gap-2">{% for option in question.options %}<label class="flex items-center gap-2 rounded-lg p-2 text-sm" style="border:1px solid rgba(255,255,255,0.12); color:#e2e8f0;"><input required type="radio" name="answer_{{ question_index }}" value="{{ loop.index0 }}">{{ option }}</label>{% endfor %}</div></fieldset>{% endfor %}<button class="btn-outline-blue">Submit 5-question check</button></form>
+            {% elif cycle.latest_quiz %}<p class="mt-5 rounded-xl p-4 text-sm font-semibold" style="background: var(--blue-soft); color: var(--blue);"><i class="fas fa-check-circle mr-1"></i>This week’s progress check is complete. A new one will be available next weekend.</p>{% else %}<p class="mt-5 rounded-xl p-4 text-sm font-semibold" style="background: var(--blue-soft); color: var(--blue);"><i class="fas fa-calendar-day mr-1"></i>Your first five-question check will be available on Saturday or Sunday.</p>{% endif %}
+        </section>
+
+        {% endif %}
+
+        {% endif %}
+    </div>
+</div>
+{% if plan and plan.career_title %}
+<script>
+(() => {
+  const career = {{ plan.career_title|tojson }};
+  document.querySelectorAll('a[href^="/my-monthly-path"], form[action^="/my-monthly-path"]').forEach((element) => {
+    const attribute = element.tagName === 'A' ? 'href' : 'action';
+    const url = new URL(element.getAttribute(attribute), window.location.origin);
+    url.searchParams.set('career', career);
+    element.setAttribute(attribute, `${url.pathname}${url.search}${url.hash}`);
+  });
+})();
+</script>
+{% endif %}
+{% endblock %}
