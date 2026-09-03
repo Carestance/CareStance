@@ -1,19 +1,24 @@
 /**
- * VoiceClient - Web Speech Recognition & Speech Synthesis Voice Client for CareStance Phase 3 & Milestone Chats.
+ * VoiceClient - WebRTC Conversational AI Client for CareStance.
  */
 class VoiceClient {
     constructor(wsUrl, onStateChange, onMessage) {
-        this.wsUrl = wsUrl;
+        // wsUrl is repurposed as the API endpoint for WebRTC offer exchange if provided,
+        // otherwise it defaults to the /api/webrtc/offer endpoint.
+        this.apiUrl = wsUrl ? wsUrl.replace("ws://", "http://").replace("wss://", "https://") : '/api/webrtc/offer';
         this.onStateChange = onStateChange || function() {};
         this.onMessage = onMessage || function() {};
+        
         this.state = 'IDLE';
-        this.socket = null;
-        this.recognition = null;
+        this.peerConnection = null;
+        this.localStream = null;
+        this.remoteAudio = document.createElement('audio');
+        this.remoteAudio.autoplay = true;
+        
+        // Track connection and interruption state
         this.isConnecting = false;
         this.isDisconnecting = false;
         this.chatHistory = [];
-        
-        this.initSpeechRecognition();
     }
 
     setState(newState) {
@@ -23,250 +28,125 @@ class VoiceClient {
         }
     }
 
-    initSpeechRecognition() {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-            console.warn("SpeechRecognition API is not supported in this browser.");
-            return;
-        }
-
-        this.recognition = new SpeechRecognition();
-        this.recognition.continuous = false;
-        this.recognition.interimResults = true;
-        this.recognition.lang = 'en-US';
-
-        let finalTranscript = '';
-
-        this.recognition.onstart = () => {
-            finalTranscript = '';
-            if (this.state !== 'SPEAKING' && this.state !== 'THINKING') {
-                this.setState('LISTENING');
-            }
-        };
-
-        this.recognition.onresult = (event) => {
-            let interim = '';
-            for (let i = event.resultIndex; i < event.results.length; ++i) {
-                if (event.results[i].isFinal) {
-                    finalTranscript += event.results[i][0].transcript;
-                } else {
-                    interim += event.results[i][0].transcript;
-                }
-            }
-
-            const displayElem = document.getElementById('transcript-display');
-            if (displayElem && (interim || finalTranscript)) {
-                displayElem.textContent = interim || finalTranscript;
-            }
-
-            if (finalTranscript.trim()) {
-                const text = finalTranscript.trim();
-                finalTranscript = '';
-                this.handleUserSpeech(text);
-            }
-        };
-
-        this.recognition.onerror = (event) => {
-            console.warn("SpeechRecognition error:", event.error);
-            if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-                this.setState('ERROR');
-            } else if (this.state === 'LISTENING') {
-                // Ignore silent timeouts or non-fatal errors
-            }
-        };
-
-        this.recognition.onend = () => {
-            if (!this.isDisconnecting && ['LISTENING', 'CONNECTING'].includes(this.state)) {
-                // Restart listening if active and not speaking or thinking
-                try {
-                    this.recognition.start();
-                } catch (e) {}
-            }
-        };
-    }
-
-    connect() {
+    async connect() {
+        if (this.isConnecting || this.state === 'CONNECTING') return;
         this.isDisconnecting = false;
         this.setState('CONNECTING');
+        this.isConnecting = true;
 
-        // Attempt WebSocket connection if endpoint available
-        if (this.wsUrl) {
-            try {
-                this.socket = new WebSocket(this.wsUrl);
-                this.socket.onopen = () => {
+        try {
+            // Get local microphone stream
+            this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+
+            // Initialize WebRTC Peer Connection
+            this.peerConnection = new RTCPeerConnection();
+
+            // Add local tracks to peer connection
+            this.localStream.getTracks().forEach(track => {
+                this.peerConnection.addTrack(track, this.localStream);
+            });
+
+            // Create Data Channel for transcript and app messages
+            this.dataChannel = this.peerConnection.createDataChannel("pipecat");
+            
+            this.dataChannel.onmessage = (event) => {
+                try {
+                    const msg = JSON.parse(event.data);
+                    this.onMessage(msg);
+                } catch (e) {
+                    console.log("Data channel message (non-JSON):", event.data);
+                }
+            };
+
+            // Handle incoming remote audio stream
+            this.peerConnection.ontrack = (event) => {
+                if (event.streams && event.streams[0]) {
+                    this.remoteAudio.srcObject = event.streams[0];
+                }
+            };
+
+            this.peerConnection.onconnectionstatechange = () => {
+                if (this.peerConnection.connectionState === 'connected') {
                     this.setState('LISTENING');
-                    this.startListening();
-                };
+                } else if (this.peerConnection.connectionState === 'disconnected' || 
+                           this.peerConnection.connectionState === 'failed') {
+                    this.disconnect();
+                }
+            };
 
-                this.socket.onmessage = (event) => {
-                    try {
-                        const data = JSON.parse(event.data);
-                        if (data.type === 'transcript' || data.type === 'response') {
-                            this.onMessage(data.text, data.role || 'assistant');
-                            if (data.role === 'assistant') {
-                                this.speak(data.text);
-                            }
-                        }
-                    } catch (e) {
-                        if (typeof event.data === 'string') {
-                            this.onMessage(event.data, 'assistant');
-                            this.speak(event.data);
-                        }
-                    }
-                };
+            // Create WebRTC Offer
+            const offer = await this.peerConnection.createOffer();
+            await this.peerConnection.setLocalDescription(offer);
 
-                this.socket.onerror = (err) => {
-                    console.log("WebSocket connection failed, falling back to Web Speech API + HTTP API");
-                    this.socket = null;
-                    this.wsUrl = null; // Disable future WebSocket attempts to stop 403 spam
-                    this.setState('LISTENING');
-                    this.startListening();
-                };
+            // Send offer to backend
+            const response = await fetch(this.apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Client-ID': localStorage.getItem('carestance_client_id') || 'anonymous'
+                },
+                body: JSON.stringify({
+                    sdp: this.peerConnection.localDescription.sdp,
+                    type: this.peerConnection.localDescription.type
+                })
+            });
 
-                this.socket.onclose = (event) => {
-                    if (!this.isDisconnecting && this.state !== 'DISCONNECTED') {
-                        // If closed before ever opening (e.g. 403), disable WebSocket permanently
-                        if (event.code !== 1000 && event.code !== 1001) {
-                            this.wsUrl = null;
-                        }
-                        this.socket = null;
-                        this.setState('LISTENING');
-                        this.startListening();
-                    }
-                };
-            } catch (e) {
-                this.socket = null;
-                this.setState('LISTENING');
-                this.startListening();
+            if (!response.ok) {
+                throw new Error(`Failed to negotiate WebRTC: ${response.statusText}`);
             }
-        } else {
-            this.setState('LISTENING');
-            this.startListening();
-        }
-    }
 
-    startListening() {
-        if (this.recognition) {
-            try {
-                this.recognition.start();
-            } catch (e) {
-                // Might already be running
+            const answerData = await response.json();
+            
+            // Set Remote Description (Answer)
+            await this.peerConnection.setRemoteDescription(new RTCSessionDescription({
+                sdp: answerData.sdp,
+                type: answerData.type
+            }));
+            
+            // Save session_id for future tracking
+            if (answerData.session_id) {
+                this.sessionId = answerData.session_id;
             }
+
+        } catch (error) {
+            console.error("WebRTC Connection failed:", error);
+            this.setState('ERROR');
+            this.disconnect();
+        } finally {
+            this.isConnecting = false;
         }
     }
 
     async handleUserSpeech(text) {
+        // In WebRTC mode, speech is automatically streamed to the backend.
+        // This method is kept for backwards compatibility with the UI transcript handler
         if (!text) return;
-
-        // Display user transcript
         this.onMessage(text, 'user');
         this.chatHistory.push({ role: 'user', content: text });
-
-        // Stop recognition while thinking / speaking
-        if (this.recognition) {
-            try { this.recognition.stop(); } catch(e) {}
-        }
-
-        // If WebSocket is active, send through socket
-        if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-            this.setState('THINKING');
-            this.socket.send(JSON.stringify({ type: 'text', text: text }));
-            return;
-        }
-
-        // Fallback: Send to HTTP backend endpoint /assessment/phase3/chat_v2
-        this.setState('THINKING');
-        try {
-            const resp = await fetch('/assessment/phase3/chat_v2', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    message: text,
-                    answers: this.chatHistory
-                })
-            });
-
-            if (resp.ok) {
-                const data = await resp.json();
-                const aiText = data.response || "Thank you for sharing that. Tell me more about your thoughts.";
-                this.chatHistory.push({ role: 'assistant', content: aiText });
-                this.onMessage(aiText, 'assistant');
-                this.speak(aiText);
-            } else {
-                const fallbackText = "I'm reflecting on what you said. Could you expand on that?";
-                this.onMessage(fallbackText, 'assistant');
-                this.speak(fallbackText);
-            }
-        } catch (err) {
-            console.error("Error calling chat endpoint:", err);
-            const fallbackText = "That's very insightful. What else comes to mind when you think about your career goals?";
-            this.onMessage(fallbackText, 'assistant');
-            this.speak(fallbackText);
-        }
     }
 
     speak(text) {
-        if (!('speechSynthesis' in window)) {
-            this.setState('LISTENING');
-            this.startListening();
-            return;
-        }
-
-        window.speechSynthesis.cancel(); // Stop any active speech
-
-        // Strip Markdown tags for natural speech synthesis
-        const cleanText = text.replace(/[*_#`~[\]()]/g, '').trim();
-        const utterance = new SpeechSynthesisUtterance(cleanText);
-        utterance.rate = 1.0;
-        utterance.pitch = 1.0;
-
-        // Try selecting a natural English voice if available
-        const voices = window.speechSynthesis.getVoices();
-        const preferredVoice = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Samantha')));
-        if (preferredVoice) {
-            utterance.voice = preferredVoice;
-        }
-
-        utterance.onstart = () => {
-            this.setState('SPEAKING');
-        };
-
-        utterance.onend = () => {
-            if (!this.isDisconnecting) {
-                this.setState('LISTENING');
-                this.startListening();
-            }
-        };
-
-        utterance.onerror = (err) => {
-            console.warn("SpeechSynthesis error:", err);
-            if (!this.isDisconnecting) {
-                this.setState('LISTENING');
-                this.startListening();
-            }
-        };
-
-        window.speechSynthesis.speak(utterance);
+        // In WebRTC mode, audio plays automatically via remoteAudio.
+        // We just update the state/UI.
+        this.onMessage(text, 'assistant');
+        this.setState('SPEAKING');
     }
 
     disconnect() {
         this.isDisconnecting = true;
         
-        if ('speechSynthesis' in window) {
-            window.speechSynthesis.cancel();
+        if (this.peerConnection) {
+            this.peerConnection.close();
+            this.peerConnection = null;
         }
 
-        if (this.recognition) {
-            try {
-                this.recognition.stop();
-            } catch (e) {}
+        if (this.localStream) {
+            this.localStream.getTracks().forEach(track => track.stop());
+            this.localStream = null;
         }
 
-        if (this.socket) {
-            try {
-                this.socket.close();
-            } catch (e) {}
-            this.socket = null;
+        if (this.remoteAudio) {
+            this.remoteAudio.srcObject = null;
         }
 
         this.setState('DISCONNECTED');

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Deep Dive with CareerBuddy{% endblock %}
+{% block title %}Career Buddy — Voice Companion{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -8,113 +8,101 @@
         background: url('/static/images/BG1.png') center top / cover no-repeat fixed !important;
         padding-top: 0 !important;
     }
-    .phase3v2-page-wrap {
-        padding-top: calc(35px + 90px + 30px);
-        height: 100vh;
-        display: flex;
-        flex-direction: column;
+    
+    /* Animation for idle state */
+    @keyframes float {
+        0%, 100% { transform: translateY(0) scale(1); }
+        50% { transform: translateY(-10px) scale(1.02); }
     }
-    @media (max-width: 768px) {
-        .phase3v2-page-wrap { padding-top: calc(20px + 72px + 30px); }
+    
+    .avatar-idle {
+        animation: float 6s ease-in-out infinite;
+    }
+    
+    /* Animation for voice ring */
+    @keyframes pulse-ring {
+        0% { transform: scale(0.9); opacity: 0; }
+        50% { transform: scale(1.2); opacity: 0.3; }
+        100% { transform: scale(1.5); opacity: 0; }
+    }
+    
+    .ring-listening {
+        background-color: #10b981; /* Emerald 500 */
+        animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    .ring-thinking {
+        background: conic-gradient(from 0deg, transparent, #10b981, transparent);
+        animation: spin 2s linear infinite;
+        border-radius: 50%;
+    }
+    
+    @keyframes spin {
+        100% { transform: rotate(360deg); }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<!-- Session Activation Overlay -->
-<div id="session-overlay"
-    class="fixed inset-0 z-[100] bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4">
-    <div class="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-fade-in-up">
-        <div
-            class="w-20 h-20 bg-emerald-800 rounded-full flex items-center justify-center text-4xl mx-auto mb-6 shadow-xl shadow-emerald-200">
-            🤖</div>
-        <h2 class="text-2xl font-black text-slate-900 mb-2">Deep Dive with CareerBuddy</h2>
-        <p class="text-slate-500 text-sm mb-8 leading-relaxed">Tap below to begin your voice-assisted session with the
-            Career Mentor.</p>
-        <button id="start-session-btn" style="background-color: #065f46 !important;"
-            class="w-full py-4 text-white font-bold rounded-2xl shadow-lg hover:bg-emerald-900 active:scale-95 transition-all text-sm uppercase tracking-widest block mx-auto">
-            Let’s Dive In
-        </button>
+<div class="h-screen w-full flex flex-col pt-20">
+    <div class="flex-1 max-w-7xl w-full mx-auto flex flex-col items-center justify-center p-6 relative">
+        
+        <!-- Header Text -->
+        <div class="text-center mb-10 animate-fade-in-up">
+            <h1 class="text-3xl md:text-4xl font-black text-slate-800 mb-2">Career Buddy</h1>
+            <p class="text-emerald-600 font-bold tracking-widest uppercase text-sm">Your AI Career Companion</p>
+        </div>
+
+        <!-- Conversation Status -->
+        <h2 id="conversation-status" class="text-xl md:text-2xl font-bold text-slate-500 mb-12 tracking-wide transition-all h-8">
+            Ready when you are
+        </h2>
+        
+        <!-- Center Avatar Area -->
+        <div class="relative flex items-center justify-center mb-16 w-[280px] h-[280px] md:w-[360px] md:h-[360px]">
+            <!-- Dynamic Ring -->
+            <div id="voice-ring" class="absolute inset-0 rounded-full transition-all duration-300 pointer-events-none scale-100 opacity-0"></div>
+            
+            <!-- Avatar Container -->
+            <div id="careo-container" class="relative z-10 w-full h-full rounded-full overflow-hidden shadow-2xl border-4 border-white bg-white transition-all duration-300 avatar-idle group">
+                <video id="careo-img" src="/static/images/mascot.mp4" autoplay loop muted playsinline class="w-full h-full object-cover transition-transform duration-100"></video>
+                
+                <!-- Thinking Overlay (Optional Glow) -->
+                <div id="thinking-glow" class="absolute inset-0 bg-emerald-500/20 mix-blend-overlay opacity-0 transition-opacity duration-500 pointer-events-none"></div>
+            </div>
+        </div>
+
+        <!-- Live Captions -->
+        <div class="h-16 w-full max-w-2xl mb-8 flex items-center justify-center">
+            <div id="live-caption" class="text-center text-slate-700 text-lg md:text-xl font-medium transition-opacity duration-300 opacity-0 px-4 py-2 bg-white/60 backdrop-blur-md rounded-2xl shadow-sm border border-white/40 hidden">
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="flex items-center gap-6 z-20">
+            <!-- Optional Captions Toggle -->
+            <button id="captions-btn" onclick="toggleCaptions()" class="w-12 h-12 rounded-full bg-white/80 text-slate-500 hover:bg-white font-bold text-xs shadow-md border border-slate-200 transition-all flex flex-col items-center justify-center" title="Toggle Captions">
+                CC
+            </button>
+            
+            <!-- Mic / Action Button -->
+            <button id="mic-btn" onclick="toggleVoiceSession()" class="w-20 h-20 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-xl shadow-emerald-200 flex items-center justify-center text-3xl transition-all transform hover:scale-105 active:scale-95" title="Start Conversation">
+                🎙️
+            </button>
+            
+            <!-- End Conversation -->
+            <button id="end-btn" onclick="finishAssessment()" class="w-12 h-12 rounded-full bg-rose-50 text-rose-500 hover:bg-rose-100 shadow-md border border-rose-200 transition-all flex items-center justify-center hidden" title="End Conversation">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Footer Branding -->
+        <p class="absolute bottom-6 text-xs text-slate-400 font-medium">Powered by CareStance AI</p>
+
     </div>
 </div>
-
-<div class="phase3v2-page-wrap">
-<div
-    class="max-w-7xl mx-auto flex-1 flex flex-col md:flex-row gap-4 p-4 min-h-0">
-
-    <!-- LEFT SIDEBAR -->
-    <div class="hidden md:flex w-80 flex-col gap-4 shrink-0">
-        <div
-            class="bg-white/80 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-lg flex flex-col items-center text-center">
-            <div class="relative w-20 h-20 mb-3">
-                <div class="pulse-ring absolute inset-0 rounded-full bg-emerald-500 opacity-0"></div>
-                <div id="talking-buddy-orb"
-                    class="relative w-full h-full bg-gradient-to-br from-emerald-800 to-green-900 rounded-full border-4 border-white shadow-xl flex items-center justify-center overflow-hidden transition-all duration-300">
-                    <span class="text-3xl relative z-10" id="buddy-emoji">🎓</span>
-                </div>
-            </div>
-            <h2 class="text-sm font-bold text-slate-900">CareStance Mentor</h2>
-            <p id="mentor-status-text-sidebar" class="text-[10px] text-slate-500 font-medium uppercase tracking-widest">
-                Waiting...</p>
-        </div>
-
-        <div class="bg-white/80 backdrop-blur-xl border border-white/50 rounded-3xl p-5 shadow-lg flex-1">
-            <div class="text-center">
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Time Remaining</p>
-                <div id="timer-sidebar" class="text-3xl font-black text-emerald-800 tabular-nums">10:00</div>
-                <div class="w-full bg-slate-100 h-2 rounded-full mt-3 overflow-hidden">
-                    <div id="timer-progress-sidebar"
-                        class="bg-gradient-to-r from-emerald-700 to-green-800 h-full transition-all duration-1000"
-                        style="width: 100%"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- MAIN CONVERSATION INTERFACE -->
-    <div
-        class="flex-1 bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 flex flex-col overflow-hidden relative min-h-0">
-        <div
-            class="p-3 sm:p-4 bg-white/80 border-b border-slate-100 flex items-center justify-between backdrop-blur-md z-10">
-            <div class="flex items-center gap-3">
-                <div
-                    class="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-800 to-green-900 flex items-center justify-center text-white text-lg shadow-lg">
-                    🤖</div>
-                <div>
-                    <span class="font-bold text-slate-800 block leading-tight text-sm sm:text-base">CareerBuddy</span>
-                    <span class="text-[10px] text-emerald-500 font-bold uppercase tracking-widest">Deep Dive with
-                        CareerBuddy</span>
-                </div>
-            </div>
-            <div class="flex items-center gap-3">
-                <button onclick="window.location.href='/assessment/reset'"
-                    class="text-[10px] font-bold text-rose-500 uppercase hover:underline">Restart</button>
-            </div>
-        </div>
-
-        <div id="chat-box" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-slate-50/50 scroll-smooth min-h-0">
-            <!-- Messages pop here -->
-        </div>
-
-        <div class="bg-white p-4 sm:p-6 border-t border-slate-100">
-            <div class="flex flex-col items-center gap-3">
-                <div id="chat-input-container" class="w-full max-w-3xl flex gap-2">
-                    <button type="button" id="micBtn" title="Voice Input"
-                        class="px-4 py-3 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 rounded-xl font-bold transition-all flex items-center gap-2">
-                        <span id="micIcon">🎙️</span>
-                    </button>
-                    <input type="text" id="chatInput" class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:border-emerald-500 text-slate-700 text-sm" placeholder="Type your response or use voice..." onkeypress="if(event.key === 'Enter') handleTextSubmit()">
-                    <button id="sendBtn" onclick="handleTextSubmit()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-md text-sm">Send</button>
-                </div>
-                <div id="transcript-display" class="text-xs text-slate-400 italic text-center min-h-[18px]"></div>
-                <button id="finishBtn" onclick="finishAssessment()"
-                    class="mt-2 px-6 py-2.5 bg-white border-2 border-emerald-500 text-emerald-600 font-bold rounded-2xl shadow-sm hover:bg-emerald-50 hover:scale-105 active:scale-95 transition-all text-xs uppercase tracking-wider hidden">✨
-                    Finish & Get Results</button>
-            </div>
-        </div>
-    </div>
-</div>
-</div><!-- /.phase3v2-page-wrap -->
 
 <script src="/static/js/marked.min.js"></script>
 <script>
@@ -182,40 +170,27 @@
             if (timerProgressSidebar) timerProgressSidebar.style.width = `${(timeLeft / 600) * 100}%`;
         }
 
-        function startTimer() {
-            timerInterval = setInterval(() => {
-                timeLeft--;
-                updateTimerDisplay();
-                if (timeLeft <= 0) {
-                    clearInterval(timerInterval);
-                    conversationDone = true;
-                    if (finishBtn) finishBtn.classList.remove('hidden');
-                    appendMentorMessage("Time's up! Click Finish to see your personalized recommendations.");
-                }
-            }, 1000);
+    function updateCaption(text) {
+        if (!text) {
+            liveCaption.style.opacity = '0';
+            return;
         }
+        liveCaption.innerText = text;
+        liveCaption.style.opacity = '1';
+    }
 
-        function setMentorStatus(state) {
-            let text = 'Ready';
-            if (state === 'LISTENING') text = 'Listening...';
-            if (state === 'THINKING') text = 'Thinking...';
-            if (state === 'SPEAKING') text = 'Responding...';
-            if (mentorStatusSidebar) mentorStatusSidebar.textContent = text;
-            
-            const orb = document.getElementById('talking-buddy-orb');
-            const emoji = document.getElementById('buddy-emoji');
-            
-            if (state === 'THINKING' || state === 'SPEAKING') {
-                if (orb) orb.classList.add('scale-105', 'shadow-emerald-300');
-                if (emoji) emoji.classList.add('scale-110');
-            } else {
-                if (orb) orb.classList.remove('scale-105', 'shadow-emerald-300');
-                if (emoji) emoji.classList.remove('scale-110');
-            }
-
-            if (micIcon) {
-                micIcon.innerText = (state === 'LISTENING') ? '🛑' : '🎙️';
-            }
+    function setUIState(state) {
+        currentUIState = state;
+        
+        // Reset base classes
+        careoContainer.className = 'relative z-10 w-full h-full rounded-full overflow-hidden shadow-2xl border-4 border-white bg-white transition-all duration-300 group';
+        voiceRing.className = 'absolute inset-0 rounded-full transition-all duration-300 pointer-events-none';
+        thinkingGlow.style.opacity = '0';
+        
+        // Stop audio analysis if not speaking
+        if (state !== 'AI_SPEAKING') {
+            isSpeakingActive = false;
+            careoImg.style.transform = 'scale(1)';
         }
 
         function appendMentorMessage(text) {
@@ -238,39 +213,17 @@
                 finishBtn.classList.remove('hidden');
             }
         }
+    }
 
-        function appendUserTranscript(text) {
-            const div = document.createElement('div');
-            div.className = 'flex items-start gap-3 flex-row-reverse animate-fade-in-up';
-            div.innerHTML = `
-                <div class="w-8 h-8 rounded-full bg-slate-200 border-2 border-white flex items-center justify-center flex-shrink-0 shadow-sm">
-                    <span class="text-sm">🗣️</span>
-                </div>
-                <div class="bg-emerald-50 text-emerald-900 px-4 py-3 rounded-2xl rounded-tr-none shadow-sm border border-emerald-100 max-w-[75%]">
-                    <p class="text-sm italic">${text}</p>
-                </div>
-            `;
-            chatBox.appendChild(div);
-            chatBox.scrollTop = chatBox.scrollHeight;
-            chatHistory.push({ role: "user", content: text });
+    // Audio Analysis for Lip Sync
+    function setupAudioAnalysis() {
+        if (!window.voiceClient || !window.voiceClient.remoteAudio.srcObject) {
+            // Fallback animation if Web Audio API can't connect
+            fakeLipSync();
+            return;
         }
-
-        window.handleTextSubmit = function() {
-            if (conversationDone || isProcessing) return;
-            const input = document.getElementById('chatInput');
-            if (!input) return;
-            const text = input.value.trim();
-            if (text) {
-                input.value = '';
-                if (transcriptDisplay) transcriptDisplay.innerText = '';
-                appendUserTranscript(text);
-                getAIResponse(text);
-            }
-        };
-
-        async function getAIResponse(userMsg = "") {
-            isProcessing = true;
-            setMentorStatus('THINKING');
+        
+        if (!audioCtx) {
             try {
                 const resp = await fetch('/assessment/phase3/chat_v2', {
                     method: 'POST',
@@ -294,153 +247,173 @@
                 setMentorStatus('IDLE');
             }
         }
-
-        // Web Speech Recognition integration
-        let recognition = null;
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (SpeechRecognition) {
-            recognition = new SpeechRecognition();
-            recognition.continuous = false;
-            recognition.interimResults = true;
-            recognition.lang = 'en-US';
-
-            recognition.onstart = () => {
-                setMentorStatus('LISTENING');
-            };
-
-            recognition.onresult = (event) => {
-                let transcript = '';
-                for (let i = event.resultIndex; i < event.results.length; i++) {
-                    transcript += event.results[i][0].transcript;
-                }
-                const input = document.getElementById('chatInput');
-                if (input) input.value = transcript;
-                if (transcriptDisplay) transcriptDisplay.innerText = transcript;
-            };
-
-            recognition.onerror = (e) => {
-                console.warn("Voice input notice:", e.error);
-                setMentorStatus('IDLE');
-            };
-
-            recognition.onend = () => {
-                setMentorStatus('IDLE');
-                const input = document.getElementById('chatInput');
-                if (input && input.value.trim() && !isProcessing) {
-                    handleTextSubmit();
-                }
-            };
+        
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
         }
+        
+        analyzeAudio();
+    }
 
-        if (micBtn) {
-            micBtn.onclick = () => {
-                if (conversationDone || isProcessing) return;
-                if (recognition) {
-                    try {
-                        recognition.start();
-                    } catch (e) {
-                        recognition.stop();
+    function analyzeAudio() {
+        if (!isSpeakingActive) {
+            // Cleanup
+            voiceRing.style.opacity = '0';
+            voiceRing.style.transform = 'scale(1)';
+            careoImg.style.transform = 'scale(1)';
+            return;
+        }
+        
+        analyser.getByteFrequencyData(dataArray);
+        let sum = 0;
+        // Average the lower frequencies (speech energy)
+        const limit = Math.min(dataArray.length, 64);
+        for (let i = 0; i < limit; i++) {
+            sum += dataArray[i];
+        }
+        const average = sum / limit;
+        const audioLevel = average / 255; // 0 to 1
+        
+        // When AI stops talking (silence), audioLevel drops to ~0.
+        // We can detect end of speech if silence persists, but for now we just react.
+        
+        // Apply smoothed transform to the mascot image to simulate speaking / breathing
+        const scale = 1 + (audioLevel * 0.15); // Max scale 1.15
+        careoImg.style.transform = `scale(${scale})`;
+        
+        // React the ring as well
+        voiceRing.style.opacity = Math.max(0.1, audioLevel * 0.5).toString();
+        voiceRing.style.transform = `scale(${1 + audioLevel * 0.4})`;
+        
+        animationFrame = requestAnimationFrame(analyzeAudio);
+    }
+    
+    // Fallback if audio context fails
+    function fakeLipSync() {
+        if (!isSpeakingActive) return;
+        const randomScale = 1 + (Math.random() * 0.1);
+        careoImg.style.transform = `scale(${randomScale})`;
+        voiceRing.style.opacity = '0.3';
+        voiceRing.style.transform = `scale(${1 + Math.random() * 0.2})`;
+        setTimeout(fakeLipSync, 100);
+    }
+
+    // Pipecat Integration
+    function toggleVoiceSession() {
+        if (currentUIState === 'IDLE' || currentUIState === 'ERROR' || currentUIState === 'DISCONNECTED') {
+            startSession();
+        } else {
+            // Manually stop
+            if (window.voiceClient) {
+                window.voiceClient.disconnect();
+            }
+        }
+    }
+
+    function startSession() {
+        setUIState('CONNECTING');
+        updateCaption('Connecting to AI...');
+        
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${wsProtocol}//${window.location.host}/api/webrtc/offer`;
+        
+        window.voiceClient = new VoiceClient(wsUrl, (state) => {
+            // Map VoiceClient states to our UI
+            if (state === 'LISTENING') setUIState('LISTENING');
+            else if (state === 'ERROR') setUIState('ERROR');
+            else if (state === 'DISCONNECTED') setUIState('IDLE');
+        }, (msg) => {
+            if (!msg || !msg.type) return;
+
+            if (msg.type === 'TRANSCRIPT_PARTIAL') {
+                setUIState('USER_SPEAKING');
+                updateCaption(msg.text);
+            } else if (msg.type === 'TRANSCRIPT_FINAL') {
+                setUIState('THINKING');
+                updateCaption(msg.text);
+                chatHistory.push({ role: 'user', content: msg.text });
+            } else if (msg.type === 'ASSISTANT_MESSAGE') {
+                setUIState('AI_SPEAKING');
+                updateCaption(msg.text);
+                chatHistory.push({ role: 'assistant', content: msg.text });
+            } else if (msg.type === 'CONVERSATION_COMPLETED') {
+                // Keep the end button prominent
+                endBtn.classList.remove('hidden');
+                endBtn.classList.add('bg-emerald-500', 'text-white');
+            }
+        });
+        
+        // Overwrite peer connection creation to ensure we catch audio track properly
+        // Note: voiceClient internally sets this.remoteAudio.srcObject.
+        // We can just rely on setupAudioAnalysis finding it.
+        
+        // Listen for when AI audio stops (interruption or finished speaking)
+        // Since we don't have a reliable AI_SILENCE event from pipecat via WebRTC text channel natively,
+        // we can assume if state changes back to LISTENING, speaking is done.
+        
+        window.voiceClient.connect();
+    }
+    
+    // Fix: We need to transition back to LISTENING when the AI finishes speaking.
+    // In WebRTC, the data channel doesn't always send an "I finished speaking" event.
+    // However, if we do audio analysis, we can detect silence.
+    setInterval(() => {
+        if (currentUIState === 'AI_SPEAKING' && analyser && dataArray) {
+            // Quick check if silent
+            analyser.getByteFrequencyData(dataArray);
+            let sum = 0;
+            for(let i=0; i<dataArray.length; i++) sum += dataArray[i];
+            if (sum === 0) {
+                // Silent
+                setTimeout(() => {
+                    // Check again after 1 sec to ensure it wasn't just a pause
+                    if (currentUIState === 'AI_SPEAKING') {
+                        analyser.getByteFrequencyData(dataArray);
+                        let sum2 = 0;
+                        for(let i=0; i<dataArray.length; i++) sum2 += dataArray[i];
+                        if (sum2 === 0) {
+                            setUIState('LISTENING');
+                        }
                     }
-                } else {
-                    alert("Voice typing is available in Chrome, Edge, Safari, and Brave. You can also type directly in the input box!");
-                }
-            };
+                }, 1000);
+            }
         }
+    }, 500);
 
-        startSessionBtn.onclick = () => {
-            sessionOverlay.classList.add('hidden');
-            startTimer();
+    async function finishAssessment() {
+        endBtn.disabled = true;
+        endBtn.innerHTML = '⏳';
+        
+        if (window.voiceClient) {
+            window.voiceClient.disconnect();
+        }
+        
+        try {
+            const resp = await fetch('/assessment/phase3/finalize', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ history: chatHistory })
+            });
             
-            if (chatHistory.length > 0) {
-                renderHistoricalMessages();
-                const userMsgCount = chatHistory.filter(m => m.role === 'user').length;
-                if (userMsgCount >= 3 && finishBtn) {
-                    finishBtn.classList.remove('hidden');
-                }
+            if (!resp.ok) throw new Error(`Server returned ${resp.status}`);
+
+            const data = await resp.json();
+            if (data.redirect) {
+                window.location.href = data.redirect;
             } else {
-                // Fetch initial greeting from Groq AI
-                getAIResponse("");
+                alert("Error: No redirect URL provided by server.");
+                endBtn.disabled = false;
+                endBtn.innerHTML = 'Finish';
             }
-        };
+        } catch (e) {
+            console.error(e);
+            alert("Network error while finalizing. Please try again.");
+            endBtn.disabled = false;
+            endBtn.innerHTML = 'Finish';
+        }
+    }
 
-        window.finishAssessment = async function () {
-            if (finishBtn) { finishBtn.disabled = true; finishBtn.textContent = '⏳ Finalizing...'; }
-
-            try {
-                const resp = await fetch('/assessment/phase3/finalize', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ history: chatHistory })
-                });
-                
-                if (!resp.ok) {
-                    throw new Error(`Server returned ${resp.status}`);
-                }
-
-                const data = await resp.json();
-                if (data.redirect) {
-                    window.location.href = data.redirect;
-                } else if (data.detail) {
-                    alert("Error finalizing assessment: " + data.detail);
-                    finishBtn.disabled = false;
-                    finishBtn.textContent = '✨ Finish & Get Results';
-                } else {
-                    alert("Error: No redirect URL provided by server.");
-                    finishBtn.disabled = false;
-                    finishBtn.textContent = '✨ Finish & Get Results';
-                }
-            } catch (e) {
-                console.error(e);
-                alert("Network or server error while finalizing. Please try again.");
-                finishBtn.disabled = false;
-                finishBtn.textContent = '✨ Finish & Get Results';
-            }
-        };
-    });
+    // Initialization
+    setUIState('IDLE');
 </script>
-
-<style>
-    @keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translateY(10px);
-        }
-
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    .animate-fade-in-up {
-        animation: fadeInUp 0.4s ease-out forwards;
-    }
-
-    @keyframes pulse-slow {
-
-        0%,
-        100% {
-            transform: scale(1);
-            opacity: 0.2;
-        }
-
-        50% {
-            transform: scale(1.4);
-            opacity: 0.4;
-        }
-    }
-
-    .animate-pulse-slow {
-        animation: pulse-slow 2s infinite ease-in-out;
-    }
-
-    #chat-box::-webkit-scrollbar {
-        width: 4px;
-    }
-
-    #chat-box::-webkit-scrollbar-thumb {
-        background: #e2e8f0;
-        border-radius: 10px;
-    }
-</style>
 {% endblock %}

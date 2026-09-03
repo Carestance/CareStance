@@ -325,7 +325,7 @@ async def generate_content_with_fallback(prompt):
         try:
             chat_completion = await gclient.chat.completions.create(
                 messages=[{"role": "user", "content": prompt}],
-                model="llama-3.3-70b-versatile",
+                model="qwen/qwen3.8-27b",
             )
             text = chat_completion.choices[0].message.content
         except Exception as e:
@@ -595,6 +595,21 @@ async def run_migrations():
             if cp_cols:
                 if 'verification_remarks' not in cp_cols: migrations.append("ALTER TABLE counsellor_profiles ADD COLUMN verification_remarks TEXT")
 
+            # 13. Conversation Summaries
+            cs_cols = get_columns('conversation_summaries')
+            if cs_cols is None:
+                migrations.append("""
+                CREATE TABLE conversation_summaries (
+                    id SERIAL PRIMARY KEY,
+                    client_id VARCHAR UNIQUE,
+                    user_id INTEGER REFERENCES users(id),
+                    summary_text TEXT DEFAULT '',
+                    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+                """)
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_conversation_summaries_client_id ON conversation_summaries (client_id)")
+                migrations.append("CREATE INDEX IF NOT EXISTS ix_conversation_summaries_user_id ON conversation_summaries (user_id)")
+
         if migrations:
             print(f"DEBUG: Found {len(migrations)} pending migrations.", flush=True)
             async with engine.begin() as conn:
@@ -614,7 +629,36 @@ async def run_migrations():
         traceback.print_exc()
 
 
-app = FastAPI(title="CareStance")
+from contextlib import asynccontextmanager
+from app.realtime.session.manager import manager as session_manager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup actions
+    yield
+    # Shutdown actions
+    try:
+        import asyncio
+        # We must allow time for shutdown to complete cleanly
+        await asyncio.wait_for(session_manager.shutdown_all(), timeout=15.0)
+    except Exception as e:
+        print(f"Error during graceful shutdown: {e}")
+
+app = FastAPI(title="CareStance", lifespan=lifespan)
+
+@app.get("/health")
+async def health_check():
+    """Basic health check for load balancers."""
+    return {"status": "ok"}
+
+@app.get("/ready")
+async def readiness_check():
+    """Readiness check including real-time service status."""
+    from app.realtime.session.manager import manager
+    return {
+        "status": "ready",
+        "active_sessions": len(manager._active_sessions)
+    }
 
 @app.middleware("http")
 async def forward_proto_middleware(request: Request, call_next):
@@ -770,10 +814,10 @@ from .routes import admin
 app.include_router(admin.router)
 
 try:
-    from app.voice.routes.websocket import router as voice_router
-    app.include_router(voice_router)
+    from app.api.realtime import router as realtime_router
+    app.include_router(realtime_router, prefix="/api")
 except (ImportError, ModuleNotFoundError) as e:
-    print(f"Warning: Voice router module not available ({e}). Skipping voice_router.")
+    print(f"Warning: Realtime router module not available ({e}). Skipping realtime_router.")
 
 # Global Exception Handler for better debugging
 @app.exception_handler(Exception)
@@ -985,11 +1029,6 @@ async def get_current_user(request: Request, db: AsyncSession = Depends(get_db))
         user_id = str(token)
     if not user_id: return None
     try:
-        # Try Appwrite first per user request
-        appwrite_user = get_user_by_id(user_id)
-        if appwrite_user:
-            return appwrite_user
-
         uid = int(user_id)
         stmt = select(models.User).options(selectinload(models.User.assessment)).where(models.User.id == uid)
         result = await db.execute(stmt)
@@ -1124,7 +1163,8 @@ async def signup(
     role: str = Form("student"),
     db: AsyncSession = Depends(get_db)
 ):
-    # 1. Check existing user local
+    # 1. Check existing user
+    # 1. Check existing user
     stmt = select(models.User).where(models.User.email == email)
     result = await db.execute(stmt)
     user = result.scalars().first()
@@ -1136,44 +1176,15 @@ async def signup(
         return templates.TemplateResponse(request=request, name="signup.html", context={"error": "Invalid phone number. It must include a country code (e.g., +91) followed by a 10-digit number."})
     
     try:
-        # 2. Create User in Appwrite Auth
-        user_id = str(uuid.uuid4())[:20] # Appwrite ID limit
-        try:
-            appwrite_user = account.create(
-                user_id=user_id,
-                email=email,
-                password=password,
-                name=full_name
-            )
-        except Exception as ae:
-            print(f"Appwrite Signup Error: {ae}")
-            return templates.TemplateResponse(request=request, name="signup.html", context={"error": f"Appwrite error: {ae}"})
-
-        # 3. Create User in Local DB
+        # 2. Create User in Local DB
         hashed_pw = get_password_hash(password)
         new_user = models.User(id=None, email=email, hashed_password=hashed_pw, full_name=full_name, contact_number=contact_number, role=role)
         db.add(new_user)
         await db.flush()
-        
-        # 4. Create User Metadata in Appwrite DB
-        try:
-            tables_db.create_row(
-                database_id=DB_ID,
-                table_id=COLLECTIONS["users"],
-                row_id=user_id,
-                data={
-                    "email": email,
-                    "full_name": full_name,
-                    "contact_number": contact_number,
-                    "role": role,
-                    "local_id": new_user.id
-                }
-            )
-        except Exception as de:
-            print(f"Appwrite DB Error: {de}")
-            # Non-critical for now as we have local DB, but should be logged
 
-        # Create Counsellor Profile
+        # Create Counsellor Profile if applicable
+
+        # Create Counsellor Profile if applicable
         if role == "counsellor":
             c_profile = models.CounsellorProfile(user_id=new_user.id)
             db.add(c_profile)
@@ -1184,7 +1195,8 @@ async def signup(
         await db.rollback()
         return templates.TemplateResponse(request=request, name="signup.html", context={"error": "An error occurred during signup. Please try again."})
     
-    return RedirectResponse(url="/login?message=Account created with Appwrite! Please login.", status_code=status.HTTP_302_FOUND)
+    return RedirectResponse(url="/login?message=Account created! Please login.", status_code=status.HTTP_302_FOUND)
+    return RedirectResponse(url="/login?message=Account created! Please login.", status_code=status.HTTP_302_FOUND)
 
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
@@ -1203,70 +1215,45 @@ async def login(
     password: str = Form(...),
     db: AsyncSession = Depends(get_db)
 ):
-    # 1. Try Appwrite Login first
-    appwrite_user = None
-    try:
-        session = account.create_email_password_session(email, password)
-        appwrite_user = get_user_by_email(email)
-        print(f"Appwrite Login Success: {email}")
-    except Exception as ae:
-        print(f"Appwrite Login Failed: {ae}")
-    
-    # 2. Local verify (for transition/legacy fallback)
+    # Verify credentials against local DB
+    # Verify credentials against local DB
     stmt = select(models.User).where(models.User.email == email)
     result = await db.execute(stmt)
     user = result.scalars().first()
     
-    # If not in Appwrite and not local, error
-    if not appwrite_user and (not user or not verify_password(password, user.hashed_password)):
-         return templates.TemplateResponse(request=request, name="login.html", context={"error": "Invalid credentials"})
-    
-    # Use Appwrite user if present; local user only if no Appwrite record exists.
-    effective_user = appwrite_user if appwrite_user else user
-    effective_user_id = None
-    if user:
-        effective_user_id = user.id
-    elif appwrite_user:
-        effective_user_id = getattr(appwrite_user, "local_id", None)
-        if effective_user_id is not None:
-            try:
-                effective_user_id = int(effective_user_id)
-            except ValueError:
-                pass
+    if not user or not verify_password(password, user.hashed_password):
+        return templates.TemplateResponse(request=request, name="login.html", context={"error": "Invalid credentials"})
 
+    # Update last_login timestamp
     try:
-        # 2. Create Appwrite Session (Server-side)
-        # Note: In a production app, you might want to handle sessions differently
-        # but for now, we ensure the user exists and can authenticate in Appwrite.
-        try:
-            # We don't necessarily need to store the session on the server for every request
-            # if we use local sessions, but we should verify the user can log in to Appwrite.
-            session = account.create_email_password_session(email, password)
-            print(f"Appwrite Session Created: {session['$id']}")
-        except Exception as ae:
-            print(f"Appwrite Login Error: {ae}")
-            # If user exists locally but not in Appwrite (e.g. legacy user), we might need to sync them
-            # For now, we'll just log it.
-    except Exception as e:
-        print(f"Login/Appwrite error: {e}")
+        user.last_login = datetime.datetime.utcnow()
+        await db.commit()
+    except Exception:
+        pass
+    if not user or not verify_password(password, user.hashed_password):
+        return templates.TemplateResponse(request=request, name="login.html", context={"error": "Invalid credentials"})
 
-    if effective_user_id is None and effective_user is not None:
-        effective_user_id = getattr(effective_user, "id", None)
+    # Update last_login timestamp
+    try:
+        user.last_login = datetime.datetime.utcnow()
+        await db.commit()
+    except Exception:
+        pass
 
     # Pre-populate suspension cache
-    user_cache.set_user_status(effective_user_id, {"is_suspended": getattr(effective_user, 'is_suspended', False)})
+    user_cache.set_user_status(user.id, {"is_suspended": getattr(user, 'is_suspended', False)})
+    user_cache.set_user_status(user.id, {"is_suspended": getattr(user, 'is_suspended', False)})
     
     response = RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
     # 30 day persistent session
-    if effective_user_id is not None:
-        token = create_access_token(str(effective_user_id))
-        response.set_cookie(
-            key="user_id", 
-            value=token, 
-            max_age=30 * 24 * 60 * 60,
-            httponly=True,
-            samesite="lax"
-        )
+    token = create_access_token(str(user.id))
+    response.set_cookie(
+        key="user_id", 
+        value=token, 
+        max_age=30 * 24 * 60 * 60,
+        httponly=True,
+        samesite="lax"
+    )
     return response
 
 @app.get("/logout")
@@ -5362,7 +5349,17 @@ async def assessment_phase3(request: Request, mode: str = "chat", db: AsyncSessi
     if not result:
         return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
         
-    return templates.TemplateResponse(request=request, name="assessment_phase3_v2.html", context={"user": user, "result": result, "mode": mode})
+    is_completed = (result.phase3_result == "COMPLETED")
+    import json
+    history_json = json.dumps(result.chat_messages or [])
+    
+    return templates.TemplateResponse(request=request, name="assessment_phase3_v2.html", context={
+        "user": user, 
+        "result": result, 
+        "mode": mode,
+        "is_completed": is_completed,
+        "history_json": history_json
+    })
 
 @app.post("/assessment/phase3/submit")
 async def assessment_phase3_submit(
@@ -5529,7 +5526,7 @@ Present the scenario story first, then clearly list Option A and Option B on sep
                 completion = await asyncio.wait_for(
                     gclient.chat.completions.create(
                         messages=[{"role": "user", "content": prompt}],
-                        model="llama-3.3-70b-versatile",
+                        model="qwen/qwen3.8-27b",
                     ),
                     timeout=15,
                 )
@@ -5567,8 +5564,10 @@ class Phase3V2ChatRequest(BaseModel):
     message: str = ""
     answers: list = []
 
-@app.post("/assessment/phase3/chat_v2")
+@app.post("/assessment/phase3/chat_v2", deprecated=True)
 async def phase3_chat_v2(request: Request, chat_req: Phase3V2ChatRequest, db: AsyncSession = Depends(get_db)):
+    import logging
+    logging.warning("DEPRECATION WARNING: /assessment/phase3/chat_v2 is deprecated and will be removed. Please transition to WebRTC /api/webrtc/offer")
     user = await get_current_user(request, db)
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
@@ -5648,14 +5647,11 @@ async def phase3_chat_v2(request: Request, chat_req: Phase3V2ChatRequest, db: As
     gclient = get_groq_client()
     if gclient:
         try:
-            completion = await asyncio.wait_for(
-                gclient.chat.completions.create(
-                    messages=messages,
-                    model="llama-3.3-70b-versatile",
-                    temperature=0.8,
-                    max_tokens=300,
-                ),
-                timeout=20,
+            completion = await gclient.chat.completions.create(
+                messages=messages,
+                model="qwen/qwen3.8-27b",
+                temperature=0.8,
+                max_tokens=300,
             )
             ai_text = completion.choices[0].message.content
         except Exception as groq_err:
@@ -5699,10 +5695,18 @@ async def phase3_finalize(request: Request, finalize_req: Phase3FinalizeRequest,
     result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
     if not result:
         return JSONResponse({"redirect": "/assessment"})
+        
+    is_completed = (result.phase3_result == "COMPLETED")
+    if not is_completed:
+        raise HTTPException(
+            status_code=409,
+            detail="Deep Dive conversation has not been completed."
+        )
 
-    # Build conversation transcript
+    # Use canonical transcript persisted by the WebRTC session
+    history = result.chat_messages or []
     transcript = ""
-    for msg in finalize_req.history:
+    for msg in history:
         role = msg.get("role", "user")
         content = msg.get("content", "")
         transcript += f"{role.upper()}: {content}\n"
@@ -5750,7 +5754,7 @@ async def phase3_finalize(request: Request, finalize_req: Phase3FinalizeRequest,
         if gclient:
             completion = await gclient.chat.completions.create(
                 messages=[{"role": "user", "content": analysis_prompt}],
-                model="llama-3.3-70b-versatile",
+                model="qwen/qwen3.8-27b",
                 temperature=0.4,
                 max_tokens=2500,
                 response_format={"type": "json_object"}
@@ -5932,6 +5936,14 @@ async def phase3_finalize(request: Request, finalize_req: Phase3FinalizeRequest,
         print(f"Warning: mark_assessment_completed_once failed: {mark_err}")
 
     await db.commit()
+    print("ASSESSMENT_RESULT_PERSISTED", flush=True)
+
+    try:
+        from app.realtime.session.manager import manager as session_manager
+        import asyncio
+        asyncio.create_task(session_manager.cleanup_sessions_for_user(user.id))
+    except Exception as e:
+        print(f"Error triggering cleanup_sessions_for_user: {e}")
 
     return JSONResponse({"redirect": "/assessment/result"})
 
@@ -7345,7 +7357,7 @@ Welcome the student warmly (1 sentence), then present this first question:
             try:
                 completion = await gclient.chat.completions.create(
                     messages=[{"role": "user", "content": prompt}],
-                    model="llama-3.3-70b-versatile",
+                    model="qwen/qwen3.8-27b",
                 )
                 ai_text = completion.choices[0].message.content
             except Exception as groq_err:
@@ -7678,8 +7690,10 @@ async def resolve_voice(req: ResolveVoiceRequest):
 
 # --- Chatbot Routes ---
 
-@app.post("/chatbot/message")
+@app.post("/chatbot/message", deprecated=True)
 async def chatbot_message(request: Request, chat_req: ChatRequest, db: AsyncSession = Depends(get_db)):
+    import logging
+    logging.warning("DEPRECATION WARNING: /chatbot/message is deprecated and will be replaced by the real-time pipeline.")
     user = await get_current_user(request, db)
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
@@ -7761,7 +7775,7 @@ Response (Concise, Markdown formatted):
                         print(f"AI Chat for User {user_id}: Trying Groq...")
                         stream = await gclient.chat.completions.create(
                             messages=[{"role": "user", "content": prompt}],
-                            model="llama-3.3-70b-versatile",
+                            model="qwen/qwen3.8-27b",
                             stream=True,
                         )
                         async for chunk in stream:
@@ -8518,7 +8532,7 @@ async def roadmap_step_chat_message(path_id: int, step_index: int, request: Requ
         if gclient:
             completion = await gclient.chat.completions.create(
                 messages=messages,
-                model="llama-3.3-70b-versatile",
+                model="qwen/qwen3.8-27b",
                 temperature=0.7,
                 max_tokens=300,
             )

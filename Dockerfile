@@ -1,6 +1,15 @@
 # Use an official Python runtime as a parent image
 FROM python:3.11-slim
 
+# Install OS-level dependencies required for WebRTC, PyAudio, and Pipecat
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    libopus0 \
+    portaudio19-dev \
+    gcc \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 # Set the working directory in the container
 WORKDIR /app
 
@@ -13,11 +22,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the application code into the container
 COPY . .
 
-# Expose port 8000 for the FastAPI app
-EXPOSE 8000
+# Expose port (Railway will provide $PORT)
+EXPOSE 8080
 
-# Live simulation sessions are held in process memory.  Until those sessions
-# are moved to a shared store, all simulation requests must reach the same
-# process; multiple Gunicorn workers cause intermittent "workspace not found"
-# errors when the iframe is handled by a different worker.
-CMD gunicorn -w 1 -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:${PORT:-8000}
+# Use run.py which internally invokes Hypercorn with proper SSL/WebRTC thread handling
+# Pipecat requires a clean async loop without Gunicorn worker interference for WebRTC
+CMD ["python", "run.py"]

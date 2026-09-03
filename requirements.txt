@@ -27,4 +27,7 @@ numpy
 pandas
 reportlab
 pyjwt
-
+pipecat-ai[silero,webrtc]
+deepgram-sdk
+cartesia
+aiortc
