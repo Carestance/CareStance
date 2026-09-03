@@ -34,8 +34,24 @@ async def webrtc_offer(request: Request, offer: WebRTCOffer, db = Depends(get_db
         from pipecat.processors.aggregators.llm_response_universal import LLMAssistantAggregator, LLMUserAggregator, LLMContext, LLMContextFrame
         import asyncio
         
-        # Initialize connection
-        webrtc_conn = SmallWebRTCConnection()
+        # Initialize connection with production ICE Servers for NAT Traversal
+        import os
+        from aiortc import RTCIceServer, RTCConfiguration
+        
+        turn_url = os.getenv("TURN_SERVER_URL")
+        ice_servers = [RTCIceServer(urls=["stun:stun.l.google.com:19302"])]
+        
+        if turn_url:
+            turn_user = os.getenv("TURN_USERNAME")
+            turn_pass = os.getenv("TURN_PASSWORD")
+            ice_servers.append(
+                RTCIceServer(urls=[turn_url], username=turn_user, credential=turn_pass)
+            )
+            print("DEBUG: Loaded external TURN credentials for production WebRTC.", flush=True)
+
+        webrtc_conn = SmallWebRTCConnection(
+            ice_servers=ice_servers
+        )
         print("WEBRTC_CONNECTION_CREATED", flush=True)
         
         # Initialize transport
@@ -74,6 +90,7 @@ async def webrtc_offer(request: Request, offer: WebRTCOffer, db = Depends(get_db
         # 4. Construct the DAG
         messages = [
             {"role": "system", "content": built_pipeline["system_prompt"]},
+            {"role": "user", "content": "Hello! I am ready to begin my deep dive assessment."},
         ]
         
         async def mark_conversation_complete(params: dict):
@@ -147,6 +164,7 @@ async def webrtc_offer(request: Request, offer: WebRTCOffer, db = Depends(get_db
         session.transport = transport
         session.runner_task = runtime_task
         session.pipeline_task = pipeline_task
+        session.pipeline_runner = runner
         session.context = context
         
         return JSONResponse({

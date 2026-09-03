@@ -289,7 +289,7 @@ async def generate_content_with_fallback(prompt):
         try:
             chat_completion = await gclient.chat.completions.create(
                 messages=[{"role": "user", "content": prompt}],
-                model="llama-3.3-70b-versatile",
+                model="qwen/qwen3.8-27b",
             )
             text = chat_completion.choices[0].message.content
         except Exception as e:
@@ -607,6 +607,20 @@ async def lifespan(app: FastAPI):
         print(f"Error during graceful shutdown: {e}")
 
 app = FastAPI(title="CareStance", lifespan=lifespan)
+
+@app.get("/health")
+async def health_check():
+    """Basic health check for load balancers."""
+    return {"status": "ok"}
+
+@app.get("/ready")
+async def readiness_check():
+    """Readiness check including real-time service status."""
+    from app.realtime.session.manager import manager
+    return {
+        "status": "ready",
+        "active_sessions": len(manager._active_sessions)
+    }
 
 @app.middleware("http")
 async def forward_proto_middleware(request: Request, call_next):
@@ -4275,7 +4289,7 @@ Present the scenario story first, then clearly list Option A and Option B on sep
                 completion = await asyncio.wait_for(
                     gclient.chat.completions.create(
                         messages=[{"role": "user", "content": prompt}],
-                        model="llama-3.3-70b-versatile",
+                        model="qwen/qwen3.8-27b",
                     ),
                     timeout=15,
                 )
@@ -4394,7 +4408,7 @@ async def phase3_chat_v2(request: Request, chat_req: Phase3V2ChatRequest, db: As
         try:
             completion = await gclient.chat.completions.create(
                 messages=messages,
-                model="llama-3.3-70b-versatile",
+                model="qwen/qwen3.8-27b",
                 temperature=0.8,
                 max_tokens=300,
             )
@@ -4499,7 +4513,7 @@ async def phase3_finalize(request: Request, finalize_req: Phase3FinalizeRequest,
         if gclient:
             completion = await gclient.chat.completions.create(
                 messages=[{"role": "user", "content": analysis_prompt}],
-                model="llama-3.3-70b-versatile",
+                model="qwen/qwen3.8-27b",
                 temperature=0.4,
                 max_tokens=2500,
                 response_format={"type": "json_object"}
@@ -6064,7 +6078,7 @@ Welcome the student warmly (1 sentence), then present this first question:
             try:
                 completion = await gclient.chat.completions.create(
                     messages=[{"role": "user", "content": prompt}],
-                    model="llama-3.3-70b-versatile",
+                    model="qwen/qwen3.8-27b",
                 )
                 ai_text = completion.choices[0].message.content
             except Exception as groq_err:
@@ -6482,7 +6496,7 @@ Response (Concise, Markdown formatted):
                         print(f"AI Chat for User {user_id}: Trying Groq...")
                         stream = await gclient.chat.completions.create(
                             messages=[{"role": "user", "content": prompt}],
-                            model="llama-3.3-70b-versatile",
+                            model="qwen/qwen3.8-27b",
                             stream=True,
                         )
                         async for chunk in stream:
@@ -7244,7 +7258,7 @@ async def roadmap_step_chat_message(path_id: int, step_index: int, request: Requ
         if gclient:
             completion = await gclient.chat.completions.create(
                 messages=messages,
-                model="llama-3.3-70b-versatile",
+                model="qwen/qwen3.8-27b",
                 temperature=0.7,
                 max_tokens=300,
             )

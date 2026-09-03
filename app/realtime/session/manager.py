@@ -66,26 +66,30 @@ class SessionManager:
         import asyncio
         
         try:
-            # 1. Stop PipelineTask gracefully if running
-            if session.pipeline_task and hasattr(session.pipeline_task, "cancel"):
-                # pipecat cancel method
+            # 1. Cancel the pipeline runner cleanly if it exists
+            if session.pipeline_runner and hasattr(session.pipeline_runner, "cancel"):
                 try:
-                    await session.pipeline_task.cancel()
+                    # Pipecat runners have a synchronous or asynchronous cancel method
+                    import inspect
+                    if inspect.iscoroutinefunction(session.pipeline_runner.cancel):
+                        await session.pipeline_runner.cancel()
+                    else:
+                        session.pipeline_runner.cancel()
                 except Exception as e:
-                    print(f"Error cancelling pipeline_task: {e}")
-
-            # 2. Cancel runner asyncio.Task
+                    print(f"Error cancelling pipeline_runner: {e}")
+            
+            # 2. Wait for the runner_task to gracefully exit
             if session.runner_task and not session.runner_task.done():
-                session.runner_task.cancel()
                 try:
                     # Wait briefly for cancellation to process
-                    await asyncio.wait_for(session.runner_task, timeout=2.0)
+                    await asyncio.wait_for(session.runner_task, timeout=3.0)
                 except asyncio.CancelledError:
                     pass
                 except asyncio.TimeoutError:
-                    print("Timeout waiting for runner task to cancel")
+                    print("Timeout waiting for runner task to finish, forcing cancel")
+                    session.runner_task.cancel()
                 except Exception as e:
-                    print(f"Error cancelling runner_task: {e}")
+                    print(f"Error waiting for runner_task: {e}")
 
             # 3. Disconnect WebRTC Transport/Connection
             if session.webrtc_conn and hasattr(session.webrtc_conn, "close"):

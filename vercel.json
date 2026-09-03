@@ -15,7 +15,9 @@
     { "source": "/ads.txt", "destination": "https://carestance-production.up.railway.app/ads.txt" },
     { "source": "/robots.txt", "destination": "https://carestance-production.up.railway.app/robots.txt" },
     { "source": "/sitemap.xml", "destination": "https://carestance-production.up.railway.app/sitemap.xml" },
-    { "source": "/static/(.*)", "destination": "/static/$1" },
+    { "source": "/api/(.*)", "destination": "https://carestance-production.up.railway.app/api/$1" },
+    { "source": "/assessment/(.*)", "destination": "https://carestance-production.up.railway.app/assessment/$1" },
+    { "source": "/static/(.*)", "destination": "https://carestance-production.up.railway.app/static/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

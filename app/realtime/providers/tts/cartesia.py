@@ -15,8 +15,11 @@ class TTSProviderConfig:
         if not key:
             raise ValueError("Cartesia API key not provided or found in environment.")
             
+        settings = CartesiaTTSService.Settings(
+            voice=vid,
+            model="sonic-3.5"
+        )
         return CartesiaTTSService(
             api_key=key,
-            voice_id=vid,
-            model="sonic-3.5" # Updated from sunsetted sonic to current stable model
+            settings=settings
         )
