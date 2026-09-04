@@ -266,11 +266,16 @@ def get_monthly_plan_progress(plan: dict[str, Any] | None) -> dict[str, int | li
     plan = plan if isinstance(plan, dict) else {}
     completed = set()
     task_responses = plan.get("task_responses") if isinstance(plan.get("task_responses"), dict) else {}
-    for week in plan.get("weeks", []):
+    weeks = plan.get("weeks", [])
+    for week in weeks:
         tasks = week.get("tasks", []) if isinstance(week, dict) else []
         task_ids = {task.get("id") for task in tasks if isinstance(task, dict)}
         if task_ids and task_ids.issubset(task_responses):
             completed.add(week.get("week"))
+    # Plans created before task-by-task evidence tracking stored completion at
+    # week level. Keep their existing progress visible after the upgrade.
+    if not weeks or not task_responses:
+        completed.update(plan.get("completed_week_numbers", []))
     completed = sorted(week for week in completed if isinstance(week, int) and 1 <= week <= 4)
     current_week = next((week for week in range(1, 5) if week not in completed), None)
     return {

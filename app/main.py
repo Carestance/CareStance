@@ -4153,7 +4153,6 @@ async def send_completion_reminders(request: Request, db: AsyncSession = Depends
 
     return RedirectResponse(url=f"/admin?msg=Reminders sent to {count} users with incomplete profiles", status_code=status.HTTP_302_FOUND)
 
-@app.post("/admin/users/{user_id}/delete")
 async def delete_user(user_id: int, request: Request, db: AsyncSession = Depends(get_db)):
     current_user = await get_current_user(request, db)
     admin_email = os.getenv("ADMIN_EMAIL")
@@ -4176,7 +4175,6 @@ async def delete_user(user_id: int, request: Request, db: AsyncSession = Depends
     
     return RedirectResponse(url="/admin", status_code=status.HTTP_302_FOUND)
 
-@app.post("/admin/users/{user_id}/suspend")
 async def suspend_user(user_id: int, request: Request, db: AsyncSession = Depends(get_db)):
     current_user = await get_current_user(request, db)
     admin_email = os.getenv("ADMIN_EMAIL")
@@ -4190,7 +4188,6 @@ async def suspend_user(user_id: int, request: Request, db: AsyncSession = Depend
         user_cache.invalidate_user(user.id)
     return RedirectResponse(url="/admin", status_code=status.HTTP_302_FOUND)
 
-@app.post("/admin/users/{user_id}/unsuspend")
 async def unsuspend_user(user_id: int, request: Request, db: AsyncSession = Depends(get_db)):
     current_user = await get_current_user(request, db)
     admin_email = os.getenv("ADMIN_EMAIL")
@@ -4204,7 +4201,6 @@ async def unsuspend_user(user_id: int, request: Request, db: AsyncSession = Depe
         user_cache.invalidate_user(user.id)
     return RedirectResponse(url="/admin", status_code=status.HTTP_302_FOUND)
 
-@app.post("/admin/flags/{flag_id}/action")
 async def handle_flag(flag_id: int, request: Request, action: str = Form(...), db: AsyncSession = Depends(get_db)):
     current_user = await get_current_user(request, db)
     admin_email = os.getenv("ADMIN_EMAIL")
@@ -4394,7 +4390,6 @@ async def upload_certificates(
         await db.rollback()
         return RedirectResponse(url="/dashboard?error=Submission failed. Please try again or contact support.", status_code=status.HTTP_302_FOUND)
 
-@app.post("/admin/verify-counsellor/{counsellor_id}")
 async def verify_counsellor(
     counsellor_id: int,
     request: Request,
@@ -5015,7 +5010,6 @@ async def rate_appointment(appointment_id: int, request: Request, rating: int = 
         
     return RedirectResponse(url="/dashboard?msg=Thank you for your feedback!", status_code=status.HTTP_302_FOUND)
 
-@app.post("/admin/tickets/{ticket_id}/reply")
 async def reply_ticket(ticket_id: int, request: Request, reply_content: str = Form(None), db: AsyncSession = Depends(get_db)):
     if reply_content is None:
         return RedirectResponse(url="/admin", status_code=status.HTTP_302_FOUND)
@@ -5032,7 +5026,6 @@ async def reply_ticket(ticket_id: int, request: Request, reply_content: str = Fo
     await db.commit()
     return RedirectResponse(url="/admin", status_code=status.HTTP_302_FOUND)
 
-@app.post("/admin/tickets/{ticket_id}/close")
 async def close_ticket(ticket_id: int, request: Request, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
     admin_email = os.getenv("ADMIN_EMAIL")
@@ -5047,7 +5040,6 @@ async def close_ticket(ticket_id: int, request: Request, db: AsyncSession = Depe
     await db.commit()
     return RedirectResponse(url="/admin", status_code=status.HTTP_302_FOUND)
 
-@app.post("/admin/tickets/{ticket_id}/delete")
 async def delete_ticket(ticket_id: int, request: Request, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
     admin_email = os.getenv("ADMIN_EMAIL")
