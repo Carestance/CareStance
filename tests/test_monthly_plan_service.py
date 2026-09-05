@@ -37,12 +37,11 @@ def test_business_career_uses_business_specific_work_not_generic_questions():
 def test_monthly_plan_progress_counts_only_valid_completed_weeks():
     progress = get_monthly_plan_progress({"completed_week_numbers": [1, 1, 3, 7, "4"]})
 
-    assert progress == {
-        "completed_weeks": 2,
-        "total_weeks": 4,
-        "percent": 50,
-        "completed_week_numbers": [1, 3],
-    }
+    assert progress["completed_weeks"] == 2
+    assert progress["total_weeks"] == 4
+    assert progress["percent"] == 50
+    assert progress["completed_week_numbers"] == [1, 3]
+    assert progress["current_week"] == 2
 
 
 def test_build_monthly_plan_requires_a_ready_growth_profile():

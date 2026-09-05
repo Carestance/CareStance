@@ -1,17 +1,5 @@
 import pytest
-import sys
-from unittest.mock import MagicMock
-
-# Mock pipecat module so we can test the configs without it installed
-mock_pipecat = MagicMock()
-mock_pipecat.services.deepgram.DeepgramSTTService = MagicMock()
-mock_pipecat.services.groq.GroqLLMService = MagicMock()
-mock_pipecat.services.cartesia.CartesiaTTSService = MagicMock()
-sys.modules['pipecat'] = mock_pipecat
-sys.modules['pipecat.services'] = mock_pipecat.services
-sys.modules['pipecat.services.deepgram'] = mock_pipecat.services.deepgram
-sys.modules['pipecat.services.groq'] = mock_pipecat.services.groq
-sys.modules['pipecat.services.cartesia'] = mock_pipecat.services.cartesia
+from unittest.mock import patch
 
 def test_deepgram_config():
     from app.realtime.providers.stt.deepgram import STTProviderConfig
@@ -43,13 +31,14 @@ def test_adapter_pipeline_creation():
     
     adapter = PipecatAdapter(config)
     
-    # We must provide mock keys for the environment if missing
-    import os
-    os.environ["DEEPGRAM_API_KEY"] = "mock"
-    os.environ["GROQ_API_KEY"] = "mock"
-    os.environ["CARTESIA_API_KEY"] = "mock"
-    
-    pipeline = adapter.create_pipeline()
+    with (
+        patch("app.realtime.providers.stt.deepgram.STTProviderConfig.create_deepgram_service", return_value="fallback-stt"),
+        patch("app.realtime.providers.llm.groq.LLMProviderConfig.create_groq_service", return_value="llm"),
+        patch("app.realtime.providers.tts.cartesia.TTSProviderConfig.create_cartesia_service", return_value="fallback-tts"),
+        patch("app.realtime.providers.stt.sarvam.SarvamSTTProviderConfig.create_sarvam_service", return_value="stt"),
+        patch("app.realtime.providers.tts.sarvam.SarvamTTSProviderConfig.create_sarvam_service", return_value="tts"),
+    ):
+        pipeline = adapter.create_pipeline()
     assert "stt" in pipeline
     assert "llm" in pipeline
     assert "tts" in pipeline

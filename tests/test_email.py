@@ -8,7 +8,7 @@ mail_server = os.getenv("MAIL_SERVER", "smtp.zoho.com")
 mail_username = os.getenv("MAIL_USERNAME")
 mail_password = os.getenv("MAIL_PASSWORD")
 
-def test_port(port):
+def probe_mail_port(port):
     print(f"\n--- Testing port {port} ---")
     try:
         if port == 465:
@@ -25,5 +25,6 @@ def test_port(port):
         print(f"FAILED on port {port}: {e}")
         return False
 
-test_port(587)
-test_port(465)
+if __name__ == "__main__":
+    probe_mail_port(587)
+    probe_mail_port(465)

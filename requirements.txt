@@ -31,3 +31,5 @@ pipecat-ai[silero,webrtc]
 deepgram-sdk
 cartesia
 aiortc
+pytest
+pytest-asyncio

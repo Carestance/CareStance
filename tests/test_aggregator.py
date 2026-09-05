@@ -1,14 +1,13 @@
 
-import sys
-import os
+import pytest
 
-# Add project root to sys.path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from app.utils.resource_aggregator import ResourceAggregator
-from app.data.career_keywords import career_keywords
+pytestmark = pytest.mark.skip(
+    reason="The legacy roadmap resource aggregator was removed with the roadmap feature."
+)
 
 def test_aggregator():
+    pytest.skip("Legacy roadmap resource aggregation is no longer part of the product.")
     print("Testing ResourceAggregator...")
     
     test_careers = ["AI ML Researcher", "Data Scientist", "Software Engineer"]
