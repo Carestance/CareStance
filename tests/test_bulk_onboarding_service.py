@@ -59,3 +59,23 @@ def test_bulk_onboarding_plan_assignment_marks_active_paid_access_for_r300_servi
         "weekly_talks",
         "r300_bundle",
     ]
+
+
+def test_build_day3_onboarding_payload_returns_day_3_milestone_tasks_and_progress():
+    from app.services.onboarding_day3_service import build_day3_onboarding_payload
+
+    payload = build_day3_onboarding_payload(
+        completed_tasks=["profile_setup", "upi_setup"],
+        user_name="Aarav",
+    )
+
+    assert payload["day"] == 3
+    assert payload["user_name"] == "Aarav"
+    assert payload["total_tasks"] == 3
+    assert payload["completed_tasks"] == ["profile_setup", "upi_setup"]
+    assert payload["progress_percent"] == 67
+    assert [task["id"] for task in payload["tasks"]] == [
+        "profile_setup",
+        "upi_setup",
+        "verification_review",
+    ]

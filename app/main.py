@@ -44,6 +44,7 @@ from itsdangerous import URLSafeTimedSerializer
 from .data.career_keywords import career_keywords
 from .services import simulation_service
 from .services import assessment_engine
+from .services.onboarding_day3_service import build_day3_onboarding_payload
 
 LIVE_SIMULATION_SESSIONS = {}
 
@@ -1087,6 +1088,22 @@ async def complete_onboarding(request: Request, db: AsyncSession = Depends(get_d
         user.onboarded = True
         await db.commit()
     return {"status": "success"}
+
+@app.get("/api/onboarding/day-3")
+async def day3_onboarding_payload(request: Request, db: AsyncSession = Depends(get_db)):
+    """Return a day-3 onboarding payload for UI and API clients.
+
+    The frontend can pass completed task IDs as repeated query parameters such as
+    ?completed_tasks=profile_setup&completed_tasks=upi_setup. If the user is
+    signed in, the payload is personalized with the stored display name.
+    """
+    user = await get_current_user(request, db)
+    completed_tasks = request.query_params.getlist("completed_tasks") or []
+    user_name = user.full_name if user and user.full_name else None
+    return JSONResponse(build_day3_onboarding_payload(
+        completed_tasks=completed_tasks,
+        user_name=user_name,
+    ))
 
 @app.get("/articles", response_class=HTMLResponse)
 async def articles_page(request: Request, db: AsyncSession = Depends(get_db)):
