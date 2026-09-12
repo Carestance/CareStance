@@ -5758,15 +5758,15 @@ async def phase3_finalize(request: Request, finalize_req: Phase3FinalizeRequest,
     if not result:
         return JSONResponse({"redirect": "/assessment"})
         
-    is_completed = (result.phase3_result == "COMPLETED")
-    if not is_completed:
-        raise HTTPException(
-            status_code=409,
-            detail="Deep Dive conversation has not been completed."
-        )
+    # Always mark as COMPLETED when student initiates finalization
+    result.phase3_result = "COMPLETED"
 
-    # Use canonical transcript persisted by the WebRTC session
-    history = result.chat_messages or []
+    # Use canonical transcript persisted by the WebRTC session or fallback to request history
+    if not result.chat_messages and finalize_req.history:
+        result.chat_messages = finalize_req.history
+        await db.commit()
+
+    history = result.chat_messages or finalize_req.history or []
     transcript = ""
     for msg in history:
         role = msg.get("role", "user")

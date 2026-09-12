@@ -63,10 +63,30 @@ class VoiceClient {
                 }
             };
 
-            // Handle incoming remote audio stream
+            // Handle incoming remote audio stream & apply volume gain boost
             this.peerConnection.ontrack = (event) => {
                 if (event.streams && event.streams[0]) {
                     this.remoteAudio.srcObject = event.streams[0];
+                    this.remoteAudio.volume = 1.0;
+                    
+                    try {
+                        const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+                        if (AudioCtxClass && !this.audioCtx) {
+                            this.audioCtx = new AudioCtxClass();
+                            const source = this.audioCtx.createMediaStreamSource(event.streams[0]);
+                            const gainNode = this.audioCtx.createGain();
+                            gainNode.gain.value = 2.0; // 200% volume boost
+                            source.connect(gainNode);
+                            gainNode.connect(this.audioCtx.destination);
+                            if (this.audioCtx.state === 'suspended') {
+                                this.audioCtx.resume();
+                            }
+                        }
+                    } catch (gainErr) {
+                        console.warn("Volume gain boost note:", gainErr);
+                    }
+                    
+                    this.remoteAudio.play().catch(() => {});
                 }
             };
 

@@ -15,5 +15,10 @@ class STTProviderConfig:
             
         return DeepgramSTTService(
             api_key=key,
-            model="nova-2-conversationalai"
+            settings=DeepgramSTTService.Settings(
+                model="nova-2-conversationalai",
+                language="en",
+                endpointing=100,
+                interim_results=True
+            )
         )

@@ -409,6 +409,11 @@
         }
     }
 
+    // Expose control functions globally for inline HTML onclick attributes
+    window.toggleVoiceSession = toggleVoiceSession;
+    window.toggleCaptions = toggleCaptions;
+    window.finishAssessment = finishAssessment;
+
     // Initialization
     setUIState('IDLE');
 </script>
