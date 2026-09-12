@@ -1,0 +1,965 @@
+{% extends "base.html" %}
+
+{% block title %}Plans & Pricing | CareStance{% endblock %}
+
+{% block content %}
+<style>
+    /* ── Smooth Column Enlargement on Hover & Selection ── */
+    .col-header-box {
+        transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.28s ease, border-color 0.28s ease, background-color 0.28s ease;
+        will-change: transform, box-shadow;
+    }
+    
+    .col-footer-box {
+        transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.28s ease;
+        will-change: transform;
+    }
+
+    /* Selected column enlargement effect */
+    .col-is-selected .col-header-box {
+        transform: translateY(-8px) scale(1.04);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.12), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        z-index: 30;
+        position: relative;
+    }
+
+    .col-is-selected .col-footer-box {
+        transform: translateY(4px) scale(1.03);
+        z-index: 30;
+        position: relative;
+    }
+
+    /* Hover preview on unselected columns */
+    .col-interactive:hover .col-header-box {
+        transform: translateY(-5px) scale(1.025);
+    }
+
+    /* ── Dedicated, Self-Contained Button & Column Styles (Tailwind Purge Proof) ── */
+    /* Free Plan Button */
+    .btn-plan-free {
+        background-color: #e2e8f0 !important;
+        border: 1px solid #cbd5e1 !important;
+        color: #1e293b !important;
+    }
+    .btn-plan-free:hover {
+        background-color: #cbd5e1 !important;
+    }
+
+    /* 1 Month Plan Buttons */
+    .btn-plan-1m {
+        background-color: #0f766e !important; /* Deep Rich Teal */
+        border: 1px solid #115e59 !important;
+        color: #ffffff !important;
+        box-shadow: 0 4px 6px -1px rgba(15, 118, 110, 0.3) !important;
+    }
+    .btn-plan-1m:hover {
+        background-color: #0d9488 !important;
+    }
+    .btn-plan-1m-selected {
+        background-color: #0d9488 !important; /* Vibrant Active Teal */
+        border: 1px solid #14b8a6 !important;
+        color: #ffffff !important;
+        box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.45), 0 10px 15px -3px rgba(13, 148, 136, 0.45) !important;
+    }
+    .btn-plan-1m-selected:hover {
+        background-color: #0f766e !important;
+    }
+
+    /* 4 Months Plan Buttons (Vibrant Green for Best Value) */
+    .btn-plan-4m {
+        background-color: #065f46 !important; /* Deep Forest Emerald */
+        border: 1px solid #047857 !important;
+        color: #ffffff !important;
+        box-shadow: 0 4px 6px -1px rgba(6, 95, 70, 0.3) !important;
+    }
+    .btn-plan-4m:hover {
+        background-color: #059669 !important;
+    }
+    .btn-plan-4m-selected, .btn-green-select {
+        background-color: #16a34a !important; /* Vibrant Glowing Green */
+        border: 1px solid #15803d !important;
+        color: #ffffff !important;
+        box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.45), 0 10px 18px -3px rgba(22, 163, 74, 0.45) !important;
+    }
+    .btn-plan-4m-selected:hover, .btn-green-select:hover {
+        background-color: #15803d !important;
+    }
+
+    /* 6 Months Plan Buttons */
+    .btn-plan-6m {
+        background-color: #4338ca !important; /* Deep Indigo */
+        border: 1px solid #3730a3 !important;
+        color: #ffffff !important;
+        box-shadow: 0 4px 6px -1px rgba(67, 56, 202, 0.3) !important;
+    }
+    .btn-plan-6m:hover {
+        background-color: #4f46e5 !important;
+    }
+    .btn-plan-6m-selected {
+        background-color: #4f46e5 !important; /* Vibrant Indigo */
+        border: 1px solid #6366f1 !important;
+        color: #ffffff !important;
+        box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.45), 0 10px 15px -3px rgba(79, 70, 229, 0.45) !important;
+    }
+    .btn-plan-6m-selected:hover {
+        background-color: #4338ca !important;
+    }
+
+    /* Dynamic Column Highlight Backgrounds */
+    .col-plan_1m.col-is-selected {
+        border-color: #0d9488 !important;
+        background-color: rgba(204, 251, 241, 0.55) !important;
+    }
+    .col-plan_4m.col-is-selected {
+        border-color: #10b981 !important;
+        background-color: rgba(209, 250, 229, 0.65) !important;
+    }
+    .col-plan_6m.col-is-selected {
+        border-color: #6366f1 !important;
+        background-color: rgba(238, 242, 255, 0.6) !important;
+    }
+
+    /* Quick Plan Switchers in Checkout Card */
+    .btn-switch-active-1m {
+        background-color: #0d9488 !important;
+        border: 1px solid #14b8a6 !important;
+        color: #ffffff !important;
+    }
+    .btn-switch-active-4m {
+        background-color: #16a34a !important;
+        border: 1px solid #15803d !important;
+        color: #ffffff !important;
+    }
+    .btn-switch-active-6m {
+        background-color: #4f46e5 !important;
+        border: 1px solid #6366f1 !important;
+        color: #ffffff !important;
+    }
+    .btn-switch-inactive {
+        background-color: rgba(51, 65, 85, 0.6) !important;
+        border: 1px solid #475569 !important;
+        color: #cbd5e1 !important;
+    }
+    .btn-switch-inactive:hover {
+        background-color: #334155 !important;
+        color: #ffffff !important;
+    }
+
+    /* Razorpay Main CTA Button */
+    .btn-rzp-cta {
+        background: linear-gradient(135deg, #2563eb, #4f46e5 50%, #0d9488) !important;
+        color: #ffffff !important;
+        box-shadow: 0 10px 18px -3px rgba(37, 99, 235, 0.4) !important;
+        transition: all 0.2s ease !important;
+    }
+    .btn-rzp-cta:hover {
+        background: linear-gradient(135deg, #1d4ed8, #4338ca 50%, #0f766e) !important;
+        box-shadow: 0 15px 22px -3px rgba(37, 99, 235, 0.5) !important;
+        transform: translateY(-1px);
+    }
+</style>
+
+<div class="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 py-16 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto">
+        <!-- ── Hero Header ── -->
+        <div class="text-center max-w-3xl mx-auto mb-16" data-aos="fade-up">
+            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-100/80 text-emerald-800 text-xs font-bold tracking-wide uppercase mb-4 border border-emerald-200 shadow-sm">
+                <i class="fa-solid fa-sparkles text-emerald-600"></i> Transparent Plans & Pricing
+            </div>
+            <h1 class="text-4xl sm:text-5xl font-extrabold text-slate-900 tracking-tight font-sans leading-tight">
+                Unlock Your Potential with the <span class="bg-gradient-to-r from-teal-600 via-emerald-600 to-cyan-600 bg-clip-text text-transparent">Right Career Plan</span>
+            </h1>
+            <p class="mt-4 text-lg text-slate-600 leading-relaxed font-sans">
+                Choose the plan that matches your career ambitions. From foundational exploration to comprehensive multi-month mentorship, simulations, and real-time AI guidance.
+            </p>
+
+            <!-- Trust Badges -->
+            <div class="mt-6 flex flex-wrap items-center justify-center gap-6 text-xs text-slate-500 font-medium">
+                <span class="flex items-center gap-1.5"><i class="fa-solid fa-shield-check text-emerald-600"></i> 100% Secure via Razorpay</span>
+                <span class="flex items-center gap-1.5"><i class="fa-solid fa-qrcode text-teal-600"></i> Instant UPI QR Activation</span>
+                <span class="flex items-center gap-1.5"><i class="fa-solid fa-bolt text-amber-500"></i> Immediate Platform Access</span>
+            </div>
+        </div>
+
+        <!-- ── Plans & Pricing Comparison Table with Direct Selection ── -->
+        <div class="bg-white rounded-3xl border border-slate-200 shadow-xl p-6 sm:p-10 mb-16 overflow-hidden" data-aos="fade-up">
+            
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-6 border-b border-slate-100">
+                <div>
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold uppercase tracking-wider mb-2 border border-emerald-200">
+                        <i class="fa-solid fa-table-columns"></i> Interactive Feature Comparison
+                    </div>
+                    <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Choose Your Access Level</h2>
+                    <p class="text-sm text-slate-500 mt-1">Hover over or click any plan column below to enlarge it and immediately generate your Razorpay QR code.</p>
+                </div>
+                <div class="flex items-center gap-2 text-xs text-slate-500 bg-slate-50 py-2 px-3.5 rounded-xl border border-slate-200 self-start sm:self-auto font-medium">
+                    <i class="fa-solid fa-arrow-pointer text-emerald-600 animate-pulse"></i> Hover any column to preview & select
+                </div>
+            </div>
+
+            <div class="overflow-x-auto -mx-4 sm:mx-0">
+                <table class="w-full text-left border-collapse min-w-[780px]" id="pricing-table">
+                    <thead>
+                        <tr class="align-top">
+                            <!-- Feature column header -->
+                            <th class="py-6 px-5 text-sm font-bold text-slate-500 uppercase tracking-wider w-[28%] align-bottom pb-6 border-b border-slate-200">
+                                <span class="text-xs font-semibold text-slate-400 block mb-1">Features & Access</span>
+                                <span class="text-base text-slate-900 normal-case font-bold">Platform Capabilities</span>
+                            </th>
+
+                            <!-- 1. Free Plan Header -->
+                            <th class="col-cell col-free col-interactive py-6 px-3 text-center w-[18%] transition-all cursor-pointer" 
+                                onmouseenter="handleColumnHover('free')" onclick="selectPlan('free', { scroll: true })">
+                                <div class="col-header-box p-4 rounded-2xl border border-slate-200 bg-slate-50/70">
+                                    <div class="mb-2">
+                                        <span class="inline-block px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-slate-600 bg-slate-200 rounded-full">Explorer</span>
+                                    </div>
+                                    <div class="text-xl font-extrabold text-slate-900">Free</div>
+                                    <div class="text-2xl font-black text-slate-900 mt-1">₹0</div>
+                                    <div class="text-xs text-slate-400 font-medium mb-4">Lifetime Access</div>
+                                    <button type="button" id="tbl-btn-top-free" onclick="selectPlan('free', { scroll: true }); event.stopPropagation();" 
+                                            class="w-full py-2.5 px-2 rounded-xl text-xs font-bold btn-plan-free transition-all flex items-center justify-center gap-1.5 shadow-xs">
+                                        <span>Included Free</span>
+                                    </button>
+                                </div>
+                            </th>
+
+                            <!-- 2. 1 Month Plan Header -->
+                            <th class="col-cell col-plan_1m col-interactive py-6 px-3 text-center w-[18%] transition-all cursor-pointer" 
+                                onmouseenter="handleColumnHover('plan_1m')" onclick="selectPlan('plan_1m', { scroll: true })">
+                                <div class="col-header-box p-4 rounded-2xl border border-slate-200 bg-slate-50/70">
+                                    <div class="mb-2">
+                                        <span class="inline-block px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-teal-700 bg-teal-100 rounded-full">Starter</span>
+                                    </div>
+                                    <div class="text-xl font-extrabold text-slate-900">1 Month</div>
+                                    <div class="text-2xl font-black text-slate-900 mt-1">₹300</div>
+                                    <div class="text-xs text-slate-400 font-medium mb-4">Total for 1 Month</div>
+                                    <button type="button" id="tbl-btn-top-plan_1m" onclick="selectPlan('plan_1m', { scroll: true }); event.stopPropagation();" 
+                                            class="w-full py-2.5 px-2 rounded-xl text-xs font-bold btn-plan-1m transition-all flex items-center justify-center gap-1.5 shadow-sm">
+                                        <span>Select 1 Month</span>
+                                    </button>
+                                </div>
+                            </th>
+
+                            <!-- 3. 4 Months Plan Header (BEST VALUE) -->
+                            <th class="col-cell col-plan_4m col-interactive col-is-selected py-6 px-3 text-center w-[18%] relative transition-all cursor-pointer" 
+                                onmouseenter="handleColumnHover('plan_4m')" onclick="selectPlan('plan_4m', { scroll: true })">
+                                <div class="col-header-box p-4 rounded-2xl border-2 border-emerald-500 bg-emerald-50/80 shadow-md relative">
+                                    <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-[10px] font-extrabold uppercase tracking-wider py-0.5 px-3 rounded-full shadow-sm flex items-center gap-1 whitespace-nowrap">
+                                        <i class="fa-solid fa-crown text-amber-300"></i> Best Value • Save 17%
+                                    </div>
+                                    <div class="mb-2 mt-1">
+                                        <span class="inline-block px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100 rounded-full">Accelerated</span>
+                                    </div>
+                                    <div class="text-xl font-extrabold text-emerald-950">4 Months</div>
+                                    <div class="text-2xl font-black text-emerald-700 mt-1">₹1,000</div>
+                                    <div class="text-xs text-emerald-700 font-bold mb-4">₹250 / month</div>
+                                    <button type="button" id="tbl-btn-top-plan_4m" onclick="selectPlan('plan_4m', { scroll: true }); event.stopPropagation();" 
+                                            class="w-full py-2.5 px-2 rounded-xl text-xs font-bold btn-plan-4m-selected transition-all flex items-center justify-center gap-1.5 shadow-md">
+                                        <i class="fa-solid fa-circle-check"></i>
+                                        <span>Select Me (4 Months)</span>
+                                    </button>
+                                </div>
+                            </th>
+
+                            <!-- 4. 6 Months Plan Header (PREMIUM) -->
+                            <th class="col-cell col-plan_6m col-interactive py-6 px-3 text-center w-[18%] relative transition-all cursor-pointer" 
+                                onmouseenter="handleColumnHover('plan_6m')" onclick="selectPlan('plan_6m', { scroll: true })">
+                                <div class="col-header-box p-4 rounded-2xl border border-slate-200 bg-indigo-50/30">
+                                    <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-indigo-700 to-purple-600 text-white text-[10px] font-extrabold uppercase tracking-wider py-0.5 px-3 rounded-full shadow-sm flex items-center gap-1 whitespace-nowrap">
+                                        <i class="fa-solid fa-gem text-cyan-300"></i> Premium • Save 33%
+                                    </div>
+                                    <div class="mb-2 mt-1">
+                                        <span class="inline-block px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-indigo-800 bg-indigo-100 rounded-full">Comprehensive</span>
+                                    </div>
+                                    <div class="text-xl font-extrabold text-slate-900">6 Months</div>
+                                    <div class="text-2xl font-black text-indigo-700 mt-1">₹1,200</div>
+                                    <div class="text-xs text-indigo-700 font-bold mb-4">₹200 / month</div>
+                                    <button type="button" id="tbl-btn-top-plan_6m" onclick="selectPlan('plan_6m', { scroll: true }); event.stopPropagation();" 
+                                            class="w-full py-2.5 px-2 rounded-xl text-xs font-bold btn-plan-6m transition-all flex items-center justify-center gap-1.5 shadow-sm">
+                                        <span>Select 6 Months</span>
+                                    </button>
+                                </div>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 text-sm font-sans">
+                        <!-- Row 1 -->
+                        <tr class="hover:bg-slate-50/50 transition-colors">
+                            <td class="py-4 px-5 font-semibold text-slate-900">
+                                Career Recommendations
+                                <span class="block text-xs font-normal text-slate-500">AI-curated high-fit career paths based on your assessment profile</span>
+                            </td>
+                            <td class="col-cell col-free py-4 px-4 text-center text-slate-700 font-medium border-x border-slate-200 bg-slate-50/30 cursor-pointer" onmouseenter="handleColumnHover('free')" onclick="selectPlan('free', { scroll: true })">Up to 3</td>
+                            <td class="col-cell col-plan_1m py-4 px-4 text-center text-slate-700 font-medium border-x border-slate-200 bg-slate-50/30 cursor-pointer" onmouseenter="handleColumnHover('plan_1m')" onclick="selectPlan('plan_1m', { scroll: true })">Up to 3</td>
+                            <td class="col-cell col-plan_4m py-4 px-4 text-center text-emerald-800 font-extrabold border-x-2 border-emerald-500 bg-emerald-50/70 cursor-pointer" onmouseenter="handleColumnHover('plan_4m')" onclick="selectPlan('plan_4m', { scroll: true })">Unlimited</td>
+                            <td class="col-cell col-plan_6m py-4 px-4 text-center text-indigo-800 font-extrabold border-x border-slate-200 bg-indigo-50/20 cursor-pointer" onmouseenter="handleColumnHover('plan_6m')" onclick="selectPlan('plan_6m', { scroll: true })">Unlimited</td>
+                        </tr>
+                        <!-- Row 2 -->
+                        <tr class="hover:bg-slate-50/50 transition-colors">
+                            <td class="py-4 px-5 font-semibold text-slate-900">
+                                Career Simulations
+                                <span class="block text-xs font-normal text-slate-500">Interactive day-in-the-life workplace decision simulations</span>
+                            </td>
+                            <td class="col-cell col-free py-4 px-4 text-center text-slate-700 font-medium border-x border-slate-200 bg-slate-50/30 cursor-pointer" onmouseenter="handleColumnHover('free')" onclick="selectPlan('free', { scroll: true })">1</td>
+                            <td class="col-cell col-plan_1m py-4 px-4 text-center text-slate-700 font-medium border-x border-slate-200 bg-slate-50/30 cursor-pointer" onmouseenter="handleColumnHover('plan_1m')" onclick="selectPlan('plan_1m', { scroll: true })">3</td>
+                            <td class="col-cell col-plan_4m py-4 px-4 text-center text-emerald-800 font-extrabold border-x-2 border-emerald-500 bg-emerald-50/70 cursor-pointer" onmouseenter="handleColumnHover('plan_4m')" onclick="selectPlan('plan_4m', { scroll: true })">Unlimited</td>
+                            <td class="col-cell col-plan_6m py-4 px-4 text-center text-indigo-800 font-extrabold border-x border-slate-200 bg-indigo-50/20 cursor-pointer" onmouseenter="handleColumnHover('plan_6m')" onclick="selectPlan('plan_6m', { scroll: true })">Unlimited</td>
+                        </tr>
+                        <!-- Row 3 -->
+                        <tr class="hover:bg-slate-50/50 transition-colors">
+                            <td class="py-4 px-5 font-semibold text-slate-900">
+                                AI Conversations
+                                <span class="block text-xs font-normal text-slate-500">Real-time voice & conversational Deep Dive sessions with CareerBuddy</span>
+                            </td>
+                            <td class="col-cell col-free py-4 px-4 text-center text-slate-400 font-normal border-x border-slate-200 bg-slate-50/30 cursor-pointer" onmouseenter="handleColumnHover('free')" onclick="selectPlan('free', { scroll: true })">
+                                <span class="text-xs text-slate-400"><i class="fa-solid fa-xmark text-slate-300 mr-1"></i>Not Available</span>
+                            </td>
+                            <td class="col-cell col-plan_1m py-4 px-4 text-center text-slate-700 font-medium border-x border-slate-200 bg-slate-50/30 cursor-pointer" onmouseenter="handleColumnHover('plan_1m')" onclick="selectPlan('plan_1m', { scroll: true })">
+                                <span class="font-semibold text-slate-800">1 conversation</span>
+                            </td>
+                            <td class="col-cell col-plan_4m py-4 px-4 text-center text-emerald-800 font-extrabold border-x-2 border-emerald-500 bg-emerald-50/70 cursor-pointer" onmouseenter="handleColumnHover('plan_4m')" onclick="selectPlan('plan_4m', { scroll: true })">
+                                3 / month
+                            </td>
+                            <td class="col-cell col-plan_6m py-4 px-4 text-center text-indigo-800 font-extrabold border-x border-slate-200 bg-indigo-50/20 cursor-pointer" onmouseenter="handleColumnHover('plan_6m')" onclick="selectPlan('plan_6m', { scroll: true })">
+                                5 / month
+                            </td>
+                        </tr>
+                        <!-- Row 4 -->
+                        <tr class="hover:bg-slate-50/50 transition-colors">
+                            <td class="py-4 px-5 font-semibold text-slate-900">
+                                Monthly Growth Path
+                                <span class="block text-xs font-normal text-slate-500">Structured month-by-month actionable skill milestones</span>
+                            </td>
+                            <td class="col-cell col-free py-4 px-4 text-center text-slate-400 font-normal border-x border-slate-200 bg-slate-50/30 cursor-pointer" onmouseenter="handleColumnHover('free')" onclick="selectPlan('free', { scroll: true })">
+                                <span class="text-xs text-slate-400"><i class="fa-solid fa-xmark text-slate-300 mr-1"></i>Not Available</span>
+                            </td>
+                            <td class="col-cell col-plan_1m py-4 px-4 text-center text-slate-400 font-normal border-x border-slate-200 bg-slate-50/30 cursor-pointer" onmouseenter="handleColumnHover('plan_1m')" onclick="selectPlan('plan_1m', { scroll: true })">
+                                <span class="text-xs text-slate-400"><i class="fa-solid fa-xmark text-slate-300 mr-1"></i>Not Available</span>
+                            </td>
+                            <td class="col-cell col-plan_4m py-4 px-4 text-center text-emerald-700 font-extrabold border-x-2 border-emerald-500 bg-emerald-50/70 cursor-pointer" onmouseenter="handleColumnHover('plan_4m')" onclick="selectPlan('plan_4m', { scroll: true })">
+                                <span class="inline-flex items-center gap-1.5 text-emerald-700"><i class="fa-solid fa-circle-check text-emerald-600"></i> Available</span>
+                            </td>
+                            <td class="col-cell col-plan_6m py-4 px-4 text-center text-indigo-700 font-extrabold border-x border-slate-200 bg-indigo-50/20 cursor-pointer" onmouseenter="handleColumnHover('plan_6m')" onclick="selectPlan('plan_6m', { scroll: true })">
+                                <span class="inline-flex items-center gap-1.5 text-indigo-700"><i class="fa-solid fa-circle-check text-indigo-600"></i> Available</span>
+                            </td>
+                        </tr>
+                        <!-- Row 5 -->
+                        <tr class="hover:bg-slate-50/50 transition-colors">
+                            <td class="py-4 px-5 font-semibold text-slate-900">
+                                Personalized Career Roadmap
+                                <span class="block text-xs font-normal text-slate-500">Tailored courses, exams, projects, and degree requirements</span>
+                            </td>
+                            <td class="col-cell col-free py-4 px-4 text-center text-slate-500 border-x border-slate-200 bg-slate-50/30 cursor-pointer" onmouseenter="handleColumnHover('free')" onclick="selectPlan('free', { scroll: true })">Limited</td>
+                            <td class="col-cell col-plan_1m py-4 px-4 text-center text-emerald-700 font-semibold border-x border-slate-200 bg-slate-50/30 cursor-pointer" onmouseenter="handleColumnHover('plan_1m')" onclick="selectPlan('plan_1m', { scroll: true })">
+                                <span class="inline-flex items-center gap-1.5 text-teal-700"><i class="fa-solid fa-circle-check text-teal-600"></i> Available</span>
+                            </td>
+                            <td class="col-cell col-plan_4m py-4 px-4 text-center text-emerald-800 font-extrabold border-x-2 border-emerald-500 bg-emerald-50/70 cursor-pointer" onmouseenter="handleColumnHover('plan_4m')" onclick="selectPlan('plan_4m', { scroll: true })">
+                                <span class="inline-flex items-center gap-1.5 text-emerald-700"><i class="fa-solid fa-circle-check text-emerald-600"></i> Available</span>
+                            </td>
+                            <td class="col-cell col-plan_6m py-4 px-4 text-center text-indigo-800 font-extrabold border-x border-slate-200 bg-indigo-50/20 cursor-pointer" onmouseenter="handleColumnHover('plan_6m')" onclick="selectPlan('plan_6m', { scroll: true })">
+                                <span class="inline-flex items-center gap-1.5 text-indigo-700 font-bold"><i class="fa-solid fa-circle-check text-indigo-600"></i> Advanced</span>
+                            </td>
+                        </tr>
+                        <!-- Row 6 -->
+                        <tr class="hover:bg-slate-50/50 transition-colors">
+                            <td class="py-4 px-5 font-semibold text-slate-900">
+                                Progress Tracking
+                                <span class="block text-xs font-normal text-slate-500">Milestone monitoring, habit tracking, and growth dashboard</span>
+                            </td>
+                            <td class="col-cell col-free py-4 px-4 text-center text-slate-400 font-normal border-x border-slate-200 bg-slate-50/30 cursor-pointer" onmouseenter="handleColumnHover('free')" onclick="selectPlan('free', { scroll: true })">
+                                <span class="text-xs text-slate-400"><i class="fa-solid fa-xmark text-slate-300 mr-1"></i>Not Available</span>
+                            </td>
+                            <td class="col-cell col-plan_1m py-4 px-4 text-center text-emerald-700 font-semibold border-x border-slate-200 bg-slate-50/30 cursor-pointer" onmouseenter="handleColumnHover('plan_1m')" onclick="selectPlan('plan_1m', { scroll: true })">
+                                <span class="inline-flex items-center gap-1.5 text-teal-700"><i class="fa-solid fa-circle-check text-teal-600"></i> Available</span>
+                            </td>
+                            <td class="col-cell col-plan_4m py-4 px-4 text-center text-emerald-800 font-extrabold border-x-2 border-emerald-500 bg-emerald-50/70 cursor-pointer" onmouseenter="handleColumnHover('plan_4m')" onclick="selectPlan('plan_4m', { scroll: true })">
+                                <span class="inline-flex items-center gap-1.5 text-emerald-700"><i class="fa-solid fa-circle-check text-emerald-600"></i> Available</span>
+                            </td>
+                            <td class="col-cell col-plan_6m py-4 px-4 text-center text-indigo-800 font-extrabold border-x border-slate-200 bg-indigo-50/20 cursor-pointer" onmouseenter="handleColumnHover('plan_6m')" onclick="selectPlan('plan_6m', { scroll: true })">
+                                <span class="inline-flex items-center gap-1.5 text-indigo-700 font-bold"><i class="fa-solid fa-circle-check text-indigo-600"></i> Advanced</span>
+                            </td>
+                        </tr>
+                        <!-- Row 7 -->
+                        <tr class="hover:bg-slate-50/50 transition-colors">
+                            <td class="py-4 px-5 font-semibold text-slate-900">
+                                Career Insights
+                                <span class="block text-xs font-normal text-slate-500">Industry salary percentiles, automation risk, and market demands</span>
+                            </td>
+                            <td class="col-cell col-free py-4 px-4 text-center text-slate-600 border-x border-slate-200 bg-slate-50/30 cursor-pointer" onmouseenter="handleColumnHover('free')" onclick="selectPlan('free', { scroll: true })">Basic</td>
+                            <td class="col-cell col-plan_1m py-4 px-4 text-center text-slate-800 font-medium border-x border-slate-200 bg-slate-50/30 cursor-pointer" onmouseenter="handleColumnHover('plan_1m')" onclick="selectPlan('plan_1m', { scroll: true })">Medium</td>
+                            <td class="col-cell col-plan_4m py-4 px-4 text-center text-emerald-800 font-extrabold border-x-2 border-emerald-500 bg-emerald-50/70 cursor-pointer" onmouseenter="handleColumnHover('plan_4m')" onclick="selectPlan('plan_4m', { scroll: true })">Medium</td>
+                            <td class="col-cell col-plan_6m py-4 px-4 text-center text-indigo-800 font-extrabold border-x border-slate-200 bg-indigo-50/20 cursor-pointer" onmouseenter="handleColumnHover('plan_6m')" onclick="selectPlan('plan_6m', { scroll: true })">Advanced</td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr class="align-middle">
+                            <td class="py-6 px-5 font-semibold text-slate-500">
+                                <span class="text-xs text-slate-400 uppercase tracking-wider block">Checkout</span>
+                                <span class="text-sm font-bold text-slate-800">Activate Plan</span>
+                            </td>
+                            <td class="col-cell col-free col-interactive py-6 px-3 text-center transition-all cursor-pointer" onmouseenter="handleColumnHover('free')" onclick="selectPlan('free', { scroll: true })">
+                                <div class="col-footer-box p-2 rounded-2xl">
+                                    <button type="button" id="tbl-btn-bottom-free" onclick="selectPlan('free', { scroll: true })" 
+                                            class="w-full py-2.5 px-2 text-xs font-bold rounded-xl btn-plan-free transition-all shadow-xs">
+                                        Included Free
+                                    </button>
+                                </div>
+                            </td>
+                            <td class="col-cell col-plan_1m col-interactive py-6 px-3 text-center transition-all cursor-pointer" onmouseenter="handleColumnHover('plan_1m')" onclick="selectPlan('plan_1m', { scroll: true })">
+                                <div class="col-footer-box p-2 rounded-2xl">
+                                    <button type="button" id="tbl-btn-bottom-plan_1m" onclick="selectPlan('plan_1m', { scroll: true })" 
+                                            class="w-full py-2.5 px-2 text-xs font-bold rounded-xl btn-plan-1m transition-all shadow-sm">
+                                        Select 1 Mo (₹300)
+                                    </button>
+                                </div>
+                            </td>
+                            <td class="col-cell col-plan_4m col-interactive col-is-selected py-6 px-3 text-center transition-all cursor-pointer" onmouseenter="handleColumnHover('plan_4m')" onclick="selectPlan('plan_4m', { scroll: true })">
+                                <div class="col-footer-box p-2 rounded-2xl">
+                                    <button type="button" id="tbl-btn-bottom-plan_4m" onclick="selectPlan('plan_4m', { scroll: true })" 
+                                            class="w-full py-2.5 px-2 text-xs font-bold rounded-xl btn-plan-4m-selected transition-all shadow-md flex items-center justify-center gap-1">
+                                        <i class="fa-solid fa-crown text-amber-300 text-xs"></i>
+                                        <span>Select Me (4 Months) • ₹1,000</span>
+                                    </button>
+                                </div>
+                            </td>
+                            <td class="col-cell col-plan_6m col-interactive py-6 px-3 text-center transition-all cursor-pointer" onmouseenter="handleColumnHover('plan_6m')" onclick="selectPlan('plan_6m', { scroll: true })">
+                                <div class="col-footer-box p-2 rounded-2xl">
+                                    <button type="button" id="tbl-btn-bottom-plan_6m" onclick="selectPlan('plan_6m', { scroll: true })" 
+                                            class="w-full py-2.5 px-2 text-xs font-bold rounded-xl btn-plan-6m transition-all shadow-sm">
+                                        Select 6 Mo (₹1,200)
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <!-- ── Interactive Razorpay Payment & Live QR Code Section (Down Section) ── -->
+        <div id="checkout-section" class="bg-gradient-to-br from-slate-900 via-slate-850 to-slate-900 rounded-3xl shadow-2xl p-6 sm:p-12 text-white border border-slate-700/80 scroll-mt-24" data-aos="fade-up">
+            <div class="max-w-4xl mx-auto">
+                
+                <div class="text-center mb-10">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-2 border border-emerald-500/30">
+                        <i class="fa-solid fa-lock"></i> Instant Checkout with Razorpay
+                    </div>
+                    <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight">Complete Your Plan Activation</h2>
+                    <p class="text-slate-400 text-sm mt-1">Scan the Razorpay QR code with any UPI app, or use instant Razorpay checkout.</p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                    
+                    <!-- Left: Selected Plan Summary -->
+                    <div class="lg:col-span-6 bg-slate-800/80 backdrop-blur-sm rounded-2xl p-6 sm:p-7 border border-slate-700">
+                        <div class="flex items-center justify-between border-b border-slate-700 pb-4 mb-4">
+                            <div>
+                                <span id="summary-badge" class="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Best Value</span>
+                                <h3 id="summary-title" class="text-2xl font-black text-white mt-1">4 Months Plan</h3>
+                            </div>
+                            <div class="text-right">
+                                <div id="summary-price" class="text-3xl font-black text-emerald-400">₹1,000</div>
+                                <div id="summary-duration" class="text-xs text-slate-400">Total for 4 Months</div>
+                            </div>
+                        </div>
+
+                        <!-- Highlights -->
+                        <div class="space-y-2.5 text-sm text-slate-300 mb-6">
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid fa-circle-check text-emerald-400 text-xs"></i>
+                                <span id="summary-feat-1">Unlimited Career Recommendations</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid fa-circle-check text-emerald-400 text-xs"></i>
+                                <span id="summary-feat-2">Unlimited Career Simulations</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid fa-circle-check text-emerald-400 text-xs"></i>
+                                <span id="summary-feat-3">3 AI Mentor Conversations / month</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid fa-circle-check text-emerald-400 text-xs"></i>
+                                <span id="summary-feat-4">Monthly Growth Path & Personalized Roadmap</span>
+                            </div>
+                        </div>
+
+                        <!-- User State Notification -->
+                        <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-700/60 text-xs text-slate-400 flex items-center justify-between">
+                            <div class="flex items-center gap-2 truncate">
+                                <i class="fa-solid fa-user-check text-emerald-400"></i>
+                                <span class="truncate">
+                                    {% if user %}
+                                        Account: <strong>{{ user.full_name or user.email }}</strong>
+                                    {% else %}
+                                        Sign in / provide email for instant activation
+                                    {% endif %}
+                                </span>
+                            </div>
+                            {% if not user %}
+                            <a href="/login?next=/plan" class="text-emerald-400 hover:text-emerald-300 font-semibold underline ml-2 shrink-0">Log in</a>
+                            {% endif %}
+                        </div>
+
+                        <!-- Quick Switcher -->
+                        <div class="mt-6 pt-4 border-t border-slate-700/60">
+                            <div class="text-xs text-slate-400 mb-2 font-medium">Switch Plan:</div>
+                            <div class="grid grid-cols-3 gap-2">
+                                <button type="button" onclick="selectPlan('plan_1m')" id="btn-switch-plan_1m" class="py-2 px-2.5 rounded-lg text-xs font-semibold btn-switch-inactive transition-all text-center">
+                                    1 Mo (₹300)
+                                </button>
+                                <button type="button" onclick="selectPlan('plan_4m')" id="btn-switch-plan_4m" class="py-2 px-2.5 rounded-lg text-xs font-semibold btn-switch-active-4m shadow-sm transition-all text-center">
+                                    4 Mo (₹1,000)
+                                </button>
+                                <button type="button" onclick="selectPlan('plan_6m')" id="btn-switch-plan_6m" class="py-2 px-2.5 rounded-lg text-xs font-semibold btn-switch-inactive transition-all text-center">
+                                    6 Mo (₹1,200)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Razorpay Live QR & Instant Checkout Button -->
+                    <div class="lg:col-span-6 flex flex-col items-center justify-center text-center bg-white rounded-2xl p-7 text-slate-900 shadow-xl border border-slate-100">
+                        
+                        <!-- Header / Scan to Pay -->
+                        <div class="mb-4">
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold uppercase tracking-wider mb-1">
+                                <i class="fa-solid fa-qrcode"></i> Razorpay UPI QR
+                            </span>
+                            <div class="text-lg font-bold text-slate-900 mt-1">Scan to Pay with Any UPI App</div>
+                            <div class="text-xs text-slate-500">Google Pay • PhonePe • Paytm • BHIM • Cred</div>
+                        </div>
+
+                        <!-- QR Code Display Box -->
+                        <div class="relative p-4 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-300 flex items-center justify-center my-2 shadow-inner w-[240px] h-[240px]">
+                            <!-- Spinner while loading order -->
+                            <div id="qr-loading" class="absolute inset-0 bg-white/90 backdrop-blur-xs flex flex-col items-center justify-center gap-2 rounded-2xl z-20">
+                                <i class="fa-solid fa-circle-notch fa-spin text-emerald-600 text-3xl"></i>
+                                <span class="text-xs font-semibold text-slate-600">Generating Razorpay QR...</span>
+                            </div>
+
+                            <!-- QR Code Target Container -->
+                            <div id="qrcode-container" class="flex items-center justify-center w-full h-full"></div>
+                        </div>
+
+                        <div class="flex items-center gap-2 text-xs font-semibold text-emerald-600 mt-2">
+                            <span class="relative flex h-2 w-2">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                            </span>
+                            <span>Live QR Generated • Auto-Verifies</span>
+                        </div>
+
+                        <!-- Divider -->
+                        <div class="relative w-full my-5 flex items-center justify-center">
+                            <div class="border-t border-slate-200 w-full"></div>
+                            <span class="bg-white px-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest absolute">Or Pay with Card / Netbanking</span>
+                        </div>
+
+                        <!-- Direct Razorpay Checkout Modal Button -->
+                        <button type="button" id="btn-rzp-checkout" onclick="openRazorpayCheckout()" 
+                                class="w-full py-3.5 px-4 rounded-xl btn-rzp-cta font-bold text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-credit-card text-xs"></i>
+                            <span id="btn-checkout-label">Pay ₹1,000 via Razorpay Checkout</span>
+                        </button>
+
+                        <div id="checkout-error" class="hidden mt-3 p-2.5 rounded-lg bg-red-50 text-red-700 text-xs font-medium border border-red-200 w-full text-left"></div>
+                        <div id="checkout-success" class="hidden mt-3 p-2.5 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200 w-full text-center"></div>
+
+                        <!-- Razorpay Trust Logo -->
+                        <div class="mt-4 flex items-center justify-center gap-2 text-[11px] text-slate-400">
+                            <i class="fa-solid fa-lock text-slate-400"></i>
+                            <span>Official Razorpay Partner Integration • Instant Receipt</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Razorpay Checkout & QRCode JS -->
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<script>
+const RAZORPAY_KEY_ID = "{{ RAZORPAY_KEY_ID }}";
+const currentUser = {{ { "id": user.id, "email": user.email, "name": user.full_name or user.email } | tojson if user else 'null' }};
+
+const PLANS_METADATA = {
+    free: {
+        id: 'free',
+        name: 'Free',
+        price: 0,
+        formatted_price: '₹0',
+        duration_label: 'Lifetime Free Access',
+        badge: 'Explorer',
+        badge_class: 'bg-slate-500/20 text-slate-300 border-slate-500/30',
+        highlights: [
+            'Up to 3 Career Recommendations',
+            '1 Free Career Simulation',
+            'Basic Career Insights',
+            'Limited Personalized Roadmap'
+        ]
+    },
+    plan_1m: {
+        id: 'plan_1m',
+        name: '1 Month Plan',
+        price: 300,
+        formatted_price: '₹300',
+        duration_label: 'Total for 1 Month',
+        badge: 'Starter',
+        badge_class: 'bg-teal-500/20 text-teal-300 border-teal-500/30',
+        highlights: [
+            'Up to 3 Career Recommendations',
+            '3 Career Simulations',
+            '1 AI Conversation session',
+            'Personalized Roadmap & Progress Tracking'
+        ]
+    },
+    plan_4m: {
+        id: 'plan_4m',
+        name: '4 Months Plan',
+        price: 1000,
+        formatted_price: '₹1,000',
+        duration_label: 'Total for 4 Months (₹250/mo)',
+        badge: 'Best Value • Most Popular',
+        badge_class: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+        highlights: [
+            'Unlimited Career Recommendations',
+            'Unlimited Career Simulations',
+            '3 AI Mentor Conversations / month',
+            'Monthly Growth Path & Career Roadmap'
+        ]
+    },
+    plan_6m: {
+        id: 'plan_6m',
+        name: '6 Months Plan',
+        price: 1200,
+        formatted_price: '₹1,200',
+        duration_label: 'Total for 6 Months (₹200/mo)',
+        badge: 'Advanced / Premium',
+        badge_class: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',
+        highlights: [
+            'Unlimited Career Recommendations',
+            'Unlimited Career Simulations',
+            '5 AI Mentor Conversations / month',
+            'Advanced Roadmap, Tracking & Career Insights'
+        ]
+    }
+};
+
+let currentSelectedPlan = 'plan_4m';
+let currentOrderData = null;
+let qrInstance = null;
+let checkInterval = null;
+
+let hoverDebounceTimer = null;
+
+function handleColumnHover(planKey) {
+    if (planKey === currentSelectedPlan) return;
+    clearTimeout(hoverDebounceTimer);
+    hoverDebounceTimer = setTimeout(() => {
+        selectPlan(planKey, { scroll: false });
+    }, 45);
+}
+
+function selectPlan(planKey, options = {}) {
+    const shouldScroll = options && options.scroll === true;
+
+    if (planKey === 'free') {
+        currentSelectedPlan = 'free';
+        updateTableColumnClasses('free');
+        if (shouldScroll) {
+            window.location.href = '/dashboard';
+        }
+        return;
+    }
+
+    currentSelectedPlan = planKey;
+    const plan = PLANS_METADATA[planKey];
+    if (!plan) return;
+
+    // 1. Update column styling and enlarged state
+    updateTableColumnClasses(planKey);
+
+    // 2. Update checkout plan summary
+    document.getElementById('summary-title').textContent = plan.name;
+    document.getElementById('summary-price').textContent = plan.formatted_price;
+    document.getElementById('summary-duration').textContent = plan.duration_label;
+    
+    const badgeEl = document.getElementById('summary-badge');
+    badgeEl.textContent = plan.badge;
+    badgeEl.className = `text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${plan.badge_class}`;
+
+    document.getElementById('summary-feat-1').textContent = plan.highlights[0] || '';
+    document.getElementById('summary-feat-2').textContent = plan.highlights[1] || '';
+    document.getElementById('summary-feat-3').textContent = plan.highlights[2] || '';
+    document.getElementById('summary-feat-4').textContent = plan.highlights[3] || '';
+
+    document.getElementById('btn-checkout-label').textContent = `Pay ${plan.formatted_price} via Razorpay Checkout`;
+
+    // 3. Fetch and generate live Razorpay QR code
+    generatePlanOrderAndQR(planKey);
+
+    // 4. Smooth scroll only if user clicked
+    if (shouldScroll) {
+        const checkoutSec = document.getElementById('checkout-section');
+        if (checkoutSec) {
+            checkoutSec.scrollIntoView({ behavior: 'smooth' });
+        }
+    }
+}
+
+function updateTableColumnClasses(planKey) {
+    const allKeys = ['free', 'plan_1m', 'plan_4m', 'plan_6m'];
+    
+    allKeys.forEach(k => {
+        const topBtn = document.getElementById('tbl-btn-top-' + k);
+        const btmBtn = document.getElementById('tbl-btn-bottom-' + k);
+        const colCells = document.querySelectorAll('.col-' + k);
+
+        if (k === planKey) {
+            // Apply scale / enlargement to selected column
+            colCells.forEach(cell => {
+                cell.classList.add('col-is-selected');
+            });
+
+            if (k === 'plan_4m') {
+                // Vibrant green for 4 Months plan
+                if (topBtn) {
+                    topBtn.className = 'w-full py-2.5 px-2 rounded-xl text-xs font-bold btn-plan-4m-selected transition-all flex items-center justify-center gap-1.5 shadow-md';
+                    topBtn.innerHTML = '<i class="fa-solid fa-circle-check"></i> <span>Select Me (4 Months)</span>';
+                }
+                if (btmBtn) {
+                    btmBtn.className = 'w-full py-2.5 px-2 text-xs font-bold rounded-xl btn-plan-4m-selected transition-all shadow-md flex items-center justify-center gap-1';
+                    btmBtn.innerHTML = '<i class="fa-solid fa-crown text-amber-300 text-xs"></i> <span>Select Me (4 Months) • ₹1,000</span>';
+                }
+            } else if (k === 'plan_1m') {
+                // Vibrant teal for 1 Month selected
+                if (topBtn) {
+                    topBtn.className = 'w-full py-2.5 px-2 rounded-xl text-xs font-bold btn-plan-1m-selected transition-all flex items-center justify-center gap-1.5 shadow-md';
+                    topBtn.innerHTML = '<i class="fa-solid fa-circle-check"></i> <span>Selected (1 Month)</span>';
+                }
+                if (btmBtn) {
+                    btmBtn.className = 'w-full py-2.5 px-2 text-xs font-bold rounded-xl btn-plan-1m-selected transition-all shadow-md flex items-center justify-center gap-1';
+                    btmBtn.innerHTML = '<i class="fa-solid fa-circle-check"></i> <span>Selected: 1 Mo (₹300)</span>';
+                }
+            } else if (k === 'plan_6m') {
+                // Vibrant indigo for 6 Months selected
+                if (topBtn) {
+                    topBtn.className = 'w-full py-2.5 px-2 rounded-xl text-xs font-bold btn-plan-6m-selected transition-all flex items-center justify-center gap-1.5 shadow-md';
+                    topBtn.innerHTML = '<i class="fa-solid fa-circle-check"></i> <span>Selected (6 Months)</span>';
+                }
+                if (btmBtn) {
+                    btmBtn.className = 'w-full py-2.5 px-2 text-xs font-bold rounded-xl btn-plan-6m-selected transition-all shadow-md flex items-center justify-center gap-1';
+                    btmBtn.innerHTML = '<i class="fa-solid fa-gem text-cyan-300 text-xs"></i> <span>Selected: 6 Mo (₹1,200)</span>';
+                }
+            } else if (k === 'free') {
+                if (topBtn) {
+                    topBtn.className = 'w-full py-2.5 px-2 rounded-xl text-xs font-bold btn-plan-free transition-all flex items-center justify-center gap-1.5 shadow-xs';
+                    topBtn.innerHTML = '<i class="fa-solid fa-circle-check"></i> <span>Included Free</span>';
+                }
+                if (btmBtn) {
+                    btmBtn.className = 'w-full py-2.5 px-2 text-xs font-bold rounded-xl btn-plan-free transition-all shadow-xs';
+                    btmBtn.textContent = 'Included Free';
+                }
+            }
+        } else {
+            // Remove enlargement class from unselected columns
+            colCells.forEach(cell => {
+                cell.classList.remove('col-is-selected');
+            });
+
+            // Solid colored buttons when inactive (NEVER plain white)
+            if (topBtn) {
+                if (k === 'plan_1m') {
+                    topBtn.className = 'w-full py-2.5 px-2 rounded-xl text-xs font-bold btn-plan-1m transition-all flex items-center justify-center gap-1.5 shadow-sm';
+                    topBtn.innerHTML = '<span>Select 1 Month</span>';
+                } else if (k === 'plan_4m') {
+                    topBtn.className = 'w-full py-2.5 px-2 rounded-xl text-xs font-bold btn-plan-4m transition-all flex items-center justify-center gap-1.5 shadow-sm';
+                    topBtn.innerHTML = '<span>Select 4 Months</span>';
+                } else if (k === 'plan_6m') {
+                    topBtn.className = 'w-full py-2.5 px-2 rounded-xl text-xs font-bold btn-plan-6m transition-all flex items-center justify-center gap-1.5 shadow-sm';
+                    topBtn.innerHTML = '<span>Select 6 Months</span>';
+                } else if (k === 'free') {
+                    topBtn.className = 'w-full py-2.5 px-2 rounded-xl text-xs font-bold btn-plan-free transition-all flex items-center justify-center gap-1.5 shadow-xs';
+                    topBtn.innerHTML = '<span>Included Free</span>';
+                }
+            }
+            if (btmBtn) {
+                if (k === 'plan_1m') {
+                    btmBtn.className = 'w-full py-2.5 px-2 text-xs font-bold rounded-xl btn-plan-1m transition-all shadow-sm';
+                    btmBtn.textContent = 'Select 1 Mo (₹300)';
+                } else if (k === 'plan_4m') {
+                    btmBtn.className = 'w-full py-2.5 px-2 text-xs font-bold rounded-xl btn-plan-4m transition-all shadow-sm';
+                    btmBtn.textContent = 'Select 4 Mo (₹1,000)';
+                } else if (k === 'plan_6m') {
+                    btmBtn.className = 'w-full py-2.5 px-2 text-xs font-bold rounded-xl btn-plan-6m transition-all shadow-sm';
+                    btmBtn.textContent = 'Select 6 Mo (₹1,200)';
+                } else if (k === 'free') {
+                    btmBtn.className = 'w-full py-2.5 px-2 text-xs font-bold rounded-xl btn-plan-free transition-colors shadow-xs';
+                    btmBtn.textContent = 'Included Free';
+                }
+            }
+        }
+    });
+
+    // Update switcher buttons in checkout section
+    ['plan_1m', 'plan_4m', 'plan_6m'].forEach(k => {
+        const btn = document.getElementById('btn-switch-' + k);
+        if (btn) {
+            if (k === planKey) {
+                if (k === 'plan_4m') {
+                    btn.className = 'py-2 px-2.5 rounded-lg text-xs font-semibold btn-switch-active-4m shadow-sm transition-all text-center';
+                } else if (k === 'plan_1m') {
+                    btn.className = 'py-2 px-2.5 rounded-lg text-xs font-semibold btn-switch-active-1m shadow-sm transition-all text-center';
+                } else if (k === 'plan_6m') {
+                    btn.className = 'py-2 px-2.5 rounded-lg text-xs font-semibold btn-switch-active-6m shadow-sm transition-all text-center';
+                }
+            } else {
+                btn.className = 'py-2 px-2.5 rounded-lg text-xs font-semibold btn-switch-inactive transition-all text-center';
+            }
+        }
+    });
+}
+
+async function generatePlanOrderAndQR(planKey) {
+    const qrLoading = document.getElementById('qr-loading');
+    const qrContainer = document.getElementById('qrcode-container');
+    const errorBox = document.getElementById('checkout-error');
+    const successBox = document.getElementById('checkout-success');
+
+    errorBox.classList.add('hidden');
+    successBox.classList.add('hidden');
+    qrLoading.classList.remove('hidden');
+
+    try {
+        const res = await fetch('/api/plans/create-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ plan: planKey })
+        });
+
+        const data = await res.json();
+        if (!res.ok || data.status !== 'ok') {
+            throw new Error(data.detail || 'Failed to initialize Razorpay order');
+        }
+
+        currentOrderData = data;
+
+        // Clear existing QR
+        qrContainer.innerHTML = '';
+
+        // Generate QR code targeting the direct Razorpay payment link or UPI intent URL
+        const qrContent = data.payment_url || `upi://pay?pa=carestance@razorpay&pn=CareStance&am=${data.amount / 100}&cu=INR&tn=CareStance_${planKey}`;
+        
+        if (typeof QRCode !== 'undefined') {
+            qrInstance = new QRCode(qrContainer, {
+                text: qrContent,
+                width: 200,
+                height: 200,
+                colorDark: "#0f172a",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.M
+            });
+        } else {
+            // Fallback image QR
+            const img = document.createElement('img');
+            img.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=0&data=${encodeURIComponent(qrContent)}`;
+            img.alt = 'Razorpay QR Code';
+            img.className = 'w-[200px] h-[200px] rounded-lg shadow-xs';
+            qrContainer.appendChild(img);
+        }
+
+        qrLoading.classList.add('hidden');
+
+    } catch (err) {
+        console.error('QR creation error:', err);
+        qrLoading.classList.add('hidden');
+        errorBox.textContent = err.message || 'Unable to generate Razorpay QR. Please try clicking the button below.';
+        errorBox.classList.remove('hidden');
+    }
+}
+
+function openRazorpayCheckout() {
+    const errorBox = document.getElementById('checkout-error');
+    const successBox = document.getElementById('checkout-success');
+    errorBox.classList.add('hidden');
+    successBox.classList.add('hidden');
+
+    if (!currentOrderData || !currentOrderData.order_id) {
+        // Trigger generation if not ready
+        generatePlanOrderAndQR(currentSelectedPlan);
+        return;
+    }
+
+    const plan = PLANS_METADATA[currentSelectedPlan];
+
+    const options = {
+        key: currentOrderData.key_id || RAZORPAY_KEY_ID,
+        amount: currentOrderData.amount,
+        currency: currentOrderData.currency || "INR",
+        name: "CareStance",
+        description: `${plan.name} Career Membership`,
+        image: "/static/images/image.webp?v=101",
+        order_id: currentOrderData.order_id,
+        prefill: {
+            name: currentUser ? currentUser.name : "",
+            email: currentUser ? currentUser.email : ""
+        },
+        theme: {
+            color: "#0d9488" // CareStance Teal
+        },
+        handler: async function (response) {
+            // Send to server to verify payment signature and activate plan
+            try {
+                const verifyRes = await fetch('/api/plans/verify-payment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        razorpay_order_id: response.razorpay_order_id,
+                        razorpay_payment_id: response.razorpay_payment_id,
+                        razorpay_signature: response.razorpay_signature,
+                        plan: currentSelectedPlan
+                    })
+                });
+
+                const verifyData = await verifyRes.json();
+                if (verifyRes.ok && verifyData.status === 'ok') {
+                    successBox.innerHTML = '<i class="fa-solid fa-circle-check"></i> Payment Verified! Activating your subscription and redirecting...';
+                    successBox.classList.remove('hidden');
+                    setTimeout(() => {
+                        window.location.href = verifyData.redirect || '/dashboard?msg=Subscription+Activated';
+                    }, 1200);
+                } else {
+                    throw new Error(verifyData.detail || 'Payment verification failed.');
+                }
+            } catch (vErr) {
+                errorBox.textContent = vErr.message || 'Payment verification error. Please contact support.';
+                errorBox.classList.remove('hidden');
+            }
+        },
+        modal: {
+            ondismiss: function () {
+                console.log('Razorpay modal closed');
+            }
+        }
+    };
+
+    const rzp = new Razorpay(options);
+    rzp.on('payment.failed', function (response) {
+        errorBox.textContent = 'Payment Failed: ' + (response.error.description || 'Transaction could not be completed.');
+        errorBox.classList.remove('hidden');
+    });
+    rzp.open();
+}
+
+// Initialize with default 4 Months Plan on page load
+document.addEventListener('DOMContentLoaded', () => {
+    selectPlan('plan_4m');
+});
+</script>
+{% endblock %}
