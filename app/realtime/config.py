@@ -51,7 +51,7 @@ class RealtimeConfig:
 
     @property
     def sarvam_voice_id(self) -> str:
-        return os.getenv("SARVAM_VOICE_ID", "neha")
+        return os.getenv("SARVAM_VOICE_ID", "ritu")
 
         
     @property

@@ -935,6 +935,7 @@
                 {% if user.role != 'counsellor' %}
                 <a href="/chatbot"><i class="fa-solid fa-comment-dots" style="margin-right:0.25rem;"></i>Chat AI</a>
                 {% endif %}
+                <a href="/plan" class="{% if request.url.path in ['/plan', '/plans'] %}nav-active{% endif %}"><i class="fa-solid fa-gem" style="margin-right:0.25rem;color:#f59e0b;"></i>Plans</a>
                 <a href="/community"><i class="fa-solid fa-users" style="margin-right:0.25rem;"></i>Community</a>
                 <a href="/feedback"><i class="fa-regular fa-star" style="margin-right:0.25rem;"></i>Feedback</a>
                 <a href="/ticket"><i class="fa-solid fa-life-ring" style="margin-right:0.25rem;"></i>Support</a>
@@ -948,6 +949,7 @@
                         class="fa-solid fa-house"></i>Home</a>
                 <a href="/founders" class="{% if request.url.path == '/founders' %}nav-active{% endif %}">Founders</a>
                 <a href="/articles" class="{% if request.url.path == '/articles' %}nav-active{% endif %}">Articles</a>
+                <a href="/plan" class="{% if request.url.path in ['/plan', '/plans'] %}nav-active{% endif %}"><i class="fa-solid fa-gem" style="margin-right:0.25rem;color:#f59e0b;"></i>Plans</a>
                 <a href="/login" class="{% if request.url.path == '/login' %}nav-active{% endif %}">Log In</a>
                 <a href="/signup" class="btn-nav-cta">Get Started</a>
                 {% endif %}
@@ -974,6 +976,8 @@
             <a href="/chatbot" class="{% if request.url.path == '/chatbot' %}nav-active{% endif %}"><i
                     class="fa-solid fa-comment-dots"></i>Chat AI</a>
             {% endif %}
+            <a href="/plan" class="{% if request.url.path in ['/plan', '/plans'] %}nav-active{% endif %}"><i
+                    class="fa-solid fa-gem" style="color:#f59e0b;"></i>Plans & Pricing</a>
             <a href="/community" class="{% if request.url.path == '/community' %}nav-active{% endif %}"><i
                     class="fa-solid fa-users"></i>Community</a>
             <a href="/feedback" class="{% if request.url.path == '/feedback' %}nav-active{% endif %}"><i
@@ -991,6 +995,8 @@
                     class="fa-solid fa-user-group"></i>Founders</a>
             <a href="/articles" class="{% if request.url.path == '/articles' %}nav-active{% endif %}"><i
                     class="fa-solid fa-newspaper"></i>Articles</a>
+            <a href="/plan" class="{% if request.url.path in ['/plan', '/plans'] %}nav-active{% endif %}"><i
+                    class="fa-solid fa-gem" style="color:#f59e0b;"></i>Plans & Pricing</a>
             <a href="/login" class="{% if request.url.path == '/login' %}nav-active{% endif %}"><i
                     class="fa-solid fa-right-to-bracket"></i>Log In</a>
             <a href="/signup"

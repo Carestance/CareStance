@@ -35,8 +35,15 @@ class VoiceClient {
         this.isConnecting = true;
 
         try {
-            // Get local microphone stream
-            this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+            // Get local microphone stream with echo cancellation and noise suppression
+            this.localStream = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true
+                },
+                video: false
+            });
 
             // Initialize WebRTC Peer Connection with STUN servers
             this.peerConnection = new RTCPeerConnection({
@@ -67,7 +74,6 @@ class VoiceClient {
             this.peerConnection.ontrack = (event) => {
                 if (event.streams && event.streams[0]) {
                     this.remoteAudio.srcObject = event.streams[0];
-                    this.remoteAudio.volume = 1.0;
                     
                     try {
                         const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
@@ -75,15 +81,19 @@ class VoiceClient {
                             this.audioCtx = new AudioCtxClass();
                             const source = this.audioCtx.createMediaStreamSource(event.streams[0]);
                             const gainNode = this.audioCtx.createGain();
-                            gainNode.gain.value = 2.0; // 200% volume boost
+                            gainNode.gain.value = 1.5;
                             source.connect(gainNode);
                             gainNode.connect(this.audioCtx.destination);
                             if (this.audioCtx.state === 'suspended') {
                                 this.audioCtx.resume();
                             }
+                            // Mute raw HTML audio element to prevent double-output acoustic echo
+                            this.remoteAudio.muted = true;
                         }
                     } catch (gainErr) {
                         console.warn("Volume gain boost note:", gainErr);
+                        this.remoteAudio.muted = false;
+                        this.remoteAudio.volume = 1.0;
                     }
                     
                     this.remoteAudio.play().catch(() => {});
