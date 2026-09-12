@@ -1,0 +1,222 @@
+  + Exception Group Traceback (most recent call last):
+  |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/_utils.py", line 85, in create_collapsing_task_group
+  |     async with anyio.create_task_group() as tg:
+  |                ~~~~~~~~~~~~~~~~~~~~~~~^^
+  |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/anyio/_backends/_asyncio.py", line 815, in __aexit__
+  |     raise BaseExceptionGroup(
+  |         "unhandled errors in a TaskGroup", self._exceptions
+  |     ) from None
+  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+  +-+---------------- 1 ----------------
+    | Traceback (most recent call last):
+    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    |     await self.app(scope, receive, _send)
+    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 193, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/app/main.py", line 1027, in check_suspension
+    |     return RedirectResponse(url="/suspended", status_code=status.HTTP_302_FOUND)
+    |     ^^^^^^^^^^^^^^^^^^^
+    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 168, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 144, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 193, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/app/main.py", line 971, in add_cache_control_header
+    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 168, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 144, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/sessions.py", line 88, in __call__
+    |     await self.app(scope, receive, send_wrapper)
+    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 88, in __call__
+    |     await self.app(scope, receive, send)
+    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/trustedhost.py", line 36, in __call__
+    |     await self.app(scope, receive, send)
+    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/gzip.py", line 29, in __call__
+    |     await responder(scope, receive, send)
+    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/gzip.py", line 130, in __call__
+    |     await super().__call__(scope, receive, send)
+    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/gzip.py", line 46, in __call__
+    |     await self.app(scope, receive, self.send_with_compression)
+    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 193, in __call__
+    |     response = await self.dispatch_func(request, call_next)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/app/main.py", line 668, in forward_proto_middleware
+    |     return await call_next(request)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 168, in call_next
+    |     raise app_exc from app_exc.__cause__ or app_exc.__context__
+    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 144, in coro
+    |     await self.app(scope, receive_or_disconnect, send_no_error)
+    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    |     await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    |     raise exc
+    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    |     await app(scope, receive, sender)
+    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    |     await self.app(scope, receive, send)
+    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/routing.py", line 660, in __call__
+    |     await self.middleware_stack(scope, receive, send)
+    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/fastapi/routing.py", line 2685, in app
+    |     await route.handle(scope, receive, send)
+    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/fastapi/routing.py", line 1267, in handle
+    |     await super().handle(scope, receive, send)
+    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/routing.py", line 276, in handle
+    |     await self.app(scope, receive, send)
+    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/fastapi/routing.py", line 151, in app
+    |     await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    |     raise exc
+    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    |     await app(scope, receive, sender)
+    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/fastapi/routing.py", line 137, in app
+    |     response = await f(request)
+    |                ^^^^^^^^^^^^^^^^
+    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/fastapi/routing.py", line 691, in app
+    |     raw_response = await run_endpoint_function(
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |     ...<3 lines>...
+    |     )
+    |     ^
+    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/fastapi/routing.py", line 345, in run_endpoint_function
+    |     return await dependant.call(**values)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/app/main.py", line 5388, in assessment_phase3
+    |     
+    |     
+    |     ...<5 lines>...
+    |     # --- Phase 3 Routes ---
+    |     ^^^^^^
+    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/templating.py", line 148, in TemplateResponse
+    |     template = self.get_template(name)
+    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/templating.py", line 115, in get_template
+    |     return self.env.get_template(name)
+    |            ~~~~~~~~~~~~~~~~~~~~~^^^^^^
+    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/jinja2/environment.py", line 1016, in get_template
+    |     return self._load_template(name, globals)
+    |            ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/jinja2/environment.py", line 975, in _load_template
+    |     template = self.loader.load(self, name, self.make_globals(globals))
+    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/jinja2/loaders.py", line 138, in load
+    |     code = environment.compile(source, name, filename)
+    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/jinja2/environment.py", line 771, in compile
+    |     self.handle_exception(source=source_hint)
+    |     ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/jinja2/environment.py", line 942, in handle_exception
+    |     raise rewrite_traceback_stack(source=source)
+    |   File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/frontend/templates/assessment_phase3_v2.html", line 121, in template
+    |     let chatHistory = {{ (result.chat_messages if result.chat_messages else []) | tojson | safe }};
+    |     ^^^^^^^^^^^^^^^^^
+    | jinja2.exceptions.TemplateSyntaxError: Unexpected end of template. Jinja was looking for the following tags: 'endblock'. The innermost block that needs to be closed is 'block'.
+    +------------------------------------
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/app/main.py", line 1027, in check_suspension
+    return RedirectResponse(url="/suspended", status_code=status.HTTP_302_FOUND)
+    ^^^^^^^^^^^^^^^^^^^
+  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/app/main.py", line 971, in add_cache_control_header
+  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/sessions.py", line 88, in __call__
+    await self.app(scope, receive, send_wrapper)
+  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/cors.py", line 88, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/trustedhost.py", line 36, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/gzip.py", line 29, in __call__
+    await responder(scope, receive, send)
+  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/gzip.py", line 130, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/gzip.py", line 46, in __call__
+    await self.app(scope, receive, self.send_with_compression)
+  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/app/main.py", line 668, in forward_proto_middleware
+    return await call_next(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/fastapi/routing.py", line 2685, in app
+    await route.handle(scope, receive, send)
+  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/fastapi/routing.py", line 1267, in handle
+    await super().handle(scope, receive, send)
+  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/fastapi/routing.py", line 151, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/fastapi/routing.py", line 137, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/fastapi/routing.py", line 691, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/fastapi/routing.py", line 345, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/app/main.py", line 5388, in assessment_phase3
+    
+    
+    ...<5 lines>...
+    # --- Phase 3 Routes ---
+    ^^^^^^
+  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/templating.py", line 148, in TemplateResponse
+    template = self.get_template(name)
+  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/starlette/templating.py", line 115, in get_template
+    return self.env.get_template(name)
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/jinja2/environment.py", line 1016, in get_template
+    return self._load_template(name, globals)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/jinja2/environment.py", line 975, in _load_template
+    template = self.loader.load(self, name, self.make_globals(globals))
+  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/jinja2/loaders.py", line 138, in load
+    code = environment.compile(source, name, filename)
+  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/jinja2/environment.py", line 771, in compile
+    self.handle_exception(source=source_hint)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/venv/lib/python3.14/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/Users/rahulmanchanda/Desktop/CareStance/CareStance_actual/frontend/templates/assessment_phase3_v2.html", line 121, in template
+    let chatHistory = {{ (result.chat_messages if result.chat_messages else []) | tojson | safe }};
+    ^^^^^^^^^^^^^^^^^
+jinja2.exceptions.TemplateSyntaxError: Unexpected end of template. Jinja was looking for the following tags: 'endblock'. The innermost block that needs to be closed is 'block'.

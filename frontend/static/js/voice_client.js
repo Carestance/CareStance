@@ -38,8 +38,13 @@ class VoiceClient {
             // Get local microphone stream
             this.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
 
-            // Initialize WebRTC Peer Connection
-            this.peerConnection = new RTCPeerConnection();
+            // Initialize WebRTC Peer Connection with STUN servers
+            this.peerConnection = new RTCPeerConnection({
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' }
+                ]
+            });
 
             // Add local tracks to peer connection
             this.localStream.getTracks().forEach(track => {

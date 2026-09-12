@@ -15,10 +15,16 @@ class SarvamTTSProviderConfig:
         if not key:
             raise ValueError("Sarvam API key not provided or found in environment.")
             
+        # bulbul:v3-beta has a different speaker list from v2.
+        # "anushka" (v2 default) is NOT compatible — explicitly pick a v3-beta speaker.
+        # v3-beta compatible voices: neha, priya, ritu, ishita, pooja, rahul, aditya, rohan …
+        DEFAULT_V3_VOICE = "neha"
+        effective_voice = vid if vid else DEFAULT_V3_VOICE
         settings = SarvamTTSService.Settings(
-            voice=vid,
+            model="bulbul:v3-beta",
+            voice=effective_voice,
             pace=1.1
-        ) if vid else None
+        )
         return SarvamTTSService(
             api_key=key,
             settings=settings,

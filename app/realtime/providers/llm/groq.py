@@ -15,5 +15,5 @@ class LLMProviderConfig:
             
         return GroqLLMService(
             api_key=key,
-            settings=GroqLLMService.Settings(model="llama-3.1-8b-instant")
+            settings=GroqLLMService.Settings(model="qwen/qwen3.8-27b")
         )

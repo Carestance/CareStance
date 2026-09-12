@@ -871,9 +871,12 @@ def _collect_env_hosts(*env_names):
     for env in env_names:
         raw = os.getenv(env, "").strip()
         if raw:
-            host = _normalize_host(raw)
-            if host and host not in hosts:
-                hosts.append(host)
+            for item in raw.split(","):
+                item = item.strip()
+                if item:
+                    host = _normalize_host(item)
+                    if host and host not in hosts:
+                        hosts.append(host)
     return hosts
 
 
@@ -882,43 +885,81 @@ def _collect_env_origins(*env_names):
     for env in env_names:
         raw = os.getenv(env, "").strip()
         if raw:
-            origin = _normalize_origin(raw)
-            if origin and origin not in origins:
-                origins.append(origin)
+            for item in raw.split(","):
+                item = item.strip()
+                if item:
+                    origin = _normalize_origin(item)
+                    if origin and origin not in origins:
+                        origins.append(origin)
     return origins
 
 # ─── Trusted Host Middleware ──────────────────────────────────────────────────
-# Ensures the app accepts requests from your domains
-app.add_middleware(
-    TrustedHostMiddleware, 
-    allowed_hosts=[
+# Determines allowed hosts based on environment and config to prevent Host Header attacks
+_raw_allowed_hosts = os.getenv("ALLOWED_HOSTS", "").strip()
+_env_allowed_hosts = [h.strip() for h in _raw_allowed_hosts.split(",") if h.strip()]
+_is_production_env = bool(
+    os.getenv("VERCEL") 
+    or os.getenv("RAILWAY_ENVIRONMENT") 
+    or os.getenv("ENVIRONMENT", "").lower() == "production"
+)
+
+if "*" in _env_allowed_hosts or _raw_allowed_hosts == "*" or not _is_production_env:
+    # In local development or when explicitly configured with "*", allow all hosts
+    _allowed_hosts = ["*"]
+else:
+    _allowed_hosts = [
         "carestance.in", 
         "www.carestance.in", 
         "*.railway.app", 
+        "*.vercel.app",
         "localhost", 
         "127.0.0.1",
-        *(_collect_env_hosts("BASE_URL", "APP_URL"))
+        "0.0.0.0",
+        "::1",
+        "[::1]",
+        "*.ngrok-free.app",
+        "*.ngrok-free.dev",
+        "*.ngrok.io",
+        "*.ngrok.app",
+        "*.trycloudflare.com",
+        "*.loca.lt",
+        *_env_allowed_hosts,
+        *(_collect_env_hosts("BASE_URL", "APP_URL", "PUBLIC_BASE_URL"))
     ]
+
+app.add_middleware(
+    TrustedHostMiddleware, 
+    allowed_hosts=_allowed_hosts
 )
 
 # ─── CORS Middleware ──────────────────────────────────────────────────────────
-# Allows Vercel and other configured domains to communicate with Railway
+# Allows Vercel, local dev, ngrok, and other configured domains to communicate with Railway
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://carestance.in", 
         "https://www.carestance.in", 
-        "*.vercel.app",
-        *(_collect_env_origins("BASE_URL", "APP_URL"))
+        "http://localhost:8080",
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:8080",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
+        *(_collect_env_origins("BASE_URL", "APP_URL", "PUBLIC_BASE_URL", "ALLOWED_ORIGINS"))
     ],
+    allow_origin_regex=r"^https?://(.*\.)?(vercel\.app|railway\.app|ngrok-free\.(app|dev)|ngrok\.io|localhost|127\.0\.0\.1)(:\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # Add Session Middleware (needed for OAuth)
-# On Vercel/production HTTPS, cookies should be secure.
-_is_production = bool(os.getenv("VERCEL") or os.getenv("BASE_URL", os.getenv("APP_URL", "")).startswith("https"))
+# Only enable https_only cookies in true production environments (Vercel, Railway, or ENVIRONMENT=production)
+_is_production = bool(
+    os.getenv("VERCEL") 
+    or os.getenv("RAILWAY_ENVIRONMENT") 
+    or os.getenv("ENVIRONMENT", "").lower() == "production"
+)
 
 app.add_middleware(
     SessionMiddleware,
@@ -997,6 +1038,7 @@ STATIC_DIR = os.path.join(FRONTEND_DIR, "static")
 TEMPLATES_DIR = os.path.join(FRONTEND_DIR, "templates")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
+templates.env.auto_reload = True
 # Re-enabled cache as standard practice
 # pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto"]) # Removed
 
@@ -1368,10 +1410,30 @@ async def reset_password(
     return RedirectResponse(url="/login?message=Password updated successfully", status_code=status.HTTP_302_FOUND)
 
 def get_oauth_redirect_uri(request: Request):
-    host = request.headers.get("host", "")
+    # 1. Explicit override via environment variable
+    explicit = (os.getenv("GOOGLE_REDIRECT_URI") or os.getenv("OAUTH_REDIRECT_URI") or "").strip()
+    if explicit:
+        return explicit
+
+    host = request.headers.get("x-forwarded-host") or request.headers.get("host", "")
+    proto = request.headers.get("x-forwarded-proto") or request.url.scheme
+
+    # 2. Local development on localhost or 127.0.0.1
     if "localhost" in host or "127.0.0.1" in host:
         return str(request.url_for('auth_callback'))
-    
+
+    # 3. Tunneling / dev proxies (ngrok, trycloudflare, loca.lt)
+    if any(t in host for t in ["ngrok", "trycloudflare", "loca.lt"]):
+        return f"https://{host}/auth/callback"
+
+    # 4. If PUBLIC_BASE_URL is configured and matches current host
+    public_base = os.getenv("PUBLIC_BASE_URL", "").strip()
+    if public_base:
+        parsed_pub = urlparse(public_base)
+        if parsed_pub.netloc and parsed_pub.netloc == host:
+            return f"{public_base.rstrip('/')}/auth/callback"
+
+    # 5. Production domains
     base_url = os.getenv("BASE_URL") or os.getenv("APP_URL")
     if base_url:
         return f"{base_url.rstrip('/')}/auth/callback"
@@ -1388,7 +1450,12 @@ async def login_google(request: Request):
         return RedirectResponse(url='/login?error=Configuration missing', status_code=status.HTTP_302_FOUND)
     
     redirect_uri = get_oauth_redirect_uri(request)
-    print(f"DEBUG: OAuth Redirect URI: {redirect_uri}")
+    print(f"\n=======================================================")
+    print(f"[OAUTH] Initiating Google Sign-In")
+    print(f"[OAUTH] Incoming Host: {request.headers.get('host')}")
+    print(f"[OAUTH] Redirect URI sent to Google: {redirect_uri}")
+    print(f"[OAUTH] (Make sure this exact URI is in Google Cloud Console > Authorized redirect URIs)")
+    print(f"=======================================================\n", flush=True)
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 @app.get("/auth/callback")
@@ -5341,6 +5408,9 @@ async def assessment_phase3(request: Request, mode: str = "chat", db: AsyncSessi
     if not result:
         return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
         
+    if mode in ["chat", "text"]:
+        return RedirectResponse(url="/chatbot", status_code=status.HTTP_302_FOUND)
+
     is_completed = (result.phase3_result == "COMPLETED")
     import json
     history_json = json.dumps(result.chat_messages or [])
