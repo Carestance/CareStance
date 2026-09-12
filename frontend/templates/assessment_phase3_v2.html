@@ -333,9 +333,10 @@
                 updateCaption(msg.text);
                 chatHistory.push({ role: 'assistant', content: msg.text });
             } else if (msg.type === 'CONVERSATION_COMPLETED') {
-                // Keep the end button prominent
-                endBtn.classList.remove('hidden');
-                endBtn.classList.add('bg-emerald-500', 'text-white');
+                // Change the end button to a prominent "Finish & Get Results" text button
+                endBtn.classList.remove('hidden', 'w-12', 'h-12', 'rounded-full');
+                endBtn.classList.add('w-auto', 'px-6', 'rounded-xl', 'bg-emerald-600', 'hover:bg-emerald-700', 'text-white', 'font-bold', 'py-3');
+                endBtn.innerHTML = 'Finish & Get Results';
             }
         });
         
