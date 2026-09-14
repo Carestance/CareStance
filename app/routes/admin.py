@@ -7,7 +7,7 @@ from __future__ import annotations
 import logging
 import csv
 import os
-from fastapi import APIRouter, Depends, Form, HTTPException, Request, Query
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, Query, Body
 
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -53,11 +53,50 @@ from app.services.admin_analytics_service import (
     get_moderation_flags,
     resolve_moderation_flag,
 )
+from app.services.bulk_onboarding_service import bulk_onboard_users
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/admin", tags=["Admin"])
 templates = Jinja2Templates(directory="frontend/templates")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+@router.get("/bulk-onboard-form", response_class=HTMLResponse)
+async def bulk_onboard_form(request: Request, admin: User = Depends(get_current_admin)):
+    """Render an admin-only UI for the reusable bulk onboarding workflow."""
+    return templates.TemplateResponse(
+        request,
+        name="admin_bulk_onboarding.html",
+        context={"request": request, "admin": admin},
+    )
+
+
+@router.post("/bulk-onboard-form")
+async def bulk_onboard_form_post(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+):
+    """Read the form payload and feed it into the bulk-onboarding service."""
+    form = await request.form()
+    raw_users = form.get("users") or "[]"
+    try:
+        import json
+        users = json.loads(raw_users)
+    except Exception:
+        raise HTTPException(status_code=400, detail="users must be valid JSON")
+
+    if not isinstance(users, list):
+        raise HTTPException(status_code=400, detail="users must be a list of records")
+
+    send_credentials = form.get("send_credentials") == "true"
+    result = await bulk_onboard_users(db=db, user_records=users, send_credentials=send_credentials)
+    return {
+        "message": "Bulk onboarding completed",
+        "result": result,
+        "assignment": result["assignment"],
+    }
+
 
 
 def _redirect_back(request: Request, default: str = "/admin") -> RedirectResponse:
@@ -104,6 +143,43 @@ def _normalize_career_recommendations(assessment: AssessmentResult | None) -> li
         )
 
     return normalized
+
+
+@router.post("/bulk-onboard")
+async def bulk_onboard_users_route(
+    payload: dict = Body(...),
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+):
+    """Admin-only reusable bulk onboarding route.
+
+    Expected payload:
+    {
+      "users": [
+        {"email": "a@example.com", "full_name": "A", "contact_number": "+91...", "role": "student"}
+      ],
+      "send_credentials": false
+    }
+    """
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=400, detail="Expected a mapping payload.")
+
+    users = payload.get("users") or payload.get("records") or payload.get("data") or []
+    if not isinstance(users, list):
+        raise HTTPException(status_code=400, detail="Expected users/records/data to be a list.")
+
+    send_credentials = bool(payload.get("send_credentials", False))
+    result = await bulk_onboard_users(
+        db=db,
+        user_records=users,
+        send_credentials=send_credentials,
+        force_email=bool(payload.get("force_email", False)),
+    )
+    return {
+        "message": "Bulk onboarding completed",
+        "result": result,
+        "assignment": result["assignment"],
+    }
 
 
 # ─── Main Dashboard ───────────────────────────────────────────────────────────
