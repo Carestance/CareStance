@@ -61,10 +61,17 @@ def test_bulk_onboarding_plan_assignment_marks_active_paid_access_for_r300_servi
     ]
 
 
-def test_build_day3_onboarding_payload_returns_day_3_milestone_tasks_and_progress():
-    from app.services.onboarding_day3_service import build_day3_onboarding_payload
+def test_admin_router_registers_bulk_onboarding_admin_route():
+    from app.routes.admin import router
 
-    payload = build_day3_onboarding_payload(
+    route_paths = {route.path for route in router.routes}
+    assert "/admin/bulk-onboard" in route_paths
+
+
+def test_build_onboarding_milestone_payload_returns_day_3_milestone_tasks_and_progress():
+    from app.services.onboarding_milestone_service import build_onboarding_milestone_payload
+
+    payload = build_onboarding_milestone_payload(
         completed_tasks=["profile_setup", "upi_setup"],
         user_name="Aarav",
     )

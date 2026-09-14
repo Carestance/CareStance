@@ -7,9 +7,9 @@ from __future__ import annotations
 import logging
 import csv
 import os
-from fastapi import APIRouter, Depends, Form, HTTPException, Request, Query
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, Query, UploadFile
 
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 from passlib.context import CryptContext
@@ -52,6 +52,10 @@ from app.services.admin_analytics_service import (
     get_recent_appointments,
     get_moderation_flags,
     resolve_moderation_flag,
+)
+from app.services.bulk_onboarding_service import (
+    bulk_onboard_users,
+    parse_bulk_onboarding_records,
 )
 
 logger = logging.getLogger(__name__)
@@ -104,6 +108,64 @@ def _normalize_career_recommendations(assessment: AssessmentResult | None) -> li
         )
 
     return normalized
+
+
+# ─── Bulk Onboarding Admin Flow ───────────────────────────────────────────
+
+@router.get("/bulk-onboard", response_class=HTMLResponse)
+async def bulk_onboarding_page(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+):
+    """Render the reusable bulk onboarding admin page for importing accounts."""
+    return templates.TemplateResponse(
+        request=request,
+        name="admin_bulk_onboarding.html",
+        context={"request": request, "admin": admin},
+    )
+
+
+@router.post("/bulk-onboard")
+async def bulk_onboarding_submit(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+    users: str = Form(""),
+    send_credentials: bool = Form(False),
+    users_file: UploadFile = File(None),
+):
+    """Accept JSON/CSV text or a file upload, onboard the listed accounts, and return the report payload.
+
+    This wires the existing reusable bulk-onboarding service into the admin router without
+    forcing the payment/Razorpay flow, matching the requested paid-plan assignment semantics.
+    """
+    raw_input = users or ""
+
+    if users_file and users_file.filename:
+        try:
+            uploaded_bytes = await users_file.read()
+            if isinstance(uploaded_bytes, bytes):
+                uploaded_text = uploaded_bytes.decode("utf-8", errors="ignore")
+                raw_input = uploaded_text
+        except Exception:
+            raw_input = ""
+
+    records = parse_bulk_onboarding_records(raw_input)
+    if not records:
+        return JSONResponse(
+            {"created": [], "skipped": [], "failures": [], "report": {"created_count": 0}},
+            status_code=400,
+        )
+
+    result = await bulk_onboard_users(
+        db,
+        records,
+        send_credentials=bool(send_credentials),
+        force_email=False,
+    )
+
+    return JSONResponse(result)
 
 
 # ─── Main Dashboard ───────────────────────────────────────────────────────────
