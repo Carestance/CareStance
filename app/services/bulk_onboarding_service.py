@@ -1,4 +1,7 @@
+import csv
 import datetime
+import io
+import json
 import secrets
 import string
 from typing import Any
@@ -43,6 +46,101 @@ def generate_secure_password(length: int = 16) -> str:
     password = required + rest
     secrets.SystemRandom().shuffle(password)
     return "".join(password)
+
+
+def parse_bulk_onboarding_records(raw_input: Any) -> list[dict[str, Any]]:
+    """Normalize bulk onboarding input from JSON text, CSV text, or a file-like object.
+
+    Supports the existing textarea JSON payload and the next requested CSV upload
+    workflow by coercing either document type into the list of user records the
+    service expects.
+    """
+    if isinstance(raw_input, list):
+        return [dict(record) for record in raw_input if isinstance(record, dict)]
+
+    if hasattr(raw_input, "read"):
+        try:
+            raw_text = raw_input.read()
+            if isinstance(raw_text, bytes):
+                raw_text = raw_text.decode("utf-8", errors="ignore")
+            elif not isinstance(raw_text, str):
+                raw_text = str(raw_text)
+            raw_input = raw_text
+        except Exception:
+            raw_input = ""
+
+    if isinstance(raw_input, (bytes, bytearray)):
+        raw_input = raw_input.decode("utf-8", errors="ignore")
+
+    if not isinstance(raw_input, str):
+        return []
+
+    raw_input = raw_input.strip()
+    if not raw_input:
+        return []
+
+    try:
+        parsed = json.loads(raw_input)
+        if isinstance(parsed, dict):
+            for key in ("users", "records", "data"):
+                if isinstance(parsed.get(key), list):
+                    parsed = parsed[key]
+                    break
+            else:
+                parsed = []
+        if isinstance(parsed, list):
+            return [dict(record) for record in parsed if isinstance(record, dict)]
+    except Exception:
+        pass
+
+    try:
+        reader = csv.DictReader(io.StringIO(raw_input))
+        rows = list(reader)
+        if rows:
+            return [
+                {
+                    "email": row.get("email") or row.get("Email") or row.get("email_address") or "",
+                    "full_name": row.get("full_name") or row.get("name") or row.get("fullName") or "",
+                    "contact_number": row.get("contact_number") or row.get("phone") or row.get("mobile") or row.get("contact") or "",
+                    "role": row.get("role") or "student",
+                }
+                for row in rows
+                if (row.get("email") or row.get("Email") or row.get("email_address") or "").strip()
+            ]
+    except Exception:
+        return []
+
+    return []
+
+
+def build_bulk_onboarding_report(result: dict[str, Any]) -> dict[str, Any]:
+    """Return a clearer reporting view for a bulk onboard operation.
+
+    The report is intentionally lightweight: it counts created/skipped/failure
+    outcomes and exposes the user-facing email lists for a human-facing report.
+    """
+    created = result.get("created") or []
+    skipped = result.get("skipped") or []
+    failures = result.get("failures") or []
+
+    created_emails = [record.get("email") for record in created if record.get("email")]
+    duplicate_emails = [record.get("email") for record in skipped if record.get("email")]
+    failure_emails = [record.get("email") for record in failures if record.get("email")]
+
+    return {
+        "created_count": len(created),
+        "skipped_count": len(skipped),
+        "failure_count": len(failures),
+        "created_emails": created_emails,
+        "duplicate_emails": duplicate_emails,
+        "failure_emails": failure_emails,
+        "summary": {
+            "created_count": len(created),
+            "skipped_count": len(skipped),
+            "failure_count": len(failures),
+            "service_bundle": result.get("summary", {}).get("service_bundle") or R300_SERVICE_BUNDLE,
+        },
+    }
 
 
 def get_bulk_onboarding_plan_assignment() -> dict[str, Any]:
@@ -152,7 +250,7 @@ async def bulk_onboard_users(
 
     await db.commit()
 
-    return {
+    result = {
         "created": created,
         "skipped": skipped,
         "failures": failures,
@@ -164,3 +262,5 @@ async def bulk_onboard_users(
             "service_bundle": R300_SERVICE_BUNDLE,
         },
     }
+    result["report"] = build_bulk_onboarding_report(result)
+    return result
