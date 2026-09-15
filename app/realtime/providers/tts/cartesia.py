@@ -15,11 +15,13 @@ class TTSProviderConfig:
         if not key:
             raise ValueError("Cartesia API key not provided or found in environment.")
             
+        from pipecat.services.tts_service import TextAggregationMode
         settings = CartesiaTTSService.Settings(
             voice=vid,
             model="sonic-3.5"
         )
         return CartesiaTTSService(
             api_key=key,
-            settings=settings
+            settings=settings,
+            text_aggregation_mode=TextAggregationMode.SENTENCE
         )

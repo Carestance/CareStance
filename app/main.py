@@ -163,6 +163,85 @@ SUBSCRIPTION_PLANS = {
     },
 }
 
+CAREER_PLANS = {
+    "free": {
+        "id": "free",
+        "name": "Free",
+        "price": 0,
+        "amount_paise": 0,
+        "duration": "Lifetime",
+        "duration_days": 3650,
+        "tagline": "Experience the basic CareStance platform",
+        "recommendations": "Up to 3",
+        "simulations": "1",
+        "ai_conversations": "Not Available",
+        "monthly_growth_path": False,
+        "roadmap": "Limited",
+        "progress_tracking": False,
+        "insights": "Basic",
+        "badge": "Explorer",
+        "is_paid": False
+    },
+    "plan_1m": {
+        "id": "plan_1m",
+        "name": "1 Month",
+        "price": 300,
+        "amount_paise": 30000,
+        "duration": "1 Month",
+        "duration_days": 30,
+        "tagline": "Entry-level paid plan for focused career exploration",
+        "recommendations": "Up to 3",
+        "simulations": "3",
+        "ai_conversations": "1 conversation",
+        "monthly_growth_path": False,
+        "roadmap": "Available",
+        "progress_tracking": True,
+        "insights": "Medium",
+        "badge": "Starter",
+        "is_paid": True
+    },
+    "plan_4m": {
+        "id": "plan_4m",
+        "name": "4 Months",
+        "price": 1000,
+        "amount_paise": 100000,
+        "duration": "4 Months",
+        "duration_days": 120,
+        "effective_monthly": "₹250/mo",
+        "tagline": "Designed for users who want more consistent career exploration",
+        "recommendations": "Unlimited",
+        "simulations": "Unlimited",
+        "ai_conversations": "3 conversations/month",
+        "monthly_growth_path": True,
+        "roadmap": "Available",
+        "progress_tracking": True,
+        "insights": "Medium",
+        "badge": "Best Value",
+        "is_paid": True,
+        "is_popular": True
+    },
+    "plan_6m": {
+        "id": "plan_6m",
+        "name": "6 Months",
+        "price": 1200,
+        "amount_paise": 120000,
+        "duration": "6 Months",
+        "duration_days": 180,
+        "effective_monthly": "₹200/mo",
+        "tagline": "Premium long-term career development plan",
+        "recommendations": "Unlimited",
+        "simulations": "Unlimited",
+        "ai_conversations": "5 conversations/month",
+        "monthly_growth_path": True,
+        "roadmap": "Advanced",
+        "progress_tracking": "Advanced",
+        "insights": "Advanced",
+        "badge": "Advanced / Premium",
+        "is_paid": True,
+        "is_premium": True
+    }
+}
+
 def get_assessment_display_archetype(result) -> str:
     if not result:
         return "Explorer"
@@ -872,9 +951,12 @@ def _collect_env_hosts(*env_names):
     for env in env_names:
         raw = os.getenv(env, "").strip()
         if raw:
-            host = _normalize_host(raw)
-            if host and host not in hosts:
-                hosts.append(host)
+            for item in raw.split(","):
+                item = item.strip()
+                if item:
+                    host = _normalize_host(item)
+                    if host and host not in hosts:
+                        hosts.append(host)
     return hosts
 
 
@@ -883,43 +965,81 @@ def _collect_env_origins(*env_names):
     for env in env_names:
         raw = os.getenv(env, "").strip()
         if raw:
-            origin = _normalize_origin(raw)
-            if origin and origin not in origins:
-                origins.append(origin)
+            for item in raw.split(","):
+                item = item.strip()
+                if item:
+                    origin = _normalize_origin(item)
+                    if origin and origin not in origins:
+                        origins.append(origin)
     return origins
 
 # ─── Trusted Host Middleware ──────────────────────────────────────────────────
-# Ensures the app accepts requests from your domains
-app.add_middleware(
-    TrustedHostMiddleware, 
-    allowed_hosts=[
+# Determines allowed hosts based on environment and config to prevent Host Header attacks
+_raw_allowed_hosts = os.getenv("ALLOWED_HOSTS", "").strip()
+_env_allowed_hosts = [h.strip() for h in _raw_allowed_hosts.split(",") if h.strip()]
+_is_production_env = bool(
+    os.getenv("VERCEL") 
+    or os.getenv("RAILWAY_ENVIRONMENT") 
+    or os.getenv("ENVIRONMENT", "").lower() == "production"
+)
+
+if "*" in _env_allowed_hosts or _raw_allowed_hosts == "*" or not _is_production_env:
+    # In local development or when explicitly configured with "*", allow all hosts
+    _allowed_hosts = ["*"]
+else:
+    _allowed_hosts = [
         "carestance.in", 
         "www.carestance.in", 
         "*.railway.app", 
+        "*.vercel.app",
         "localhost", 
         "127.0.0.1",
-        *(_collect_env_hosts("BASE_URL", "APP_URL"))
+        "0.0.0.0",
+        "::1",
+        "[::1]",
+        "*.ngrok-free.app",
+        "*.ngrok-free.dev",
+        "*.ngrok.io",
+        "*.ngrok.app",
+        "*.trycloudflare.com",
+        "*.loca.lt",
+        *_env_allowed_hosts,
+        *(_collect_env_hosts("BASE_URL", "APP_URL", "PUBLIC_BASE_URL"))
     ]
+
+app.add_middleware(
+    TrustedHostMiddleware, 
+    allowed_hosts=_allowed_hosts
 )
 
 # ─── CORS Middleware ──────────────────────────────────────────────────────────
-# Allows Vercel and other configured domains to communicate with Railway
+# Allows Vercel, local dev, ngrok, and other configured domains to communicate with Railway
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://carestance.in", 
         "https://www.carestance.in", 
-        "*.vercel.app",
-        *(_collect_env_origins("BASE_URL", "APP_URL"))
+        "http://localhost:8080",
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:8080",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
+        *(_collect_env_origins("BASE_URL", "APP_URL", "PUBLIC_BASE_URL", "ALLOWED_ORIGINS"))
     ],
+    allow_origin_regex=r"^https?://(.*\.)?(vercel\.app|railway\.app|ngrok-free\.(app|dev)|ngrok\.io|localhost|127\.0\.0\.1)(:\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # Add Session Middleware (needed for OAuth)
-# On Vercel/production HTTPS, cookies should be secure.
-_is_production = bool(os.getenv("VERCEL") or os.getenv("BASE_URL", os.getenv("APP_URL", "")).startswith("https"))
+# Only enable https_only cookies in true production environments (Vercel, Railway, or ENVIRONMENT=production)
+_is_production = bool(
+    os.getenv("VERCEL") 
+    or os.getenv("RAILWAY_ENVIRONMENT") 
+    or os.getenv("ENVIRONMENT", "").lower() == "production"
+)
 
 app.add_middleware(
     SessionMiddleware,
@@ -998,6 +1118,7 @@ STATIC_DIR = os.path.join(FRONTEND_DIR, "static")
 TEMPLATES_DIR = os.path.join(FRONTEND_DIR, "templates")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
+templates.env.auto_reload = True
 # Re-enabled cache as standard practice
 # pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto"]) # Removed
 
@@ -1385,10 +1506,30 @@ async def reset_password(
     return RedirectResponse(url="/login?message=Password updated successfully", status_code=status.HTTP_302_FOUND)
 
 def get_oauth_redirect_uri(request: Request):
-    host = request.headers.get("host", "")
+    # 1. Explicit override via environment variable
+    explicit = (os.getenv("GOOGLE_REDIRECT_URI") or os.getenv("OAUTH_REDIRECT_URI") or "").strip()
+    if explicit:
+        return explicit
+
+    host = request.headers.get("x-forwarded-host") or request.headers.get("host", "")
+    proto = request.headers.get("x-forwarded-proto") or request.url.scheme
+
+    # 2. Local development on localhost or 127.0.0.1
     if "localhost" in host or "127.0.0.1" in host:
         return str(request.url_for('auth_callback'))
-    
+
+    # 3. Tunneling / dev proxies (ngrok, trycloudflare, loca.lt)
+    if any(t in host for t in ["ngrok", "trycloudflare", "loca.lt"]):
+        return f"https://{host}/auth/callback"
+
+    # 4. If PUBLIC_BASE_URL is configured and matches current host
+    public_base = os.getenv("PUBLIC_BASE_URL", "").strip()
+    if public_base:
+        parsed_pub = urlparse(public_base)
+        if parsed_pub.netloc and parsed_pub.netloc == host:
+            return f"{public_base.rstrip('/')}/auth/callback"
+
+    # 5. Production domains
     base_url = os.getenv("BASE_URL") or os.getenv("APP_URL")
     if base_url:
         return f"{base_url.rstrip('/')}/auth/callback"
@@ -1405,7 +1546,12 @@ async def login_google(request: Request):
         return RedirectResponse(url='/login?error=Configuration missing', status_code=status.HTTP_302_FOUND)
     
     redirect_uri = get_oauth_redirect_uri(request)
-    print(f"DEBUG: OAuth Redirect URI: {redirect_uri}")
+    print(f"\n=======================================================")
+    print(f"[OAUTH] Initiating Google Sign-In")
+    print(f"[OAUTH] Incoming Host: {request.headers.get('host')}")
+    print(f"[OAUTH] Redirect URI sent to Google: {redirect_uri}")
+    print(f"[OAUTH] (Make sure this exact URI is in Google Cloud Console > Authorized redirect URIs)")
+    print(f"=======================================================\n", flush=True)
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 @app.get("/auth/callback")
@@ -5358,6 +5504,9 @@ async def assessment_phase3(request: Request, mode: str = "chat", db: AsyncSessi
     if not result:
         return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
         
+    if mode in ["chat", "text"]:
+        return RedirectResponse(url="/chatbot", status_code=status.HTTP_302_FOUND)
+
     is_completed = (result.phase3_result == "COMPLETED")
     import json
     history_json = json.dumps(result.chat_messages or [])
@@ -5705,15 +5854,15 @@ async def phase3_finalize(request: Request, finalize_req: Phase3FinalizeRequest,
     if not result:
         return JSONResponse({"redirect": "/assessment"})
         
-    is_completed = (result.phase3_result == "COMPLETED")
-    if not is_completed:
-        raise HTTPException(
-            status_code=409,
-            detail="Deep Dive conversation has not been completed."
-        )
+    # Always mark as COMPLETED when student initiates finalization
+    result.phase3_result = "COMPLETED"
 
-    # Use canonical transcript persisted by the WebRTC session
-    history = result.chat_messages or []
+    # Use canonical transcript persisted by the WebRTC session or fallback to request history
+    if not result.chat_messages and finalize_req.history:
+        result.chat_messages = finalize_req.history
+        await db.commit()
+
+    history = result.chat_messages or finalize_req.history or []
     transcript = ""
     for msg in history:
         role = msg.get("role", "user")
@@ -6210,6 +6359,181 @@ async def subscription_verify_payment(request: Request, db: AsyncSession = Depen
     db.add(payment)
     await db.commit()
     return {"status": "ok", "plan": plan}
+
+
+# ─── CareStance Plans & Pricing Routes ──────────────────────────────────────────
+
+@app.get("/plan", response_class=HTMLResponse)
+@app.get("/plans", response_class=HTMLResponse)
+async def plans_pricing_page(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    return templates.TemplateResponse(request=request, name="plan.html", context={
+        "user": user,
+        "plans": CAREER_PLANS,
+        "RAZORPAY_KEY_ID": RAZORPAY_KEY_ID,
+        "razorpay_configured": is_razorpay_configured(),
+    })
+
+
+@app.post("/api/plans/create-order")
+async def api_plans_create_order(request: Request, db: AsyncSession = Depends(get_db)):
+    """
+    Creates a Razorpay Order and Payment Link for instant QR display on the Plans page.
+    """
+    if not is_razorpay_configured():
+        raise HTTPException(
+            status_code=503,
+            detail="Payment gateway is not configured. Add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to .env."
+        )
+
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+
+    plan_id = data.get("plan", "plan_4m")
+    plan_info = CAREER_PLANS.get(plan_id)
+    if not plan_info or not plan_info.get("is_paid"):
+        raise HTTPException(status_code=400, detail="Invalid plan selected")
+
+    user = await get_current_user(request, db)
+    amount_paise = plan_info["amount_paise"]
+    receipt = f"plan_{plan_id}_{uuid.uuid4().hex[:8]}"
+
+    client = get_razorpay_client()
+    try:
+        order = client.order.create(data={
+            "amount": amount_paise,
+            "currency": "INR",
+            "receipt": receipt,
+            "notes": {
+                "plan_id": plan_id,
+                "plan_name": plan_info["name"],
+                "user_id": str(user.id) if user else "anonymous",
+            },
+            "payment_capture": 1
+        })
+    except Exception as e:
+        print(f"[Razorpay] Error creating plan order: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create order: {str(e)}")
+
+    # Generate payment link for instant UPI QR code rendering
+    payment_url = None
+    try:
+        cust_name = (getattr(user, "full_name", None) or getattr(user, "email", None) or "CareStance User") if user else "CareStance User"
+        cust_email = getattr(user, "email", None) or "billing@carestance.com"
+        cust_phone = getattr(user, "phone", None) or "9876543210"
+
+        plink_data = {
+            "amount": amount_paise,
+            "currency": "INR",
+            "accept_partial": False,
+            "description": f"CareStance {plan_info['name']} Career Plan",
+            "customer": {
+                "name": cust_name,
+                "email": cust_email,
+                "contact": cust_phone
+            },
+            "notify": {"sms": False, "email": False},
+            "reminder_enable": False,
+            "notes": {
+                "order_id": order["id"],
+                "plan_id": plan_id,
+                "user_id": str(user.id) if user else "anonymous"
+            }
+        }
+        plink = client.payment_link.create(data=plink_data)
+        payment_url = plink.get("short_url")
+    except Exception as pl_err:
+        print(f"[Razorpay] Payment link creation warning: {pl_err}")
+        payment_url = f"https://rzp.io/i/{order['id']}"
+
+    return {
+        "status": "ok",
+        "order_id": order["id"],
+        "amount": amount_paise,
+        "currency": "INR",
+        "key_id": RAZORPAY_KEY_ID,
+        "payment_url": payment_url,
+        "plan": plan_id,
+        "plan_name": plan_info["name"]
+    }
+
+
+@app.post("/api/plans/verify-payment")
+async def api_plans_verify_payment(request: Request, db: AsyncSession = Depends(get_db)):
+    """
+    Verifies Razorpay payment signature and activates the selected plan for the user.
+    """
+    if not is_razorpay_configured():
+        raise HTTPException(status_code=503, detail="Payment gateway is not configured.")
+
+    try:
+        data = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid request body")
+
+    order_id = data.get("razorpay_order_id")
+    payment_id = data.get("razorpay_payment_id")
+    signature = data.get("razorpay_signature")
+    plan_id = data.get("plan", "plan_4m")
+
+    if not order_id or not payment_id or not signature:
+        raise HTTPException(status_code=400, detail="Missing razorpay payment credentials")
+
+    plan_info = CAREER_PLANS.get(plan_id)
+    if not plan_info:
+        raise HTTPException(status_code=400, detail="Invalid plan selected")
+
+    params_dict = {
+        "razorpay_order_id": order_id,
+        "razorpay_payment_id": payment_id,
+        "razorpay_signature": signature
+    }
+    try:
+        client = get_razorpay_client()
+        client.utility.verify_payment_signature(params_dict)
+    except Exception as e:
+        print(f"[Razorpay] Plan signature verification failed: {e}")
+        raise HTTPException(status_code=400, detail="Signature verification failed")
+
+    user = await get_current_user(request, db)
+    now = datetime.datetime.utcnow()
+    duration_days = plan_info.get("duration_days", 30)
+    expires_at = now + datetime.timedelta(days=duration_days)
+
+    if user:
+        db_user = (await db.execute(select(models.User).where(models.User.id == user.id))).scalars().first()
+        if db_user:
+            db_user.subscription_plan = plan_id
+            db_user.subscription_status = "active"
+            db_user.subscription_started_at = now
+            db_user.subscription_expires_at = expires_at
+            db_user.assessment_all_access = True
+            db_user.simulation_paid = True
+            if plan_id in ["plan_4m", "plan_6m"]:
+                db_user.simulation_credits = 9999
+            elif plan_id == "plan_1m":
+                db_user.simulation_credits = max(getattr(db_user, "simulation_credits", 0) or 0, 3)
+
+        payment_record = models.SubscriptionPayment(
+            user_id=user.id,
+            plan=plan_id,
+            razorpay_order_id=order_id,
+            razorpay_payment_id=payment_id,
+            amount=float(plan_info["price"]),
+            status="success",
+            expires_at=expires_at,
+        )
+        db.add(payment_record)
+        await db.commit()
+
+    return {
+        "status": "ok",
+        "plan": plan_id,
+        "message": f"Successfully activated {plan_info['name']} plan!",
+        "redirect": "/dashboard?msg=Subscription+Activated"
+    }
 
 
 # ─── Razorpay Standard Web Checkout API Endpoints ──────────────────────────────
