@@ -143,6 +143,53 @@ def build_bulk_onboarding_report(result: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def build_credentials_workbook(result: dict[str, Any]) -> bytes:
+    """Build an Excel workbook containing credentials for newly created accounts."""
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill
+
+    workbook = Workbook()
+    credentials_sheet = workbook.active
+    credentials_sheet.title = "Account Credentials"
+    credentials_headers = ["Full Name", "Username", "Password", "Role", "User ID"]
+    credentials_sheet.append(credentials_headers)
+
+    header_fill = PatternFill("solid", fgColor="1F4E78")
+    for cell in credentials_sheet[1]:
+        cell.font = Font(color="FFFFFF", bold=True)
+        cell.fill = header_fill
+
+    for account in result.get("created") or []:
+        credentials_sheet.append([
+            account.get("full_name") or "",
+            account.get("email") or "",
+            account.get("password") or "",
+            account.get("role") or "",
+            account.get("user_id") or "",
+        ])
+
+    credentials_sheet.freeze_panes = "A2"
+    credentials_sheet.auto_filter.ref = credentials_sheet.dimensions
+    for column, width in {"A": 28, "B": 34, "C": 22, "D": 14, "E": 12}.items():
+        credentials_sheet.column_dimensions[column].width = width
+
+    summary_sheet = workbook.create_sheet("Summary")
+    summary_sheet.append(["Metric", "Count"])
+    for cell in summary_sheet[1]:
+        cell.font = Font(color="FFFFFF", bold=True)
+        cell.fill = header_fill
+    summary = result.get("summary") or {}
+    summary_sheet.append(["Accounts created", summary.get("created_count", 0)])
+    summary_sheet.append(["Duplicates skipped", summary.get("skipped_count", 0)])
+    summary_sheet.append(["Failures", summary.get("failure_count", 0)])
+    summary_sheet.column_dimensions["A"].width = 24
+    summary_sheet.column_dimensions["B"].width = 12
+
+    output = io.BytesIO()
+    workbook.save(output)
+    return output.getvalue()
+
+
 def get_bulk_onboarding_plan_assignment() -> dict[str, Any]:
     """Return the default plan model used for bulk ₹300 paid onboarding.
 

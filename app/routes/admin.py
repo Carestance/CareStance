@@ -6,10 +6,11 @@ from __future__ import annotations
 
 import logging
 import csv
+import datetime
 import os
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, Query, UploadFile
 
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 from passlib.context import CryptContext
@@ -55,6 +56,7 @@ from app.services.admin_analytics_service import (
 )
 from app.services.bulk_onboarding_service import (
     bulk_onboard_users,
+    build_credentials_workbook,
     parse_bulk_onboarding_records,
 )
 
@@ -165,7 +167,13 @@ async def bulk_onboarding_submit(
         force_email=False,
     )
 
-    return JSONResponse(result)
+    workbook = build_credentials_workbook(result)
+    filename = f"carestance-account-credentials-{datetime.date.today().isoformat()}.xlsx"
+    return StreamingResponse(
+        iter([workbook]),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 # ─── Main Dashboard ───────────────────────────────────────────────────────────

@@ -1,9 +1,26 @@
 from app.services.bulk_onboarding_service import (
+    build_credentials_workbook,
     generate_secure_password,
     get_bulk_onboarding_plan_assignment,
     parse_bulk_onboarding_records,
     build_bulk_onboarding_report,
 )
+
+
+def test_build_credentials_workbook_returns_xlsx_with_account_credentials():
+    workbook_bytes = build_credentials_workbook({
+        "created": [{
+            "full_name": "Student One",
+            "email": "student1@example.com",
+            "password": "Secure123!",
+            "role": "student",
+            "user_id": 42,
+        }],
+        "summary": {"created_count": 1, "skipped_count": 0, "failure_count": 0},
+    })
+
+    assert workbook_bytes[:2] == b"PK"
+    assert b"Account Credentials" in workbook_bytes
 
 
 def test_parse_bulk_onboarding_records_accepts_json_and_csv_inputs():
