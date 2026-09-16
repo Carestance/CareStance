@@ -66,6 +66,44 @@ templates = Jinja2Templates(directory="frontend/templates")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
+@router.get("/bulk-onboard-form", response_class=HTMLResponse)
+async def bulk_onboard_form(request: Request, admin: User = Depends(get_current_admin)):
+    """Render an admin-only UI for the reusable bulk onboarding workflow."""
+    return templates.TemplateResponse(
+        request,
+        name="admin_bulk_onboarding.html",
+        context={"request": request, "admin": admin},
+    )
+
+
+@router.post("/bulk-onboard-form")
+async def bulk_onboard_form_post(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+):
+    """Read the form payload and feed it into the bulk-onboarding service."""
+    form = await request.form()
+    raw_users = form.get("users") or "[]"
+    try:
+        import json
+        users = json.loads(raw_users)
+    except Exception:
+        raise HTTPException(status_code=400, detail="users must be valid JSON")
+
+    if not isinstance(users, list):
+        raise HTTPException(status_code=400, detail="users must be a list of records")
+
+    send_credentials = form.get("send_credentials") == "true"
+    result = await bulk_onboard_users(db=db, user_records=users, send_credentials=send_credentials)
+    return {
+        "message": "Bulk onboarding completed",
+        "result": result,
+        "assignment": result["assignment"],
+    }
+
+
+
 def _redirect_back(request: Request, default: str = "/admin") -> RedirectResponse:
     return RedirectResponse(
         url=request.headers.get("referer") or default,
