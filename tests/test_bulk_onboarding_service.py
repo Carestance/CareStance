@@ -1,9 +1,26 @@
 from app.services.bulk_onboarding_service import (
+    build_credentials_workbook,
     generate_secure_password,
     get_bulk_onboarding_plan_assignment,
     parse_bulk_onboarding_records,
     build_bulk_onboarding_report,
 )
+
+
+def test_build_credentials_workbook_returns_xlsx_with_account_credentials():
+    workbook_bytes = build_credentials_workbook({
+        "created": [{
+            "full_name": "Student One",
+            "email": "student1@example.com",
+            "password": "Secure123!",
+            "role": "student",
+            "user_id": 42,
+        }],
+        "summary": {"created_count": 1, "skipped_count": 0, "failure_count": 0},
+    })
+
+    assert workbook_bytes[:2] == b"PK"
+    assert b"Account Credentials" in workbook_bytes
 
 
 def test_parse_bulk_onboarding_records_accepts_json_and_csv_inputs():
@@ -61,10 +78,17 @@ def test_bulk_onboarding_plan_assignment_marks_active_paid_access_for_r300_servi
     ]
 
 
-def test_build_day3_onboarding_payload_returns_day_3_milestone_tasks_and_progress():
-    from app.services.onboarding_day3_service import build_day3_onboarding_payload
+def test_admin_router_registers_bulk_onboarding_admin_route():
+    from app.routes.admin import router
 
-    payload = build_day3_onboarding_payload(
+    route_paths = {route.path for route in router.routes}
+    assert "/admin/bulk-onboard" in route_paths
+
+
+def test_build_onboarding_milestone_payload_returns_day_3_milestone_tasks_and_progress():
+    from app.services.onboarding_milestone_service import build_onboarding_milestone_payload
+
+    payload = build_onboarding_milestone_payload(
         completed_tasks=["profile_setup", "upi_setup"],
         user_name="Aarav",
     )

@@ -6,10 +6,11 @@ from __future__ import annotations
 
 import logging
 import csv
+import datetime
 import os
-from fastapi import APIRouter, Depends, Form, HTTPException, Request, Query, Body
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, Query, UploadFile
 
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 from passlib.context import CryptContext
@@ -53,7 +54,11 @@ from app.services.admin_analytics_service import (
     get_moderation_flags,
     resolve_moderation_flag,
 )
-from app.services.bulk_onboarding_service import bulk_onboard_users
+from app.services.bulk_onboarding_service import (
+    bulk_onboard_users,
+    build_credentials_workbook,
+    parse_bulk_onboarding_records,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/admin", tags=["Admin"])
@@ -145,41 +150,68 @@ def _normalize_career_recommendations(assessment: AssessmentResult | None) -> li
     return normalized
 
 
-@router.post("/bulk-onboard")
-async def bulk_onboard_users_route(
-    payload: dict = Body(...),
+# ─── Bulk Onboarding Admin Flow ───────────────────────────────────────────
+
+@router.get("/bulk-onboard", response_class=HTMLResponse)
+async def bulk_onboarding_page(
+    request: Request,
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(get_current_admin),
 ):
-    """Admin-only reusable bulk onboarding route.
-
-    Expected payload:
-    {
-      "users": [
-        {"email": "a@example.com", "full_name": "A", "contact_number": "+91...", "role": "student"}
-      ],
-      "send_credentials": false
-    }
-    """
-    if not isinstance(payload, dict):
-        raise HTTPException(status_code=400, detail="Expected a mapping payload.")
-
-    users = payload.get("users") or payload.get("records") or payload.get("data") or []
-    if not isinstance(users, list):
-        raise HTTPException(status_code=400, detail="Expected users/records/data to be a list.")
-
-    send_credentials = bool(payload.get("send_credentials", False))
-    result = await bulk_onboard_users(
-        db=db,
-        user_records=users,
-        send_credentials=send_credentials,
-        force_email=bool(payload.get("force_email", False)),
+    """Render the reusable bulk onboarding admin page for importing accounts."""
+    return templates.TemplateResponse(
+        request=request,
+        name="admin_bulk_onboarding.html",
+        context={"request": request, "admin": admin},
     )
-    return {
-        "message": "Bulk onboarding completed",
-        "result": result,
-        "assignment": result["assignment"],
-    }
+
+
+@router.post("/bulk-onboard")
+async def bulk_onboarding_submit(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_current_admin),
+    users: str = Form(""),
+    send_credentials: bool = Form(False),
+    users_file: UploadFile = File(None),
+):
+    """Accept JSON/CSV text or a file upload, onboard the listed accounts, and return the report payload.
+
+    This wires the existing reusable bulk-onboarding service into the admin router without
+    forcing the payment/Razorpay flow, matching the requested paid-plan assignment semantics.
+    """
+    raw_input = users or ""
+
+    if users_file and users_file.filename:
+        try:
+            uploaded_bytes = await users_file.read()
+            if isinstance(uploaded_bytes, bytes):
+                uploaded_text = uploaded_bytes.decode("utf-8", errors="ignore")
+                raw_input = uploaded_text
+        except Exception:
+            raw_input = ""
+
+    records = parse_bulk_onboarding_records(raw_input)
+    if not records:
+        return JSONResponse(
+            {"created": [], "skipped": [], "failures": [], "report": {"created_count": 0}},
+            status_code=400,
+        )
+
+    result = await bulk_onboard_users(
+        db,
+        records,
+        send_credentials=bool(send_credentials),
+        force_email=False,
+    )
+
+    workbook = build_credentials_workbook(result)
+    filename = f"carestance-account-credentials-{datetime.date.today().isoformat()}.xlsx"
+    return StreamingResponse(
+        iter([workbook]),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 # ─── Main Dashboard ───────────────────────────────────────────────────────────

@@ -1,6 +1,6 @@
-"""Helpers for the day-3 onboarding milestone used in the CareStance student/counselor kickoff flow.
+"""Helpers for the onboarding milestone workflow used in the CareStance student/counselor kickoff flow.
 
-The service builds a stable payload that represents the third-day checklist slice:
+The service builds a stable payload that represents the checklist slice:
 1. profile_setup
 2. upi_setup
 3. verification_review
@@ -12,11 +12,11 @@ HTML templates or returned through a JSON API endpoint without requiring a datab
 from __future__ import annotations
 
 
-def build_day3_onboarding_payload(
+def build_onboarding_milestone_payload(
     completed_tasks: list[str] | None = None,
     user_name: str | None = None,
 ) -> dict:
-    """Return a consistent Day 3 onboarding payload for any caller.
+    """Return a consistent onboarding milestone payload for any caller.
 
     Args:
         completed_tasks: IDs of tasks already completed in the first two onboarding steps.
