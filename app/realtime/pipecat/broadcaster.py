@@ -1,10 +1,13 @@
 from pipecat.processors.frame_processor import FrameDirection, FrameProcessor
-from pipecat.frames.frames import Frame, TranscriptionFrame, TextFrame, OutputTransportMessageFrame, TTSStoppedFrame
+from pipecat.frames.frames import (
+    Frame, TranscriptionFrame, TextFrame, OutputTransportMessageFrame, 
+    TTSStoppedFrame, BotStartedSpeakingFrame, BotStoppedSpeakingFrame
+)
 import json
 
 class TranscriptBroadcaster(FrameProcessor):
     """
-    Intercepts TranscriptionFrame (from STT) and TextFrame (from LLM)
+    Intercepts TranscriptionFrame (from STT), TextFrame (from LLM), and Bot speaking frames
     and broadcasts them to the WebRTC Data Channel via OutputTransportMessageFrame.
     Also handles TTSStoppedFrame to emit conversation completion after AI finishes speaking.
     """
@@ -39,6 +42,17 @@ class TranscriptBroadcaster(FrameProcessor):
         # Accumulate LLM responses
         elif isinstance(frame, TextFrame):
             self._current_assistant_text += frame.text
+
+        # Broadcast speaking state
+        elif isinstance(frame, BotStartedSpeakingFrame):
+            msg = {"type": "BOT_STARTED_SPEAKING"}
+            out_frame = OutputTransportMessageFrame(message=msg)
+            await self.push_frame(out_frame, direction)
+
+        elif isinstance(frame, BotStoppedSpeakingFrame):
+            msg = {"type": "BOT_STOPPED_SPEAKING"}
+            out_frame = OutputTransportMessageFrame(message=msg)
+            await self.push_frame(out_frame, direction)
 
         # Emit accumulated text on TTS complete
         elif isinstance(frame, TTSStoppedFrame):

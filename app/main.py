@@ -5,6 +5,9 @@ import datetime
 import asyncio
 import io
 import os
+import certifi
+if not os.getenv("SSL_CERT_FILE"):
+    os.environ["SSL_CERT_FILE"] = certifi.where()
 import shutil
 import warnings
 from functools import lru_cache

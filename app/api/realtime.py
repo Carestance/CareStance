@@ -85,7 +85,9 @@ async def webrtc_offer(request: Request, offer: WebRTCOffer, db = Depends(get_db
         llm = components["llm"]
         print("GROQ_INITIALIZED", flush=True)
         tts = components["tts"]
-        print("CARTESIA_INITIALIZED", flush=True)
+        if not tts:
+            raise RuntimeError("Failed to initialize TTS service (neither Sarvam nor Cartesia could be configured).")
+        print(f"TTS_INITIALIZED: {type(tts).__name__}", flush=True)
         
         # 4. Construct the DAG
         messages = [
