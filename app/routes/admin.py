@@ -13,9 +13,8 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, Quer
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
-from passlib.context import CryptContext
-
 from app.database import get_db
+from app.security import get_password_hash, pwd_context
 from app.models import CounsellorProfile, ModerationFlag, Payment, SimulationPayment, Ticket, User
 from app.dependencies.admin_auth import get_current_admin
 from app.models import AssessmentResult
@@ -63,7 +62,6 @@ from app.services.bulk_onboarding_service import (
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/admin", tags=["Admin"])
 templates = Jinja2Templates(directory="frontend/templates")
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 @router.get("/bulk-onboard-form", response_class=HTMLResponse)
@@ -446,27 +444,8 @@ async def api_reset_user_password(
     if len(new_password) < 8:
         raise HTTPException(status_code=400, detail="Password must be at least 8 characters.")
 
-    # bcrypt (via passlib) hard-limits input to 72 bytes.
-    # If password is too long, bcrypt will throw ValueError.
-    # We truncate deterministically for local hashing (Appwrite update uses full password).
-    # bcrypt/passlib enforces 72 BYTES max (not 72 chars). Truncate byte-safe for UTF-8.
-    trunc_bytes = new_password.encode("utf-8")[:72]
-    # Ensure the VALUE we hash is also <=72 BYTES for bcrypt.
-    # Decode with replacement (keeps length predictable) then re-encode.
-    new_password_local = trunc_bytes.decode("utf-8", errors="replace")
-    if len(new_password_local.encode("utf-8")) > 72:
-        # Absolute guarantee: byte-safe truncation.
-        new_password_local = new_password_local.encode("utf-8")[:72].decode("utf-8", errors="ignore")
-
-    # Defensive: bcrypt will refuse >72 bytes. Some environments may still raise,
-    # so re-verify byte-length right before hashing.
-    pw_bytes = new_password_local.encode("utf-8")
-    if len(pw_bytes) > 72:
-        pw_bytes = pw_bytes[:72]
-        new_password_local = pw_bytes.decode("utf-8", errors="ignore")
-
-    # Hash only after guaranteed byte-length.
-    hashed = pwd_context.hash(new_password_local)
+    # Hash using bcrypt with safe byte-level 72-byte truncation
+    hashed = get_password_hash(new_password)
 
 
 

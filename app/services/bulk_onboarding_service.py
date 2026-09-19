@@ -6,15 +6,13 @@ import secrets
 import string
 from typing import Any
 
-from passlib.context import CryptContext
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.email_utils import send_email
 from app.models import User
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+from app.security import get_password_hash, pwd_context
 
 
 R300_SERVICE_BUNDLE = [
@@ -249,7 +247,7 @@ async def bulk_onboard_users(
             continue
 
         secure_password = generate_secure_password(16)
-        hashed_password = pwd_context.hash(secure_password)
+        hashed_password = get_password_hash(secure_password)
 
         user = User(
             email=email,
