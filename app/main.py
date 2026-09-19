@@ -1120,27 +1120,7 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
 templates.env.auto_reload = True
 # Re-enabled cache as standard practice
-# pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto"]) # Removed
-
-def _get_bcrypt():
-    import bcrypt
-    return bcrypt
-
-
-def verify_password(plain_password, hashed_password):
-    bcrypt = _get_bcrypt()
-    # Ensure bytes for bcrypt
-    if isinstance(hashed_password, str):
-        hashed_password = hashed_password.encode('utf-8')
-    return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password)
-
-def get_password_hash(password: str) -> str:
-    bcrypt = _get_bcrypt()
-    # bcrypt has a hard limit of 72 BYTES on UTF-8 encoded passwords.
-    # Truncate safely by bytes then decode with errors='ignore'.
-    pwd_bytes = password.encode('utf-8')[:72]
-    pwd_trunc = pwd_bytes.decode('utf-8', errors='ignore')
-    return bcrypt.hashpw(pwd_trunc.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+from app.security import get_password_hash, verify_password, pwd_context
 
 
 async def get_current_user(request: Request, db: AsyncSession = Depends(get_db)):
