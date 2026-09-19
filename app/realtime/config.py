@@ -1,4 +1,7 @@
 import os
+import certifi
+if not os.getenv("SSL_CERT_FILE"):
+    os.environ["SSL_CERT_FILE"] = certifi.where()
 from typing import Optional
 
 # Sanitize Sarvam API exceptions to prevent secret leakage
