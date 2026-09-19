@@ -12,8 +12,20 @@ class VoiceClient {
         this.state = 'IDLE';
         this.peerConnection = null;
         this.localStream = null;
-        this.remoteAudio = document.createElement('audio');
-        this.remoteAudio.autoplay = true;
+        
+        // Ensure remote audio element is properly attached to the DOM so browsers don't restrict playback
+        let el = document.getElementById('carestance-remote-audio');
+        if (!el) {
+            el = document.createElement('audio');
+            el.id = 'carestance-remote-audio';
+            el.autoplay = true;
+            el.playsInline = true;
+            el.style.display = 'none';
+            document.body.appendChild(el);
+        }
+        this.remoteAudio = el;
+        this.remoteAudio.muted = false;
+        this.remoteAudio.volume = 1.0;
         
         // Track connection and interruption state
         this.isConnecting = false;
@@ -35,6 +47,13 @@ class VoiceClient {
         this.isConnecting = true;
 
         try {
+            // Prime and unlock audio element directly within user interaction gesture
+            if (this.remoteAudio) {
+                this.remoteAudio.muted = false;
+                this.remoteAudio.volume = 1.0;
+                this.remoteAudio.play().catch(() => {});
+            }
+
             // Get local microphone stream with echo cancellation and noise suppression
             this.localStream = await navigator.mediaDevices.getUserMedia({
                 audio: {
@@ -66,41 +85,44 @@ class VoiceClient {
                     const msg = JSON.parse(event.data);
                     this.onMessage(msg);
                 } catch (e) {
-                    console.log("Data channel message (non-JSON):", event.data);
+                    console.log("[VoiceClient] Data channel message (non-JSON):", event.data);
                 }
             };
 
-            // Handle incoming remote audio stream & apply volume gain boost
+            // Handle incoming remote audio stream & play directly through audio element
             this.peerConnection.ontrack = (event) => {
-                if (event.streams && event.streams[0]) {
-                    this.remoteAudio.srcObject = event.streams[0];
-                    
-                    try {
-                        const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
-                        if (AudioCtxClass && !this.audioCtx) {
-                            this.audioCtx = new AudioCtxClass();
-                            const source = this.audioCtx.createMediaStreamSource(event.streams[0]);
-                            const gainNode = this.audioCtx.createGain();
-                            gainNode.gain.value = 1.5;
-                            source.connect(gainNode);
-                            gainNode.connect(this.audioCtx.destination);
-                            if (this.audioCtx.state === 'suspended') {
-                                this.audioCtx.resume();
-                            }
-                            // Mute raw HTML audio element to prevent double-output acoustic echo
-                            this.remoteAudio.muted = true;
-                        }
-                    } catch (gainErr) {
-                        console.warn("Volume gain boost note:", gainErr);
-                        this.remoteAudio.muted = false;
-                        this.remoteAudio.volume = 1.0;
-                    }
-                    
-                    this.remoteAudio.play().catch(() => {});
+                console.log("[VoiceClient] Remote track received:", event.track.kind);
+                const stream = (event.streams && event.streams[0]) 
+                    ? event.streams[0] 
+                    : new MediaStream([event.track]);
+                
+                this.remoteAudio.srcObject = stream;
+                this.remoteAudio.muted = false;
+                this.remoteAudio.volume = 1.0;
+
+                const playPromise = this.remoteAudio.play();
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        console.log("[VoiceClient] Remote audio playing successfully.");
+                    }).catch((err) => {
+                        console.warn("[VoiceClient] Auto-play was prevented by browser policy:", err);
+                        // Fallback: unlock on next user interaction
+                        const unlockAudio = () => {
+                            this.remoteAudio.play().then(() => {
+                                console.log("[VoiceClient] Audio playback resumed by user gesture.");
+                            }).catch(() => {});
+                            document.removeEventListener('click', unlockAudio);
+                            document.removeEventListener('touchstart', unlockAudio);
+                        };
+                        document.addEventListener('click', unlockAudio, { once: true });
+                        document.addEventListener('touchstart', unlockAudio, { once: true });
+                    });
                 }
             };
 
             this.peerConnection.onconnectionstatechange = () => {
+                console.log("[VoiceClient] Connection state:", this.peerConnection ? this.peerConnection.connectionState : 'closed');
+                if (!this.peerConnection) return;
                 if (this.peerConnection.connectionState === 'connected') {
                     this.setState('LISTENING');
                 } else if (this.peerConnection.connectionState === 'disconnected' || 
@@ -120,6 +142,7 @@ class VoiceClient {
                     'Content-Type': 'application/json',
                     'X-Client-ID': localStorage.getItem('carestance_client_id') || 'anonymous'
                 },
+                credentials: 'include',
                 body: JSON.stringify({
                     sdp: this.peerConnection.localDescription.sdp,
                     type: this.peerConnection.localDescription.type
@@ -144,7 +167,7 @@ class VoiceClient {
             }
 
         } catch (error) {
-            console.error("WebRTC Connection failed:", error);
+            console.error("[VoiceClient] WebRTC Connection failed:", error);
             this.setState('ERROR');
             this.disconnect();
         } finally {
@@ -153,16 +176,12 @@ class VoiceClient {
     }
 
     async handleUserSpeech(text) {
-        // In WebRTC mode, speech is automatically streamed to the backend.
-        // This method is kept for backwards compatibility with the UI transcript handler
         if (!text) return;
         this.onMessage(text, 'user');
         this.chatHistory.push({ role: 'user', content: text });
     }
 
     speak(text) {
-        // In WebRTC mode, audio plays automatically via remoteAudio.
-        // We just update the state/UI.
         this.onMessage(text, 'assistant');
         this.setState('SPEAKING');
     }
@@ -182,6 +201,7 @@ class VoiceClient {
 
         if (this.remoteAudio) {
             this.remoteAudio.srcObject = null;
+            this.remoteAudio.pause();
         }
 
         this.setState('DISCONNECTED');
