@@ -11,8 +11,20 @@ class VoiceClient {
         this.state = 'IDLE';
         this.peerConnection = null;
         this.localStream = null;
-        this.remoteAudio = document.createElement('audio');
-        this.remoteAudio.autoplay = true;
+        
+        // Ensure remote audio element is properly attached to the DOM so browsers don't restrict playback
+        let el = document.getElementById('carestance-remote-audio');
+        if (!el) {
+            el = document.createElement('audio');
+            el.id = 'carestance-remote-audio';
+            el.autoplay = true;
+            el.playsInline = true;
+            el.style.display = 'none';
+            document.body.appendChild(el);
+        }
+        this.remoteAudio = el;
+        this.remoteAudio.muted = false;
+        this.remoteAudio.volume = 1.0;
         
         // Track connection and interruption state
         this.isConnecting = false;
@@ -100,7 +112,7 @@ class VoiceClient {
                     const msg = JSON.parse(event.data);
                     this.onMessage(msg);
                 } catch (e) {
-                    console.log("Data channel message (non-JSON):", event.data);
+                    console.log("[VoiceClient] Data channel message (non-JSON):", event.data);
                 }
             };
 
@@ -157,6 +169,7 @@ class VoiceClient {
                     'Content-Type': 'application/json',
                     'X-Client-ID': localStorage.getItem('carestance_client_id') || 'anonymous'
                 },
+                credentials: 'include',
                 body: JSON.stringify({
                     sdp: peerConnection.localDescription.sdp,
                     type: peerConnection.localDescription.type
@@ -194,16 +207,12 @@ class VoiceClient {
     }
 
     async handleUserSpeech(text) {
-        // In WebRTC mode, speech is automatically streamed to the backend.
-        // This method is kept for backwards compatibility with the UI transcript handler
         if (!text) return;
         this.onMessage(text, 'user');
         this.chatHistory.push({ role: 'user', content: text });
     }
 
     speak(text) {
-        // In WebRTC mode, audio plays automatically via remoteAudio.
-        // We just update the state/UI.
         this.onMessage(text, 'assistant');
         this.setState('SPEAKING');
     }
@@ -223,6 +232,7 @@ class VoiceClient {
 
         if (this.remoteAudio) {
             this.remoteAudio.srcObject = null;
+            this.remoteAudio.pause();
         }
 
         this.setState(nextState);

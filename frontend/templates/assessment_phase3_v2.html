@@ -221,7 +221,7 @@
 
     // Audio Analysis for Lip Sync
     function setupAudioAnalysis() {
-        if (!window.voiceClient || !window.voiceClient.remoteAudio.srcObject) {
+        if (!window.voiceClient || !window.voiceClient.remoteAudio || !window.voiceClient.remoteAudio.srcObject) {
             // Fallback animation if Web Audio API can't connect
             fakeLipSync();
             return;
@@ -245,7 +245,7 @@
         }
         
         if (audioCtx.state === 'suspended') {
-            audioCtx.resume();
+            audioCtx.resume().catch(() => {});
         }
         
         analyzeAudio();
@@ -269,9 +269,6 @@
         }
         const average = sum / limit;
         const audioLevel = average / 255; // 0 to 1
-        
-        // When AI stops talking (silence), audioLevel drops to ~0.
-        // We can detect end of speech if silence persists, but for now we just react.
         
         // Apply smoothed transform to the mascot image to simulate speaking / breathing
         const scale = 1 + (audioLevel * 0.15); // Max scale 1.15
@@ -310,6 +307,10 @@
         setUIState('CONNECTING');
         updateCaption('Connecting to AI...');
         
+        if (audioCtx && audioCtx.state === 'suspended') {
+            audioCtx.resume().catch(() => {});
+        }
+        
         const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsUrl = `${wsProtocol}//${window.location.host}/api/webrtc/offer`;
         
@@ -336,6 +337,12 @@
                 setUIState('AI_SPEAKING');
                 updateCaption(msg.text);
                 chatHistory.push({ role: 'assistant', content: msg.text });
+            } else if (msg.type === 'BOT_STARTED_SPEAKING') {
+                setUIState('AI_SPEAKING');
+            } else if (msg.type === 'BOT_STOPPED_SPEAKING') {
+                if (currentUIState === 'AI_SPEAKING') {
+                    setUIState('LISTENING');
+                }
             } else if (msg.type === 'CONVERSATION_COMPLETED') {
                 // Change the end button to a prominent "Finish & Get Results" text button
                 endBtn.classList.remove('hidden', 'w-12', 'h-12', 'rounded-full');
@@ -344,40 +351,29 @@
             }
         });
         
-        // Overwrite peer connection creation to ensure we catch audio track properly
-        // Note: voiceClient internally sets this.remoteAudio.srcObject.
-        // We can just rely on setupAudioAnalysis finding it.
-        
-        // Listen for when AI audio stops (interruption or finished speaking)
-        // Since we don't have a reliable AI_SILENCE event from pipecat via WebRTC text channel natively,
-        // we can assume if state changes back to LISTENING, speaking is done.
-        
         window.voiceClient.connect();
     }
     
-    // Fix: We need to transition back to LISTENING when the AI finishes speaking.
-    // In WebRTC, the data channel doesn't always send an "I finished speaking" event.
-    // However, if we do audio analysis, we can detect silence.
+    // Transition back to LISTENING when speech ends
+    let silenceDuration = 0;
     setInterval(() => {
         if (currentUIState === 'AI_SPEAKING' && analyser && dataArray) {
-            // Quick check if silent
             analyser.getByteFrequencyData(dataArray);
             let sum = 0;
             for(let i=0; i<dataArray.length; i++) sum += dataArray[i];
             if (sum === 0) {
-                // Silent
-                setTimeout(() => {
-                    // Check again after 1 sec to ensure it wasn't just a pause
+                silenceDuration += 500;
+                if (silenceDuration >= 2000) {
                     if (currentUIState === 'AI_SPEAKING') {
-                        analyser.getByteFrequencyData(dataArray);
-                        let sum2 = 0;
-                        for(let i=0; i<dataArray.length; i++) sum2 += dataArray[i];
-                        if (sum2 === 0) {
-                            setUIState('LISTENING');
-                        }
+                        setUIState('LISTENING');
                     }
-                }, 1000);
+                    silenceDuration = 0;
+                }
+            } else {
+                silenceDuration = 0;
             }
+        } else {
+            silenceDuration = 0;
         }
     }, 500);
 

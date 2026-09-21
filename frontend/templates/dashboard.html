@@ -706,6 +706,107 @@
         color: #fff;
     }
     .btn-gradient-primary:hover { opacity: 0.9; color: #fff; }
+
+    /* Post-onboarding workspace */
+    .onward-panel {
+        background: linear-gradient(125deg, rgba(15, 23, 42, 0.96), rgba(15, 118, 110, 0.94));
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: 1.75rem;
+        color: #f8fafc;
+        padding: clamp(1.25rem, 3vw, 2rem);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .onward-panel::after {
+        content: '';
+        position: absolute;
+        width: 220px;
+        height: 220px;
+        right: -80px;
+        top: -100px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 50%;
+        box-shadow: 0 0 0 24px rgba(255, 255, 255, 0.04), 0 0 0 48px rgba(255, 255, 255, 0.03);
+        pointer-events: none;
+    }
+
+    .onward-panel h2,
+    .onward-panel p { color: inherit; }
+
+    .onward-kicker {
+        color: #99f6e4;
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+    }
+
+    .onward-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    .onward-item {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 1rem;
+        min-height: 132px;
+        padding: 1rem;
+    }
+
+    .onward-item-label {
+        color: #a7f3d0;
+        font-size: 0.65rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+    }
+
+    .onward-item p {
+        color: rgba(248, 250, 252, 0.78);
+        font-size: 0.8rem;
+        line-height: 1.5;
+        margin-top: 0.5rem;
+    }
+
+    .onward-item strong {
+        display: block;
+        font-size: 1rem;
+        line-height: 1.25;
+        margin-top: 0.4rem;
+    }
+
+    .onward-action {
+        align-items: center;
+        background: #fbbf24;
+        border-radius: 0.75rem;
+        color: #172554;
+        display: inline-flex;
+        font-size: 0.78rem;
+        font-weight: 800;
+        gap: 0.45rem;
+        margin-top: 1.25rem;
+        padding: 0.7rem 0.95rem;
+        position: relative;
+        transition: transform 0.2s ease, background 0.2s ease;
+        z-index: 1;
+    }
+
+    .onward-action:hover {
+        background: #fde68a;
+        color: #172554;
+        transform: translateY(-2px);
+    }
+
+    @media (max-width: 768px) {
+        .onward-grid { grid-template-columns: 1fr; }
+        .onward-item { min-height: auto; }
+    }
 </style>
 {% endblock %}
 
@@ -775,6 +876,37 @@
     <!-- STATE 2: COMPLETED USERS (Dashboard Widgets Panel) -->
     {% else %}
     {% set dashboard_sim_career = assessment.recommended_stream or assessment.phase_2_category or 'Career Explorer' %}
+    {% set report_dashboard = assessment.assessment_report.dashboard if assessment.assessment_report and assessment.assessment_report.dashboard else {} %}
+    {% set strengths = report_dashboard.strengths if report_dashboard.strengths else ['Curiosity', 'Adaptability'] %}
+    {% set growth_areas = report_dashboard.weaknesses if report_dashboard.weaknesses else ['Keep building evidence through practice'] %}
+    <section class="onward-panel db-stagger" aria-labelledby="onward-title">
+        <div class="onward-kicker">Your next chapter</div>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;position:relative;z-index:1;">
+            <div>
+                <h2 id="onward-title" style="font-size:clamp(1.35rem, 3vw, 2rem);margin-top:0.45rem;">Turn your results into momentum.</h2>
+                <p style="font-size:0.9rem;max-width:620px;margin-top:0.55rem;">Your assessment is complete. Use these signals to choose one direction, practise deliberately, and keep a record of what you learn.</p>
+            </div>
+            <span class="db-xp-badge" style="flex-shrink:0;background:rgba(255,255,255,0.14);border-color:rgba(255,255,255,0.22);color:#fef3c7;"><i class="fas fa-check" style="font-size:0.6rem;"></i> Onboarded</span>
+        </div>
+        <div class="onward-grid">
+            <div class="onward-item">
+                <div class="onward-item-label"><i class="fas fa-sparkles"></i> You bring</div>
+                <strong>{{ strengths[0] if strengths|length > 0 else 'Curiosity' }}</strong>
+                <p>{{ strengths[1] if strengths|length > 1 else 'A starting point worth exploring.' }}</p>
+            </div>
+            <div class="onward-item">
+                <div class="onward-item-label"><i class="fas fa-arrow-trend-up"></i> Build next</div>
+                <strong>{{ growth_areas[0] if growth_areas|length > 0 else 'Practical confidence' }}</strong>
+                <p>Make this your focus for the next few weeks.</p>
+            </div>
+            <div class="onward-item">
+                <div class="onward-item-label"><i class="fas fa-compass"></i> Direction</div>
+                <strong>{{ dashboard_sim_career }}</strong>
+                <p>Compare this path with the full report before you commit.</p>
+            </div>
+        </div>
+        <a class="onward-action" href="/my-monthly-path"><i class="fas fa-route"></i> Open your monthly path <i class="fas fa-arrow-right"></i></a>
+    </section>
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         <!-- Left Column: Main Results, Action and Sessions -->

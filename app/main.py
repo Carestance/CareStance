@@ -5,6 +5,9 @@ import datetime
 import asyncio
 import io
 import os
+import certifi
+if not os.getenv("SSL_CERT_FILE"):
+    os.environ["SSL_CERT_FILE"] = certifi.where()
 import shutil
 import warnings
 from functools import lru_cache
@@ -44,7 +47,7 @@ from itsdangerous import URLSafeTimedSerializer
 from .data.career_keywords import career_keywords
 from .services import simulation_service
 from .services import assessment_engine
-from .services.onboarding_day3_service import build_day3_onboarding_payload
+from .services.onboarding_milestone_service import build_onboarding_milestone_payload
 
 LIVE_SIMULATION_SESSIONS = {}
 
@@ -1120,27 +1123,7 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
 templates.env.auto_reload = True
 # Re-enabled cache as standard practice
-# pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto"]) # Removed
-
-def _get_bcrypt():
-    import bcrypt
-    return bcrypt
-
-
-def verify_password(plain_password, hashed_password):
-    bcrypt = _get_bcrypt()
-    # Ensure bytes for bcrypt
-    if isinstance(hashed_password, str):
-        hashed_password = hashed_password.encode('utf-8')
-    return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password)
-
-def get_password_hash(password: str) -> str:
-    bcrypt = _get_bcrypt()
-    # bcrypt has a hard limit of 72 BYTES on UTF-8 encoded passwords.
-    # Truncate safely by bytes then decode with errors='ignore'.
-    pwd_bytes = password.encode('utf-8')[:72]
-    pwd_trunc = pwd_bytes.decode('utf-8', errors='ignore')
-    return bcrypt.hashpw(pwd_trunc.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+from app.security import get_password_hash, verify_password, pwd_context
 
 
 async def get_current_user(request: Request, db: AsyncSession = Depends(get_db)):
@@ -1210,9 +1193,9 @@ async def complete_onboarding(request: Request, db: AsyncSession = Depends(get_d
         await db.commit()
     return {"status": "success"}
 
-@app.get("/api/onboarding/day-3")
-async def day3_onboarding_payload(request: Request, db: AsyncSession = Depends(get_db)):
-    """Return a day-3 onboarding payload for UI and API clients.
+@app.get("/api/onboarding/milestone")
+async def onboarding_milestone_payload(request: Request, db: AsyncSession = Depends(get_db)):
+    """Return an onboarding milestone payload for UI and API clients.
 
     The frontend can pass completed task IDs as repeated query parameters such as
     ?completed_tasks=profile_setup&completed_tasks=upi_setup. If the user is
@@ -1221,7 +1204,7 @@ async def day3_onboarding_payload(request: Request, db: AsyncSession = Depends(g
     user = await get_current_user(request, db)
     completed_tasks = request.query_params.getlist("completed_tasks") or []
     user_name = user.full_name if user and user.full_name else None
-    return JSONResponse(build_day3_onboarding_payload(
+    return JSONResponse(build_onboarding_milestone_payload(
         completed_tasks=completed_tasks,
         user_name=user_name,
     ))
