@@ -320,6 +320,10 @@
             else if (state === 'ERROR') setUIState('ERROR');
             else if (state === 'DISCONNECTED') setUIState('IDLE');
         }, (msg) => {
+            if (msg && msg.type === 'VOICE_ERROR') {
+                updateCaption(msg.message || 'Microphone connection failed. Please check browser permissions and try again.');
+                return;
+            }
             if (!msg || !msg.type) return;
 
             if (msg.type === 'TRANSCRIPT_PARTIAL') {
