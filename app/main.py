@@ -5488,7 +5488,7 @@ async def assessment_phase3(request: Request, mode: str = "chat", db: AsyncSessi
         return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
         
     if mode in ["chat", "text"]:
-        return RedirectResponse(url="/chatbot", status_code=status.HTTP_302_FOUND)
+        return RedirectResponse(url="/chatbot?mode=assessment", status_code=status.HTTP_302_FOUND)
 
     is_completed = (result.phase3_result == "COMPLETED")
     import json
@@ -7855,17 +7855,27 @@ def build_local_careerbuddy_response(user, result, user_message: str) -> str:
     )
 
 @app.get("/chatbot", response_class=HTMLResponse)
-async def chatbot_page(request: Request, db: AsyncSession = Depends(get_db)):
+async def chatbot_page(request: Request, mode: str = "chat", db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     
     # Fetch History
     history = (await db.execute(select(models.ChatMessage).where(models.ChatMessage.user_id == user.id).order_by(models.ChatMessage.timestamp))).scalars().all()
+    history_json = json.dumps([
+        {"role": "user" if msg.sender == "user" else "assistant", "content": msg.content}
+        for msg in history
+    ])
     
     try:
         template = templates.get_template("chatbot.html")
-        content = template.render({"request": request, "user": user, "history": history})
+        content = template.render({
+            "request": request,
+            "user": user,
+            "history": history,
+            "history_json": history_json,
+            "is_assessment_mode": mode == "assessment",
+        })
         return HTMLResponse(content=content)
     except Exception as e:
         import traceback
