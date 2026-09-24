@@ -32,10 +32,14 @@ class VoiceClient {
         this.chatHistory = [];
 
         // Client ID persistence
-        this.clientId = localStorage.getItem('carestance_client_id');
-        if (!this.clientId) {
-            this.clientId = 'client_' + Math.random().toString(36).substring(2, 11);
-            localStorage.setItem('carestance_client_id', this.clientId);
+        if (typeof localStorage !== 'undefined') {
+            this.clientId = localStorage.getItem('carestance_client_id');
+            if (!this.clientId) {
+                this.clientId = 'client_' + Math.random().toString(36).substring(2, 11);
+                localStorage.setItem('carestance_client_id', this.clientId);
+            }
+        } else {
+            this.clientId = 'client_node_' + Math.random().toString(36).substring(2, 11);
         }
 
         // Initialize or bind to the hidden remote audio element
@@ -67,6 +71,8 @@ class VoiceClient {
     }
 
     initAudioElement() {
+        if (typeof document === 'undefined') return;
+
         let el = document.getElementById('carestance-remote-audio');
         if (!el) {
             el = document.createElement('audio');
@@ -91,10 +97,39 @@ class VoiceClient {
     }
 
     /**
-     * Determines whether this instance currently represents the active connection attempt.
+     * Determines whether a given attempt ID currently represents the active connection attempt.
      */
-    isCurrentAttempt() {
-        return this.connectionAttemptId === VoiceClient.activeAttemptId && !this.isDisconnecting;
+    isCurrentAttempt(attemptId = this.connectionAttemptId) {
+        return (
+            attemptId > 0 &&
+            attemptId === this.connectionAttemptId &&
+            this.connectionAttemptId === VoiceClient.activeAttemptId &&
+            !this.isDisconnecting
+        );
+    }
+
+    /**
+     * Validates that the captured PeerConnection instance is still the active connection,
+     * matches the current attempt, and has not been closed or replaced.
+     */
+    isValidPeerConnection(pc, attemptId = this.connectionAttemptId) {
+        if (!this.isCurrentAttempt(attemptId)) {
+            this.log(`[WebRTC] [Attempt #${attemptId}] Validation failed: attempt is stale (current active: #${VoiceClient.activeAttemptId}, isDisconnecting=${this.isDisconnecting})`);
+            return false;
+        }
+        if (!pc) {
+            this.log(`[WebRTC] [Attempt #${attemptId}] Validation failed: captured pc is null/undefined`);
+            return false;
+        }
+        if (this.peerConnection !== pc) {
+            this.log(`[WebRTC] [Attempt #${attemptId}] Validation failed: PeerConnection reference changed (active PC !== captured PC)`);
+            return false;
+        }
+        if (pc.signalingState === "closed") {
+            this.log(`[WebRTC] [Attempt #${attemptId}] Validation failed: pc.signalingState is "closed"`);
+            return false;
+        }
+        return true;
     }
 
     setState(newState) {
@@ -117,6 +152,8 @@ class VoiceClient {
      * Fallback autoplay unlock handler if browser policy prevents initial play.
      */
     setupAutoplayUnlock() {
+        if (typeof document === 'undefined') return;
+
         this.log("[WebRTC] Registering user-interaction fallback for audio unlock");
         const unlock = () => {
             if (this.isCurrentAttempt() && this.remoteAudio && this.remoteAudio.srcObject) {
@@ -202,7 +239,9 @@ class VoiceClient {
         this.setState('CONNECTING');
 
         // Expose globally for diagnostics and kiosk telemetry
-        window.voiceClient = this;
+        if (typeof window !== 'undefined') {
+            window.voiceClient = this;
+        }
 
         try {
             // Cancel any prior in-flight fetch request
@@ -212,7 +251,7 @@ class VoiceClient {
             this.abortController = new AbortController();
 
             // 1. Get user media (microphone)
-            this.log("[WebRTC] Requesting microphone access");
+            this.log(`[WebRTC] [Attempt #${attemptId}] Requesting microphone access`);
             try {
                 this.localStream = await navigator.mediaDevices.getUserMedia({
                     audio: {
@@ -232,8 +271,8 @@ class VoiceClient {
             }
 
             // Check if connection was aborted while waiting for mic permission
-            if (!this.isCurrentAttempt()) {
-                this.log("[WebRTC] Stale PeerConnection attempt after getUserMedia aborted");
+            if (!this.isCurrentAttempt(attemptId)) {
+                this.log(`[WebRTC] [Attempt #${attemptId}] Stale PeerConnection attempt after getUserMedia aborted; stopping local tracks`);
                 if (this.localStream) {
                     this.localStream.getTracks().forEach(t => t.stop());
                     this.localStream = null;
@@ -242,7 +281,7 @@ class VoiceClient {
             }
 
             // 2. Create RTCPeerConnection
-            this.log("[WebRTC] Creating PeerConnection");
+            this.log(`[WebRTC] [Attempt #${attemptId}] Creating PeerConnection`);
             const pc = new RTCPeerConnection({
                 iceServers: [
                     { urls: 'stun:stun.l.google.com:19302' },
@@ -251,7 +290,9 @@ class VoiceClient {
                 ]
             });
             this.peerConnection = pc;
-            window.peerConnection = pc;
+            if (typeof window !== 'undefined') {
+                window.peerConnection = pc;
+            }
 
             // 3. Add local tracks to peer connection
             this.localStream.getTracks().forEach(track => {
@@ -271,7 +312,7 @@ class VoiceClient {
             // 4. Create Data Channel for Pipecat transcripts & events
             this.dataChannel = pc.createDataChannel("pipecat");
             this.dataChannel.onmessage = (event) => {
-                if (!this.isCurrentAttempt()) return;
+                if (!this.isValidPeerConnection(pc, attemptId)) return;
                 try {
                     const msg = JSON.parse(event.data);
                     this.onMessage(msg);
@@ -282,17 +323,17 @@ class VoiceClient {
 
             // 5. Handle remote audio track & play directly through audio element
             pc.ontrack = (event) => {
-                if (!this.isCurrentAttempt()) {
-                    this.log("[WebRTC] Stale track event ignored");
+                if (!this.isValidPeerConnection(pc, attemptId)) {
+                    this.log(`[WebRTC] [Attempt #${attemptId}] Stale track event ignored`);
                     return;
                 }
 
                 if (event.track.kind !== "audio") {
-                    this.log("[WebRTC] Remote track received (ignored non-audio):", event.track.kind);
+                    this.log(`[WebRTC] [Attempt #${attemptId}] Remote track received (ignored non-audio):`, event.track.kind);
                     return;
                 }
 
-                this.log("[WebRTC] Remote track received", {
+                this.log(`[WebRTC] [Attempt #${attemptId}] Remote track received`, {
                     kind: event.track.kind,
                     id: event.track.id,
                     readyState: event.track.readyState,
@@ -304,88 +345,104 @@ class VoiceClient {
                     ? event.streams[0] 
                     : new MediaStream([event.track]);
 
-                this.remoteAudio.srcObject = stream;
-                this.remoteAudio.muted = false;
-                this.remoteAudio.volume = 1.0;
-                this.remoteAudio.autoplay = true;
-                this.remoteAudio.playsInline = true;
-                this.remoteAudio._attachedAttemptId = this.connectionAttemptId;
+                if (this.remoteAudio) {
+                    this.remoteAudio.srcObject = stream;
+                    this.remoteAudio.muted = false;
+                    this.remoteAudio.volume = 1.0;
+                    this.remoteAudio.autoplay = true;
+                    this.remoteAudio.playsInline = true;
+                    this.remoteAudio._attachedAttemptId = attemptId;
 
-                this.log("[WebRTC] Remote audio stream attached");
-                this.logAudioState();
+                    this.log(`[WebRTC] [Attempt #${attemptId}] Remote audio stream attached`);
+                    this.logAudioState();
 
-                const playPromise = this.remoteAudio.play();
-                if (playPromise !== undefined) {
-                    playPromise.then(() => {
-                        this.log("[WebRTC] Audio playback started");
-                        this.logAudioState();
-                    }).catch((error) => {
-                        console.error("[WebRTC] Audio playback failed:", error);
-                        this.logAudioState();
-                        if (error.name === "NotAllowedError") {
-                            this.setupAutoplayUnlock();
-                        }
-                    });
+                    const playPromise = this.remoteAudio.play();
+                    if (playPromise !== undefined) {
+                        playPromise.then(() => {
+                            this.log(`[WebRTC] [Attempt #${attemptId}] Audio playback started`);
+                            this.logAudioState();
+                        }).catch((error) => {
+                            console.error(`[WebRTC] [Attempt #${attemptId}] Audio playback failed:`, error);
+                            this.logAudioState();
+                            if (error.name === "NotAllowedError") {
+                                this.setupAutoplayUnlock();
+                            }
+                        });
+                    }
                 }
 
                 event.track.onended = () => {
-                    this.log("[WebRTC] Remote track ended:", event.track.id);
+                    this.log(`[WebRTC] [Attempt #${attemptId}] Remote track ended:`, event.track.id);
                 };
                 event.track.onmute = () => {
-                    this.log("[WebRTC] Remote track muted:", event.track.id);
+                    this.log(`[WebRTC] [Attempt #${attemptId}] Remote track muted:`, event.track.id);
                 };
                 event.track.onunmute = () => {
-                    this.log("[WebRTC] Remote track unmuted:", event.track.id);
+                    this.log(`[WebRTC] [Attempt #${attemptId}] Remote track unmuted:`, event.track.id);
                 };
             };
 
             // 6. Monitor connection, ICE, and signaling states
             pc.onconnectionstatechange = () => {
-                if (!this.isCurrentAttempt()) return;
-                const cState = pc ? pc.connectionState : 'closed';
-                this.log(`[WebRTC] connectionState=${cState}`);
+                if (!this.isValidPeerConnection(pc, attemptId)) {
+                    this.log(`[WebRTC] [Attempt #${attemptId}] Stale connectionstatechange ignored (state=${pc ? pc.connectionState : 'null'})`);
+                    return;
+                }
+                const cState = pc.connectionState;
+                this.log(`[WebRTC] [Attempt #${attemptId}] connectionState=${cState}`);
                 
                 if (cState === 'connected') {
                     this.setState('LISTENING');
                     this.startStatsMonitoring();
                 } else if (cState === 'disconnected' || cState === 'failed') {
-                    console.warn(`[WebRTC] Connection state changed to ${cState}`);
+                    console.warn(`[WebRTC] [Attempt #${attemptId}] Connection state changed to ${cState}`);
                     this.disconnect();
                 }
             };
 
             pc.oniceconnectionstatechange = () => {
-                if (!this.isCurrentAttempt()) return;
-                const iceState = pc ? pc.iceConnectionState : 'closed';
-                this.log(`[WebRTC] iceConnectionState=${iceState}`);
+                if (!this.isValidPeerConnection(pc, attemptId)) return;
+                const iceState = pc.iceConnectionState;
+                this.log(`[WebRTC] [Attempt #${attemptId}] iceConnectionState=${iceState}`);
                 if (iceState === 'failed') {
-                    console.error("[WebRTC] ICE failure detected");
+                    console.error(`[WebRTC] [Attempt #${attemptId}] ICE failure detected`);
                     this.disconnect();
                 }
             };
 
             pc.onsignalingstatechange = () => {
-                if (!this.isCurrentAttempt()) return;
-                const sigState = pc ? pc.signalingState : 'closed';
-                this.log(`[WebRTC] signalingState=${sigState}`);
+                if (!this.isValidPeerConnection(pc, attemptId)) return;
+                const sigState = pc.signalingState;
+                this.log(`[WebRTC] [Attempt #${attemptId}] signalingState=${sigState}`);
             };
 
             // 7. Create WebRTC Offer
-            this.log("[WebRTC] Creating offer");
+            this.log(`[WebRTC] [Attempt #${attemptId}] Creating offer`);
             const offer = await pc.createOffer();
-            if (!this.isCurrentAttempt()) return;
+            if (!this.isValidPeerConnection(pc, attemptId)) {
+                this.log(`[WebRTC] [Attempt #${attemptId}] Aborted after createOffer; PeerConnection reference changed or closed`);
+                return;
+            }
 
+            // 8. Set Local Description
+            this.log(`[WebRTC] [Attempt #${attemptId}] Setting local description`);
             await pc.setLocalDescription(offer);
-            if (!this.isCurrentAttempt()) return;
+            if (!this.isValidPeerConnection(pc, attemptId)) {
+                this.log(`[WebRTC] [Attempt #${attemptId}] Aborted after setLocalDescription; PeerConnection reference changed or closed`);
+                return;
+            }
 
-            // 8. Wait for ICE gathering to complete before sending SDP offer (Vanilla ICE)
+            // 9. Wait for ICE gathering to complete before sending SDP offer (Vanilla ICE)
             await this.waitForIceGatheringComplete(pc, 2000);
-            if (!this.isCurrentAttempt()) return;
+            if (!this.isValidPeerConnection(pc, attemptId)) {
+                this.log(`[WebRTC] [Attempt #${attemptId}] Aborted after ICE gathering wait; PeerConnection reference changed or closed`);
+                return;
+            }
 
-            // 9. Inspect candidate presence and send offer
+            // 10. Inspect candidate presence and send offer
             const hasCandidates = pc.localDescription && pc.localDescription.sdp.includes("a=candidate:");
-            this.log(`[WebRTC] SDP contains candidates: ${hasCandidates}`);
-            this.log("[WebRTC] Sending fully gathered SDP offer");
+            this.log(`[WebRTC] [Attempt #${attemptId}] SDP contains candidates: ${hasCandidates}`);
+            this.log(`[WebRTC] [Attempt #${attemptId}] Sending fully gathered SDP offer`);
 
             const response = await fetch(this.apiUrl, {
                 method: 'POST',
@@ -401,26 +458,40 @@ class VoiceClient {
                 })
             });
 
+            if (!this.isValidPeerConnection(pc, attemptId)) {
+                this.log(`[WebRTC] [Attempt #${attemptId}] Aborted after fetch response received; PeerConnection reference changed or closed`);
+                return;
+            }
+
             if (!response.ok) {
                 throw new Error(`Failed SDP negotiation: ${response.status} ${response.statusText}`);
             }
 
             const answerData = await response.json();
-            this.log("[WebRTC] Received SDP answer");
+            this.log(`[WebRTC] [Attempt #${attemptId}] Received SDP answer`);
 
-            if (!this.isCurrentAttempt()) {
-                this.log("[WebRTC] Stale connection attempt aborted during SDP answer fetch");
+            // 11. Validate attempt and PeerConnection reference immediately before setRemoteDescription
+            if (!this.isCurrentAttempt(attemptId)) {
+                console.warn(`[VoiceClient] [Attempt #${attemptId}] Stale attempt; ignoring SDP answer`);
                 return;
             }
 
-            // 10. Set Remote Description (Answer)
-            this.log("[WebRTC] Setting remote description");
+            if (!pc || this.peerConnection !== pc || pc.signalingState === "closed") {
+                console.warn(`[VoiceClient] [Attempt #${attemptId}] PeerConnection is no longer active (pc=${!!pc}, activeMatches=${this.peerConnection === pc}, signalingState=${pc ? pc.signalingState : 'null'}); ignoring SDP answer`);
+                return;
+            }
+
+            // 12. Set Remote Description (Answer) using captured pc reference
+            this.log(`[WebRTC] [Attempt #${attemptId}] Setting remote description`);
             await pc.setRemoteDescription(new RTCSessionDescription({
                 sdp: answerData.sdp,
-                type: answerData.type
+                type: answerData.type || "answer"
             }));
 
-            if (!this.isCurrentAttempt()) return;
+            if (!this.isValidPeerConnection(pc, attemptId)) {
+                this.log(`[WebRTC] [Attempt #${attemptId}] Aborted after setRemoteDescription; PeerConnection reference changed or closed`);
+                return;
+            }
 
             if (answerData.session_id) {
                 this.sessionId = answerData.session_id;
@@ -429,12 +500,12 @@ class VoiceClient {
         } catch (error) {
             // Handle AbortError separately so it is not reported as a genuine WebRTC failure
             if (error.name === 'AbortError') {
-                this.log("[WebRTC] Network request cancelled via AbortController");
+                this.log(`[WebRTC] [Attempt #${attemptId}] Network request cancelled via AbortController`);
                 return;
             }
 
-            console.error("[WebRTC] WebRTC Connection failed:", error);
-            if (this.isCurrentAttempt()) {
+            console.error(`[WebRTC] [Attempt #${attemptId}] WebRTC Connection failed:`, error);
+            if (this.isCurrentAttempt(attemptId)) {
                 this.setState('ERROR');
                 this.disconnect();
             }
@@ -523,7 +594,7 @@ class VoiceClient {
 
         // Close peer connection cleanly
         if (this.peerConnection) {
-            this.log("[WebRTC] Closing PeerConnection");
+            this.log(`[WebRTC] [Attempt #${this.connectionAttemptId}] Closing PeerConnection`);
             try {
                 this.peerConnection.ontrack = null;
                 this.peerConnection.oniceconnectionstatechange = null;
@@ -546,19 +617,19 @@ class VoiceClient {
 
         // Protect shared audio element: only clear if THIS instance attached the active stream!
         if (this.remoteAudio && this.remoteAudio._attachedAttemptId === this.connectionAttemptId) {
-            this.log("[WebRTC] Clearing remote audio stream (active attempt disconnect)");
+            this.log(`[WebRTC] [Attempt #${this.connectionAttemptId}] Clearing remote audio stream (active attempt disconnect)`);
             try {
                 this.remoteAudio.pause();
                 this.remoteAudio.srcObject = null;
                 delete this.remoteAudio._attachedAttemptId;
             } catch (e) {}
         } else {
-            this.log("[WebRTC] Stale disconnect skipped clearing shared audio element");
+            this.log(`[WebRTC] [Attempt #${this.connectionAttemptId}] Stale disconnect skipped clearing shared audio element`);
         }
 
         // Only update global references and UI state if this is the active attempt
         if (this.connectionAttemptId === VoiceClient.activeAttemptId) {
-            if (window.peerConnection === this.peerConnection) {
+            if (typeof window !== 'undefined' && window.peerConnection === this.peerConnection) {
                 window.peerConnection = null;
             }
             this.setState('DISCONNECTED');
@@ -567,4 +638,11 @@ class VoiceClient {
 }
 
 // Global export for browser script usage
-window.VoiceClient = VoiceClient;
+if (typeof window !== 'undefined') {
+    window.VoiceClient = VoiceClient;
+}
+
+// CommonJS export for Node.js test environments
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = VoiceClient;
+}
