@@ -166,6 +166,7 @@
                 statusText.innerText = 'Ready when you are';
                 statusText.className = 'text-xl md:text-2xl font-bold text-slate-500 mb-12 tracking-wide transition-all h-8';
                 careoContainer.classList.add('avatar-idle');
+                micBtn.disabled = false;
                 micBtn.innerHTML = '🎙️';
                 micBtn.className = 'w-20 h-20 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-xl shadow-emerald-200 flex items-center justify-center text-3xl transition-all transform hover:scale-105 active:scale-95';
                 break;
@@ -173,8 +174,9 @@
             case 'CONNECTING':
                 statusText.innerText = 'Connecting...';
                 statusText.className = 'text-xl md:text-2xl font-bold text-emerald-600 mb-12 tracking-wide transition-all h-8 animate-pulse';
+                micBtn.disabled = true;
                 micBtn.innerHTML = '⏳';
-                micBtn.className = 'w-20 h-20 rounded-full bg-slate-300 text-white shadow-xl flex items-center justify-center text-3xl transition-all';
+                micBtn.className = 'w-20 h-20 rounded-full bg-slate-300 text-white shadow-xl flex items-center justify-center text-3xl transition-all cursor-not-allowed opacity-80';
                 break;
                 
             case 'LISTENING':
@@ -182,6 +184,7 @@
                 statusText.className = 'text-xl md:text-2xl font-bold text-emerald-500 mb-12 tracking-wide transition-all h-8';
                 voiceRing.classList.add('ring-listening');
                 voiceRing.style.opacity = '0.5';
+                micBtn.disabled = false;
                 micBtn.innerHTML = '🛑';
                 micBtn.className = 'w-20 h-20 rounded-full bg-rose-500 hover:bg-rose-600 text-white shadow-xl shadow-rose-200 flex items-center justify-center text-3xl transition-all transform hover:scale-105 active:scale-95';
                 endBtn.classList.remove('hidden');
@@ -213,6 +216,7 @@
             case 'ERROR':
                 statusText.innerText = 'Careo is having trouble connecting. Please try again.';
                 statusText.className = 'text-lg font-bold text-rose-500 mb-12 tracking-wide transition-all h-8';
+                micBtn.disabled = false;
                 micBtn.innerHTML = '🔄';
                 micBtn.className = 'w-20 h-20 rounded-full bg-slate-600 hover:bg-slate-700 text-white shadow-xl flex items-center justify-center text-3xl transition-all transform hover:scale-105 active:scale-95';
                 break;
@@ -293,10 +297,13 @@
 
     // Pipecat Integration
     function toggleVoiceSession() {
+        // Prevent action if currently connecting
+        if (currentUIState === 'CONNECTING') return;
+
         if (currentUIState === 'IDLE' || currentUIState === 'ERROR' || currentUIState === 'DISCONNECTED') {
             startSession();
         } else {
-            // Manually stop
+            // Manually stop active session
             if (window.voiceClient) {
                 window.voiceClient.disconnect();
             }
@@ -304,11 +311,20 @@
     }
 
     function startSession() {
+        if (currentUIState === 'CONNECTING') return;
+
         setUIState('CONNECTING');
         updateCaption('Connecting to AI...');
         
         if (audioCtx && audioCtx.state === 'suspended') {
             audioCtx.resume().catch(() => {});
+        }
+
+        // Clean up previous client instance if one exists
+        if (window.voiceClient) {
+            try {
+                window.voiceClient.disconnect();
+            } catch (e) {}
         }
         
         const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
