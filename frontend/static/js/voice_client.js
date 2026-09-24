@@ -113,29 +113,21 @@ class VoiceClient {
      * matches the current attempt, and has not been closed or replaced.
      */
     isValidPeerConnection(pc, attemptId = this.connectionAttemptId) {
-        if (!this.isCurrentAttempt(attemptId)) {
-            this.log(`[WebRTC] [Attempt #${attemptId}] Validation failed: attempt is stale (current active: #${VoiceClient.activeAttemptId}, isDisconnecting=${this.isDisconnecting})`);
-            return false;
-        }
-        if (!pc) {
-            this.log(`[WebRTC] [Attempt #${attemptId}] Validation failed: captured pc is null/undefined`);
-            return false;
-        }
-        if (this.peerConnection !== pc) {
-            this.log(`[WebRTC] [Attempt #${attemptId}] Validation failed: PeerConnection reference changed (active PC !== captured PC)`);
-            return false;
-        }
-        if (pc.signalingState === "closed") {
-            this.log(`[WebRTC] [Attempt #${attemptId}] Validation failed: pc.signalingState is "closed"`);
-            return false;
-        }
-        return true;
+        return (
+            this.isCurrentAttempt(attemptId) &&
+            pc &&
+            this.peerConnection === pc &&
+            pc.signalingState !== 'closed'
+        );
     }
 
-    setState(newState) {
-        if (!this.isCurrentAttempt() && newState !== 'DISCONNECTED') {
-            this.log(`[WebRTC] Ignoring setState('${newState}') for stale attempt ${this.connectionAttemptId}`);
-            return;
+    setState(newState, attemptId = this.connectionAttemptId) {
+        const isTerminalState = (newState === 'DISCONNECTED' || newState === 'ERROR');
+        if (!isTerminalState) {
+            if (!this.isCurrentAttempt(attemptId)) {
+                this.log(`[WebRTC] Ignoring setState('${newState}') for stale attempt ${attemptId}`);
+                return;
+            }
         }
         if (this.state === newState) return;
         this.state = newState;
@@ -151,12 +143,12 @@ class VoiceClient {
     /**
      * Fallback autoplay unlock handler if browser policy prevents initial play.
      */
-    setupAutoplayUnlock() {
+    setupAutoplayUnlock(attemptId = this.connectionAttemptId) {
         if (typeof document === 'undefined') return;
 
         this.log("[WebRTC] Registering user-interaction fallback for audio unlock");
         const unlock = () => {
-            if (this.isCurrentAttempt() && this.remoteAudio && this.remoteAudio.srcObject) {
+            if (this.isCurrentAttempt(attemptId) && this.remoteAudio && this.remoteAudio.srcObject) {
                 this.remoteAudio.muted = false;
                 this.remoteAudio.volume = 1.0;
                 this.remoteAudio.play().then(() => {
@@ -365,7 +357,7 @@ class VoiceClient {
                             console.error(`[WebRTC] [Attempt #${attemptId}] Audio playback failed:`, error);
                             this.logAudioState();
                             if (error.name === "NotAllowedError") {
-                                this.setupAutoplayUnlock();
+                                this.setupAutoplayUnlock(attemptId);
                             }
                         });
                     }
@@ -392,8 +384,8 @@ class VoiceClient {
                 this.log(`[WebRTC] [Attempt #${attemptId}] connectionState=${cState}`);
                 
                 if (cState === 'connected') {
-                    this.setState('LISTENING');
-                    this.startStatsMonitoring();
+                    this.setState('LISTENING', attemptId);
+                    this.startStatsMonitoring(2500, attemptId);
                 } else if (cState === 'disconnected' || cState === 'failed') {
                     console.warn(`[WebRTC] [Attempt #${attemptId}] Connection state changed to ${cState}`);
                     this.disconnect();
@@ -553,10 +545,10 @@ class VoiceClient {
         return this.getInboundAudioStats();
     }
 
-    startStatsMonitoring(intervalMs = 2500) {
+    startStatsMonitoring(intervalMs = 2500, attemptId = this.connectionAttemptId) {
         this.stopStatsMonitoring();
         this.statsInterval = setInterval(async () => {
-            if (!this.isCurrentAttempt() || !this.peerConnection || this.peerConnection.connectionState !== 'connected') {
+            if (!this.isCurrentAttempt(attemptId) || !this.peerConnection || this.peerConnection.connectionState !== 'connected') {
                 return;
             }
             const rtp = await this.getInboundAudioStats();
@@ -581,12 +573,23 @@ class VoiceClient {
 
     speak(text) {
         this.onMessage(text, 'assistant');
-        this.setState('SPEAKING');
+        this.setState('SPEAKING', this.connectionAttemptId);
     }
 
     disconnect(nextState = 'DISCONNECTED') {
+        const disconnectedAttemptId = this.connectionAttemptId;
+        const wasActive = (disconnectedAttemptId > 0 && disconnectedAttemptId === VoiceClient.activeAttemptId);
+
         this.isDisconnecting = true;
         this.isConnecting = false;
+
+        // Invalidate activeAttemptId immediately so no in-flight async operations can continue
+        if (wasActive) {
+            VoiceClient.activeAttemptId = 0;
+            if (VoiceClient.activeClient === this) {
+                VoiceClient.activeClient = null;
+            }
+        }
 
         this.stopStatsMonitoring();
 
@@ -598,15 +601,16 @@ class VoiceClient {
             this.abortController = null;
         }
 
+        const pcToClose = this.peerConnection;
         // Close peer connection cleanly
-        if (this.peerConnection) {
-            this.log(`[WebRTC] [Attempt #${this.connectionAttemptId}] Closing PeerConnection`);
+        if (pcToClose) {
+            this.log(`[WebRTC] [Attempt #${disconnectedAttemptId}] Closing PeerConnection`);
             try {
-                this.peerConnection.ontrack = null;
-                this.peerConnection.oniceconnectionstatechange = null;
-                this.peerConnection.onconnectionstatechange = null;
-                this.peerConnection.onsignalingstatechange = null;
-                this.peerConnection.close();
+                pcToClose.ontrack = null;
+                pcToClose.oniceconnectionstatechange = null;
+                pcToClose.onconnectionstatechange = null;
+                pcToClose.onsignalingstatechange = null;
+                pcToClose.close();
             } catch (e) {
                 console.error("[WebRTC] Error closing peerConnection:", e);
             }
@@ -622,23 +626,23 @@ class VoiceClient {
         }
 
         // Protect shared audio element: only clear if THIS instance attached the active stream!
-        if (this.remoteAudio && this.remoteAudio._attachedAttemptId === this.connectionAttemptId) {
-            this.log(`[WebRTC] [Attempt #${this.connectionAttemptId}] Clearing remote audio stream (active attempt disconnect)`);
+        if (this.remoteAudio && this.remoteAudio._attachedAttemptId === disconnectedAttemptId) {
+            this.log(`[WebRTC] [Attempt #${disconnectedAttemptId}] Clearing remote audio stream (active attempt disconnect)`);
             try {
                 this.remoteAudio.pause();
                 this.remoteAudio.srcObject = null;
                 delete this.remoteAudio._attachedAttemptId;
             } catch (e) {}
         } else {
-            this.log(`[WebRTC] [Attempt #${this.connectionAttemptId}] Stale disconnect skipped clearing shared audio element`);
+            this.log(`[WebRTC] [Attempt #${disconnectedAttemptId}] Stale disconnect skipped clearing shared audio element`);
         }
 
-        // Only update global references and UI state if this is the active attempt
-        if (this.connectionAttemptId === VoiceClient.activeAttemptId) {
-            if (typeof window !== 'undefined' && window.peerConnection === this.peerConnection) {
+        // Only update global references and UI state if this was the active attempt
+        if (wasActive) {
+            if (typeof window !== 'undefined' && window.peerConnection === pcToClose) {
                 window.peerConnection = null;
             }
-            this.setState(nextState);
+            this.setState(nextState, disconnectedAttemptId);
         }
     }
 }

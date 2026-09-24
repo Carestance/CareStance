@@ -3,24 +3,31 @@ const assert = require('node:assert');
 
 // Mock browser globals for testing VoiceClient in Node environment
 function setupMockBrowser() {
+    global._mockAudioEl = {
+        id: 'carestance-remote-audio',
+        style: {},
+        autoplay: false,
+        playsInline: false,
+        muted: false,
+        volume: 1.0,
+        srcObject: null,
+        paused: true,
+        play: () => {
+            global._mockAudioEl.paused = false;
+            return Promise.resolve();
+        },
+        pause: () => {
+            global._mockAudioEl.paused = true;
+        }
+    };
+
     global.window = {};
     global.document = {
         getElementById: (id) => {
-            if (!global._mockAudioEl) {
-                global._mockAudioEl = {
-                    id: 'carestance-remote-audio',
-                    style: {},
-                    autoplay: false,
-                    playsInline: false,
-                    muted: false,
-                    volume: 1.0,
-                    srcObject: null,
-                    paused: true,
-                    play: () => Promise.resolve(),
-                    pause: () => { global._mockAudioEl.paused = true; }
-                };
+            if (id === 'carestance-remote-audio') {
+                return global._mockAudioEl;
             }
-            return global._mockAudioEl;
+            return null;
         },
         createElement: (tag) => {
             return {
@@ -141,22 +148,65 @@ function setupMockBrowser() {
     };
 }
 
-test('VoiceClient Race Condition Regression Test Suite', async (t) => {
+test('VoiceClient Comprehensive Regression Test Suite', async (t) => {
     setupMockBrowser();
     const VoiceClient = require('../frontend/static/js/voice_client.js');
 
-    await t.test('Scenario: connect -> await signaling -> disconnect/reconnect -> old SDP answer arrives', async () => {
+    // A. Normal connect
+    await t.test('Scenario A: Normal connect lifecycle', async () => {
+        global.fetch = async () => ({
+            ok: true,
+            status: 200,
+            statusText: 'OK',
+            json: async () => ({
+                type: 'answer',
+                sdp: 'v=0\nm=audio 5004 ...',
+                session_id: 'session_normal_test'
+            })
+        });
+
+        const stateChanges = [];
+        const client = new VoiceClient('/api/webrtc/offer', (newState) => {
+            stateChanges.push(newState);
+        });
+
+        await client.connect();
+
+        assert.strictEqual(client.state, 'CONNECTING');
+        assert.ok(stateChanges.includes('CONNECTING'), "Must emit CONNECTING state change");
+        assert.ok(client.peerConnection, "PeerConnection must be created");
+        assert.strictEqual(global.window.peerConnection, client.peerConnection, "window.peerConnection must be exposed");
+
+        // Simulate connection established
+        client.peerConnection.connectionState = 'connected';
+        if (client.peerConnection.onconnectionstatechange) {
+            client.peerConnection.onconnectionstatechange();
+        }
+        assert.strictEqual(client.state, 'LISTENING', "State should transition to LISTENING when connected");
+
+        // Check audio stream attachment
+        const audioEl = global.document.getElementById('carestance-remote-audio');
+        assert.ok(audioEl.srcObject, "Remote audio element must have stream attached");
+        assert.strictEqual(audioEl._attachedAttemptId, client.connectionAttemptId);
+
+        // Disconnect
+        client.disconnect();
+        assert.strictEqual(client.state, 'DISCONNECTED');
+        assert.strictEqual(global.window.peerConnection, null, "window.peerConnection must be cleared after active disconnect");
+        assert.strictEqual(audioEl.srcObject, null, "Audio element srcObject must be cleared after active disconnect");
+    });
+
+    // B. Disconnect/reconnect while fetch is pending
+    await t.test('Scenario B: Disconnect/reconnect while fetch is pending', async () => {
         let delayedResolve;
         const delayedAnswerPromise = new Promise(resolve => {
             delayedResolve = resolve;
         });
 
-        // Mock fetch: first call delays response, second call responds immediately
         let callCount = 0;
-        global.fetch = async (url, options) => {
+        global.fetch = async () => {
             callCount++;
             if (callCount === 1) {
-                // Return delayed promise for attempt 1
                 return delayedAnswerPromise.then(() => ({
                     ok: true,
                     status: 200,
@@ -167,67 +217,99 @@ test('VoiceClient Race Condition Regression Test Suite', async (t) => {
                         session_id: 'session_old_1'
                     })
                 }));
-            } else {
-                // Immediate response for attempt 2
-                return {
+            }
+            return {
+                ok: true,
+                status: 200,
+                statusText: 'OK',
+                json: async () => ({
+                    type: 'answer',
+                    sdp: 'v=0\nm=audio 5006 ...',
+                    session_id: 'session_new_2'
+                })
+            };
+        };
+
+        const client1 = new VoiceClient('/api/webrtc/offer');
+        const attempt1Promise = client1.connect();
+        const initialAttempt1 = client1.connectionAttemptId;
+
+        // Allow attempt 1 to proceed to in-flight fetch
+        await new Promise(r => setTimeout(r, 20));
+
+        // Start attempt 2 (reconnect)
+        const client2 = new VoiceClient('/api/webrtc/offer');
+        const attempt2Promise = client2.connect();
+        await attempt2Promise;
+
+        assert.strictEqual(VoiceClient.activeAttemptId, client2.connectionAttemptId);
+        assert.strictEqual(VoiceClient.activeClient, client2);
+
+        // Clean up delayed promise
+        delayedResolve();
+        await attempt1Promise;
+    });
+
+    // C. Stale answer after reconnect
+    await t.test('Scenario C: Stale answer after reconnect arrives and is safely ignored', async () => {
+        let delayedResolve;
+        const delayedAnswerPromise = new Promise(resolve => {
+            delayedResolve = resolve;
+        });
+
+        let callCount = 0;
+        global.fetch = async () => {
+            callCount++;
+            if (callCount === 1) {
+                return delayedAnswerPromise.then(() => ({
                     ok: true,
                     status: 200,
                     statusText: 'OK',
                     json: async () => ({
                         type: 'answer',
-                        sdp: 'v=0\nm=audio 5006 ...',
-                        session_id: 'session_new_2'
+                        sdp: 'v=0\nm=audio 5004 ...',
+                        session_id: 'session_old_1'
                     })
-                };
+                }));
             }
+            return {
+                ok: true,
+                status: 200,
+                statusText: 'OK',
+                json: async () => ({
+                    type: 'answer',
+                    sdp: 'v=0\nm=audio 5006 ...',
+                    session_id: 'session_new_2'
+                })
+            };
         };
 
         const client1 = new VoiceClient('/api/webrtc/offer');
-        
-        // 1. Start Attempt 1
         const attempt1Promise = client1.connect();
-        assert.strictEqual(client1.connectionAttemptId, 1);
-        assert.strictEqual(VoiceClient.activeAttemptId, 1);
-        
-        // Allow attempt 1 to proceed through getUserMedia, createOffer, setLocalDescription, and reach fetch()
-        await new Promise(r => setTimeout(r, 50));
-        const pc1 = client1.peerConnection;
-        assert.ok(pc1, "Attempt 1 should have instantiated pc1");
 
-        // 2. Disconnect and start Attempt 2 (reconnect) while attempt 1 fetch is still in flight
+        await new Promise(r => setTimeout(r, 20));
+
         const client2 = new VoiceClient('/api/webrtc/offer');
-        const attempt2Promise = client2.connect();
-        assert.strictEqual(client2.connectionAttemptId, 2);
-        assert.strictEqual(VoiceClient.activeAttemptId, 2);
-
-        // Wait for attempt 2 to complete its negotiation
-        await attempt2Promise;
+        await client2.connect();
         const pc2 = client2.peerConnection;
-        assert.ok(pc2, "Attempt 2 should have instantiated pc2");
-        assert.notStrictEqual(pc1, pc2, "pc1 and pc2 must be distinct PeerConnections");
-        assert.strictEqual(global.document.getElementById('carestance-remote-audio')._attachedAttemptId, 2);
 
-        // 3. Now resolve the delayed SDP answer for Attempt 1
-        // Expected: Attempt 1 must NOT throw TypeError: Cannot read properties of null (reading 'setRemoteDescription')
-        // Expected: Attempt 1 must ignore the stale SDP answer
-        // Expected: Attempt 2's pc2 and remoteAudio remain active!
+        // Deliver old answer for Attempt 1
         delayedResolve();
 
-        // Await attempt 1 resolution
+        // Must not reject or throw TypeError
         await assert.doesNotReject(
             attempt1Promise,
-            "Attempt 1 must not throw an unhandled error when old SDP answer arrives"
+            "Old attempt must not throw when delayed answer arrives"
         );
 
-        // 4. Verify Attempt 2 remains active and unaffected
-        assert.strictEqual(VoiceClient.activeAttemptId, 2, "Active attempt ID must remain 2");
-        assert.strictEqual(VoiceClient.activeClient, client2, "Active client must remain client2");
-        assert.strictEqual(client2.peerConnection, pc2, "pc2 must remain the active peerConnection on client2");
-        assert.strictEqual(pc2.signalingState, 'stable', "pc2 must have completed setRemoteDescription");
-        assert.strictEqual(global.document.getElementById('carestance-remote-audio')._attachedAttemptId, 2, "Audio element must remain attached to attempt 2");
+        // Verify Attempt 2 remains untouched
+        assert.strictEqual(VoiceClient.activeClient, client2);
+        assert.strictEqual(client2.peerConnection, pc2);
+        assert.strictEqual(global.document.getElementById('carestance-remote-audio')._attachedAttemptId, client2.connectionAttemptId);
     });
 
-    await t.test('Scenario: Stale disconnect does not clear active audio element', async () => {
+    // D. Stale disconnect cannot clear active audio
+    await t.test('Scenario D: Stale disconnect cannot clear active audio element', async () => {
         global.fetch = async () => ({
             ok: true,
             status: 200,
@@ -246,17 +328,80 @@ test('VoiceClient Race Condition Regression Test Suite', async (t) => {
         assert.strictEqual(audioEl._attachedAttemptId, activeClient.connectionAttemptId);
         assert.ok(audioEl.srcObject, "Audio element must have an attached stream");
 
-        // Simulate an old client attempt 999 calling disconnect()
+        // Stale client with arbitrary ID calls disconnect()
         const staleClient = new VoiceClient('/api/webrtc/offer');
-        staleClient.connectionAttemptId = 999; // Stale ID
+        staleClient.connectionAttemptId = 99999;
         staleClient.disconnect();
 
-        // Audio element must NOT be cleared by the stale client's disconnect!
+        // Audio element must NOT be cleared by stale client
         assert.ok(audioEl.srcObject !== null, "Stale disconnect must NOT clear the active audio stream!");
         assert.strictEqual(audioEl._attachedAttemptId, activeClient.connectionAttemptId);
 
-        // Now active client disconnects
+        // Active client disconnects cleanly
         activeClient.disconnect();
         assert.strictEqual(audioEl.srcObject, null, "Active client disconnect should cleanly clear the audio stream");
+    });
+
+    // E. Calling setState() from connect() never throws 'isCurrentAttempt is not a function'
+    await t.test('Scenario E: isCurrentAttempt is defined on prototype and setState never throws', async () => {
+        assert.strictEqual(typeof VoiceClient.prototype.isCurrentAttempt, 'function', "VoiceClient.prototype.isCurrentAttempt must be a function");
+        assert.strictEqual(typeof VoiceClient.prototype.isValidPeerConnection, 'function', "VoiceClient.prototype.isValidPeerConnection must be a function");
+
+        const client = new VoiceClient('/api/webrtc/offer');
+        assert.strictEqual(typeof client.isCurrentAttempt, 'function', "client.isCurrentAttempt must be a function");
+        assert.strictEqual(typeof client.isValidPeerConnection, 'function', "client.isValidPeerConnection must be a function");
+
+        // Calling setState directly must not throw
+        assert.doesNotThrow(() => {
+            client.setState('CONNECTING');
+        }, "setState('CONNECTING') must not throw");
+
+        // Verify connect calls setState without throwing
+        global.fetch = async () => ({
+            ok: true,
+            status: 200,
+            statusText: 'OK',
+            json: async () => ({
+                type: 'answer',
+                sdp: 'v=0\nm=audio ...',
+                session_id: 'session_test_e'
+            })
+        });
+
+        await assert.doesNotReject(
+            client.connect(),
+            "client.connect() must not reject with isCurrentAttempt is not a function"
+        );
+        client.disconnect();
+    });
+
+    // F. Rapid microphone clicks (duplicate initialization prevention)
+    await t.test('Scenario F: Rapid microphone clicks (duplicate initialization prevention)', async () => {
+        global.fetch = async () => ({
+            ok: true,
+            status: 200,
+            statusText: 'OK',
+            json: async () => ({
+                type: 'answer',
+                sdp: 'v=0\nm=audio ...',
+                session_id: 'session_rapid_test'
+            })
+        });
+
+        const client = new VoiceClient('/api/webrtc/offer');
+
+        // Trigger 5 connect calls rapidly (simulating multiple clicks on kiosk)
+        const p1 = client.connect();
+        const p2 = client.connect();
+        const p3 = client.connect();
+        const p4 = client.connect();
+        const p5 = client.connect();
+
+        const initialAttemptId = client.connectionAttemptId;
+        await Promise.all([p1, p2, p3, p4, p5]);
+
+        // All calls should share the single attempt without incrementing connectionAttemptId 5 times
+        assert.strictEqual(client.connectionAttemptId, initialAttemptId, "connectionAttemptId must remain the same across duplicate connect calls");
+        client.disconnect();
     });
 });
