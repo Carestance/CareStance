@@ -36,31 +36,45 @@ async def webrtc_config():
     Returns the WebRTC ICE servers configuration (STUN + TURN) for the browser client.
     Does NOT leak backend environment variables, secrets, or database credentials.
     """
+    from app.realtime.transport.webrtc import get_ice_servers_config, get_safe_ice_diagnostics
     try:
-        from app.realtime.transport.webrtc import get_ice_servers_config
         ice_servers = get_ice_servers_config()
-        return JSONResponse({"iceServers": ice_servers})
+        diag = get_safe_ice_diagnostics(ice_servers)
+        print(
+            f"[WebRTC ICE Config] Delivered {diag['server_count']} server(s) "
+            f"(TURN configured: {diag['turn_configured']}, UDP: {diag['has_turn_udp']}, TCP: {diag['has_turn_tcp']})",
+            flush=True
+        )
+        return JSONResponse({"iceServers": ice_servers, "diagnostics": diag})
     except ValueError as ve:
-        print(f"[WebRTC Config Warning] {str(ve)}", flush=True)
-        # Fallback to STUN servers rather than crashing client initialization
+        error_msg = str(ve)
+        print(f"[WebRTC Config Warning] {error_msg}", flush=True)
+        fallback_servers = [
+            {
+                "urls": [
+                    "stun:stun.l.google.com:19302",
+                    "stun:stun1.l.google.com:19302",
+                    "stun:stun2.l.google.com:19302",
+                ]
+            }
+        ]
+        fallback_diag = get_safe_ice_diagnostics(fallback_servers)
+        fallback_diag["error"] = error_msg
         return JSONResponse({
-            "iceServers": [
-                {
-                    "urls": [
-                        "stun:stun.l.google.com:19302",
-                        "stun:stun1.l.google.com:19302",
-                        "stun:stun2.l.google.com:19302",
-                    ]
-                }
-            ],
-            "error": str(ve)
+            "iceServers": fallback_servers,
+            "error": error_msg,
+            "diagnostics": fallback_diag
         }, status_code=200)
     except Exception as e:
-        print(f"[WebRTC Config Exception] {str(e)}", flush=True)
+        error_msg = str(e)
+        print(f"[WebRTC Config Exception] {error_msg}", flush=True)
+        fallback_servers = [{"urls": ["stun:stun.l.google.com:19302"]}]
+        fallback_diag = get_safe_ice_diagnostics(fallback_servers)
+        fallback_diag["error"] = error_msg
         return JSONResponse({
-            "iceServers": [
-                {"urls": ["stun:stun.l.google.com:19302"]}
-            ]
+            "iceServers": fallback_servers,
+            "error": error_msg,
+            "diagnostics": fallback_diag
         }, status_code=200)
 
 @router.post("/webrtc/offer")

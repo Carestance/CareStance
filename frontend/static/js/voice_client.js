@@ -172,7 +172,7 @@ class VoiceClient {
     /**
      * Waits for non-trickle ICE gathering to complete before sending SDP offer.
      */
-    waitForIceGatheringComplete(pc, timeoutMs = 2000) {
+    waitForIceGatheringComplete(pc, timeoutMs = 3000) {
         this.log("[WebRTC] ICE gathering started");
         return new Promise((resolve) => {
             if (pc.iceGatheringState === 'complete') {
@@ -290,9 +290,47 @@ class VoiceClient {
                     });
                     if (configResp.ok) {
                         const configData = await configResp.json();
+                        if (configData && configData.error) {
+                            console.error(`[WebRTC] [Attempt #${attemptId}] SERVER REPORTED ICE CONFIG ERROR: ${configData.error}`);
+                        }
                         if (configData && Array.isArray(configData.iceServers) && configData.iceServers.length > 0) {
                             iceServers = configData.iceServers;
                             this.log(`[WebRTC] [Attempt #${attemptId}] Loaded ICE configuration from server (${iceServers.length} server(s) configured)`);
+                            
+                            // Safe structural diagnostic logging without exposing secrets
+                            let hasTurn = false;
+                            iceServers.forEach((s, idx) => {
+                                const urls = Array.isArray(s.urls) ? s.urls : [s.urls];
+                                urls.forEach(u => {
+                                    if (typeof u === 'string') {
+                                        const isTurn = u.startsWith('turn:') || u.startsWith('turns:');
+                                        if (isTurn) hasTurn = true;
+                                        let scheme = 'unknown';
+                                        let host = 'unknown';
+                                        let transport = 'default';
+                                        if (u.includes(':')) {
+                                            const parts = u.split(':');
+                                            scheme = parts[0];
+                                            const rest = parts.slice(1).join(':');
+                                            if (rest.includes('?')) {
+                                                const [hostPart, query] = rest.split('?');
+                                                host = hostPart.replace(/^\/\//, '');
+                                                const qParams = new URLSearchParams(query);
+                                                transport = qParams.get('transport') || (scheme === 'turns' ? 'tcp' : 'udp');
+                                            } else {
+                                                host = rest.replace(/^\/\//, '');
+                                                transport = scheme === 'turns' ? 'tcp' : 'udp';
+                                            }
+                                        }
+                                        this.log(`[WebRTC] ICE Server #${idx + 1}: scheme=${scheme} host=${host} transport=${transport} hasUser=${Boolean(s.username)} hasCred=${Boolean(s.credential)}`);
+                                    }
+                                });
+                            });
+                            if (!hasTurn) {
+                                console.warn(`[WebRTC] [Attempt #${attemptId}] CRITICAL WARNING: No TURN server is present in the ICE configuration! Only STUN/host candidates will be used. Relay allocation will NOT occur.`);
+                            } else {
+                                this.log(`[WebRTC] [Attempt #${attemptId}] TURN relay server configured with credentials`);
+                            }
                         }
                     }
                 } catch (configErr) {
@@ -461,6 +499,34 @@ class VoiceClient {
                 this.log(`[WebRTC] [Attempt #${attemptId}] signalingState=${sigState}`);
             };
 
+            // Monitor candidate gathering and candidate errors
+            let relayCount = 0;
+            let totalCandidates = 0;
+            pc.onicecandidate = (event) => {
+                if (!this.isValidPeerConnection(pc, attemptId)) return;
+                if (event.candidate) {
+                    totalCandidates++;
+                    const c = event.candidate;
+                    const isRelay = c.type === 'relay' || (c.candidate && c.candidate.includes('typ relay'));
+                    if (isRelay) {
+                        relayCount++;
+                        this.log(`[WebRTC] [Attempt #${attemptId}] >>> RELAY CANDIDATE GATHERED: protocol=${c.protocol} address=${c.address} port=${c.port} url=${c.url || 'none'} <<<`);
+                    } else {
+                        this.log(`[WebRTC] [Attempt #${attemptId}] Local candidate: type=${c.type} protocol=${c.protocol} address=${c.address} port=${c.port}`);
+                    }
+                } else {
+                    this.log(`[WebRTC] [Attempt #${attemptId}] ICE gathering completed: total=${totalCandidates}, relay=${relayCount}`);
+                    if (relayCount === 0) {
+                        console.warn(`[WebRTC] [Attempt #${attemptId}] WARNING: 0 relay candidates gathered. If STUN binding fails, check TURN server reachability and credentials.`);
+                    }
+                }
+            };
+
+            pc.onicecandidateerror = (event) => {
+                if (!this.isValidPeerConnection(pc, attemptId)) return;
+                console.warn(`[WebRTC] [Attempt #${attemptId}] [ICE Candidate Error] url=${event.url || 'unknown'} errorCode=${event.errorCode} errorText="${event.errorText}" address=${event.address || 'unknown'} port=${event.port || 'unknown'}`);
+            };
+
             // 7. Create WebRTC Offer
             this.log(`[WebRTC] [Attempt #${attemptId}] Creating offer`);
             const offer = await pc.createOffer();
@@ -478,7 +544,7 @@ class VoiceClient {
             }
 
             // 9. Wait for ICE gathering to complete before sending SDP offer (Vanilla ICE)
-            await this.waitForIceGatheringComplete(pc, 2000);
+            await this.waitForIceGatheringComplete(pc, 3000);
             if (!this.isValidPeerConnection(pc, attemptId)) {
                 this.log(`[WebRTC] [Attempt #${attemptId}] Aborted after ICE gathering wait; PeerConnection reference changed or closed`);
                 return;

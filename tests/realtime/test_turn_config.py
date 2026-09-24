@@ -69,3 +69,42 @@ def test_invalid_turn_url_scheme():
 
     with pytest.raises(ValueError, match="Invalid TURN URL scheme"):
         parse_turn_urls("tcp://invalid-turn.example.com:3478")
+
+def test_raw_host_port_normalization():
+    parsed = parse_turn_urls("relay.example.com:3478")
+    assert "turn:relay.example.com:3478?transport=udp" in parsed
+    assert "turn:relay.example.com:3478?transport=tcp" in parsed
+
+def test_turn_env_aliases(monkeypatch):
+    monkeypatch.delenv("TURN_SERVER_URL", raising=False)
+    monkeypatch.delenv("TURN_USERNAME", raising=False)
+    monkeypatch.delenv("TURN_PASSWORD", raising=False)
+
+    monkeypatch.setenv("TURN_URL", "turn:alias.example.com:3478?transport=udp")
+    monkeypatch.setenv("TURN_USER", "alias_user")
+    monkeypatch.setenv("TURN_SECRET", "alias_secret")
+
+    config = get_ice_servers_config()
+    assert len(config) == 2
+    turn_entry = config[1]
+    assert turn_entry["username"] == "alias_user"
+    assert turn_entry["credential"] == "alias_secret"
+    assert turn_entry["urls"] == ["turn:alias.example.com:3478?transport=udp"]
+
+def test_safe_ice_diagnostics(monkeypatch):
+    from app.realtime.transport.webrtc import get_safe_ice_diagnostics
+    monkeypatch.setenv("TURN_SERVER_URL", "turn:test.turn.com:3478?transport=udp, turns:test.turn.com:5349?transport=tcp")
+    monkeypatch.setenv("TURN_USERNAME", "myuser")
+    monkeypatch.setenv("TURN_PASSWORD", "secret123")
+
+    config = get_ice_servers_config()
+    diag = get_safe_ice_diagnostics(config)
+
+    assert diag["server_count"] == 2
+    assert diag["turn_configured"] is True
+    assert diag["has_turn_udp"] is True
+    assert diag["has_turn_tcp"] is True
+    # Ensure secrets are NOT leaked in diagnostics
+    diag_str = str(diag)
+    assert "secret123" not in diag_str
+
