@@ -5,9 +5,8 @@
  */
 class VoiceClient {
     constructor(wsUrl, onStateChange, onMessage) {
-        // wsUrl is repurposed as the API endpoint for WebRTC offer exchange if provided,
-        // otherwise it defaults to the /api/webrtc/offer endpoint.
-        this.apiUrl = wsUrl ? wsUrl.replace("ws://", "http://").replace("wss://", "https://") : '/api/webrtc/offer';
+        // The offer exchange is HTTP even though older callers pass a WebSocket URL.
+        this.apiUrl = this.resolveApiUrl(wsUrl);
         this.onStateChange = onStateChange || function() {};
         this.onMessage = onMessage || function() {};
         
@@ -88,6 +87,11 @@ class VoiceClient {
         this.remoteAudio = el;
     }
 
+    resolveApiUrl(url) {
+        if (!url) return '/api/webrtc/offer';
+        return url.replace(/^ws:/, 'http:').replace(/^wss:/, 'https:');
+    }
+
     setState(newState) {
         if (this.state === newState) return;
         this.state = newState;
@@ -125,29 +129,26 @@ class VoiceClient {
         }
     }
 
-    /**
-     * Fallback autoplay unlock handler if browser policy prevents initial play.
-     */
-    setupAutoplayUnlock() {
-        this.log("[WebRTC] Registering user-interaction fallback for audio unlock");
-        const unlock = () => {
-            if (this.remoteAudio && this.remoteAudio.srcObject) {
-                this.remoteAudio.muted = false;
-                this.remoteAudio.volume = 1.0;
-                this.remoteAudio.play().then(() => {
-                    this.log("[WebRTC] Audio playback started (via user gesture unlock)");
-                }).catch((err) => {
-                    console.warn("[WebRTC] User-gesture audio unlock failed:", err);
-                });
-            }
-            document.removeEventListener('click', unlock, true);
-            document.removeEventListener('touchstart', unlock, true);
-            document.removeEventListener('keydown', unlock, true);
-        };
+    waitForIceGathering(peerConnection, timeoutMs = 5000) {
+        if (peerConnection.iceGatheringState === 'complete') {
+            return Promise.resolve();
+        }
 
-        document.addEventListener('click', unlock, true);
-        document.addEventListener('touchstart', unlock, true);
-        document.addEventListener('keydown', unlock, true);
+        return new Promise(resolve => {
+            let settled = false;
+            const finish = () => {
+                if (settled) return;
+                settled = true;
+                clearTimeout(timeoutId);
+                peerConnection.removeEventListener('icegatheringstatechange', onStateChange);
+                resolve();
+            };
+            const onStateChange = () => {
+                if (peerConnection.iceGatheringState === 'complete') finish();
+            };
+            const timeoutId = setTimeout(finish, timeoutMs);
+            peerConnection.addEventListener('icegatheringstatechange', onStateChange);
+        });
     }
 
     async connect() {
@@ -167,9 +168,11 @@ class VoiceClient {
         this.unlockAudio();
 
         try {
-            // Cancel any previous in-flight fetch request
-            if (this.abortController) {
-                this.abortController.abort();
+            if (!window.isSecureContext && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+                throw new Error('Microphone access requires HTTPS.');
+            }
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                throw new Error('This browser does not support microphone access.');
             }
             this.abortController = new AbortController();
 
@@ -193,31 +196,19 @@ class VoiceClient {
                 throw mediaError;
             }
 
-            // Check if connection was aborted while waiting for mic permission
-            if (this.currentAttemptId !== attemptId || this.isDisconnecting) {
-                this.log("[WebRTC] stale PeerConnection attempt after getUserMedia aborted");
-                if (this.localStream) {
-                    this.localStream.getTracks().forEach(t => t.stop());
-                    this.localStream = null;
-                }
-                return;
-            }
-
-            // 2. Create RTCPeerConnection
-            this.log("[WebRTC] Creating PeerConnection");
-            const pc = new RTCPeerConnection({
+            // Initialize WebRTC Peer Connection with STUN servers
+            const peerConnection = new RTCPeerConnection({
                 iceServers: [
                     { urls: 'stun:stun.l.google.com:19302' },
                     { urls: 'stun:stun1.l.google.com:19302' },
                     { urls: 'stun:stun2.l.google.com:19302' }
                 ]
             });
-            this.peerConnection = pc;
-            window.peerConnection = pc; // Expose globally for diagnostics and kiosk telemetry
+            this.peerConnection = peerConnection;
 
             // 3. Add local tracks to peer connection
             this.localStream.getTracks().forEach(track => {
-                pc.addTrack(track, this.localStream);
+                peerConnection.addTrack(track, this.localStream);
             });
 
             // Ensure audio transceiver direction is sendrecv
@@ -241,48 +232,33 @@ class VoiceClient {
                 }
             };
 
-            // 5. Handle remote audio track & play directly through audio element
-            pc.ontrack = (event) => {
-                if (this.currentAttemptId !== attemptId) return;
-
-                if (event.track.kind !== "audio") {
-                    this.log("[WebRTC] Remote track received (ignored non-audio):", event.track.kind);
-                    return;
-                }
-
-                this.log("[WebRTC] Remote track received", {
-                    kind: event.track.kind,
-                    id: event.track.id,
-                    readyState: event.track.readyState,
-                    muted: event.track.muted,
-                    streamId: (event.streams && event.streams[0]) ? event.streams[0].id : "new"
-                });
-
-                const stream = (event.streams && event.streams[0]) 
-                    ? event.streams[0] 
-                    : new MediaStream([event.track]);
-
-                this.remoteAudio.srcObject = stream;
-                this.remoteAudio.muted = false;
-                this.remoteAudio.volume = 1.0;
-                this.remoteAudio.autoplay = true;
-                this.remoteAudio.playsInline = true;
-
-                this.log("[WebRTC] Remote audio stream attached");
-                this.logAudioState();
-
-                const playPromise = this.remoteAudio.play();
-                if (playPromise !== undefined) {
-                    playPromise.then(() => {
-                        this.log("[WebRTC] Audio playback started");
-                        this.logAudioState();
-                    }).catch((error) => {
-                        console.error("[WebRTC] Audio playback failed:", error);
-                        this.logAudioState();
-                        if (error.name === "NotAllowedError") {
-                            this.setupAutoplayUnlock();
+            // Handle incoming remote audio stream & apply volume gain boost
+            peerConnection.ontrack = (event) => {
+                if (event.streams && event.streams[0]) {
+                    this.remoteAudio.srcObject = event.streams[0];
+                    
+                    try {
+                        const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+                        if (AudioCtxClass && !this.audioCtx) {
+                            this.audioCtx = new AudioCtxClass();
+                            const source = this.audioCtx.createMediaStreamSource(event.streams[0]);
+                            const gainNode = this.audioCtx.createGain();
+                            gainNode.gain.value = 1.5;
+                            source.connect(gainNode);
+                            gainNode.connect(this.audioCtx.destination);
+                            if (this.audioCtx.state === 'suspended') {
+                                this.audioCtx.resume();
+                            }
+                            // Mute raw HTML audio element to prevent double-output acoustic echo
+                            this.remoteAudio.muted = true;
                         }
-                    });
+                    } catch (gainErr) {
+                        console.warn("Volume gain boost note:", gainErr);
+                        this.remoteAudio.muted = false;
+                        this.remoteAudio.volume = 1.0;
+                    }
+                    
+                    this.remoteAudio.play().catch(() => {});
                 }
 
                 // Track event listeners
@@ -297,65 +273,21 @@ class VoiceClient {
                 };
             };
 
-            // 6. Monitor connection, ICE, and signaling states
-            pc.onconnectionstatechange = () => {
-                if (this.currentAttemptId !== attemptId) return;
-                const cState = pc ? pc.connectionState : 'closed';
-                this.log(`[WebRTC] Connection state: ${cState}`);
-                
-                if (cState === 'connected') {
+            peerConnection.onconnectionstatechange = () => {
+                if (peerConnection.connectionState === 'connected') {
                     this.setState('LISTENING');
-                    this.startStatsMonitoring();
-                } else if (cState === 'disconnected' || cState === 'failed') {
-                    console.warn(`[WebRTC] Connection state changed to ${cState}`);
+                } else if (peerConnection.connectionState === 'disconnected' ||
+                           peerConnection.connectionState === 'failed') {
                     this.disconnect();
                 }
             };
 
-            pc.oniceconnectionstatechange = () => {
-                if (this.currentAttemptId !== attemptId) return;
-                const iceState = pc ? pc.iceConnectionState : 'closed';
-                this.log(`[WebRTC] ICE state: ${iceState}`);
-                if (iceState === 'failed') {
-                    console.error("[WebRTC] ICE failure detected");
-                    this.disconnect();
-                }
-            };
-
-            pc.onsignalingstatechange = () => {
-                if (this.currentAttemptId !== attemptId) return;
-                const sigState = pc ? pc.signalingState : 'closed';
-                this.log(`[WebRTC] Signaling state: ${sigState}`);
-            };
-
-            // 7. Create WebRTC Offer
-            this.log("[WebRTC] Creating offer");
-            const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
-
-            // 8. Wait for ICE gathering to complete (Vanilla ICE)
-            // Backend endpoint /api/webrtc/offer is a single POST request without trickle ICE.
-            // Gather all candidate info into localDescription.sdp before sending.
-            if (pc.iceGatheringState !== 'complete') {
-                this.log("[WebRTC] Waiting for ICE gathering to complete");
-                await new Promise((resolve) => {
-                    let timeoutId = null;
-                    const onGatherChange = () => {
-                        if (pc.iceGatheringState === 'complete') {
-                            if (timeoutId) clearTimeout(timeoutId);
-                            pc.removeEventListener('icegatheringstatechange', onGatherChange);
-                            resolve();
-                        }
-                    };
-                    pc.addEventListener('icegatheringstatechange', onGatherChange);
-                    // Safe maximum timeout of 1500ms so we never block connection flow
-                    timeoutId = setTimeout(() => {
-                        pc.removeEventListener('icegatheringstatechange', onGatherChange);
-                        this.log("[WebRTC] ICE gathering window elapsed, proceeding with gathered candidates");
-                        resolve();
-                    }, 1500);
-                });
-            }
+            // Create WebRTC Offer
+            const offer = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offer);
+            // Send a complete SDP so the server can establish the connection without
+            // relying on trickle ICE candidates that this endpoint does not exchange.
+            await this.waitForIceGathering(peerConnection);
 
             // Check if aborted while gathering ICE
             if (this.currentAttemptId !== attemptId || this.isDisconnecting) {
@@ -374,8 +306,8 @@ class VoiceClient {
                 credentials: 'include',
                 signal: this.abortController.signal,
                 body: JSON.stringify({
-                    sdp: pc.localDescription.sdp,
-                    type: pc.localDescription.type
+                    sdp: peerConnection.localDescription.sdp,
+                    type: peerConnection.localDescription.type
                 })
             });
 
@@ -404,17 +336,13 @@ class VoiceClient {
             }
 
         } catch (error) {
-            // Ignore intentional abort errors from disconnect()
-            if (error.name === 'AbortError') {
-                this.log("[WebRTC] Network request cancelled via AbortController");
-                return;
-            }
-
-            console.error("[WebRTC] WebRTC Connection failed:", error);
-            if (this.currentAttemptId === attemptId) {
-                this.setState('ERROR');
-                this.disconnect();
-            }
+            console.error("WebRTC Connection failed:", error);
+            this.onMessage({
+                type: 'VOICE_ERROR',
+                code: error.name || 'VOICE_CONNECTION_FAILED',
+                message: error.message || 'Unable to access the microphone.'
+            });
+            this.disconnect('ERROR');
         } finally {
             if (this.currentAttemptId === attemptId) {
                 this.isConnecting = false;
@@ -483,7 +411,7 @@ class VoiceClient {
         this.setState('SPEAKING');
     }
 
-    disconnect() {
+    disconnect(nextState = 'DISCONNECTED') {
         this.isDisconnecting = true;
         this.isConnecting = false;
         // Invalidate in-flight connect attempts
@@ -533,7 +461,7 @@ class VoiceClient {
             } catch (e) {}
         }
 
-        this.setState('DISCONNECTED');
+        this.setState(nextState);
     }
 }
 

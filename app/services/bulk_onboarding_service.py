@@ -195,7 +195,7 @@ def get_bulk_onboarding_plan_assignment() -> dict[str, Any]:
     subscription as the active paid plan. This helper insulates the new feature
     from the payment/Razorpay UI by assigning that plan directly.
     """
-    activated_at = datetime.datetime.utcnow()
+    activated_at = datetime.datetime.now(datetime.timezone.utc)
     expires_at = activated_at + datetime.timedelta(days=3650)
 
     return {
@@ -225,7 +225,7 @@ async def bulk_onboard_users(
     and is returned to the caller only if the caller asked for the values to be
     shared by email.
     """
-    now = datetime.datetime.utcnow()
+    now = datetime.datetime.now(datetime.timezone.utc)
     assignment = get_bulk_onboarding_plan_assignment()
     created = []
     skipped = []
