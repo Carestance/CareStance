@@ -1,9 +1,14 @@
 /**
  * VoiceClient - WebRTC Conversational AI Client for CareStance.
- * Robust, singleton-managed WebRTC lifecycle with structured logging,
- * full ICE candidate gathering, autoplay handling, and inbound RTP metrics.
+ * Single-active-connection lifecycle with epoch tracking, non-trickle ICE
+ * synchronization, audio element protection, and inbound RTP metrics.
  */
 class VoiceClient {
+    // Static attempt tracking to guarantee single-active-connection semantics
+    static globalAttemptCounter = 0;
+    static activeAttemptId = 0;
+    static activeClient = null;
+
     constructor(wsUrl, onStateChange, onMessage) {
         // The offer exchange is HTTP even though older callers pass a WebSocket URL.
         this.apiUrl = this.resolveApiUrl(wsUrl);
@@ -19,8 +24,8 @@ class VoiceClient {
         this.statsInterval = null;
         this.debug = true; // Structured WebRTC logging enabled
 
-        // Concurrency and lifecycle tracking
-        this.currentAttemptId = 0;
+        // Internal attempt tracking
+        this.connectionAttemptId = 0;
         this.isConnecting = false;
         this.isDisconnecting = false;
         this.chatHistory = [];
@@ -34,9 +39,6 @@ class VoiceClient {
 
         // Initialize or bind to the hidden remote audio element
         this.initAudioElement();
-
-        // Register on window for accessibility
-        window.voiceClient = this;
     }
 
     log(...args) {
@@ -68,7 +70,7 @@ class VoiceClient {
         if (!el) {
             el = document.createElement('audio');
             el.id = 'carestance-remote-audio';
-            // Do NOT use display: none; some kiosk browsers throttle or disable audio on display:none elements
+            // Rendered off-screen so browser media engine treats element as active
             el.style.position = 'fixed';
             el.style.left = '-9999px';
             el.style.top = '-9999px';
@@ -93,6 +95,10 @@ class VoiceClient {
     }
 
     setState(newState) {
+        if (!this.isCurrentAttempt() && newState !== 'DISCONNECTED') {
+            this.log(`[WebRTC] Ignoring setState('${newState}') for stale attempt ${this.connectionAttemptId}`);
+            return;
+        }
         if (this.state === newState) return;
         this.state = newState;
         if (typeof this.onStateChange === 'function') {
@@ -151,21 +157,71 @@ class VoiceClient {
         });
     }
 
+    /**
+     * Waits for non-trickle ICE gathering to complete before sending SDP offer.
+     */
+    waitForIceGatheringComplete(pc, timeoutMs = 2000) {
+        this.log("[WebRTC] ICE gathering started");
+        return new Promise((resolve) => {
+            if (pc.iceGatheringState === 'complete') {
+                this.log("[WebRTC] ICE gathering state: complete");
+                resolve();
+                return;
+            }
+
+            this.log(`[WebRTC] ICE gathering state: ${pc.iceGatheringState}`);
+            let timer = null;
+
+            const onStateChange = () => {
+                this.log(`[WebRTC] ICE gathering state: ${pc.iceGatheringState}`);
+                if (pc.iceGatheringState === 'complete') {
+                    cleanup();
+                    resolve();
+                }
+            };
+
+            const cleanup = () => {
+                if (timer) clearTimeout(timer);
+                pc.removeEventListener('icegatheringstatechange', onStateChange);
+            };
+
+            pc.addEventListener('icegatheringstatechange', onStateChange);
+
+            timer = setTimeout(() => {
+                this.log("[WebRTC] ICE gathering timeout reached (proceeding with gathered candidates)");
+                cleanup();
+                resolve();
+            }, timeoutMs);
+        });
+    }
+
     async connect() {
         // Prevent duplicate concurrent initialization
-        if (this.isConnecting || this.state === 'CONNECTING' || this.state === 'LISTENING' || this.state === 'SPEAKING') {
+        if (this.isConnecting || this.state === 'CONNECTING' || this.state === 'LISTENING' || this.state === 'CONNECTED' || this.state === 'SPEAKING') {
             this.log("[WebRTC] duplicate initialization ignored; current state:", this.state);
             return;
         }
 
+        // Cleanly disconnect any previous global active instance before starting new
+        if (VoiceClient.activeClient && VoiceClient.activeClient !== this) {
+            this.log("[WebRTC] Disconnecting previous active client instance");
+            try {
+                VoiceClient.activeClient.disconnect();
+            } catch (e) {}
+        }
+
         // Assign unique attempt ID to invalidate any stale concurrent/previous runs
-        const attemptId = ++this.currentAttemptId;
+        const attemptId = ++VoiceClient.globalAttemptCounter;
+        this.connectionAttemptId = attemptId;
+        VoiceClient.activeAttemptId = attemptId;
+        VoiceClient.activeClient = this;
+
         this.isConnecting = true;
         this.isDisconnecting = false;
         this.setState('CONNECTING');
 
-        // Prime audio within the user gesture chain
-        this.unlockAudio();
+        // Expose globally for diagnostics and kiosk telemetry
+        window.voiceClient = this;
 
         try {
             if (!window.isSecureContext && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
@@ -224,6 +280,7 @@ class VoiceClient {
             // 4. Create Data Channel for Pipecat transcripts & events
             this.dataChannel = pc.createDataChannel("pipecat");
             this.dataChannel.onmessage = (event) => {
+                if (!this.isCurrentAttempt()) return;
                 try {
                     const msg = JSON.parse(event.data);
                     this.onMessage(msg);
@@ -261,7 +318,6 @@ class VoiceClient {
                     this.remoteAudio.play().catch(() => {});
                 }
 
-                // Track event listeners
                 event.track.onended = () => {
                     this.log("[WebRTC] Remote track ended:", event.track.id);
                 };
@@ -289,14 +345,11 @@ class VoiceClient {
             // relying on trickle ICE candidates that this endpoint does not exchange.
             await this.waitForIceGathering(peerConnection);
 
-            // Check if aborted while gathering ICE
-            if (this.currentAttemptId !== attemptId || this.isDisconnecting) {
-                this.log("[WebRTC] Stale connection attempt aborted during ICE gathering");
-                return;
-            }
+            // 9. Inspect candidate presence and send offer
+            const hasCandidates = pc.localDescription && pc.localDescription.sdp.includes("a=candidate:");
+            this.log(`[WebRTC] SDP contains candidates: ${hasCandidates}`);
+            this.log("[WebRTC] Sending fully gathered SDP offer");
 
-            // 9. Send Offer to Backend
-            this.log("[WebRTC] Sending offer");
             const response = await fetch(this.apiUrl, {
                 method: 'POST',
                 headers: {
@@ -318,8 +371,7 @@ class VoiceClient {
             const answerData = await response.json();
             this.log("[WebRTC] Received SDP answer");
 
-            // Check if aborted while waiting for backend response
-            if (this.currentAttemptId !== attemptId || this.isDisconnecting) {
+            if (!this.isCurrentAttempt()) {
                 this.log("[WebRTC] Stale connection attempt aborted during SDP answer fetch");
                 return;
             }
@@ -330,6 +382,8 @@ class VoiceClient {
                 sdp: answerData.sdp,
                 type: answerData.type
             }));
+
+            if (!this.isCurrentAttempt()) return;
 
             if (answerData.session_id) {
                 this.sessionId = answerData.session_id;
@@ -344,7 +398,7 @@ class VoiceClient {
             });
             this.disconnect('ERROR');
         } finally {
-            if (this.currentAttemptId === attemptId) {
+            if (this.connectionAttemptId === attemptId) {
                 this.isConnecting = false;
             }
         }
@@ -352,11 +406,8 @@ class VoiceClient {
 
     /**
      * Inspects inbound audio RTP statistics from WebRTC internals.
-     * Helps differentiate between:
-     * (a) RTP packets not arriving from server vs
-     * (b) RTP packets arriving but browser audio element not playing.
      */
-    async getInboundRtpStats() {
+    async getInboundAudioStats() {
         if (!this.peerConnection) return null;
         try {
             const statsReport = await this.peerConnection.getStats();
@@ -375,18 +426,22 @@ class VoiceClient {
             });
             return inboundAudio;
         } catch (e) {
-            this.log("[WebRTC] Failed to collect inbound RTP stats:", e);
+            this.log("[WebRTC] Failed to collect inbound audio stats:", e);
             return null;
         }
+    }
+
+    getInboundRtpStats() {
+        return this.getInboundAudioStats();
     }
 
     startStatsMonitoring(intervalMs = 2500) {
         this.stopStatsMonitoring();
         this.statsInterval = setInterval(async () => {
-            if (!this.peerConnection || this.peerConnection.connectionState !== 'connected') {
+            if (!this.isCurrentAttempt() || !this.peerConnection || this.peerConnection.connectionState !== 'connected') {
                 return;
             }
-            const rtp = await this.getInboundRtpStats();
+            const rtp = await this.getInboundAudioStats();
             if (rtp) {
                 this.log(`[WebRTC] Inbound RTP stats: packetsReceived=${rtp.packetsReceived}, bytesReceived=${rtp.bytesReceived}, packetsLost=${rtp.packetsLost}, jitter=${rtp.jitter}, audioLevel=${rtp.audioLevel}`);
             }
@@ -414,8 +469,6 @@ class VoiceClient {
     disconnect(nextState = 'DISCONNECTED') {
         this.isDisconnecting = true;
         this.isConnecting = false;
-        // Invalidate in-flight connect attempts
-        this.currentAttemptId++;
 
         this.stopStatsMonitoring();
 
@@ -440,9 +493,6 @@ class VoiceClient {
                 console.error("[WebRTC] Error closing peerConnection:", e);
             }
             this.peerConnection = null;
-            if (window.peerConnection === this.peerConnection) {
-                window.peerConnection = null;
-            }
         }
 
         // Stop microphone stream tracks
@@ -453,12 +503,16 @@ class VoiceClient {
             this.localStream = null;
         }
 
-        // Clean up remote audio element
-        if (this.remoteAudio) {
+        // Protect shared audio element: only clear if THIS instance attached the active stream!
+        if (this.remoteAudio && this.remoteAudio._attachedAttemptId === this.connectionAttemptId) {
+            this.log("[WebRTC] Clearing remote audio stream (active attempt disconnect)");
             try {
                 this.remoteAudio.pause();
                 this.remoteAudio.srcObject = null;
+                delete this.remoteAudio._attachedAttemptId;
             } catch (e) {}
+        } else {
+            this.log("[WebRTC] Stale disconnect skipped clearing shared audio element");
         }
 
         this.setState(nextState);
