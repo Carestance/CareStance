@@ -652,6 +652,16 @@ if (typeof window !== 'undefined') {
     window.VoiceClient = VoiceClient;
 }
 
+// Runtime verification diagnostic
+if (typeof console !== 'undefined' && typeof VoiceClient !== 'undefined') {
+    console.log('[VoiceClient Runtime]', {
+        source: 'voice_client.js',
+        hasIsCurrentAttempt: typeof VoiceClient?.prototype?.isCurrentAttempt === 'function',
+        hasIsValidPeerConnection: typeof VoiceClient?.prototype?.isValidPeerConnection === 'function',
+        prototypeMethods: VoiceClient ? Object.getOwnPropertyNames(VoiceClient.prototype) : []
+    });
+}
+
 // CommonJS export for Node.js test environments
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = VoiceClient;
