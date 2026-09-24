@@ -11,6 +11,9 @@ class PipecatAdapter:
         from app.realtime.providers.stt.deepgram import STTProviderConfig
         from app.realtime.providers.llm.groq import LLMProviderConfig
         from app.realtime.providers.tts.cartesia import TTSProviderConfig
+
+        stt = None
+        tts = None
         
         # 1. STT Provider: Prioritize Deepgram (low-latency, resilient against echo/false interruptions)
         if os.getenv("DEEPGRAM_API_KEY"):
