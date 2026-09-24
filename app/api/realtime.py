@@ -3,8 +3,65 @@ from fastapi.responses import JSONResponse
 from app.realtime.transport.webrtc import WebRTCOffer
 from app.realtime.session.manager import manager as session_manager
 from app.database import get_db
+import logging
+
+class ServerIceLogger(logging.Handler):
+    def emit(self, record):
+        try:
+            msg = record.getMessage()
+            # Do not log ICE credentials/passwords
+            if " < " in msg or msg.startswith("< "):
+                print(f"[Server ICE] STUN_REQUEST_OR_DATA_RECEIVED: {msg}", flush=True)
+            elif " > " in msg or msg.startswith("> "):
+                print(f"[Server ICE] STUN_RESPONSE_OR_DATA_SENT: {msg}", flush=True)
+            elif "Check" in msg:
+                print(f"[Server ICE] ICE_CHECK_EVENT: {msg}", flush=True)
+            elif "ICE completed" in msg:
+                print(f"[Server ICE] ICE_HANDSHAKE_COMPLETED", flush=True)
+            elif "ICE failed" in msg:
+                print(f"[Server ICE] ICE_HANDSHAKE_FAILED", flush=True)
+        except Exception:
+            pass
+
+_aioice_logger = logging.getLogger("aioice")
+_aioice_logger.setLevel(logging.DEBUG)
+if not any(isinstance(h, ServerIceLogger) for h in _aioice_logger.handlers):
+    _aioice_logger.addHandler(ServerIceLogger())
 
 router = APIRouter()
+
+@router.get("/webrtc/config")
+async def webrtc_config():
+    """
+    Returns the WebRTC ICE servers configuration (STUN + TURN) for the browser client.
+    Does NOT leak backend environment variables, secrets, or database credentials.
+    """
+    try:
+        from app.realtime.transport.webrtc import get_ice_servers_config
+        ice_servers = get_ice_servers_config()
+        return JSONResponse({"iceServers": ice_servers})
+    except ValueError as ve:
+        print(f"[WebRTC Config Warning] {str(ve)}", flush=True)
+        # Fallback to STUN servers rather than crashing client initialization
+        return JSONResponse({
+            "iceServers": [
+                {
+                    "urls": [
+                        "stun:stun.l.google.com:19302",
+                        "stun:stun1.l.google.com:19302",
+                        "stun:stun2.l.google.com:19302",
+                    ]
+                }
+            ],
+            "error": str(ve)
+        }, status_code=200)
+    except Exception as e:
+        print(f"[WebRTC Config Exception] {str(e)}", flush=True)
+        return JSONResponse({
+            "iceServers": [
+                {"urls": ["stun:stun.l.google.com:19302"]}
+            ]
+        }, status_code=200)
 
 @router.post("/webrtc/offer")
 async def webrtc_offer(request: Request, offer: WebRTCOffer, db = Depends(get_db)):
@@ -34,21 +91,9 @@ async def webrtc_offer(request: Request, offer: WebRTCOffer, db = Depends(get_db
         from pipecat.processors.aggregators.llm_response_universal import LLMAssistantAggregator, LLMUserAggregator, LLMContext, LLMContextFrame
         import asyncio
         
-        # Initialize connection with production ICE Servers for NAT Traversal
-        import os
-        from aiortc import RTCIceServer, RTCConfiguration
-        
-        turn_url = os.getenv("TURN_SERVER_URL")
-        ice_servers = [RTCIceServer(urls=["stun:stun.l.google.com:19302"])]
-        
-        if turn_url:
-            turn_user = os.getenv("TURN_USERNAME")
-            turn_pass = os.getenv("TURN_PASSWORD")
-            ice_servers.append(
-                RTCIceServer(urls=[turn_url], username=turn_user, credential=turn_pass)
-            )
-            print("DEBUG: Loaded external TURN credentials for production WebRTC.", flush=True)
-
+        # Initialize connection with production ICE Servers (STUN + TURN)
+        from app.realtime.transport.webrtc import get_backend_ice_servers
+        ice_servers = get_backend_ice_servers()
         webrtc_conn = SmallWebRTCConnection(
             ice_servers=ice_servers
         )

@@ -9,10 +9,12 @@ class VoiceClient {
     static activeAttemptId = 0;
     static activeClient = null;
 
-    constructor(wsUrl, onStateChange, onMessage) {
+    constructor(wsUrl, onStateChange, onMessage, options = {}) {
         // wsUrl is repurposed as the API endpoint for WebRTC offer exchange if provided,
         // otherwise it defaults to the /api/webrtc/offer endpoint.
         this.apiUrl = wsUrl ? wsUrl.replace("ws://", "http://").replace("wss://", "https://") : '/api/webrtc/offer';
+        this.configUrl = (options && options.configUrl) || (this.apiUrl && this.apiUrl.endsWith('/offer') ? this.apiUrl.replace(/\/offer$/, '/config') : '/api/webrtc/config');
+        this.iceServers = (options && options.iceServers) || null;
         this.onStateChange = onStateChange || function() {};
         this.onMessage = onMessage || function() {};
         
@@ -272,14 +274,47 @@ class VoiceClient {
                 return;
             }
 
-            // 2. Create RTCPeerConnection and capture its reference
-            this.log(`[WebRTC] [Attempt #${attemptId}] Creating PeerConnection`);
+            // 2. Resolve ICE Servers configuration (STUN + TURN)
+            let iceServers = this.iceServers;
+            if (!iceServers) {
+                iceServers = [
+                    { urls: ['stun:stun.l.google.com:19302'] },
+                    { urls: ['stun:stun1.l.google.com:19302'] },
+                    { urls: ['stun:stun2.l.google.com:19302'] }
+                ];
+                try {
+                    const configResp = await fetch(this.configUrl, {
+                        method: 'GET',
+                        headers: { 'Accept': 'application/json' },
+                        signal: this.abortController ? this.abortController.signal : undefined
+                    });
+                    if (configResp.ok) {
+                        const configData = await configResp.json();
+                        if (configData && Array.isArray(configData.iceServers) && configData.iceServers.length > 0) {
+                            iceServers = configData.iceServers;
+                            this.log(`[WebRTC] [Attempt #${attemptId}] Loaded ICE configuration from server (${iceServers.length} server(s) configured)`);
+                        }
+                    }
+                } catch (configErr) {
+                    if (configErr.name === 'AbortError') throw configErr;
+                    this.log(`[WebRTC] [Attempt #${attemptId}] Failed to load ICE config from server, falling back to default STUN:`, configErr.message);
+                }
+            }
+
+            // Check if connection was aborted while fetching ICE config
+            if (!this.isCurrentAttempt(attemptId)) {
+                this.log(`[WebRTC] [Attempt #${attemptId}] Stale PeerConnection attempt after ICE config fetch aborted; stopping local tracks`);
+                if (this.localStream) {
+                    this.localStream.getTracks().forEach(t => t.stop());
+                    this.localStream = null;
+                }
+                return;
+            }
+
+            // 3. Create RTCPeerConnection and capture its reference
+            this.log(`[WebRTC] [Attempt #${attemptId}] Creating PeerConnection with ${iceServers.length} ICE server(s)`);
             const pc = new RTCPeerConnection({
-                iceServers: [
-                    { urls: 'stun:stun.l.google.com:19302' },
-                    { urls: 'stun:stun1.l.google.com:19302' },
-                    { urls: 'stun:stun2.l.google.com:19302' }
-                ]
+                iceServers: iceServers
             });
             this.peerConnection = pc;
             if (typeof window !== 'undefined') {
@@ -578,7 +613,7 @@ class VoiceClient {
                             selectedPair = pair;
                         }
                     } else if (report.type === 'local-candidate') {
-                        localCandidates[report.id] = {
+                        const cand = {
                             id: report.id,
                             candidateType: report.candidateType,
                             protocol: report.protocol,
@@ -587,8 +622,12 @@ class VoiceClient {
                             relatedAddress: report.relatedAddress,
                             relatedPort: report.relatedPort
                         };
+                        localCandidates[report.id] = cand;
+                        if (report.candidateType === 'relay') {
+                            this.log(`[WebRTC] [Attempt #${attemptId}] TURN candidate detected (local-candidate): candidateType=relay protocol=${report.protocol} address=${cand.address}:${cand.port}`);
+                        }
                     } else if (report.type === 'remote-candidate') {
-                        remoteCandidates[report.id] = {
+                        const cand = {
                             id: report.id,
                             candidateType: report.candidateType,
                             protocol: report.protocol,
@@ -597,6 +636,10 @@ class VoiceClient {
                             relatedAddress: report.relatedAddress,
                             relatedPort: report.relatedPort
                         };
+                        remoteCandidates[report.id] = cand;
+                        if (report.candidateType === 'relay') {
+                            this.log(`[WebRTC] [Attempt #${attemptId}] TURN candidate detected (remote-candidate): candidateType=relay protocol=${report.protocol} address=${cand.address}:${cand.port}`);
+                        }
                     } else if (report.type === 'inbound-rtp' && (report.kind === 'audio' || report.mediaType === 'audio')) {
                         inboundRtp = {
                             packetsReceived: report.packetsReceived || 0,
@@ -614,6 +657,18 @@ class VoiceClient {
                         };
                     }
                 });
+            }
+
+            if (selectedPair) {
+                const local = localCandidates[selectedPair.localCandidateId];
+                const remote = remoteCandidates[selectedPair.remoteCandidateId];
+                const localType = (local && local.candidateType) || 'unknown';
+                const remoteType = (remote && remote.candidateType) || 'unknown';
+                const protocol = (local && local.protocol) || selectedPair.protocol || 'udp';
+                selectedPair.localType = localType;
+                selectedPair.remoteType = remoteType;
+                selectedPair.protocol = protocol;
+                this.log(`[WebRTC] [Attempt #${attemptId}] Selected ICE Pair: localType=${localType} remoteType=${remoteType} protocol=${protocol} state=${selectedPair.state} nominated=${selectedPair.nominated} selected=${selectedPair.selected}`);
             }
 
             const diag = {
