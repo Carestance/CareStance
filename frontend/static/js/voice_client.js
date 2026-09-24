@@ -280,7 +280,7 @@ class VoiceClient {
                 return;
             }
 
-            // 2. Create RTCPeerConnection
+            // 2. Create RTCPeerConnection and capture its reference
             this.log(`[WebRTC] [Attempt #${attemptId}] Creating PeerConnection`);
             const pc = new RTCPeerConnection({
                 iceServers: [
@@ -505,9 +505,15 @@ class VoiceClient {
             }
 
             console.error(`[WebRTC] [Attempt #${attemptId}] WebRTC Connection failed:`, error);
+            if (typeof this.onMessage === 'function') {
+                this.onMessage({
+                    type: 'VOICE_ERROR',
+                    code: error.name || 'VOICE_CONNECTION_FAILED',
+                    message: error.message || 'Unable to access the microphone.'
+                });
+            }
             if (this.isCurrentAttempt(attemptId)) {
-                this.setState('ERROR');
-                this.disconnect();
+                this.disconnect('ERROR');
             }
         } finally {
             if (this.connectionAttemptId === attemptId) {
@@ -578,7 +584,7 @@ class VoiceClient {
         this.setState('SPEAKING');
     }
 
-    disconnect() {
+    disconnect(nextState = 'DISCONNECTED') {
         this.isDisconnecting = true;
         this.isConnecting = false;
 
@@ -632,7 +638,7 @@ class VoiceClient {
             if (typeof window !== 'undefined' && window.peerConnection === this.peerConnection) {
                 window.peerConnection = null;
             }
-            this.setState('DISCONNECTED');
+            this.setState(nextState);
         }
     }
 }
