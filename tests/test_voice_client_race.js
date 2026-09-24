@@ -133,6 +133,45 @@ function setupMockBrowser() {
             }
         }
 
+        async getStats() {
+            return new Map([
+                ['candidate-pair-1', {
+                    id: 'candidate-pair-1',
+                    type: 'candidate-pair',
+                    state: 'succeeded',
+                    nominated: true,
+                    selected: true,
+                    bytesSent: 100,
+                    bytesReceived: 100,
+                    packetsSent: 5,
+                    packetsReceived: 5,
+                    requestsSent: 1,
+                    responsesReceived: 1,
+                    requestsReceived: 1,
+                    responsesSent: 1,
+                    currentRoundTripTime: 0.05,
+                    localCandidateId: 'local-1',
+                    remoteCandidateId: 'remote-1'
+                }],
+                ['local-1', {
+                    id: 'local-1',
+                    type: 'local-candidate',
+                    candidateType: 'host',
+                    protocol: 'udp',
+                    address: '127.0.0.1',
+                    port: 50000
+                }],
+                ['remote-1', {
+                    id: 'remote-1',
+                    type: 'remote-candidate',
+                    candidateType: 'host',
+                    protocol: 'udp',
+                    address: '127.0.0.1',
+                    port: 50002
+                }]
+            ]);
+        }
+
         close() {
             this.signalingState = 'closed';
             this.connectionState = 'closed';
@@ -180,7 +219,7 @@ test('VoiceClient Comprehensive Regression Test Suite', async (t) => {
         // Simulate connection established
         client.peerConnection.connectionState = 'connected';
         if (client.peerConnection.onconnectionstatechange) {
-            client.peerConnection.onconnectionstatechange();
+            await client.peerConnection.onconnectionstatechange();
         }
         assert.strictEqual(client.state, 'LISTENING', "State should transition to LISTENING when connected");
 
@@ -403,5 +442,37 @@ test('VoiceClient Comprehensive Regression Test Suite', async (t) => {
         // All calls should share the single attempt without incrementing connectionAttemptId 5 times
         assert.strictEqual(client.connectionAttemptId, initialAttemptId, "connectionAttemptId must remain the same across duplicate connect calls");
         client.disconnect();
+    });
+
+    // G. ICE failure collects final diagnostics and reports ICE_CONNECTION_FAILED
+    await t.test('Scenario G: ICE failure collects final diagnostics and reports ICE_CONNECTION_FAILED', async () => {
+        global.fetch = async () => ({
+            ok: true,
+            status: 200,
+            statusText: 'OK',
+            json: async () => ({
+                type: 'answer',
+                sdp: 'v=0\nm=audio ...',
+                session_id: 'session_ice_fail_test'
+            })
+        });
+
+        const messages = [];
+        const client = new VoiceClient('/api/webrtc/offer', () => {}, (msg) => {
+            messages.push(msg);
+        });
+
+        await client.connect();
+
+        // Simulate ICE failure
+        client.peerConnection.iceConnectionState = 'failed';
+        client.peerConnection.connectionState = 'failed';
+        if (client.peerConnection.oniceconnectionstatechange) {
+            await client.peerConnection.oniceconnectionstatechange();
+        }
+
+        assert.strictEqual(client.state, 'ERROR', "State should transition to ERROR on ICE failure");
+        assert.ok(messages.some(m => m.code === 'ICE_CONNECTION_FAILED'), "Must emit ICE_CONNECTION_FAILED error message");
+        assert.strictEqual(global.window.peerConnection, null, "window.peerConnection must be cleaned up");
     });
 });

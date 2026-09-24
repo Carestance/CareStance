@@ -375,30 +375,48 @@ class VoiceClient {
             };
 
             // 6. Monitor connection, ICE, and signaling states
-            pc.onconnectionstatechange = () => {
+            pc.onconnectionstatechange = async () => {
                 if (!this.isValidPeerConnection(pc, attemptId)) {
                     this.log(`[WebRTC] [Attempt #${attemptId}] Stale connectionstatechange ignored (state=${pc ? pc.connectionState : 'null'})`);
                     return;
                 }
                 const cState = pc.connectionState;
                 this.log(`[WebRTC] [Attempt #${attemptId}] connectionState=${cState}`);
+                await this.collectIceDiagnostics(pc, attemptId, `Connection State: ${cState}`);
                 
                 if (cState === 'connected') {
                     this.setState('LISTENING', attemptId);
                     this.startStatsMonitoring(2500, attemptId);
                 } else if (cState === 'disconnected' || cState === 'failed') {
                     console.warn(`[WebRTC] [Attempt #${attemptId}] Connection state changed to ${cState}`);
-                    this.disconnect();
+                    await this.collectIceDiagnostics(pc, attemptId, "FINAL ICE DIAGNOSTICS");
+                    if (cState === 'failed' && typeof this.onMessage === 'function') {
+                        this.onMessage({
+                            type: 'VOICE_ERROR',
+                            code: 'ICE_CONNECTION_FAILED',
+                            message: 'WebRTC connection failed: ICE connectivity could not be established.'
+                        });
+                    }
+                    this.disconnect(cState === 'failed' ? 'ERROR' : 'DISCONNECTED');
                 }
             };
 
-            pc.oniceconnectionstatechange = () => {
+            pc.oniceconnectionstatechange = async () => {
                 if (!this.isValidPeerConnection(pc, attemptId)) return;
                 const iceState = pc.iceConnectionState;
                 this.log(`[WebRTC] [Attempt #${attemptId}] iceConnectionState=${iceState}`);
+                await this.collectIceDiagnostics(pc, attemptId, `ICE State: ${iceState}`);
                 if (iceState === 'failed') {
                     console.error(`[WebRTC] [Attempt #${attemptId}] ICE failure detected`);
-                    this.disconnect();
+                    await this.collectIceDiagnostics(pc, attemptId, "FINAL ICE DIAGNOSTICS");
+                    if (typeof this.onMessage === 'function') {
+                        this.onMessage({
+                            type: 'VOICE_ERROR',
+                            code: 'ICE_CONNECTION_FAILED',
+                            message: 'WebRTC connection failed: ICE connectivity could not be established.'
+                        });
+                    }
+                    this.disconnect('ERROR');
                 }
             };
 
@@ -434,6 +452,10 @@ class VoiceClient {
             // 10. Inspect candidate presence and send offer
             const hasCandidates = pc.localDescription && pc.localDescription.sdp.includes("a=candidate:");
             this.log(`[WebRTC] [Attempt #${attemptId}] SDP contains candidates: ${hasCandidates}`);
+            if (pc.localDescription && pc.localDescription.sdp) {
+                const sanitizedOffer = pc.localDescription.sdp.replace(/a=ice-pwd:\S+/g, 'a=ice-pwd:[REDACTED]');
+                this.log(`[WebRTC] [Attempt #${attemptId}] Sanitized SDP Offer:\n` + sanitizedOffer);
+            }
             this.log(`[WebRTC] [Attempt #${attemptId}] Sending fully gathered SDP offer`);
 
             const response = await fetch(this.apiUrl, {
@@ -461,6 +483,10 @@ class VoiceClient {
 
             const answerData = await response.json();
             this.log(`[WebRTC] [Attempt #${attemptId}] Received SDP answer`);
+            if (answerData && answerData.sdp) {
+                const sanitizedAnswer = answerData.sdp.replace(/a=ice-pwd:\S+/g, 'a=ice-pwd:[REDACTED]');
+                this.log(`[WebRTC] [Attempt #${attemptId}] Sanitized SDP Answer:\n` + sanitizedAnswer);
+            }
 
             // 11. Validate attempt and PeerConnection reference immediately before setRemoteDescription
             if (!this.isCurrentAttempt(attemptId)) {
@@ -501,7 +527,7 @@ class VoiceClient {
                 this.onMessage({
                     type: 'VOICE_ERROR',
                     code: error.name || 'VOICE_CONNECTION_FAILED',
-                    message: error.message || 'Unable to access the microphone.'
+                    message: error.message || 'Unable to establish WebRTC connection.'
                 });
             }
             if (this.isCurrentAttempt(attemptId)) {
@@ -511,6 +537,105 @@ class VoiceClient {
             if (this.connectionAttemptId === attemptId) {
                 this.isConnecting = false;
             }
+        }
+    }
+    /**
+     * Collects and logs structured ICE, candidate pair, and RTP diagnostics.
+     */
+    async collectIceDiagnostics(pc, attemptId, label = "ICE DIAGNOSTICS") {
+        if (!pc || typeof pc.getStats !== 'function') return null;
+        try {
+            const stats = await pc.getStats();
+            const candidatePairs = [];
+            const localCandidates = {};
+            const remoteCandidates = {};
+            let inboundRtp = null;
+            let outboundRtp = null;
+            let selectedPair = null;
+
+            if (stats && typeof stats.forEach === 'function') {
+                stats.forEach(report => {
+                    if (report.type === 'candidate-pair') {
+                        const pair = {
+                            id: report.id,
+                            state: report.state,
+                            nominated: !!report.nominated,
+                            selected: !!report.selected,
+                            bytesSent: report.bytesSent || 0,
+                            bytesReceived: report.bytesReceived || 0,
+                            packetsSent: report.packetsSent || 0,
+                            packetsReceived: report.packetsReceived || 0,
+                            requestsSent: report.requestsSent || 0,
+                            responsesReceived: report.responsesReceived || 0,
+                            requestsReceived: report.requestsReceived || 0,
+                            responsesSent: report.responsesSent || 0,
+                            currentRoundTripTime: report.currentRoundTripTime,
+                            localCandidateId: report.localCandidateId,
+                            remoteCandidateId: report.remoteCandidateId
+                        };
+                        candidatePairs.push(pair);
+                        if (report.selected || report.nominated) {
+                            selectedPair = pair;
+                        }
+                    } else if (report.type === 'local-candidate') {
+                        localCandidates[report.id] = {
+                            id: report.id,
+                            candidateType: report.candidateType,
+                            protocol: report.protocol,
+                            address: report.address || report.ip,
+                            port: report.port,
+                            relatedAddress: report.relatedAddress,
+                            relatedPort: report.relatedPort
+                        };
+                    } else if (report.type === 'remote-candidate') {
+                        remoteCandidates[report.id] = {
+                            id: report.id,
+                            candidateType: report.candidateType,
+                            protocol: report.protocol,
+                            address: report.address || report.ip,
+                            port: report.port,
+                            relatedAddress: report.relatedAddress,
+                            relatedPort: report.relatedPort
+                        };
+                    } else if (report.type === 'inbound-rtp' && (report.kind === 'audio' || report.mediaType === 'audio')) {
+                        inboundRtp = {
+                            packetsReceived: report.packetsReceived || 0,
+                            bytesReceived: report.bytesReceived || 0,
+                            packetsLost: report.packetsLost || 0,
+                            jitter: report.jitter !== undefined ? report.jitter : null,
+                            audioLevel: report.audioLevel !== undefined ? report.audioLevel : null,
+                            timestamp: report.timestamp
+                        };
+                    } else if (report.type === 'outbound-rtp' && (report.kind === 'audio' || report.mediaType === 'audio')) {
+                        outboundRtp = {
+                            packetsSent: report.packetsSent || 0,
+                            bytesSent: report.bytesSent || 0,
+                            timestamp: report.timestamp
+                        };
+                    }
+                });
+            }
+
+            const diag = {
+                attemptId,
+                label,
+                signalingState: pc.signalingState,
+                iceGatheringState: pc.iceGatheringState,
+                iceConnectionState: pc.iceConnectionState,
+                connectionState: pc.connectionState,
+                selectedPair,
+                candidatePairs,
+                localCandidates: Object.values(localCandidates),
+                remoteCandidates: Object.values(remoteCandidates),
+                inboundRtp,
+                outboundRtp
+            };
+
+            this.log(`[WebRTC] [Attempt #${attemptId}] ${label}:`, JSON.stringify(diag, null, 2));
+            return diag;
+        } catch (e) {
+            this.log(`[WebRTC] [Attempt #${attemptId}] Failed to collect ${label}:`, e);
+            return null;
         }
     }
 
