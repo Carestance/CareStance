@@ -512,6 +512,12 @@
                     </svg>
                 </button>
             </form>
+            {% if is_assessment_mode %}
+            <button type="button" id="finish-assessment-btn"
+                class="hidden mx-auto mt-4 px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md transition-colors">
+                Finish Assessment
+            </button>
+            {% endif %}
             <p class="quest-eyebrow text-center mt-3 opacity-60">AI generated • Check important info</p>
         </div>
       </div>
@@ -855,6 +861,38 @@
 <script>
     const chatBox = document.getElementById('chat-box');
     const chatForm = document.getElementById('chat-form');
+    const finishAssessmentBtn = document.getElementById('finish-assessment-btn');
+    const isAssessmentMode = {{ 'true' if is_assessment_mode else 'false' }};
+    const assessmentHistory = {{ history_json | safe }};
+    let assessmentTurnCount = 0;
+
+    function showFinishAssessment() {
+        if (finishAssessmentBtn) finishAssessmentBtn.classList.remove('hidden');
+    }
+
+    function responseSignalsCompletion(text) {
+        return /(?:deep\s*dive|assessment).{0,80}(?:complete|finish)|finish.{0,80}(?:assessment|results)|click.{0,80}finish/i.test(text);
+    }
+
+    async function finishAssessment() {
+        finishAssessmentBtn.disabled = true;
+        finishAssessmentBtn.textContent = 'Generating Insights...';
+        const response = await fetch('/assessment/phase3/finalize', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ history: assessmentHistory })
+        });
+        if (!response.ok) {
+            finishAssessmentBtn.disabled = false;
+            finishAssessmentBtn.textContent = 'Finish Assessment';
+            alert('Unable to finish the assessment. Please try again.');
+            return;
+        }
+        const data = await response.json();
+        if (data.redirect) window.location.href = data.redirect;
+    }
+
+    if (finishAssessmentBtn) finishAssessmentBtn.addEventListener('click', finishAssessment);
     const userInput = document.getElementById('user-input');
     const sendBtn = document.getElementById('send-btn');
     const voiceBtn = document.getElementById('voice-btn');
@@ -1088,6 +1126,10 @@
 
         // 1. UI Updates: User Msg
         appendMessage(message, true);
+        if (isAssessmentMode) {
+            assessmentTurnCount += 1;
+            assessmentHistory.push({ role: 'user', content: message });
+        }
         userInput.value = '';
         userInput.disabled = true;
         sendBtn.disabled = true;
@@ -1151,6 +1193,7 @@
                 const chunk = decoder.decode(value, { stream: true });
                 fullText += chunk;
                 contentDiv.innerHTML = marked.parse(fullText);
+                if (isAssessmentMode && responseSignalsCompletion(fullText)) showFinishAssessment();
                 chatBox.scrollTop = chatBox.scrollHeight;
             }
 
@@ -1171,6 +1214,10 @@
 
             // Final render to ensure clean markdown
             if (fullText) contentDiv.innerHTML = marked.parse(fullText);
+            if (isAssessmentMode) {
+                assessmentHistory.push({ role: 'assistant', content: fullText });
+                if (assessmentTurnCount >= 10 || responseSignalsCompletion(fullText)) showFinishAssessment();
+            }
         }
     });
 

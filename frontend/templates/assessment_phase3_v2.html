@@ -104,7 +104,7 @@
     </div>
 </div>
 
-<script src="/static/js/voice_client.js"></script>
+<script src="/static/js/voice_client.js?v=2.4.2"></script>
 <script>
     // UI Elements
     const statusText = document.getElementById('conversation-status');
@@ -166,6 +166,7 @@
                 statusText.innerText = 'Ready when you are';
                 statusText.className = 'text-xl md:text-2xl font-bold text-slate-500 mb-12 tracking-wide transition-all h-8';
                 careoContainer.classList.add('avatar-idle');
+                micBtn.disabled = false;
                 micBtn.innerHTML = '🎙️';
                 micBtn.className = 'w-20 h-20 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-xl shadow-emerald-200 flex items-center justify-center text-3xl transition-all transform hover:scale-105 active:scale-95';
                 break;
@@ -173,8 +174,9 @@
             case 'CONNECTING':
                 statusText.innerText = 'Connecting...';
                 statusText.className = 'text-xl md:text-2xl font-bold text-emerald-600 mb-12 tracking-wide transition-all h-8 animate-pulse';
+                micBtn.disabled = true;
                 micBtn.innerHTML = '⏳';
-                micBtn.className = 'w-20 h-20 rounded-full bg-slate-300 text-white shadow-xl flex items-center justify-center text-3xl transition-all';
+                micBtn.className = 'w-20 h-20 rounded-full bg-slate-300 text-white shadow-xl flex items-center justify-center text-3xl transition-all cursor-not-allowed opacity-80';
                 break;
                 
             case 'LISTENING':
@@ -182,6 +184,7 @@
                 statusText.className = 'text-xl md:text-2xl font-bold text-emerald-500 mb-12 tracking-wide transition-all h-8';
                 voiceRing.classList.add('ring-listening');
                 voiceRing.style.opacity = '0.5';
+                micBtn.disabled = false;
                 micBtn.innerHTML = '🛑';
                 micBtn.className = 'w-20 h-20 rounded-full bg-rose-500 hover:bg-rose-600 text-white shadow-xl shadow-rose-200 flex items-center justify-center text-3xl transition-all transform hover:scale-105 active:scale-95';
                 endBtn.classList.remove('hidden');
@@ -213,6 +216,7 @@
             case 'ERROR':
                 statusText.innerText = 'Careo is having trouble connecting. Please try again.';
                 statusText.className = 'text-lg font-bold text-rose-500 mb-12 tracking-wide transition-all h-8';
+                micBtn.disabled = false;
                 micBtn.innerHTML = '🔄';
                 micBtn.className = 'w-20 h-20 rounded-full bg-slate-600 hover:bg-slate-700 text-white shadow-xl flex items-center justify-center text-3xl transition-all transform hover:scale-105 active:scale-95';
                 break;
@@ -221,7 +225,7 @@
 
     // Audio Analysis for Lip Sync
     function setupAudioAnalysis() {
-        if (!window.voiceClient || !window.voiceClient.remoteAudio.srcObject) {
+        if (!window.voiceClient || !window.voiceClient.remoteAudio || !window.voiceClient.remoteAudio.srcObject) {
             // Fallback animation if Web Audio API can't connect
             fakeLipSync();
             return;
@@ -245,7 +249,7 @@
         }
         
         if (audioCtx.state === 'suspended') {
-            audioCtx.resume();
+            audioCtx.resume().catch(() => {});
         }
         
         analyzeAudio();
@@ -270,9 +274,6 @@
         const average = sum / limit;
         const audioLevel = average / 255; // 0 to 1
         
-        // When AI stops talking (silence), audioLevel drops to ~0.
-        // We can detect end of speech if silence persists, but for now we just react.
-        
         // Apply smoothed transform to the mascot image to simulate speaking / breathing
         const scale = 1 + (audioLevel * 0.15); // Max scale 1.15
         careoImg.style.transform = `scale(${scale})`;
@@ -296,10 +297,13 @@
 
     // Pipecat Integration
     function toggleVoiceSession() {
+        // Prevent action if currently connecting
+        if (currentUIState === 'CONNECTING') return;
+
         if (currentUIState === 'IDLE' || currentUIState === 'ERROR' || currentUIState === 'DISCONNECTED') {
             startSession();
         } else {
-            // Manually stop
+            // Manually stop active session
             if (window.voiceClient) {
                 window.voiceClient.disconnect();
             }
@@ -307,8 +311,21 @@
     }
 
     function startSession() {
+        if (currentUIState === 'CONNECTING') return;
+
         setUIState('CONNECTING');
         updateCaption('Connecting to AI...');
+        
+        if (audioCtx && audioCtx.state === 'suspended') {
+            audioCtx.resume().catch(() => {});
+        }
+
+        // Clean up previous client instance if one exists
+        if (window.voiceClient) {
+            try {
+                window.voiceClient.disconnect();
+            } catch (e) {}
+        }
         
         const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsUrl = `${wsProtocol}//${window.location.host}/api/webrtc/offer`;
@@ -319,6 +336,10 @@
             else if (state === 'ERROR') setUIState('ERROR');
             else if (state === 'DISCONNECTED') setUIState('IDLE');
         }, (msg) => {
+            if (msg && msg.type === 'VOICE_ERROR') {
+                updateCaption(msg.message || 'Microphone connection failed. Please check browser permissions and try again.');
+                return;
+            }
             if (!msg || !msg.type) return;
 
             if (msg.type === 'TRANSCRIPT_PARTIAL') {
@@ -332,47 +353,43 @@
                 setUIState('AI_SPEAKING');
                 updateCaption(msg.text);
                 chatHistory.push({ role: 'assistant', content: msg.text });
+            } else if (msg.type === 'BOT_STARTED_SPEAKING') {
+                setUIState('AI_SPEAKING');
+            } else if (msg.type === 'BOT_STOPPED_SPEAKING') {
+                if (currentUIState === 'AI_SPEAKING') {
+                    setUIState('LISTENING');
+                }
             } else if (msg.type === 'CONVERSATION_COMPLETED') {
-                // Keep the end button prominent
-                endBtn.classList.remove('hidden');
-                endBtn.classList.add('bg-emerald-500', 'text-white');
+                // Change the end button to a prominent "Finish & Get Results" text button
+                endBtn.classList.remove('hidden', 'w-12', 'h-12', 'rounded-full');
+                endBtn.classList.add('w-auto', 'px-6', 'rounded-xl', 'bg-emerald-600', 'hover:bg-emerald-700', 'text-white', 'font-bold', 'py-3');
+                endBtn.innerHTML = 'Finish & Get Results';
             }
         });
-        
-        // Overwrite peer connection creation to ensure we catch audio track properly
-        // Note: voiceClient internally sets this.remoteAudio.srcObject.
-        // We can just rely on setupAudioAnalysis finding it.
-        
-        // Listen for when AI audio stops (interruption or finished speaking)
-        // Since we don't have a reliable AI_SILENCE event from pipecat via WebRTC text channel natively,
-        // we can assume if state changes back to LISTENING, speaking is done.
         
         window.voiceClient.connect();
     }
     
-    // Fix: We need to transition back to LISTENING when the AI finishes speaking.
-    // In WebRTC, the data channel doesn't always send an "I finished speaking" event.
-    // However, if we do audio analysis, we can detect silence.
+    // Transition back to LISTENING when speech ends
+    let silenceDuration = 0;
     setInterval(() => {
         if (currentUIState === 'AI_SPEAKING' && analyser && dataArray) {
-            // Quick check if silent
             analyser.getByteFrequencyData(dataArray);
             let sum = 0;
             for(let i=0; i<dataArray.length; i++) sum += dataArray[i];
             if (sum === 0) {
-                // Silent
-                setTimeout(() => {
-                    // Check again after 1 sec to ensure it wasn't just a pause
+                silenceDuration += 500;
+                if (silenceDuration >= 2000) {
                     if (currentUIState === 'AI_SPEAKING') {
-                        analyser.getByteFrequencyData(dataArray);
-                        let sum2 = 0;
-                        for(let i=0; i<dataArray.length; i++) sum2 += dataArray[i];
-                        if (sum2 === 0) {
-                            setUIState('LISTENING');
-                        }
+                        setUIState('LISTENING');
                     }
-                }, 1000);
+                    silenceDuration = 0;
+                }
+            } else {
+                silenceDuration = 0;
             }
+        } else {
+            silenceDuration = 0;
         }
     }, 500);
 

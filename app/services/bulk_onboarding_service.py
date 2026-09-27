@@ -1,17 +1,18 @@
+import csv
 import datetime
+import io
+import json
 import secrets
 import string
 from typing import Any
 
-from passlib.context import CryptContext
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.email_utils import send_email
 from app.models import User
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+from app.security import get_password_hash, pwd_context
 
 
 R300_SERVICE_BUNDLE = [
@@ -45,6 +46,148 @@ def generate_secure_password(length: int = 16) -> str:
     return "".join(password)
 
 
+def parse_bulk_onboarding_records(raw_input: Any) -> list[dict[str, Any]]:
+    """Normalize bulk onboarding input from JSON text, CSV text, or a file-like object.
+
+    Supports the existing textarea JSON payload and the next requested CSV upload
+    workflow by coercing either document type into the list of user records the
+    service expects.
+    """
+    if isinstance(raw_input, list):
+        return [dict(record) for record in raw_input if isinstance(record, dict)]
+
+    if hasattr(raw_input, "read"):
+        try:
+            raw_text = raw_input.read()
+            if isinstance(raw_text, bytes):
+                raw_text = raw_text.decode("utf-8", errors="ignore")
+            elif not isinstance(raw_text, str):
+                raw_text = str(raw_text)
+            raw_input = raw_text
+        except Exception:
+            raw_input = ""
+
+    if isinstance(raw_input, (bytes, bytearray)):
+        raw_input = raw_input.decode("utf-8", errors="ignore")
+
+    if not isinstance(raw_input, str):
+        return []
+
+    raw_input = raw_input.strip()
+    if not raw_input:
+        return []
+
+    try:
+        parsed = json.loads(raw_input)
+        if isinstance(parsed, dict):
+            for key in ("users", "records", "data"):
+                if isinstance(parsed.get(key), list):
+                    parsed = parsed[key]
+                    break
+            else:
+                parsed = []
+        if isinstance(parsed, list):
+            return [dict(record) for record in parsed if isinstance(record, dict)]
+    except Exception:
+        pass
+
+    try:
+        reader = csv.DictReader(io.StringIO(raw_input))
+        rows = list(reader)
+        if rows:
+            return [
+                {
+                    "email": row.get("email") or row.get("Email") or row.get("email_address") or "",
+                    "full_name": row.get("full_name") or row.get("name") or row.get("fullName") or "",
+                    "contact_number": row.get("contact_number") or row.get("phone") or row.get("mobile") or row.get("contact") or "",
+                    "role": row.get("role") or "student",
+                }
+                for row in rows
+                if (row.get("email") or row.get("Email") or row.get("email_address") or "").strip()
+            ]
+    except Exception:
+        return []
+
+    return []
+
+
+def build_bulk_onboarding_report(result: dict[str, Any]) -> dict[str, Any]:
+    """Return a clearer reporting view for a bulk onboard operation.
+
+    The report is intentionally lightweight: it counts created/skipped/failure
+    outcomes and exposes the user-facing email lists for a human-facing report.
+    """
+    created = result.get("created") or []
+    skipped = result.get("skipped") or []
+    failures = result.get("failures") or []
+
+    created_emails = [record.get("email") for record in created if record.get("email")]
+    duplicate_emails = [record.get("email") for record in skipped if record.get("email")]
+    failure_emails = [record.get("email") for record in failures if record.get("email")]
+
+    return {
+        "created_count": len(created),
+        "skipped_count": len(skipped),
+        "failure_count": len(failures),
+        "created_emails": created_emails,
+        "duplicate_emails": duplicate_emails,
+        "failure_emails": failure_emails,
+        "summary": {
+            "created_count": len(created),
+            "skipped_count": len(skipped),
+            "failure_count": len(failures),
+            "service_bundle": result.get("summary", {}).get("service_bundle") or R300_SERVICE_BUNDLE,
+        },
+    }
+
+
+def build_credentials_workbook(result: dict[str, Any]) -> bytes:
+    """Build an Excel workbook containing credentials for newly created accounts."""
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill
+
+    workbook = Workbook()
+    credentials_sheet = workbook.active
+    credentials_sheet.title = "Account Credentials"
+    credentials_headers = ["Full Name", "Username", "Password", "Role", "User ID"]
+    credentials_sheet.append(credentials_headers)
+
+    header_fill = PatternFill("solid", fgColor="1F4E78")
+    for cell in credentials_sheet[1]:
+        cell.font = Font(color="FFFFFF", bold=True)
+        cell.fill = header_fill
+
+    for account in result.get("created") or []:
+        credentials_sheet.append([
+            account.get("full_name") or "",
+            account.get("email") or "",
+            account.get("password") or "",
+            account.get("role") or "",
+            account.get("user_id") or "",
+        ])
+
+    credentials_sheet.freeze_panes = "A2"
+    credentials_sheet.auto_filter.ref = credentials_sheet.dimensions
+    for column, width in {"A": 28, "B": 34, "C": 22, "D": 14, "E": 12}.items():
+        credentials_sheet.column_dimensions[column].width = width
+
+    summary_sheet = workbook.create_sheet("Summary")
+    summary_sheet.append(["Metric", "Count"])
+    for cell in summary_sheet[1]:
+        cell.font = Font(color="FFFFFF", bold=True)
+        cell.fill = header_fill
+    summary = result.get("summary") or {}
+    summary_sheet.append(["Accounts created", summary.get("created_count", 0)])
+    summary_sheet.append(["Duplicates skipped", summary.get("skipped_count", 0)])
+    summary_sheet.append(["Failures", summary.get("failure_count", 0)])
+    summary_sheet.column_dimensions["A"].width = 24
+    summary_sheet.column_dimensions["B"].width = 12
+
+    output = io.BytesIO()
+    workbook.save(output)
+    return output.getvalue()
+
+
 def get_bulk_onboarding_plan_assignment() -> dict[str, Any]:
     """Return the default plan model used for bulk ₹300 paid onboarding.
 
@@ -52,7 +195,7 @@ def get_bulk_onboarding_plan_assignment() -> dict[str, Any]:
     subscription as the active paid plan. This helper insulates the new feature
     from the payment/Razorpay UI by assigning that plan directly.
     """
-    activated_at = datetime.datetime.utcnow()
+    activated_at = datetime.datetime.now(datetime.timezone.utc)
     expires_at = activated_at + datetime.timedelta(days=3650)
 
     return {
@@ -82,7 +225,7 @@ async def bulk_onboard_users(
     and is returned to the caller only if the caller asked for the values to be
     shared by email.
     """
-    now = datetime.datetime.utcnow()
+    now = datetime.datetime.now(datetime.timezone.utc)
     assignment = get_bulk_onboarding_plan_assignment()
     created = []
     skipped = []
@@ -104,7 +247,7 @@ async def bulk_onboard_users(
             continue
 
         secure_password = generate_secure_password(16)
-        hashed_password = pwd_context.hash(secure_password)
+        hashed_password = get_password_hash(secure_password)
 
         user = User(
             email=email,
@@ -152,7 +295,7 @@ async def bulk_onboard_users(
 
     await db.commit()
 
-    return {
+    result = {
         "created": created,
         "skipped": skipped,
         "failures": failures,
@@ -164,3 +307,5 @@ async def bulk_onboard_users(
             "service_bundle": R300_SERVICE_BUNDLE,
         },
     }
+    result["report"] = build_bulk_onboarding_report(result)
+    return result

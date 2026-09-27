@@ -35,10 +35,16 @@ class SessionManager:
         self._active_sessions: Dict[str, Session] = {}
 
     def create_session(self, client_id: str, user_id: Optional[int] = None) -> Session:
+        import asyncio
+        # Clean up stale sessions for the same client or user to prevent orphan pipelines
+        if client_id != "anonymous" or user_id is not None:
+            for sid, s in list(self._active_sessions.items()):
+                if (client_id != "anonymous" and s.client_id == client_id) or (user_id and s.user_id == user_id):
+                    asyncio.create_task(self.cleanup_session(sid))
+
         session = Session(client_id, user_id)
         self._active_sessions[session.session_id] = session
         
-        import asyncio
         asyncio.create_task(
             session.event_bus.publish(Event(
                 type=EventType.SESSION_CREATED, 

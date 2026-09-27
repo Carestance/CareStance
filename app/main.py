@@ -5,6 +5,9 @@ import datetime
 import asyncio
 import io
 import os
+import certifi
+if not os.getenv("SSL_CERT_FILE"):
+    os.environ["SSL_CERT_FILE"] = certifi.where()
 import shutil
 import warnings
 from functools import lru_cache
@@ -44,6 +47,7 @@ from itsdangerous import URLSafeTimedSerializer
 from .data.career_keywords import career_keywords
 from .services import simulation_service
 from .services import assessment_engine
+from .services.onboarding_milestone_service import build_onboarding_milestone_payload
 
 LIVE_SIMULATION_SESSIONS = {}
 
@@ -160,6 +164,85 @@ SUBSCRIPTION_PLANS = {
             "More personalized next-step support",
         ],
     },
+}
+
+CAREER_PLANS = {
+    "free": {
+        "id": "free",
+        "name": "Free",
+        "price": 0,
+        "amount_paise": 0,
+        "duration": "Lifetime",
+        "duration_days": 3650,
+        "tagline": "Experience the basic CareStance platform",
+        "recommendations": "Up to 3",
+        "simulations": "1",
+        "ai_conversations": "Not Available",
+        "monthly_growth_path": False,
+        "roadmap": "Limited",
+        "progress_tracking": False,
+        "insights": "Basic",
+        "badge": "Explorer",
+        "is_paid": False
+    },
+    "plan_1m": {
+        "id": "plan_1m",
+        "name": "1 Month",
+        "price": 300,
+        "amount_paise": 30000,
+        "duration": "1 Month",
+        "duration_days": 30,
+        "tagline": "Entry-level paid plan for focused career exploration",
+        "recommendations": "Up to 3",
+        "simulations": "3",
+        "ai_conversations": "1 conversation",
+        "monthly_growth_path": False,
+        "roadmap": "Available",
+        "progress_tracking": True,
+        "insights": "Medium",
+        "badge": "Starter",
+        "is_paid": True
+    },
+    "plan_4m": {
+        "id": "plan_4m",
+        "name": "4 Months",
+        "price": 1000,
+        "amount_paise": 100000,
+        "duration": "4 Months",
+        "duration_days": 120,
+        "effective_monthly": "₹250/mo",
+        "tagline": "Designed for users who want more consistent career exploration",
+        "recommendations": "Unlimited",
+        "simulations": "Unlimited",
+        "ai_conversations": "3 conversations/month",
+        "monthly_growth_path": True,
+        "roadmap": "Available",
+        "progress_tracking": True,
+        "insights": "Medium",
+        "badge": "Best Value",
+        "is_paid": True,
+        "is_popular": True
+    },
+    "plan_6m": {
+        "id": "plan_6m",
+        "name": "6 Months",
+        "price": 1200,
+        "amount_paise": 120000,
+        "duration": "6 Months",
+        "duration_days": 180,
+        "effective_monthly": "₹200/mo",
+        "tagline": "Premium long-term career development plan",
+        "recommendations": "Unlimited",
+        "simulations": "Unlimited",
+        "ai_conversations": "5 conversations/month",
+        "monthly_growth_path": True,
+        "roadmap": "Advanced",
+        "progress_tracking": "Advanced",
+        "insights": "Advanced",
+        "badge": "Advanced / Premium",
+        "is_paid": True,
+        "is_premium": True
+    }
 }
 
 def get_assessment_display_archetype(result) -> str:
@@ -1040,27 +1123,7 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
 templates.env.auto_reload = True
 # Re-enabled cache as standard practice
-# pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto"]) # Removed
-
-def _get_bcrypt():
-    import bcrypt
-    return bcrypt
-
-
-def verify_password(plain_password, hashed_password):
-    bcrypt = _get_bcrypt()
-    # Ensure bytes for bcrypt
-    if isinstance(hashed_password, str):
-        hashed_password = hashed_password.encode('utf-8')
-    return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password)
-
-def get_password_hash(password: str) -> str:
-    bcrypt = _get_bcrypt()
-    # bcrypt has a hard limit of 72 BYTES on UTF-8 encoded passwords.
-    # Truncate safely by bytes then decode with errors='ignore'.
-    pwd_bytes = password.encode('utf-8')[:72]
-    pwd_trunc = pwd_bytes.decode('utf-8', errors='ignore')
-    return bcrypt.hashpw(pwd_trunc.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+from app.security import get_password_hash, verify_password, pwd_context
 
 
 async def get_current_user(request: Request, db: AsyncSession = Depends(get_db)):
@@ -1129,6 +1192,22 @@ async def complete_onboarding(request: Request, db: AsyncSession = Depends(get_d
         user.onboarded = True
         await db.commit()
     return {"status": "success"}
+
+@app.get("/api/onboarding/milestone")
+async def onboarding_milestone_payload(request: Request, db: AsyncSession = Depends(get_db)):
+    """Return an onboarding milestone payload for UI and API clients.
+
+    The frontend can pass completed task IDs as repeated query parameters such as
+    ?completed_tasks=profile_setup&completed_tasks=upi_setup. If the user is
+    signed in, the payload is personalized with the stored display name.
+    """
+    user = await get_current_user(request, db)
+    completed_tasks = request.query_params.getlist("completed_tasks") or []
+    user_name = user.full_name if user and user.full_name else None
+    return JSONResponse(build_onboarding_milestone_payload(
+        completed_tasks=completed_tasks,
+        user_name=user_name,
+    ))
 
 @app.get("/articles", response_class=HTMLResponse)
 async def articles_page(request: Request, db: AsyncSession = Depends(get_db)):
@@ -5410,7 +5489,7 @@ async def assessment_phase3(request: Request, mode: str = "chat", db: AsyncSessi
         return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
         
     if mode in ["chat", "text"]:
-        return RedirectResponse(url="/chatbot", status_code=status.HTTP_302_FOUND)
+        return RedirectResponse(url="/chatbot?mode=assessment", status_code=status.HTTP_302_FOUND)
 
     is_completed = (result.phase3_result == "COMPLETED")
     import json
@@ -6264,6 +6343,181 @@ async def subscription_verify_payment(request: Request, db: AsyncSession = Depen
     db.add(payment)
     await db.commit()
     return {"status": "ok", "plan": plan}
+
+
+# ─── CareStance Plans & Pricing Routes ──────────────────────────────────────────
+
+@app.get("/plan", response_class=HTMLResponse)
+@app.get("/plans", response_class=HTMLResponse)
+async def plans_pricing_page(request: Request, db: AsyncSession = Depends(get_db)):
+    user = await get_current_user(request, db)
+    return templates.TemplateResponse(request=request, name="plan.html", context={
+        "user": user,
+        "plans": CAREER_PLANS,
+        "RAZORPAY_KEY_ID": RAZORPAY_KEY_ID,
+        "razorpay_configured": is_razorpay_configured(),
+    })
+
+
+@app.post("/api/plans/create-order")
+async def api_plans_create_order(request: Request, db: AsyncSession = Depends(get_db)):
+    """
+    Creates a Razorpay Order and Payment Link for instant QR display on the Plans page.
+    """
+    if not is_razorpay_configured():
+        raise HTTPException(
+            status_code=503,
+            detail="Payment gateway is not configured. Add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to .env."
+        )
+
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+
+    plan_id = data.get("plan", "plan_4m")
+    plan_info = CAREER_PLANS.get(plan_id)
+    if not plan_info or not plan_info.get("is_paid"):
+        raise HTTPException(status_code=400, detail="Invalid plan selected")
+
+    user = await get_current_user(request, db)
+    amount_paise = plan_info["amount_paise"]
+    receipt = f"plan_{plan_id}_{uuid.uuid4().hex[:8]}"
+
+    client = get_razorpay_client()
+    try:
+        order = client.order.create(data={
+            "amount": amount_paise,
+            "currency": "INR",
+            "receipt": receipt,
+            "notes": {
+                "plan_id": plan_id,
+                "plan_name": plan_info["name"],
+                "user_id": str(user.id) if user else "anonymous",
+            },
+            "payment_capture": 1
+        })
+    except Exception as e:
+        print(f"[Razorpay] Error creating plan order: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create order: {str(e)}")
+
+    # Generate payment link for instant UPI QR code rendering
+    payment_url = None
+    try:
+        cust_name = (getattr(user, "full_name", None) or getattr(user, "email", None) or "CareStance User") if user else "CareStance User"
+        cust_email = getattr(user, "email", None) or "billing@carestance.com"
+        cust_phone = getattr(user, "phone", None) or "9876543210"
+
+        plink_data = {
+            "amount": amount_paise,
+            "currency": "INR",
+            "accept_partial": False,
+            "description": f"CareStance {plan_info['name']} Career Plan",
+            "customer": {
+                "name": cust_name,
+                "email": cust_email,
+                "contact": cust_phone
+            },
+            "notify": {"sms": False, "email": False},
+            "reminder_enable": False,
+            "notes": {
+                "order_id": order["id"],
+                "plan_id": plan_id,
+                "user_id": str(user.id) if user else "anonymous"
+            }
+        }
+        plink = client.payment_link.create(data=plink_data)
+        payment_url = plink.get("short_url")
+    except Exception as pl_err:
+        print(f"[Razorpay] Payment link creation warning: {pl_err}")
+        payment_url = f"https://rzp.io/i/{order['id']}"
+
+    return {
+        "status": "ok",
+        "order_id": order["id"],
+        "amount": amount_paise,
+        "currency": "INR",
+        "key_id": RAZORPAY_KEY_ID,
+        "payment_url": payment_url,
+        "plan": plan_id,
+        "plan_name": plan_info["name"]
+    }
+
+
+@app.post("/api/plans/verify-payment")
+async def api_plans_verify_payment(request: Request, db: AsyncSession = Depends(get_db)):
+    """
+    Verifies Razorpay payment signature and activates the selected plan for the user.
+    """
+    if not is_razorpay_configured():
+        raise HTTPException(status_code=503, detail="Payment gateway is not configured.")
+
+    try:
+        data = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid request body")
+
+    order_id = data.get("razorpay_order_id")
+    payment_id = data.get("razorpay_payment_id")
+    signature = data.get("razorpay_signature")
+    plan_id = data.get("plan", "plan_4m")
+
+    if not order_id or not payment_id or not signature:
+        raise HTTPException(status_code=400, detail="Missing razorpay payment credentials")
+
+    plan_info = CAREER_PLANS.get(plan_id)
+    if not plan_info:
+        raise HTTPException(status_code=400, detail="Invalid plan selected")
+
+    params_dict = {
+        "razorpay_order_id": order_id,
+        "razorpay_payment_id": payment_id,
+        "razorpay_signature": signature
+    }
+    try:
+        client = get_razorpay_client()
+        client.utility.verify_payment_signature(params_dict)
+    except Exception as e:
+        print(f"[Razorpay] Plan signature verification failed: {e}")
+        raise HTTPException(status_code=400, detail="Signature verification failed")
+
+    user = await get_current_user(request, db)
+    now = datetime.datetime.utcnow()
+    duration_days = plan_info.get("duration_days", 30)
+    expires_at = now + datetime.timedelta(days=duration_days)
+
+    if user:
+        db_user = (await db.execute(select(models.User).where(models.User.id == user.id))).scalars().first()
+        if db_user:
+            db_user.subscription_plan = plan_id
+            db_user.subscription_status = "active"
+            db_user.subscription_started_at = now
+            db_user.subscription_expires_at = expires_at
+            db_user.assessment_all_access = True
+            db_user.simulation_paid = True
+            if plan_id in ["plan_4m", "plan_6m"]:
+                db_user.simulation_credits = 9999
+            elif plan_id == "plan_1m":
+                db_user.simulation_credits = max(getattr(db_user, "simulation_credits", 0) or 0, 3)
+
+        payment_record = models.SubscriptionPayment(
+            user_id=user.id,
+            plan=plan_id,
+            razorpay_order_id=order_id,
+            razorpay_payment_id=payment_id,
+            amount=float(plan_info["price"]),
+            status="success",
+            expires_at=expires_at,
+        )
+        db.add(payment_record)
+        await db.commit()
+
+    return {
+        "status": "ok",
+        "plan": plan_id,
+        "message": f"Successfully activated {plan_info['name']} plan!",
+        "redirect": "/dashboard?msg=Subscription+Activated"
+    }
 
 
 # ─── Razorpay Standard Web Checkout API Endpoints ──────────────────────────────
@@ -7602,17 +7856,27 @@ def build_local_careerbuddy_response(user, result, user_message: str) -> str:
     )
 
 @app.get("/chatbot", response_class=HTMLResponse)
-async def chatbot_page(request: Request, db: AsyncSession = Depends(get_db)):
+async def chatbot_page(request: Request, mode: str = "chat", db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     
     # Fetch History
     history = (await db.execute(select(models.ChatMessage).where(models.ChatMessage.user_id == user.id).order_by(models.ChatMessage.timestamp))).scalars().all()
+    history_json = json.dumps([
+        {"role": "user" if msg.sender == "user" else "assistant", "content": msg.content}
+        for msg in history
+    ])
     
     try:
         template = templates.get_template("chatbot.html")
-        content = template.render({"request": request, "user": user, "history": history})
+        content = template.render({
+            "request": request,
+            "user": user,
+            "history": history,
+            "history_json": history_json,
+            "is_assessment_mode": mode == "assessment",
+        })
         return HTMLResponse(content=content)
     except Exception as e:
         import traceback

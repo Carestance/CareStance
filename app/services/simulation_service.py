@@ -685,7 +685,7 @@ async def generate_ai_content(prompt: str, use_grok: bool = False) -> str:
         try:
             completion = await gclient.chat.completions.create(
                 messages=[{"role": "user", "content": prompt}],
-                model="llama-3.3-70b-versatile",
+                model="qwen/qwen3.8-27b",
             )
             return completion.choices[0].message.content
         except Exception as e:

@@ -1,4 +1,7 @@
 import os
+import certifi
+if not os.getenv("SSL_CERT_FILE"):
+    os.environ["SSL_CERT_FILE"] = certifi.where()
 from typing import Optional
 
 # Sanitize Sarvam API exceptions to prevent secret leakage
@@ -51,7 +54,7 @@ class RealtimeConfig:
 
     @property
     def sarvam_voice_id(self) -> str:
-        return os.getenv("SARVAM_VOICE_ID", "neha")
+        return os.getenv("SARVAM_VOICE_ID", "ritu")
 
         
     @property

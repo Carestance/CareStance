@@ -25,6 +25,7 @@ json-repair
 passlib
 numpy
 pandas
+openpyxl
 reportlab
 pyjwt
 pipecat-ai[silero,webrtc]

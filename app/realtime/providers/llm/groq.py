@@ -1,3 +1,4 @@
+import os
 from typing import Optional
 from app.realtime.config import config
 
@@ -13,7 +14,13 @@ class LLMProviderConfig:
         if not key:
             raise ValueError("Groq API key not provided or found in environment.")
             
+        model = os.getenv("GROQ_MODEL", "qwen/qwen3.8-27b")
+        max_tokens = int(os.getenv("GROQ_MAX_TOKENS", "250"))
+        
         return GroqLLMService(
             api_key=key,
-            settings=GroqLLMService.Settings(model="qwen/qwen3.8-27b")
+            settings=GroqLLMService.Settings(
+                model=model,
+                max_tokens=max_tokens
+            )
         )
