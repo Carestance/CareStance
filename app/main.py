@@ -2605,12 +2605,13 @@ async def assessment_result(request: Request, db: AsyncSession = Depends(get_db)
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     
     try:
-        from .appwrite_helper import get_assessment_by_user_id
-        result = get_assessment_by_user_id(user.id)
-        if not result:
-            result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
-    except Exception:
+        # Fetch assessment result from primary database (PostgreSQL/Supabase) first
         result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+        if not result:
+            from .appwrite_helper import get_assessment_by_user_id
+            result = get_assessment_by_user_id(user.id)
+    except Exception:
+        result = None
     if not result:
         return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
 
@@ -3094,14 +3095,14 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
             import traceback
             return HTMLResponse(content=f"Template Error: {e}<br><pre>{traceback.format_exc()}</pre>", status_code=500)
     
-    # Fetch assessment result to show on dashboard (prefer Appwrite per user request)
+    # Fetch assessment result from primary database (PostgreSQL/Supabase) first
     try:
-        from .appwrite_helper import get_assessment_by_user_id
-        assessment = get_assessment_by_user_id(user.id)
-        if not assessment:
-            assessment = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
-    except Exception:
         assessment = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+        if not assessment:
+            from .appwrite_helper import get_assessment_by_user_id
+            assessment = get_assessment_by_user_id(user.id)
+    except Exception:
+        assessment = None
     
     # Ensure confidence is populated if assessment exists but analysis is partial
     if assessment and (not assessment.confidence or assessment.confidence < 0.81):
