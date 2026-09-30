@@ -62,6 +62,9 @@ If using WSL/Unix, use `source .venv/bin/activate` instead of the PowerShell act
 - ADMIN_EMAIL — Default admin email for notifications
 - SECRET_KEY — FastAPI secret for sessions/cookies
 - REDIS_URL — Redis connection string (if using caching/session store)
+- GOOGLE_CLIENT_ID — Google OAuth client ID for Google sign-in
+- GOOGLE_CLIENT_SECRET — Google OAuth client secret
+- GOOGLE_REDIRECT_URI — Optional OAuth callback override; local default is `http://localhost:8080/auth/callback`
 
 Place these in `.env` at the project root. For interns, it's OK to run without AI keys — some features will be disabled or use mock behavior.
 
@@ -103,6 +106,21 @@ Run the app:
 ```powershell
 python run.py
 ```
+
+### Admin panel (Windows)
+
+Open PowerShell in the repository root and run:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+$env:ADMIN_EMAIL="your-admin@gmail.com"
+$env:GOOGLE_CLIENT_ID="your-google-client-id"
+$env:GOOGLE_CLIENT_SECRET="your-google-client-secret"
+$env:GOOGLE_REDIRECT_URI="http://localhost:8080/auth/callback"
+python run.py
+```
+
+Then open `http://localhost:8080/admin/login` and choose **Continue to Admin with Google**. The Google account email must match `ADMIN_EMAIL` (or already have the `admin` role). Add the same redirect URI in Google Cloud Console under **Authorized redirect URIs**.
 
 The default local URL is `http://localhost:8080`. To enable automatic reload
 while developing, set `DEV_RELOAD=true` in `.env` before starting the app.
