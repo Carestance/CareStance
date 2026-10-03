@@ -4,434 +4,323 @@
 
 {% block extra_head %}
 <style>
-    body {
-        background: url('/static/images/BG1.png') center top / cover no-repeat fixed !important;
-        padding-top: 0 !important;
+    :root{
+        --bg:#0a0a1c; --panel:#0f1024; --bot:#13213f; --bot-b:#1f3560;
+        --me:#2d2457; --me-b:#4a3a8f; --teal:#34d399; --violet:#8b7cf6;
+        --text:#e8ecf8; --muted:#8c93b5;
     }
-    
-    /* Animation for idle state */
-    @keyframes float {
-        0%, 100% { transform: translateY(0) scale(1); }
-        50% { transform: translateY(-10px) scale(1.02); }
+    body{
+        background: radial-gradient(1200px 600px at 20% -10%, #1b1650 0%, transparent 60%),
+                    radial-gradient(900px 500px at 100% 110%, #0d3a3a 0%, transparent 55%), var(--bg) !important;
+        padding-top:0 !important;
     }
-    
-    .avatar-idle {
-        animation: float 6s ease-in-out infinite;
-    }
-    
-    /* Animation for voice ring */
-    @keyframes pulse-ring {
-        0% { transform: scale(0.9); opacity: 0; }
-        50% { transform: scale(1.2); opacity: 0.3; }
-        100% { transform: scale(1.5); opacity: 0; }
-    }
-    
-    .ring-listening {
-        background-color: #10b981; /* Emerald 500 */
-        animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-    }
+    .chat-shell{max-width:860px;margin:0 auto;height:100vh;padding:7.5rem 1rem 1rem;display:flex;flex-direction:column}
+    .chat-card{flex:1;min-height:0;display:flex;flex-direction:column;background:rgba(15,16,36,.82);
+        border:1px solid rgba(139,124,246,.25);border-radius:1.5rem;overflow:hidden;backdrop-filter:blur(10px);
+        box-shadow:0 20px 60px rgba(0,0,0,.45)}
+    .chat-head{display:flex;align-items:center;gap:.8rem;padding:.8rem 1.1rem;border-bottom:1px solid rgba(255,255,255,.07);background:rgba(19,33,63,.55)}
+    .head-title{color:var(--text);font-weight:800;line-height:1.1}
+    .head-status{font-size:.78rem;color:var(--muted);transition:color .2s}
+    .head-status.on{color:var(--teal)}
+    .end-btn{margin-left:auto;display:none;align-items:center;gap:.4rem;color:#fda4af;background:rgba(244,63,94,.12);
+        border:1px solid rgba(244,63,94,.35);padding:.4rem .8rem;border-radius:999px;font-size:.8rem;font-weight:700;cursor:pointer}
+    .end-btn:hover{background:rgba(244,63,94,.22)}
 
-    .ring-thinking {
-        background: conic-gradient(from 0deg, transparent, #10b981, transparent);
-        animation: spin 2s linear infinite;
-        border-radius: 50%;
-    }
-    
-    @keyframes spin {
-        100% { transform: rotate(360deg); }
-    }
+    /* avatars */
+    .avatar{width:40px;height:40px;border-radius:50%;flex-shrink:0;overflow:hidden;position:relative;
+        border:2px solid var(--bot-b);background:#0b1430;display:flex;align-items:center;justify-content:center}
+    .avatar video{width:100%;height:100%;object-fit:cover;display:block}
+    .avatar.me{border-color:var(--me-b);background:linear-gradient(135deg,#4a3a8f,#2d2457);color:#d9d3ff}
+    .avatar.lg{width:46px;height:46px}
+    .avatar.speaking{box-shadow:0 0 0 3px rgba(52,211,153,.35),0 0 18px rgba(52,211,153,.45)}
+
+    /* messages: user LEFT, bot RIGHT (flip with .flip-sides on .chat-shell) */
+    .msgs{flex:1;overflow-y:auto;padding:1.2rem 1rem;display:flex;flex-direction:column;gap:.9rem;scroll-behavior:smooth}
+    .row{display:flex;align-items:flex-end;gap:.55rem;max-width:88%}
+    .row.bot{align-self:flex-end;flex-direction:row-reverse}
+    .row.me{align-self:flex-start}
+    .flip-sides .row.bot{align-self:flex-start;flex-direction:row}
+    .flip-sides .row.me{align-self:flex-end;flex-direction:row-reverse}
+    .bubble{padding:.65rem .95rem;border-radius:1.1rem;color:var(--text);font-size:.96rem;line-height:1.5;
+        word-break:break-word;border:1px solid transparent;animation:pop .25s ease}
+    .row.bot .bubble{background:linear-gradient(160deg,var(--bot),#0f1a36);border-color:var(--bot-b);border-bottom-right-radius:.3rem}
+    .row.me .bubble{background:linear-gradient(160deg,var(--me),#231b47);border-color:var(--me-b);border-bottom-left-radius:.3rem}
+    .flip-sides .row.bot .bubble{border-bottom-right-radius:1.1rem;border-bottom-left-radius:.3rem}
+    .flip-sides .row.me .bubble{border-bottom-left-radius:1.1rem;border-bottom-right-radius:.3rem}
+    .bubble.live{opacity:.8;font-style:italic}
+    @keyframes pop{from{opacity:0;transform:translateY(6px) scale(.98)}to{opacity:1;transform:none}}
+    .dots{display:inline-flex;gap:4px;padding:.25rem 0}
+    .dots i{width:7px;height:7px;border-radius:50%;background:var(--teal);animation:bl 1.2s infinite}
+    .dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
+    @keyframes bl{0%,60%,100%{opacity:.25;transform:translateY(0)}30%{opacity:1;transform:translateY(-4px)}}
+    .empty{margin:auto;text-align:center;color:var(--muted);max-width:320px}
+    .empty .avatar{width:110px;height:110px;margin:0 auto 1rem;border-width:3px}
+    .empty h3{color:var(--text);font-weight:800;font-size:1.25rem;margin-bottom:.3rem}
+
+    /* composer */
+    .composer{padding:.8rem 1rem 1rem;border-top:1px solid rgba(255,255,255,.07);background:rgba(10,10,28,.6)}
+    .caption{min-height:1.2rem;text-align:center;font-size:.82rem;color:var(--muted);margin-bottom:.5rem;display:none}
+    .caption.show{display:block}
+    .finish{display:none;width:100%;margin-bottom:.6rem;padding:.7rem;border-radius:.9rem;font-weight:800;color:#06251c;cursor:pointer;
+        background:linear-gradient(90deg,var(--teal),#2dd4bf);border:0}
+    .bar{display:flex;align-items:center;gap:.6rem}
+    .pill{flex:1;display:flex;align-items:center;gap:.4rem;background:#14152e;border:1px solid rgba(139,124,246,.3);
+        border-radius:999px;padding:.3rem .35rem .3rem 1rem;transition:border-color .2s,box-shadow .2s}
+    .pill:focus-within{border-color:var(--violet);box-shadow:0 0 0 3px rgba(139,124,246,.18)}
+    .pill input{flex:1;background:transparent;border:0;outline:0;color:var(--text);font-size:.95rem;min-width:0}
+    .pill input::placeholder{color:var(--muted)}
+    .icon-btn{width:42px;height:42px;border-radius:50%;border:0;display:flex;align-items:center;justify-content:center;cursor:pointer;
+        transition:transform .15s,background .2s,box-shadow .2s;flex-shrink:0;position:relative}
+    .icon-btn:hover:not(:disabled){transform:scale(1.07)}
+    .icon-btn:active:not(:disabled){transform:scale(.94)}
+    .icon-btn:disabled{cursor:not-allowed;opacity:.5}
+    .send{background:linear-gradient(135deg,var(--violet),#6d5ce0);color:#fff}
+    .send:disabled{background:#262848}
+    .mic{background:#1c1e3d;color:#c9ccf0;border:1px solid rgba(139,124,246,.35)}
+    .mic.active{background:rgba(52,211,153,.16);color:var(--teal);border-color:var(--teal);box-shadow:0 0 0 0 rgba(52,211,153,.5);animation:ring 1.8s infinite}
+    .mic.muted{background:rgba(244,63,94,.12);color:#fda4af;border-color:rgba(244,63,94,.4)}
+    @keyframes ring{70%{box-shadow:0 0 0 12px rgba(52,211,153,0)}100%{box-shadow:0 0 0 0 rgba(52,211,153,0)}}
+    .spin{width:20px;height:20px;border-radius:50%;border:3px solid rgba(255,255,255,.2);border-top-color:var(--teal);animation:sp .8s linear infinite}
+    @keyframes sp{to{transform:rotate(360deg)}}
+    .cc{width:42px;height:42px;border-radius:12px;background:#1c1e3d;color:var(--muted);font-weight:800;font-size:.75rem;
+        border:1px solid rgba(139,124,246,.35);cursor:pointer;position:relative;transition:all .2s}
+    .cc:hover{color:var(--text);border-color:var(--violet)}
+    .cc.on{color:var(--teal);border-color:var(--teal);background:rgba(52,211,153,.12)}
+    .tip{position:absolute;bottom:calc(100% + 10px);left:0;white-space:nowrap;background:#0b1430;color:var(--text);
+        border:1px solid var(--bot-b);padding:.4rem .7rem;border-radius:.6rem;font-size:.75rem;font-weight:600;text-align:left;
+        opacity:0;pointer-events:none;transform:translateY(4px);transition:all .18s}
+    .tip small{display:block;color:var(--muted);font-weight:500}
+    .cc:hover .tip{opacity:1;transform:none}
+    @media(max-width:640px){.chat-shell{padding-top:6.5rem}.row{max-width:94%}}
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="h-screen w-full flex flex-col pt-20">
-    <div class="flex-1 max-w-7xl w-full mx-auto flex flex-col items-center justify-center p-6 relative">
-        
-        <!-- Header Text -->
-        <div class="text-center mb-10 animate-fade-in-up">
-            <h1 class="text-3xl md:text-4xl font-black text-slate-800 mb-2">Career Buddy</h1>
-            <p class="text-emerald-600 font-bold tracking-widest uppercase text-sm">Your AI Career Companion</p>
-        </div>
-
-        <!-- Conversation Status -->
-        <h2 id="conversation-status" class="text-xl md:text-2xl font-bold text-slate-500 mb-12 tracking-wide transition-all h-8">
-            Ready when you are
-        </h2>
-        
-        <!-- Center Avatar Area -->
-        <div class="relative flex items-center justify-center mb-16 w-[280px] h-[280px] md:w-[360px] md:h-[360px]">
-            <!-- Dynamic Ring -->
-            <div id="voice-ring" class="absolute inset-0 rounded-full transition-all duration-300 pointer-events-none scale-100 opacity-0"></div>
-            
-            <!-- Avatar Container -->
-            <div id="careo-container" class="relative z-10 w-full h-full rounded-full overflow-hidden shadow-2xl border-4 border-white bg-white transition-all duration-300 avatar-idle group">
-                <video id="careo-img" src="/static/images/mascot.mp4" autoplay loop muted playsinline class="w-full h-full object-cover transition-transform duration-100"></video>
-                
-                <!-- Thinking Overlay (Optional Glow) -->
-                <div id="thinking-glow" class="absolute inset-0 bg-emerald-500/20 mix-blend-overlay opacity-0 transition-opacity duration-500 pointer-events-none"></div>
-            </div>
-        </div>
-
-        <!-- Live Captions -->
-        <div class="h-16 w-full max-w-2xl mb-8 flex items-center justify-center">
-            <div id="live-caption" class="text-center text-slate-700 text-lg md:text-xl font-medium transition-opacity duration-300 opacity-0 px-4 py-2 bg-white/60 backdrop-blur-md rounded-2xl shadow-sm border border-white/40 hidden">
-            </div>
-        </div>
-
-        <!-- Controls -->
-        <div class="flex items-center gap-6 z-20">
-            <!-- Optional Captions Toggle -->
-            <button id="captions-btn" onclick="toggleCaptions()" class="w-12 h-12 rounded-full bg-white/80 text-slate-500 hover:bg-white font-bold text-xs shadow-md border border-slate-200 transition-all flex flex-col items-center justify-center" title="Toggle Captions">
-                CC
-            </button>
-            
-            <!-- Mic / Action Button -->
-            <button id="mic-btn" onclick="toggleVoiceSession()" class="w-20 h-20 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-xl shadow-emerald-200 flex items-center justify-center text-3xl transition-all transform hover:scale-105 active:scale-95" title="Start Conversation">
-                🎙️
-            </button>
-            
-            <!-- End Conversation -->
-            <button id="end-btn" onclick="finishAssessment()" class="w-12 h-12 rounded-full bg-rose-50 text-rose-500 hover:bg-rose-100 shadow-md border border-rose-200 transition-all flex items-center justify-center hidden" title="End Conversation">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" />
-                </svg>
-            </button>
-        </div>
-
-        <!-- Footer Branding -->
-        <p class="absolute bottom-6 text-xs text-slate-400 font-medium">Powered by CareStance AI</p>
-
+<div class="chat-shell" id="shell">
+  <div class="chat-card">
+    <div class="chat-head">
+      <div class="avatar lg" id="head-avatar"><video src="/static/images/mascot.mp4" loop muted playsinline preload="metadata"></video></div>
+      <div>
+        <div class="head-title">Careo · Career Buddy</div>
+        <div class="head-status" id="status">Ready when you are</div>
+      </div>
+      <button class="end-btn" id="end-btn" onclick="finishAssessment()" title="End conversation">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="3"/></svg> End
+      </button>
     </div>
+
+    <div class="msgs" id="msgs">
+      <div class="empty" id="empty">
+        <div class="avatar"><video src="/static/images/mascot.mp4" loop muted playsinline preload="metadata"></video></div>
+        <h3>Hi, I'm Careo</h3>
+        <p>Tap the mic to start talking, or type a message below.</p>
+      </div>
+    </div>
+
+    <div class="composer">
+      <div class="caption" id="caption"></div>
+      <button class="finish" id="finish-btn" onclick="finishAssessment()">Finish &amp; Get Results</button>
+      <div class="bar">
+        <button class="cc" id="cc-btn" onclick="toggleCaptions()" aria-label="Connect with AI — live captions">CC
+          <span class="tip">Connect with AI<small>Toggle live captions</small></span>
+        </button>
+        <div class="pill">
+          <input id="txt" type="text" placeholder="Type a message…" autocomplete="off" onkeydown="if(event.key==='Enter')sendTyped()" oninput="syncSend()">
+          <button class="icon-btn send" id="send-btn" onclick="sendTyped()" disabled title="Send">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M3.4 20.4 21 12 3.4 3.6 3.3 10l12.6 2-12.6 2z"/></svg>
+          </button>
+          <button class="icon-btn mic" id="mic-btn" onclick="toggleVoiceSession()" title="Start conversation"></button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script src="/static/js/voice_client.js?v=2.4.2"></script>
 <script>
-    // UI Elements
-    const statusText = document.getElementById('conversation-status');
-    const careoContainer = document.getElementById('careo-container');
-    const careoImg = document.getElementById('careo-img');
-    const voiceRing = document.getElementById('voice-ring');
-    const micBtn = document.getElementById('mic-btn');
-    const endBtn = document.getElementById('end-btn');
-    const liveCaption = document.getElementById('live-caption');
-    const captionsBtn = document.getElementById('captions-btn');
-    const thinkingGlow = document.getElementById('thinking-glow');
+const $ = id => document.getElementById(id);
+const statusEl=$('status'), msgs=$('msgs'), micBtn=$('mic-btn'), endBtn=$('end-btn'), finishBtn=$('finish-btn'),
+      caption=$('caption'), ccBtn=$('cc-btn'), headAvatar=$('head-avatar'), txt=$('txt'), sendBtn=$('send-btn');
 
-    // State
-    let currentUIState = 'IDLE';
-    let captionsEnabled = false;
-    let chatHistory = {{ (result.chat_messages if result.chat_messages else []) | tojson | safe }};
-    if (!Array.isArray(chatHistory)) chatHistory = [];
-    
-    // Audio Context for Lip Sync
-    let audioCtx = null;
-    let analyser = null;
-    let dataArray = null;
-    let animationFrame = null;
-    let audioSource = null;
-    let isSpeakingActive = false; // Flag for TTS playback
+let currentUIState='IDLE', captionsEnabled=false, micMuted=false, isSpeakingActive=false;
+let chatHistory = {{ (result.chat_messages if result.chat_messages else []) | tojson | safe }};
+if (!Array.isArray(chatHistory)) chatHistory = [];
+let audioCtx=null, analyser=null, dataArray=null, audioSource=null;
+let liveUser=null, botRow=null;          // in-progress bubbles
+const botVideos=()=>document.querySelectorAll('video');
 
-    function toggleCaptions() {
-        captionsEnabled = !captionsEnabled;
-        captionsBtn.classList.toggle('text-emerald-600', captionsEnabled);
-        captionsBtn.classList.toggle('bg-emerald-50', captionsEnabled);
-        liveCaption.classList.toggle('hidden', !captionsEnabled);
+const ICON = {
+  mic:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>',
+  muted:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 9v2a3 3 0 0 0 5.1 2.1M15 9.3V6a3 3 0 0 0-5.9-.8"/><path d="M5 11a7 7 0 0 0 11.2 5.6M19 11a7 7 0 0 1-.6 2.8M12 18v3"/><path d="M3 3l18 18"/></svg>',
+  retry:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5"/></svg>',
+  user:'<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0z"/></svg>'
+};
+
+/* ---------- mascot video: plays only while the AI speaks ---------- */
+function setMascot(playing){
+  document.querySelectorAll('.avatar video').forEach(v=>{ if(!playing) v.pause(); });
+  if(playing){
+    const live = botRow ? botRow.querySelector('video') : null;
+    [headAvatar.querySelector('video'), live].forEach(v=>v && v.play().catch(()=>{}));
+  }
+  headAvatar.classList.toggle('speaking', playing);
+  if(botRow) botRow.querySelector('.avatar').classList.toggle('speaking', playing);
+}
+
+/* ---------- chat rendering ---------- */
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+function scrollDown(){msgs.scrollTop=msgs.scrollHeight;}
+function addRow(role, html, live){
+  $('empty') && $('empty').remove();
+  const row=document.createElement('div'); row.className='row '+role;
+  const av = role==='bot'
+    ? '<div class="avatar"><video src="/static/images/mascot.mp4" loop muted playsinline preload="metadata"></video></div>'
+    : '<div class="avatar me">'+ICON.user+'</div>';
+  row.innerHTML = av+'<div class="bubble'+(live?' live':'')+'">'+html+'</div>';
+  msgs.appendChild(row); scrollDown(); return row;
+}
+function setBubble(row, text, live){const b=row.querySelector('.bubble');b.innerHTML=esc(text);b.classList.toggle('live',!!live);scrollDown();}
+function showTyping(){ if(!botRow){ botRow=addRow('bot','<span class="dots"><i></i><i></i><i></i></span>'); } }
+function showBotMessage(text){ if(!botRow) botRow=addRow('bot',''); setBubble(botRow,text,false); }
+function renderHistory(){
+  chatHistory.forEach(m=>{ if(!m||!m.content) return;
+    addRow(m.role==='user'?'me':'bot', esc(m.content)); });
+}
+
+/* ---------- state ---------- */
+function setStatus(t,on){statusEl.textContent=t;statusEl.classList.toggle('on',!!on);}
+function paintMic(kind){
+  micBtn.className='icon-btn mic'+(kind==='active'?' active':kind==='muted'?' muted':'');
+  micBtn.disabled = kind==='loading';
+  micBtn.innerHTML = kind==='loading' ? '<span class="spin"></span>'
+                   : kind==='muted' ? ICON.muted : kind==='retry' ? ICON.retry : ICON.mic;
+  micBtn.title = kind==='idle'?'Start conversation': kind==='muted'?'Mic paused — tap to resume': kind==='active'?'Mic on — tap to pause':'';
+}
+function setUIState(state){
+  currentUIState=state;
+  if(state!=='AI_SPEAKING'){ isSpeakingActive=false; setMascot(false); }
+  switch(state){
+    case 'IDLE': setStatus('Ready when you are'); paintMic('idle'); endBtn.style.display='none'; micMuted=false; break;
+    case 'CONNECTING': setStatus('Connecting…'); paintMic('loading'); break;
+    case 'LISTENING': setStatus(micMuted?'Mic paused':'Listening…',!micMuted); paintMic(micMuted?'muted':'active'); endBtn.style.display='inline-flex'; break;
+    case 'USER_SPEAKING': setStatus('Listening to you…',true); break;
+    case 'THINKING': setStatus('Careo is thinking…'); showTyping(); break;
+    case 'AI_SPEAKING': setStatus('Careo is speaking',true); isSpeakingActive=true; setMascot(true); setupAudioAnalysis(); break;
+    case 'ERROR': setStatus('Trouble connecting — try again'); paintMic('retry'); break;
+  }
+}
+
+/* ---------- mic mute helper (best-effort across voice_client versions) ---------- */
+function setMicTracks(enabled){
+  const vc=window.voiceClient; if(!vc) return;
+  if(typeof vc.setMicEnabled==='function'){ vc.setMicEnabled(enabled); return; }
+  const tracks=[];
+  [vc.localStream,vc.stream,vc.micStream].forEach(s=>s&&s.getAudioTracks&&tracks.push(...s.getAudioTracks()));
+  if(vc.pc&&vc.pc.getSenders) vc.pc.getSenders().forEach(s=>s.track&&s.track.kind==='audio'&&tracks.push(s.track));
+  tracks.forEach(t=>t.enabled=enabled);
+}
+
+/* ---------- audio level -> avatar glow ---------- */
+function setupAudioAnalysis(){
+  const vc=window.voiceClient;
+  if(!vc||!vc.remoteAudio||!vc.remoteAudio.srcObject) return;
+  try{
+    if(!audioCtx){
+      audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+      analyser=audioCtx.createAnalyser(); analyser.fftSize=256;
+      dataArray=new Uint8Array(analyser.frequencyBinCount);
+      audioSource=audioCtx.createMediaStreamSource(vc.remoteAudio.srcObject); audioSource.connect(analyser);
     }
+    if(audioCtx.state==='suspended') audioCtx.resume().catch(()=>{});
+    (function loop(){
+      if(!isSpeakingActive){ headAvatar.style.transform=''; return; }
+      analyser.getByteFrequencyData(dataArray);
+      let s=0; for(let i=0;i<64;i++) s+=dataArray[i];
+      headAvatar.style.transform='scale('+(1+(s/64/255)*0.12)+')';
+      requestAnimationFrame(loop);
+    })();
+  }catch(e){ console.warn('Audio analysis unavailable',e); }
+}
 
-    function updateCaption(text) {
-        if (!text) {
-            liveCaption.style.opacity = '0';
-            return;
-        }
-        liveCaption.innerText = text;
-        liveCaption.style.opacity = '1';
-    }
+/* ---------- captions ---------- */
+function toggleCaptions(){captionsEnabled=!captionsEnabled;ccBtn.classList.toggle('on',captionsEnabled);caption.classList.toggle('show',captionsEnabled);}
+function updateCaption(t){caption.textContent=t||'';}
 
-    function setUIState(state) {
-        currentUIState = state;
-        
-        // Reset base classes
-        careoContainer.className = 'relative z-10 w-full h-full rounded-full overflow-hidden shadow-2xl border-4 border-white bg-white transition-all duration-300 group';
-        voiceRing.className = 'absolute inset-0 rounded-full transition-all duration-300 pointer-events-none';
-        thinkingGlow.style.opacity = '0';
-        
-        // Stop audio analysis if not speaking
-        if (state !== 'AI_SPEAKING') {
-            isSpeakingActive = false;
-            careoImg.style.transform = 'scale(1)';
-        }
+/* ---------- composer ---------- */
+function syncSend(){sendBtn.disabled=!txt.value.trim();}
+function sendTyped(){
+  const t=txt.value.trim(); if(!t) return;
+  addRow('me',esc(t)); chatHistory.push({role:'user',content:t});
+  txt.value=''; syncSend();
+  const vc=window.voiceClient;
+  if(vc && typeof vc.sendText==='function'){ vc.sendText(t); showTyping(); setStatus('Careo is thinking…'); }
+  else console.warn('voice_client.js has no sendText(); typed message saved to transcript only.');
+}
 
-        switch(state) {
-            case 'IDLE':
-                statusText.innerText = 'Ready when you are';
-                statusText.className = 'text-xl md:text-2xl font-bold text-slate-500 mb-12 tracking-wide transition-all h-8';
-                careoContainer.classList.add('avatar-idle');
-                micBtn.disabled = false;
-                micBtn.innerHTML = '🎙️';
-                micBtn.className = 'w-20 h-20 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-xl shadow-emerald-200 flex items-center justify-center text-3xl transition-all transform hover:scale-105 active:scale-95';
-                break;
-                
-            case 'CONNECTING':
-                statusText.innerText = 'Connecting...';
-                statusText.className = 'text-xl md:text-2xl font-bold text-emerald-600 mb-12 tracking-wide transition-all h-8 animate-pulse';
-                micBtn.disabled = true;
-                micBtn.innerHTML = '⏳';
-                micBtn.className = 'w-20 h-20 rounded-full bg-slate-300 text-white shadow-xl flex items-center justify-center text-3xl transition-all cursor-not-allowed opacity-80';
-                break;
-                
-            case 'LISTENING':
-                statusText.innerText = 'Listening...';
-                statusText.className = 'text-xl md:text-2xl font-bold text-emerald-500 mb-12 tracking-wide transition-all h-8';
-                voiceRing.classList.add('ring-listening');
-                voiceRing.style.opacity = '0.5';
-                micBtn.disabled = false;
-                micBtn.innerHTML = '🛑';
-                micBtn.className = 'w-20 h-20 rounded-full bg-rose-500 hover:bg-rose-600 text-white shadow-xl shadow-rose-200 flex items-center justify-center text-3xl transition-all transform hover:scale-105 active:scale-95';
-                endBtn.classList.remove('hidden');
-                break;
-                
-            case 'USER_SPEAKING':
-                statusText.innerText = "I'm listening...";
-                statusText.className = 'text-xl md:text-2xl font-bold text-emerald-600 mb-12 tracking-wide transition-all h-8';
-                voiceRing.classList.add('ring-listening');
-                voiceRing.style.opacity = '0.8';
-                careoContainer.style.transform = 'scale(1.05)';
-                break;
-                
-            case 'THINKING':
-                statusText.innerText = 'Careo is thinking...';
-                statusText.className = 'text-xl md:text-2xl font-bold text-indigo-500 mb-12 tracking-wide transition-all h-8 animate-pulse';
-                voiceRing.classList.add('ring-thinking');
-                voiceRing.style.opacity = '0.6';
-                thinkingGlow.style.opacity = '1';
-                break;
-                
-            case 'AI_SPEAKING':
-                statusText.innerText = 'Careo is speaking';
-                statusText.className = 'text-xl md:text-2xl font-bold text-emerald-600 mb-12 tracking-wide transition-all h-8';
-                isSpeakingActive = true;
-                setupAudioAnalysis();
-                break;
-                
-            case 'ERROR':
-                statusText.innerText = 'Careo is having trouble connecting. Please try again.';
-                statusText.className = 'text-lg font-bold text-rose-500 mb-12 tracking-wide transition-all h-8';
-                micBtn.disabled = false;
-                micBtn.innerHTML = '🔄';
-                micBtn.className = 'w-20 h-20 rounded-full bg-slate-600 hover:bg-slate-700 text-white shadow-xl flex items-center justify-center text-3xl transition-all transform hover:scale-105 active:scale-95';
-                break;
-        }
-    }
+/* ---------- session ---------- */
+function toggleVoiceSession(){
+  if(currentUIState==='CONNECTING') return;
+  if(['IDLE','ERROR','DISCONNECTED'].includes(currentUIState)){ startSession(); return; }
+  micMuted=!micMuted; setMicTracks(!micMuted);                 // pause / resume the mic
+  setStatus(micMuted?'Mic paused':(currentUIState==='AI_SPEAKING'?'Careo is speaking':'Listening…'),!micMuted);
+  paintMic(micMuted?'muted':'active');
+}
+function startSession(){
+  setUIState('CONNECTING'); updateCaption('Connecting to AI…');
+  if(window.voiceClient){ try{window.voiceClient.disconnect();}catch(e){} }
+  const proto=location.protocol==='https:'?'wss:':'ws:';
+  window.voiceClient=new VoiceClient(`${proto}//${location.host}/api/webrtc/offer`, state=>{
+    if(state==='LISTENING') setUIState('LISTENING');
+    else if(state==='ERROR') setUIState('ERROR');
+    else if(state==='DISCONNECTED') setUIState('IDLE');
+  }, msg=>{
+    if(msg&&msg.type==='VOICE_ERROR'){ updateCaption(msg.message||'Microphone connection failed. Check browser permissions.'); return; }
+    if(!msg||!msg.type) return;
+    if(msg.type==='TRANSCRIPT_PARTIAL'){
+      setUIState('USER_SPEAKING'); updateCaption(msg.text);
+      if(!liveUser) liveUser=addRow('me','',true); setBubble(liveUser,msg.text,true);
+    } else if(msg.type==='TRANSCRIPT_FINAL'){
+      if(!liveUser) liveUser=addRow('me','',false); setBubble(liveUser,msg.text,false); liveUser=null;
+      updateCaption(msg.text); chatHistory.push({role:'user',content:msg.text}); setUIState('THINKING');
+    } else if(msg.type==='ASSISTANT_MESSAGE'){
+      showBotMessage(msg.text); updateCaption(msg.text); chatHistory.push({role:'assistant',content:msg.text});
+      setUIState('AI_SPEAKING');
+    } else if(msg.type==='BOT_STARTED_SPEAKING'){ setUIState('AI_SPEAKING');
+    } else if(msg.type==='BOT_STOPPED_SPEAKING'){
+      if(currentUIState==='AI_SPEAKING'){ botRow=null; setUIState('LISTENING'); }
+    } else if(msg.type==='CONVERSATION_COMPLETED'){ finishBtn.style.display='block'; }
+  });
+  window.voiceClient.connect();
+}
 
-    // Audio Analysis for Lip Sync
-    function setupAudioAnalysis() {
-        if (!window.voiceClient || !window.voiceClient.remoteAudio || !window.voiceClient.remoteAudio.srcObject) {
-            // Fallback animation if Web Audio API can't connect
-            fakeLipSync();
-            return;
-        }
-        
-        if (!audioCtx) {
-            try {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                analyser = audioCtx.createAnalyser();
-                analyser.fftSize = 256;
-                dataArray = new Uint8Array(analyser.frequencyBinCount);
-                
-                const stream = window.voiceClient.remoteAudio.srcObject;
-                audioSource = audioCtx.createMediaStreamSource(stream);
-                audioSource.connect(analyser);
-            } catch (e) {
-                console.warn("Web Audio API setup failed, using fallback animation", e);
-                fakeLipSync();
-                return;
-            }
-        }
-        
-        if (audioCtx.state === 'suspended') {
-            audioCtx.resume().catch(() => {});
-        }
-        
-        analyzeAudio();
-    }
+/* fallback: AI audio went silent -> back to listening */
+let silence=0;
+setInterval(()=>{
+  if(currentUIState==='AI_SPEAKING'&&analyser&&dataArray){
+    analyser.getByteFrequencyData(dataArray);
+    let s=0; for(let i=0;i<dataArray.length;i++) s+=dataArray[i];
+    if(s===0){ silence+=500; if(silence>=2000){ botRow=null; setUIState('LISTENING'); silence=0; } } else silence=0;
+  } else silence=0;
+},500);
 
-    function analyzeAudio() {
-        if (!isSpeakingActive) {
-            // Cleanup
-            voiceRing.style.opacity = '0';
-            voiceRing.style.transform = 'scale(1)';
-            careoImg.style.transform = 'scale(1)';
-            return;
-        }
-        
-        analyser.getByteFrequencyData(dataArray);
-        let sum = 0;
-        // Average the lower frequencies (speech energy)
-        const limit = Math.min(dataArray.length, 64);
-        for (let i = 0; i < limit; i++) {
-            sum += dataArray[i];
-        }
-        const average = sum / limit;
-        const audioLevel = average / 255; // 0 to 1
-        
-        // Apply smoothed transform to the mascot image to simulate speaking / breathing
-        const scale = 1 + (audioLevel * 0.15); // Max scale 1.15
-        careoImg.style.transform = `scale(${scale})`;
-        
-        // React the ring as well
-        voiceRing.style.opacity = Math.max(0.1, audioLevel * 0.5).toString();
-        voiceRing.style.transform = `scale(${1 + audioLevel * 0.4})`;
-        
-        animationFrame = requestAnimationFrame(analyzeAudio);
-    }
-    
-    // Fallback if audio context fails
-    function fakeLipSync() {
-        if (!isSpeakingActive) return;
-        const randomScale = 1 + (Math.random() * 0.1);
-        careoImg.style.transform = `scale(${randomScale})`;
-        voiceRing.style.opacity = '0.3';
-        voiceRing.style.transform = `scale(${1 + Math.random() * 0.2})`;
-        setTimeout(fakeLipSync, 100);
-    }
+async function finishAssessment(){
+  finishBtn.disabled=endBtn.disabled=true; finishBtn.textContent='Finishing…';
+  if(window.voiceClient) window.voiceClient.disconnect();
+  try{
+    const r=await fetch('/assessment/phase3/finalize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({history:chatHistory})});
+    if(!r.ok) throw new Error('Server returned '+r.status);
+    const d=await r.json();
+    if(d.redirect) location.href=d.redirect; else throw new Error('No redirect URL');
+  }catch(e){
+    console.error(e); alert('Could not finalize. Please try again.');
+    finishBtn.disabled=endBtn.disabled=false; finishBtn.textContent='Finish & Get Results';
+  }
+}
 
-    // Pipecat Integration
-    function toggleVoiceSession() {
-        // Prevent action if currently connecting
-        if (currentUIState === 'CONNECTING') return;
-
-        if (currentUIState === 'IDLE' || currentUIState === 'ERROR' || currentUIState === 'DISCONNECTED') {
-            startSession();
-        } else {
-            // Manually stop active session
-            if (window.voiceClient) {
-                window.voiceClient.disconnect();
-            }
-        }
-    }
-
-    function startSession() {
-        if (currentUIState === 'CONNECTING') return;
-
-        setUIState('CONNECTING');
-        updateCaption('Connecting to AI...');
-        
-        if (audioCtx && audioCtx.state === 'suspended') {
-            audioCtx.resume().catch(() => {});
-        }
-
-        // Clean up previous client instance if one exists
-        if (window.voiceClient) {
-            try {
-                window.voiceClient.disconnect();
-            } catch (e) {}
-        }
-        
-        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${wsProtocol}//${window.location.host}/api/webrtc/offer`;
-        
-        window.voiceClient = new VoiceClient(wsUrl, (state) => {
-            // Map VoiceClient states to our UI
-            if (state === 'LISTENING') setUIState('LISTENING');
-            else if (state === 'ERROR') setUIState('ERROR');
-            else if (state === 'DISCONNECTED') setUIState('IDLE');
-        }, (msg) => {
-            if (msg && msg.type === 'VOICE_ERROR') {
-                updateCaption(msg.message || 'Microphone connection failed. Please check browser permissions and try again.');
-                return;
-            }
-            if (!msg || !msg.type) return;
-
-            if (msg.type === 'TRANSCRIPT_PARTIAL') {
-                setUIState('USER_SPEAKING');
-                updateCaption(msg.text);
-            } else if (msg.type === 'TRANSCRIPT_FINAL') {
-                setUIState('THINKING');
-                updateCaption(msg.text);
-                chatHistory.push({ role: 'user', content: msg.text });
-            } else if (msg.type === 'ASSISTANT_MESSAGE') {
-                setUIState('AI_SPEAKING');
-                updateCaption(msg.text);
-                chatHistory.push({ role: 'assistant', content: msg.text });
-            } else if (msg.type === 'BOT_STARTED_SPEAKING') {
-                setUIState('AI_SPEAKING');
-            } else if (msg.type === 'BOT_STOPPED_SPEAKING') {
-                if (currentUIState === 'AI_SPEAKING') {
-                    setUIState('LISTENING');
-                }
-            } else if (msg.type === 'CONVERSATION_COMPLETED') {
-                // Change the end button to a prominent "Finish & Get Results" text button
-                endBtn.classList.remove('hidden', 'w-12', 'h-12', 'rounded-full');
-                endBtn.classList.add('w-auto', 'px-6', 'rounded-xl', 'bg-emerald-600', 'hover:bg-emerald-700', 'text-white', 'font-bold', 'py-3');
-                endBtn.innerHTML = 'Finish & Get Results';
-            }
-        });
-        
-        window.voiceClient.connect();
-    }
-    
-    // Transition back to LISTENING when speech ends
-    let silenceDuration = 0;
-    setInterval(() => {
-        if (currentUIState === 'AI_SPEAKING' && analyser && dataArray) {
-            analyser.getByteFrequencyData(dataArray);
-            let sum = 0;
-            for(let i=0; i<dataArray.length; i++) sum += dataArray[i];
-            if (sum === 0) {
-                silenceDuration += 500;
-                if (silenceDuration >= 2000) {
-                    if (currentUIState === 'AI_SPEAKING') {
-                        setUIState('LISTENING');
-                    }
-                    silenceDuration = 0;
-                }
-            } else {
-                silenceDuration = 0;
-            }
-        } else {
-            silenceDuration = 0;
-        }
-    }, 500);
-
-    async function finishAssessment() {
-        endBtn.disabled = true;
-        endBtn.innerHTML = '⏳';
-        
-        if (window.voiceClient) {
-            window.voiceClient.disconnect();
-        }
-        
-        try {
-            const resp = await fetch('/assessment/phase3/finalize', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ history: chatHistory })
-            });
-            
-            if (!resp.ok) throw new Error(`Server returned ${resp.status}`);
-
-            const data = await resp.json();
-            if (data.redirect) {
-                window.location.href = data.redirect;
-            } else {
-                alert("Error: No redirect URL provided by server.");
-                endBtn.disabled = false;
-                endBtn.innerHTML = 'Finish';
-            }
-        } catch (e) {
-            console.error(e);
-            alert("Network error while finalizing. Please try again.");
-            endBtn.disabled = false;
-            endBtn.innerHTML = 'Finish';
-        }
-    }
-
-    // Expose control functions globally for inline HTML onclick attributes
-    window.toggleVoiceSession = toggleVoiceSession;
-    window.toggleCaptions = toggleCaptions;
-    window.finishAssessment = finishAssessment;
-
-    // Initialization
-    setUIState('IDLE');
+window.toggleVoiceSession=toggleVoiceSession; window.toggleCaptions=toggleCaptions;
+window.finishAssessment=finishAssessment; window.sendTyped=sendTyped; window.syncSend=syncSend;
+renderHistory(); setUIState('IDLE');
+// Per-video first frame so paused avatars show the mascot, not a blank circle
+document.addEventListener('loadedmetadata',e=>{ if(e.target.tagName==='VIDEO' && e.target.paused) e.target.currentTime=0.1; },true);
 </script>
 {% endblock %}
