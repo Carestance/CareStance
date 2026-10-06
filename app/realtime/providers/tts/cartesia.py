@@ -23,5 +23,9 @@ class TTSProviderConfig:
         return CartesiaTTSService(
             api_key=key,
             settings=settings,
-            text_aggregation_mode=TextAggregationMode.SENTENCE
+            # Stream LLM tokens as they arrive instead of waiting for sentence
+            # punctuation. Disable Cartesia's managed buffer as well; in TOKEN
+            # mode its default can otherwise add up to 3 seconds of delay.
+            text_aggregation_mode=TextAggregationMode.TOKEN,
+            max_buffer_delay_ms=0,
         )
