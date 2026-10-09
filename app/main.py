@@ -48,6 +48,7 @@ from .data.career_keywords import career_keywords
 from .services import simulation_service
 from .services import assessment_engine
 from .services.onboarding_milestone_service import build_onboarding_milestone_payload
+from .utils.resource_aggregator import ResourceAggregator
 
 LIVE_SIMULATION_SESSIONS = {}
 
@@ -1323,7 +1324,18 @@ async def signup(
 async def login_page(request: Request):
     try:
         template = templates.get_template("login.html")
-        content = template.render({"request": request})
+        content = template.render({"request": request, "is_admin_login": False})
+        return HTMLResponse(content=content)
+    except Exception as e:
+        import traceback
+        return HTMLResponse(content=f"Template Error: {e}<br><pre>{traceback.format_exc()}</pre>", status_code=500)
+
+@app.get("/admin/login", response_class=HTMLResponse)
+async def admin_login_page(request: Request):
+    """Show the admin login entry point without exposing an admin-only form."""
+    try:
+        template = templates.get_template("login.html")
+        content = template.render({"request": request, "is_admin_login": True})
         return HTMLResponse(content=content)
     except Exception as e:
         import traceback
@@ -1524,9 +1536,19 @@ def get_oauth_redirect_uri(request: Request):
 
 @app.get("/login/google")
 async def login_google(request: Request):
+    return await start_google_login(request, admin_only=False)
+
+@app.get("/admin/login/google")
+async def admin_login_google(request: Request):
+    return await start_google_login(request, admin_only=True)
+
+async def start_google_login(request: Request, admin_only: bool = False):
     if not os.getenv('GOOGLE_CLIENT_ID'):
         print("ERROR: GOOGLE_CLIENT_ID not found in environment!")
-        return RedirectResponse(url='/login?error=Configuration missing', status_code=status.HTTP_302_FOUND)
+        target = "/admin/login" if admin_only else "/login"
+        return RedirectResponse(url=f'{target}?error=Configuration missing', status_code=status.HTTP_302_FOUND)
+
+    request.session["oauth_admin_only"] = admin_only
     
     redirect_uri = get_oauth_redirect_uri(request)
     print(f"\n=======================================================")
@@ -1539,6 +1561,7 @@ async def login_google(request: Request):
 
 @app.get("/auth/callback")
 async def auth_callback(request: Request, db: AsyncSession = Depends(get_db)):
+    admin_only = bool(request.session.pop("oauth_admin_only", False))
     try:
         try:
             redirect_uri = get_oauth_redirect_uri(request)
@@ -1548,21 +1571,37 @@ async def auth_callback(request: Request, db: AsyncSession = Depends(get_db)):
             print(f"OAuth Token Exchange Fatal Error: {e}")
             traceback.print_exc()
             error_msg = f"Token+Exchange+Failed:+{str(e).replace(' ', '+')}"[:200]
-            return RedirectResponse(url=f'/login?error={error_msg}', status_code=status.HTTP_302_FOUND)
+            target = "/admin/login" if admin_only else "/login"
+            return RedirectResponse(url=f'{target}?error={error_msg}', status_code=status.HTTP_302_FOUND)
         
         user_info = token.get('userinfo')
         if not user_info:
-            return RedirectResponse(url='/login?error=No+user+info', status_code=status.HTTP_302_FOUND)
+            target = "/admin/login" if admin_only else "/login"
+            return RedirectResponse(url=f'{target}?error=No+user+info', status_code=status.HTTP_302_FOUND)
         
         email = user_info.get('email')
         full_name = user_info.get('name', 'Google User')
         
         # Check if user exists, otherwise create with no role (will be selected next)
         user = (await db.execute(select(models.User).where(models.User.email == email))).scalars().first()
+        admin_email = os.getenv("ADMIN_EMAIL", "").strip().lower()
+        is_admin = bool(user and user.role == "admin") or (bool(admin_email) and email.lower() == admin_email)
+        if admin_only and not is_admin:
+            return RedirectResponse(
+                url="/admin/login?error=This+Google+account+is+not+authorized+for+the+admin+panel",
+                status_code=status.HTTP_302_FOUND,
+            )
+
         is_new_user = False
         if not user:
             hashed_pw = get_password_hash(os.urandom(24).hex())
-            user = models.User(email=email, hashed_password=hashed_pw, full_name=full_name, contact_number=None, role=None)
+            user = models.User(
+                email=email,
+                hashed_password=hashed_pw,
+                full_name=full_name,
+                contact_number=None,
+                role="admin" if is_admin else None,
+            )
             db.add(user)
             await db.commit()
             await db.refresh(user)
@@ -1575,7 +1614,7 @@ async def auth_callback(request: Request, db: AsyncSession = Depends(get_db)):
             print(f"Cache update error in callback: {cache_err}")
         
         # Users without a role must select it first
-        redirect_url = "/select-role" if (is_new_user or not user.role) else "/dashboard"
+        redirect_url = "/admin" if admin_only else ("/select-role" if (is_new_user or not user.role) else "/dashboard")
         response = RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
         token = create_access_token(str(user.id))
         response.set_cookie(key="user_id", value=token, max_age=30 * 24 * 60 * 60, httponly=True, samesite="lax")
