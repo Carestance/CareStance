@@ -661,7 +661,11 @@
 
     .sim-choice {
       display: block;
+      width: 100%;
       font-size: 0.85rem;
+      font-family: inherit;
+      color: var(--navy);
+      text-align: left;
       padding: 0.75rem 1rem;
       background: var(--bg-white);
       border: 1px solid var(--border);
@@ -672,10 +676,22 @@
       font-weight: 600;
     }
 
-    .sim-choice:hover {
+    .sim-choice:hover,
+    .sim-choice[aria-pressed="true"] {
       background: var(--teal-light);
       border-color: var(--teal);
       color: var(--teal);
+    }
+
+    .sim-feedback {
+      margin-top: 1rem;
+      padding: 0.85rem 1rem;
+      border-radius: 0.75rem;
+      background: var(--teal-soft);
+      border-left: 3px solid var(--teal);
+      color: var(--navy);
+      font-size: 0.85rem;
+      line-height: 1.5;
     }
 
     /* ── AI CHATBOT ── */
@@ -1344,9 +1360,12 @@
             "A critical feature update makes the platform more secure but adds three additional setup steps for the
             end-user."
           </div>
-          <div class="sim-choices">
-            <div class="sim-choice">Keep security complex for absolute protection</div>
-            <div class="sim-choice">Simplify registration to maintain higher engagement</div>
+          <div class="sim-choices" role="group" aria-label="Choose an approach to the product design dilemma">
+            <button type="button" class="sim-choice" aria-pressed="false"
+              data-feedback="You are prioritizing protection. Next, check whether the extra steps are accessible and test a secure flow that is easier to complete.">Keep security complex for absolute protection</button>
+            <button type="button" class="sim-choice" aria-pressed="false"
+              data-feedback="You are prioritizing ease of use. Make sure essential protections stay in place and explain any security trade-offs.">Simplify registration to maintain higher engagement</button>
+            <p class="sim-feedback" aria-live="polite" hidden></p>
           </div>
         </div>
         <div class="sim-card card stagger-child">
@@ -1355,9 +1374,12 @@
           <div class="sim-scenario">
             "An unexpected product shortage has delayed community outreach timelines by six full weeks."
           </div>
-          <div class="sim-choices">
-            <div class="sim-choice">Release immediate public updates regarding the shift</div>
-            <div class="sim-choice">Delay announcements until alternative shipping resolves</div>
+          <div class="sim-choices" role="group" aria-label="Choose an approach to the communications delay">
+            <button type="button" class="sim-choice" aria-pressed="false"
+              data-feedback="You are choosing transparency. Share what is confirmed, what is still uncertain, and when people can expect the next update.">Release immediate public updates regarding the shift</button>
+            <button type="button" class="sim-choice" aria-pressed="false"
+              data-feedback="You are waiting for a confirmed alternative. Set a clear update deadline so the delay does not leave the community without information.">Delay announcements until alternative shipping resolves</button>
+            <p class="sim-feedback" aria-live="polite" hidden></p>
           </div>
         </div>
         <div class="sim-card card stagger-child">
@@ -1366,9 +1388,12 @@
           <div class="sim-scenario">
             "Budget constraints demand choosing between structural longevity materials and shorter setup times."
           </div>
-          <div class="sim-choices">
-            <div class="sim-choice">Invest in long-term safety despite initial delays</div>
-            <div class="sim-choice">Optimize workflow speeds to stay on-schedule</div>
+          <div class="sim-choices" role="group" aria-label="Choose an approach to infrastructure resource allocation">
+            <button type="button" class="sim-choice" aria-pressed="false"
+              data-feedback="You are protecting long-term public safety. Explain the upfront cost and plan carefully for the schedule impact.">Invest in long-term safety despite initial delays</button>
+            <button type="button" class="sim-choice" aria-pressed="false"
+              data-feedback="You are protecting the timeline. Compare long-term safety and maintenance risks before approving a faster, shorter-lived option.">Optimize workflow speeds to stay on-schedule</button>
+            <p class="sim-feedback" aria-live="polite" hidden></p>
           </div>
         </div>
       </div>
@@ -1630,6 +1655,19 @@
         menuIcon.className = 'fa-solid fa-bars';
       }
     }
+
+    document.querySelectorAll(".sim-choices").forEach((group) => {
+      const feedback = group.querySelector(".sim-feedback");
+      group.querySelectorAll(".sim-choice").forEach((choice) => {
+        choice.addEventListener("click", () => {
+          group.querySelectorAll(".sim-choice").forEach((option) => {
+            option.setAttribute("aria-pressed", String(option === choice));
+          });
+          feedback.textContent = choice.dataset.feedback;
+          feedback.hidden = false;
+        });
+      });
+    });
 
     // ── GSAP SCROLL TRIGGER ANIMATIONS ──
     document.addEventListener("DOMContentLoaded", () => {
