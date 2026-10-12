@@ -564,7 +564,7 @@
         </div>
 
         <!-- Google Button -->
-        <a href="/login/google"
+        <a href="{% if is_admin_login %}/admin/login/google{% else %}/login/google{% endif %}"
           class="w-full flex justify-center items-center py-3 px-4 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 font-semibold transition hover:shadow-md">
 
           <svg class="h-5 w-5 mr-3" viewBox="0 0 24 24">
@@ -582,7 +582,7 @@
               fill="#EA4335" />
           </svg>
 
-          Sign in with Google
+          {% if is_admin_login %}Continue to Admin with Google{% else %}Sign in with Google{% endif %}
         </a>
 
         <p class="text-center text-sm text-slate-500 pt-4">
