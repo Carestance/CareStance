@@ -19,8 +19,12 @@ def test_groq_config():
 
 def test_cartesia_config():
     from app.realtime.providers.tts.cartesia import TTSProviderConfig
+    from pipecat.services.tts_service import TextAggregationMode
+
     tts = TTSProviderConfig.create_cartesia_service(api_key="test-key")
     assert tts is not None
+    assert tts._text_aggregation_mode is TextAggregationMode.TOKEN
+    assert tts._max_buffer_delay_ms == 0
     
     with pytest.raises(ValueError):
         TTSProviderConfig.create_cartesia_service(api_key="")
