@@ -76,6 +76,23 @@
         transition: transform 0.25s ease, opacity 0.25s ease;
     }
 
+    /* ── Scrolled state: light black tint so nav never clashes with content ── */
+    .hero-nav { transition: top .3s ease, padding .3s ease, background .3s ease, box-shadow .3s ease, backdrop-filter .3s ease; }
+    .hero-nav.is-scrolled {
+        top: 0;
+        padding: 6px 0;
+        background: rgba(0, 0, 0, 0.55);
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+    .hero-nav .hero-nav-logo-badge, .hero-nav .hero-nav-logo-text, .hero-nav .hero-nav-links a { transition: all .3s ease; }
+    .hero-nav.is-scrolled .hero-nav-logo-badge { width: 64px; height: 64px; }
+    .hero-nav.is-scrolled .hero-nav-logo-badge img { width: 36px; height: 36px; }
+    .hero-nav.is-scrolled .hero-nav-logo-text { color: #fff; font-size: 1.6rem; }
+    .hero-nav.is-scrolled .hero-nav-links a { font-size: 24px; }
+    .hero-nav.is-scrolled .hero-nav-logout { font-size: 22px; }
+
     .hero-nav-links a:hover {
         transform: scale(1.1);
         opacity: 0.75;
@@ -162,18 +179,65 @@
     @media (max-width: 768px) {
         :root { --content-top-gap: calc(20px + 64px + 30px); }
     }
+
+    /* ── Compact one-line navbar (replaces the old oversized brand block) ── */
+    .hero-nav { top: 12px; }
+    .hero-nav-inner { max-width: none; padding: 0 1.25rem; flex-wrap: nowrap; gap: 1rem; }
+    .hero-nav-logo { gap: .7rem; flex-shrink: 0; }
+    .hero-nav-logo-badge { width: auto; height: 58px; background: transparent; border-radius: 0; }
+    .hero-nav-logo-badge img { width: auto; height: 100%; max-width: none; border-radius: 0; transform: none; object-fit: contain; filter: drop-shadow(0 3px 8px rgba(0,0,0,.35)); }
+    /* Jersey 10 only ships weight 400, so 700 was being faux-bolded — use 400 */
+    .hero-nav-logo-text { font-size: 2.1rem; font-weight: 400; line-height: 1; color: #fff; letter-spacing: .03em; text-shadow: 0 1px 6px rgba(0,0,0,.4); }
+    .hero-nav-links { flex-wrap: nowrap; gap: 1.4rem; min-width: 0; }
+    .hero-nav-links a { font-size: 24px; line-height: 1; }
+    .hero-nav-user-name { font-size: 20px; white-space: nowrap; line-height: 1; }
+    .hero-nav-logout { font-size: 22px; padding: .35rem 1.2rem; }
+    .hero-nav.is-scrolled { top: 0; padding: 4px 0; }
+    .hero-nav.is-scrolled .hero-nav-logo-badge { height: 42px; }
+    .hero-nav.is-scrolled .hero-nav-logo-text { font-size: 1.7rem; }
+    .hero-nav.is-scrolled .hero-nav-links a { font-size: 21px; }
+    .hero-nav.is-scrolled .hero-nav-logout { font-size: 19px; }
+    :root { --content-top-gap: calc(12px + 58px + 12px); }
+
+    @media (max-width: 1280px) {
+        .hero-nav-logo-badge { height: 52px; }
+        .hero-nav-logo-text { font-size: 1.9rem; }
+        .hero-nav-links { gap: 1rem; }
+        .hero-nav-links a { font-size: 21px; }
+        .hero-nav-user-name { font-size: 18px; }
+        .hero-nav-logout { font-size: 19px; padding: .3rem 1rem; }
+        :root { --content-top-gap: calc(12px + 52px + 12px); }
+    }
+    @media (max-width: 1120px) {
+        .hero-nav-user-name { display: none; }
+    }
+    /* Tablet / phone: links collapse into the hamburger */
+    @media (max-width: 1023px) {
+        .hero-nav, .hero-nav.is-scrolled {
+            top: 0; padding: 6px 0;
+            background: rgba(10, 6, 30, 0.62);
+            -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+            box-shadow: 0 4px 16px rgba(0,0,0,.25);
+        }
+        .hero-nav-links { display: none; }
+        .hero-mobile-toggle { display: block; color: #fff; font-size: 1.45rem; padding: .45rem .6rem; line-height: 1; }
+        .hero-nav-inner { padding: 0 .9rem; }
+        .hero-nav-logo { gap: .5rem; }
+        .hero-nav .hero-nav-logo-badge, .hero-nav.is-scrolled .hero-nav-logo-badge { height: 40px; }
+        .hero-nav .hero-nav-logo-text, .hero-nav.is-scrolled .hero-nav-logo-text { font-size: 1.6rem; }
+        .hero-mobile-menu { left: .75rem; right: .75rem; margin-top: .5rem; padding: 1rem 1.1rem; }
+        .hero-mobile-menu a { border-bottom: 1px solid #e2e8f0; }
+        :root { --content-top-gap: calc(52px + 8px); }
+    }
 </style>
 
 <nav class="hero-nav">
     <div class="hero-nav-inner">
         <a href="/" class="hero-nav-logo">
             <span class="hero-nav-logo-badge">
-                <picture>
-                    <source srcset="/static/images/image.webp?v=101" type="image/webp">
-                    <img src="/static/images/image.png?v=101" alt="CareStance Logo" width="90" height="90">
-                </picture>
+                <img src="/static/images/logof.png" alt="CareStance Logo">
             </span>
-            <span class="hero-nav-logo-text">Carestance</span>
+            <span class="hero-nav-logo-text">CareStance</span>
         </a>
 
         <div class="hero-nav-links">
@@ -219,6 +283,21 @@
         {% endif %}
     </div>
 </nav>
+<script>
+    (function () {
+        var nav = document.querySelector('.hero-nav');
+        if (!nav) return;
+        function update(e) {
+            var y = window.scrollY;
+            if (e && e.target && e.target.scrollTop !== undefined && e.target !== document) y = Math.max(y, e.target.scrollTop);
+            nav.classList.toggle('is-scrolled', y > 20);
+        }
+        window.addEventListener('scroll', update, { passive: true });
+        // The page body is overflow:hidden, so scrolling happens inside panels.
+        document.addEventListener('scroll', update, { passive: true, capture: true });
+        update();
+    })();
+</script>
 {% endblock %}
 
 {% block extra_head %}
@@ -796,6 +875,215 @@
             background-position: -200% 0;
         }
     }
+
+/* ═══════════ Layout: three info cards in ONE row on top, full-width centre stage below ═══════════ */
+body{height:100vh;height:100dvh}
+.sim-container{display:grid;grid-template-columns:minmax(0,1.9fr) minmax(0,1fr) minmax(0,1.35fr);grid-template-rows:100px minmax(0,1fr);gap:.75rem;padding:0 1rem 1rem;height:calc(100dvh - var(--content-top-gap))}
+
+/* card 1: role + metrics, laid out horizontally */
+.sidebar{grid-column:1;grid-row:1;flex-direction:row;align-items:center;gap:1rem;padding:.6rem 1rem;border-radius:1.25rem;overflow:hidden;min-width:0}
+.side-head{display:flex;align-items:center;gap:.6rem;flex-shrink:0}
+.sim-mascot{width:44px}
+.sim-mascot-caption{margin:0;font-size:.62rem;line-height:1.3;text-align:left}
+.role-card{flex:0 1 200px;min-width:0;padding:.5rem .8rem;border-radius:.9rem;background:linear-gradient(135deg,rgba(232,121,160,.16),rgba(167,139,250,.16));border:1px solid var(--pink-border)}
+.role-card .metric-label{margin-bottom:.1rem;font-size:.58rem}
+.role-name{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:.88rem;line-height:1.2;color:var(--text-main);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.role-level{font-size:.68rem;color:var(--text-muted);margin-top:.1rem}
+.m-list{flex:1;min-width:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.9rem}
+.m-row{min-width:0}
+.m-top{display:flex;justify-content:space-between;align-items:baseline;gap:.4rem}
+.m-label{font-size:.6rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.m-val{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:.9rem;color:var(--primary)}
+.m-row .progress-track{height:6px;margin-top:.35rem}
+.l-short{display:none}
+
+/* cards 2 + 3: the old right column now sits in the same top row */
+.right-pane{display:contents}
+.tele-card{grid-column:2;grid-row:1;margin:0;padding:.6rem 1rem;border-radius:1.25rem;display:flex;flex-direction:column;justify-content:center;min-width:0;background:var(--surface);backdrop-filter:blur(18px) saturate(160%);-webkit-backdrop-filter:blur(18px) saturate(160%);border:1.5px solid var(--pink-border);box-shadow:0 16px 36px rgba(180,60,100,.1)}
+.tele-card .metric-label,.fb-card .metric-label{font-size:.6rem;margin-bottom:.2rem}
+.fb-card{grid-column:3;grid-row:1;min-width:0;min-height:0;padding:.55rem .9rem;border-radius:1.25rem;overflow-y:auto;background:var(--surface);backdrop-filter:blur(18px) saturate(160%);-webkit-backdrop-filter:blur(18px) saturate(160%);border:1.5px solid var(--pink-border);box-shadow:0 16px 36px rgba(180,60,100,.1)}
+.fb-card .metric-label{margin-bottom:.35rem!important}
+.log-entry{font-size:.78rem;line-height:1.35;padding:.45rem .65rem;margin-bottom:.4rem;background:rgba(255,248,252,.85);color:var(--text-main)}
+.sheet-head,.fab-wrap,.sheet-backdrop{display:none}
+
+/* centre stage: unchanged look, now full width */
+.main-stage{grid-column:1/-1;grid-row:2;border-radius:1.5rem;background:rgba(255,255,255,.82)}
+.chat-header{padding:1rem 1.5rem;background:linear-gradient(90deg,rgba(232,121,160,.1),rgba(167,139,250,.08),transparent)}
+.chat-header h2{font-size:1.15rem}
+.timer-ring{width:46px;height:46px;top:.9rem;right:1.25rem;font-size:.95rem;background:#fff;box-shadow:0 4px 14px rgba(245,158,11,.25)}
+.chat-history{padding:1.25rem 1.5rem}
+.msg{max-width:88%}
+.msg-ai{background:#fff;box-shadow:0 4px 16px rgba(180,60,100,.08);border-left-width:3px}
+.controls{padding:1rem 1.5rem 1.25rem;background:rgba(255,255,255,.7)}
+.opt-btn{padding:.9rem 1rem;border-radius:.9rem;font-size:.92rem;box-shadow:0 2px 8px rgba(180,60,100,.06)}
+.opt-btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 20px rgba(232,121,160,.2)}
+.opt-btn.selected-option{border-color:var(--primary);background:#fff0f6;box-shadow:0 0 0 2px rgba(232,121,160,.25)}
+.workspace-panel{background:rgba(255,255,255,.7);border:1px solid var(--pink-border)}
+.workspace-item{background:#fff;border:1px solid var(--pink-border);color:var(--text-main)}
+.options-grid{grid-template-columns:1fr}
+@media (min-width:1400px){.options-grid{grid-template-columns:1fr 1fr}}
+textarea{font-family:'Inter',sans-serif}
+
+/* narrower laptops: short metric labels so the top row never wraps */
+@media (max-width:1280px){
+  .sim-container{grid-template-columns:minmax(0,2.2fr) minmax(0,1fr) minmax(0,1.3fr)}
+  .sim-mascot-caption{display:none}
+  .role-card{flex-basis:150px}
+  .m-list{gap:.6rem}
+  .l-full{display:none}.l-short{display:inline}
+}
+
+/* ═══════════ Tablet / phone ═══════════ */
+@media (max-width:1023px){
+  .sim-container{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);gap:.5rem;padding:0 .5rem .5rem}
+
+  /* top strip: role + 3 compact metric chips, all visible, no sideways scrolling */
+  .sidebar{grid-column:1;grid-row:1;gap:.5rem;padding:.4rem 3.3rem .4rem .55rem;border-radius:1rem;align-self:stretch}
+  .sim-mascot{width:30px}
+  .role-card{flex:1.4 1 0;padding:.3rem .55rem}
+  .role-card .metric-label{display:none}
+  .role-name{font-size:.76rem;-webkit-line-clamp:1}
+  .role-level{font-size:.6rem;margin:0}
+  .m-list{flex:2.6 1 0;gap:.35rem}
+  .m-row{padding:.26rem .45rem;border-radius:.7rem;background:rgba(255,255,255,.7);border:1px solid var(--pink-border)}
+  .m-top{flex-direction:column;align-items:flex-start;gap:0}
+  .m-label{font-size:.5rem;letter-spacing:.02em;max-width:100%}
+  .m-val{font-size:.74rem;line-height:1.15}
+  .m-row .progress-track{height:3px;margin-top:.2rem}
+  .l-full{display:none}.l-short{display:inline}
+
+  /* centre stage */
+  .main-stage{grid-column:1;grid-row:2;border-radius:1.1rem}
+  .chat-header{padding:.6rem 3.4rem .6rem .9rem}
+  .chat-header h2{font-size:1rem}
+  .chat-header p{font-size:.68rem!important;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .timer-ring{width:36px;height:36px;font-size:.78rem;top:.55rem;right:.7rem;border-width:2px}
+  .alert-bar{padding:.45rem .8rem!important;font-size:.7rem!important;gap:.5rem!important;line-height:1.3}
+  .chat-history{padding:.7rem}
+  .msg{max-width:100%;margin-bottom:.8rem}
+  .msg-ai{padding:.8rem;gap:.6rem;font-size:.9rem}
+  .msg-ai-avatar{width:28px;height:28px}
+  .msg-user{max-width:92%;padding:.8rem}
+  .workspace-panel{padding:.6rem;border-radius:.8rem;margin-top:.6rem}
+  .workspace-grid{grid-template-columns:1fr}
+  .workspace-panel h3{font-size:1rem}
+  .ws-frame{height:clamp(360px,calc(100dvh - 230px),780px)!important;border-radius:.8rem!important}
+  .controls{padding:.6rem .7rem calc(.6rem + env(safe-area-inset-bottom));border-radius:0 0 1.1rem 1.1rem}
+  .opt-btn{padding:.75rem .85rem;font-size:.86rem}
+  .reply-row{gap:.5rem!important}
+  .reply-row textarea{min-height:56px!important;padding:.7rem!important}
+  .reply-row button{padding:.7rem 1rem!important}
+
+  /* telemetry + feedback become a bottom sheet */
+  .right-pane{display:flex;flex-direction:column;position:fixed;left:0;right:0;bottom:0;z-index:1300;max-height:70dvh;overflow-y:auto;padding:.5rem 1rem calc(1rem + env(safe-area-inset-bottom));background:rgba(255,250,252,.98);border-radius:1.5rem 1.5rem 0 0;box-shadow:0 -14px 40px rgba(20,8,50,.35);transform:translateY(110%);transition:transform .35s cubic-bezier(.2,.8,.2,1);gap:.8rem}
+  body[data-sheet] .right-pane{transform:none}
+  .tele-card,.fb-card{grid-column:auto;grid-row:auto;overflow:visible}
+  .sheet-head{display:flex;justify-content:center;align-items:center;position:relative;padding:.4rem 0 .2rem}
+  .sheet-grab{width:42px;height:4px;border-radius:4px;background:rgba(100,116,139,.35)}
+  .sheet-head button{position:absolute;right:0;top:.1rem;width:32px;height:32px;border-radius:50%;border:0;background:rgba(232,121,160,.14);color:var(--primary);cursor:pointer}
+  .right-pane .tele-card,.right-pane .fb-card{display:none;flex:none}
+  body[data-sheet="tele"] .right-pane .tele-card,body[data-sheet="fb"] .right-pane .fb-card{display:block}
+  .sheet-backdrop{display:block;position:fixed;inset:0;z-index:1250;background:rgba(10,5,30,.5);opacity:0;pointer-events:none;transition:opacity .3s}
+  body[data-sheet] .sheet-backdrop{opacity:1;pointer-events:auto}
+
+  /* plus button sits in the right end of the strip (strip has padding for it) */
+  .fab-wrap{display:block;position:fixed;z-index:1200;right:calc(.5rem + 7px);top:calc(var(--content-top-gap) + 7px);width:40px;height:40px}
+  .fab-dim{position:fixed;inset:0;background:rgba(10,5,30,.35);z-index:-1}
+  .fab-main{position:absolute;inset:0;border-radius:50%;border:0;cursor:pointer;color:#fff;font-size:.95rem;background:linear-gradient(135deg,var(--primary),#a78bfa);box-shadow:0 6px 16px rgba(180,60,100,.4);transition:transform .3s}
+  .fab-wrap.open .fab-main{transform:rotate(45deg)}
+  .fab-item{position:absolute;left:0;top:0;width:40px;height:40px;border-radius:50%;border:1px solid var(--pink-border);background:#fff;color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:.9rem;text-decoration:none;cursor:pointer;box-shadow:0 8px 18px rgba(0,0,0,.2);opacity:0;pointer-events:none;transform:translate(0,0) scale(.3);transition:transform .38s cubic-bezier(.34,1.56,.64,1),opacity .2s}
+  .fab-item span{position:absolute;top:100%;margin-top:3px;font-size:.58rem;font-weight:800;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.7);white-space:nowrap}
+  .fab-wrap.open .fab-item{opacity:1;pointer-events:auto}
+  .fab-wrap.open .fab-i1{transform:translate(-80px,0) scale(1)}
+  .fab-wrap.open .fab-i2{transform:translate(-57px,57px) scale(1)}
+  .fab-wrap.open .fab-i3{transform:translate(0,80px) scale(1)}
+
+  /* final report */
+  .overlay{padding:.75rem;align-items:flex-start;overflow-y:auto}
+  .report-card{margin:auto;padding:1.25rem;border-radius:1.5rem}
+  .report-card h1{font-size:1.6rem!important;margin-bottom:.3rem!important}
+  .report-card>p{margin-bottom:1rem!important}
+  .report-grid{grid-template-columns:1fr!important;gap:1rem!important;margin:1rem 0!important}
+  .score-circle{width:104px;height:104px;font-size:2rem;border-width:6px;margin-bottom:1rem}
+  .report-actions{flex-wrap:wrap}
+  .report-actions>*{flex:1 1 140px;justify-content:center;text-align:center}
+}
+@media (prefers-reduced-motion:reduce){.fab-item,.right-pane,.fab-main{transition:none}}
+
+/* ═══════════ v3: left rail (20vw) + big arena, redesigned telemetry / feedback / report ═══════════ */
+.tele-card{background:linear-gradient(135deg,#2b1a52,#4b2a82 60%,#7a3f9d)!important;border:1px solid rgba(255,255,255,.18)!important;color:#fff;box-shadow:0 10px 26px rgba(75,42,130,.35)}
+.tele-inner{display:flex;align-items:center;gap:.85rem}
+.tele-ring{--p:0;flex:none;width:62px;height:62px;border-radius:50%;position:relative;display:grid;place-items:center;background:conic-gradient(#ffd37a,#f472b6 calc(var(--p)*.7%),#a78bfa calc(var(--p)*1%),rgba(255,255,255,.14) 0);transition:background .6s}
+.tele-ring::before{content:'';position:absolute;inset:6px;border-radius:50%;background:#2f1c5a}
+.tele-ring span{position:relative;font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:.9rem}
+.tele-text{min-width:0}
+.tele-kicker{font-size:.58rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#ffd37a;margin-bottom:.2rem}
+.tele-name{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:.92rem;line-height:1.25;color:#fff}
+
+.fb-card{padding:.9rem!important;background:linear-gradient(180deg,rgba(255,255,255,.9),rgba(255,240,247,.85))!important}
+.fb-head{display:flex;align-items:center;gap:.65rem;margin-bottom:.8rem;position:sticky;top:-.9rem;padding:.2rem 0 .5rem;background:linear-gradient(180deg,rgba(255,255,255,.96) 75%,transparent);z-index:1}
+.fb-ico{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;color:#fff;font-size:.95rem;background:linear-gradient(135deg,var(--primary),var(--primary-light));box-shadow:0 6px 14px rgba(232,121,160,.4)}
+.fb-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:.9rem;color:var(--text-main)}
+.fb-count{font-size:.68rem;color:var(--text-muted)}
+.fb-item{display:flex;gap:.6rem;align-items:flex-start;padding:.65rem .7rem;margin-bottom:.55rem;border-radius:.95rem;background:#fff;border:1px solid var(--pink-border);box-shadow:0 3px 10px rgba(180,60,100,.07);animation:fadeIn .4s ease}
+.fb-item p{margin:0;font-size:.78rem;line-height:1.45;color:var(--text-main)}
+.fb-dot{flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:.65rem;color:var(--accent);background:rgba(245,158,11,.14)}
+.fb-item.is-new{background:linear-gradient(135deg,#fff,#fff0f6);border-color:var(--primary);box-shadow:0 6px 18px rgba(232,121,160,.22)}
+.fb-item.is-new .fb-dot{color:#fff;background:linear-gradient(135deg,var(--primary),var(--primary-light))}
+.fb-empty{display:flex;flex-direction:column;align-items:center;gap:.5rem;padding:1.4rem .5rem;color:var(--text-muted);font-size:.78rem;text-align:center;border:1.5px dashed var(--pink-border);border-radius:1rem}
+.fb-empty i{font-size:1.4rem;color:var(--primary)}
+
+@media (min-width:1024px){
+  .sim-container{grid-template-columns:20vw minmax(0,1fr);grid-template-rows:auto auto minmax(0,1fr);gap:.75rem}
+  .sidebar{grid-column:1;grid-row:1;flex-direction:column;align-items:stretch;gap:.7rem;padding:.75rem;overflow:visible}
+  .role-card{flex:none;padding:.5rem .75rem}
+  .m-list{display:flex;flex-direction:column;gap:.55rem}
+  .l-full{display:inline!important}.l-short{display:none!important}
+  .tele-card{grid-column:1;grid-row:2;padding:.75rem .9rem}
+  .fb-card{grid-column:1;grid-row:3}
+  .main-stage{grid-column:2;grid-row:1/4}
+}
+
+/* final report: two-panel, always fits the viewport */
+.overlay{z-index:1400;padding:1rem;align-items:center;justify-content:center;overflow-y:auto}
+.rp{display:grid;grid-template-columns:280px minmax(0,1fr);width:100%;max-width:940px;max-height:calc(100dvh - 2rem);border-radius:1.75rem;overflow:hidden;background:#fffbfd;box-shadow:0 30px 70px rgba(0,0,0,.4);animation:zoomIn .5s cubic-bezier(.175,.885,.32,1.275)}
+.rp-side{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.9rem;padding:1.5rem 1.25rem;text-align:center;color:#fff;background:radial-gradient(circle at 20% 0%,rgba(255,255,255,.25),transparent 55%),linear-gradient(160deg,#e879a0,#a78bfa 70%,#7c6cf0)}
+.rp-mascot{width:72px;filter:drop-shadow(0 6px 12px rgba(0,0,0,.25));animation:mascot-bob 3s ease-in-out infinite}
+.rp-ring{--p:0;position:relative;width:148px;height:148px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(#fff calc(var(--p)*1%),rgba(255,255,255,.25) 0)}
+.rp-ring::before{content:'';position:absolute;inset:11px;border-radius:50%;background:#5b3fa0;box-shadow:inset 0 4px 14px rgba(0,0,0,.25)}
+.rp-ring span{position:relative;font-family:'Plus Jakarta Sans',sans-serif;font-size:2.3rem;font-weight:800}
+.rp-persona{font-weight:800;font-size:.95rem;padding:.35rem .95rem;border-radius:999px;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.35)}
+.rp-actions{display:flex;flex-direction:column;gap:.55rem;width:100%;margin-top:.3rem}
+.rp-btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;padding:.7rem 1rem;border-radius:999px;font-weight:700;font-size:.88rem;text-decoration:none;cursor:pointer;transition:transform .2s}
+.rp-btn:hover{transform:translateY(-2px)}
+.rp-btn-light{background:#fff;color:#7c3a8a;border:0}
+.rp-btn-ghost{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,.7)}
+.rp-main{display:flex;flex-direction:column;gap:1rem;padding:1.5rem 1.75rem;overflow-y:auto;min-height:0}
+.rp-kicker{font-size:.68rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--primary)}
+.rp-title{margin:.15rem 0 0;font-family:'Plus Jakarta Sans',sans-serif;font-size:1.6rem;line-height:1.2;color:var(--text-main)}
+.rp-sub{margin:.2rem 0 0;font-size:.85rem;color:var(--text-muted)}
+.rp-cols{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
+.rp-box{border-radius:1.1rem;padding:.9rem 1rem;border:1px solid}
+.rp-box h4,.rp-verdict h4{margin:0 0 .5rem;font-family:'Plus Jakarta Sans',sans-serif;font-size:.9rem}
+.rp-box ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.4rem}
+.rp-box li{position:relative;padding-left:1rem;font-size:.84rem;line-height:1.45;color:var(--text-main)}
+.rp-box li::before{content:'';position:absolute;left:0;top:.5em;width:6px;height:6px;border-radius:50%}
+.rp-good{background:rgba(16,185,129,.07);border-color:rgba(16,185,129,.3)}.rp-good h4{color:#059669}.rp-good li::before{background:#10b981}
+.rp-grow{background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.35)}.rp-grow h4{color:#d97706}.rp-grow li::before{background:#f59e0b}
+.rp-verdict{border-radius:1.1rem;padding:1rem 1.1rem;background:linear-gradient(135deg,rgba(232,121,160,.1),rgba(167,139,250,.12));border:1px solid var(--pink-border);border-left:4px solid var(--primary)}
+.rp-verdict h4{color:var(--primary)}
+.rp-verdict p{margin:0;font-size:.88rem;line-height:1.6;color:var(--text-main)}
+@media (max-width:1023px){
+  .overlay{padding:.6rem}
+  .rp{grid-template-columns:1fr;max-height:calc(100dvh - 1.2rem);overflow-y:auto;border-radius:1.4rem}
+  .rp-side{padding:1rem;gap:.6rem}
+  .rp-mascot{width:52px}
+  .rp-ring{width:104px;height:104px}.rp-ring::before{inset:8px}.rp-ring span{font-size:1.7rem}
+  .rp-actions{flex-direction:row}.rp-actions>*{flex:1}
+  .rp-main{overflow:visible;padding:1rem;gap:.8rem}
+  .rp-title{font-size:1.25rem}
+  .rp-cols{grid-template-columns:1fr}
+}
 </style>
 {% endblock %}
 
@@ -806,43 +1094,37 @@
     <div class="sim-container" :class="'theme-' + currentTheme" x-show="!isCompleted">
         <!-- Sidebar: Status & Metrics -->
         <aside class="sidebar">
-            <div class="sim-mascot-wrap">
-                <img src="/static/images/point.png" alt="Point — your career guide mascot" class="sim-mascot"
-                     onerror="this.style.display='none'">
-                <div class="sim-mascot-caption">Point is watching</div>
+
+            <div class="role-card">
+                <div class="metric-label">Role</div>
+                <div class="role-name">{{ career_title }}</div>
+                <div class="role-level">{{ difficulty }} Level</div>
             </div>
 
-            <div class="metric-card">
-                <div class="metric-label">Role Identity</div>
-                <div class="metric-value">{{ career_title }}</div>
-                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">{{ difficulty }} Level
+            <div class="m-list">
+                <div class="m-row">
+                    <div class="m-top"><span class="m-label"><span class="l-full">Emotional IQ</span><span class="l-short">EQ</span></span><span class="m-val" x-text="(metrics.eq * 100).toFixed(0) + '%'"></span></div>
+                    <div class="progress-track"><div class="progress-fill" :style="'width: ' + (metrics.eq * 100) + '%'"></div></div>
                 </div>
-            </div>
-
-            <div class="metric-card">
-                <div class="metric-label">Emotional Intelligence</div>
-                <div class="metric-value" x-text="(metrics.eq * 100).toFixed(0) + '%'"></div>
-                <div class="progress-track">
-                    <div class="progress-fill" :style="'width: ' + (metrics.eq * 100) + '%'"></div>
+                <div class="m-row">
+                    <div class="m-top"><span class="m-label"><span class="l-full">Problem Solving</span><span class="l-short">Solve</span></span><span class="m-val" x-text="(metrics.problem_solving * 100).toFixed(0) + '%'"></span></div>
+                    <div class="progress-track"><div class="progress-fill" :style="'width: ' + (metrics.problem_solving * 100) + '%'"></div></div>
                 </div>
-            </div>
-
-            <div class="metric-card">
-                <div class="metric-label">Problem Solving</div>
-                <div class="metric-value" x-text="(metrics.problem_solving * 100).toFixed(0) + '%'"></div>
-                <div class="progress-track">
-                    <div class="progress-fill" :style="'width: ' + (metrics.problem_solving * 100) + '%'"></div>
-                </div>
-            </div>
-
-            <div class="metric-card">
-                <div class="metric-label">Communication Clarity</div>
-                <div class="metric-value" x-text="(metrics.clarity * 100).toFixed(0) + '%'"></div>
-                <div class="progress-track">
-                    <div class="progress-fill" :style="'width: ' + (metrics.clarity * 100) + '%'"></div>
+                <div class="m-row">
+                    <div class="m-top"><span class="m-label"><span class="l-full">Clarity</span><span class="l-short">Clarity</span></span><span class="m-val" x-text="(metrics.clarity * 100).toFixed(0) + '%'"></span></div>
+                    <div class="progress-track"><div class="progress-fill" :style="'width: ' + (metrics.clarity * 100) + '%'"></div></div>
                 </div>
             </div>
         </aside>
+
+        <!-- Mobile: plus button that fans the side panels out in an arc -->
+        <div class="fab-wrap" x-data="{ fab: false }" :class="{ open: fab }" @keydown.escape.window="fab = false">
+            <div class="fab-dim" x-show="fab" x-transition.opacity @click="fab = false"></div>
+            <button type="button" class="fab-item fab-i1" aria-label="Behavioral feedback" @click="openSheet('fb'); fab = false"><i class="fas fa-comment-dots"></i><span>Feedback</span></button>
+            <button type="button" class="fab-item fab-i2" aria-label="Dashboard telemetry" @click="openSheet('tele'); fab = false"><i class="fas fa-gauge-high"></i><span>Telemetry</span></button>
+            <a class="fab-item fab-i3" href="/dashboard" aria-label="Back to dashboard"><i class="fas fa-house"></i><span>Home</span></a>
+            <button type="button" class="fab-main" :aria-expanded="fab" aria-label="More panels" @click="fab = !fab"><i class="fas fa-plus"></i></button>
+        </div>
 
         <!-- Main Area: The Simulation Stage -->
         <main class="main-stage">
@@ -856,7 +1138,7 @@
             </div>
 
             <!-- Emergency Alert Ticker -->
-            <div x-show="currentScenario?.emergency_alert" x-transition:enter="transition ease-out duration-500"
+            <div class="alert-bar" x-show="currentScenario?.emergency_alert" x-transition:enter="transition ease-out duration-500"
                 x-transition:enter-start="opacity-0 -translate-y-4" x-transition:enter-end="opacity-100 translate-y-0"
                 style="background: var(--danger); color: white; padding: 0.75rem 2rem; font-weight: 800; font-size: 0.8rem; display: flex; align-items: center; gap: 1rem; border-bottom: 2px solid rgba(0,0,0,0.1);">
                 <i class="fas fa-exclamation-triangle animate-pulse"></i>
@@ -923,7 +1205,7 @@
                 <div class="workspace-panel" x-show="currentScenario?.type === 'workspace_activity' && !loading" x-transition>
                     <div class="metric-label">Practical workspace</div>
                     <p style="color:var(--text-muted);line-height:1.5">Build the workflow inside the workspace: drag in resources, configure them, connect the important steps, then click <strong>Export</strong> to continue.</p>
-                    <iframe x-show="sessionId" :src="sessionId ? '/simulation/workspace/' + sessionId : ''" title="Simulation practical workspace" style="display:block;width:100%;height:640px;border:1px solid rgba(255,255,255,.14);border-radius:1rem;background:#020617"></iframe>
+                    <iframe class="ws-frame" x-show="sessionId" :src="sessionId ? '/simulation/workspace/' + sessionId : ''" title="Simulation practical workspace" style="display:block;width:100%;height:clamp(420px,72dvh,780px);border:1px solid var(--pink-border);border-radius:1rem;background:#020617"></iframe>
                 </div>
 
                 <!-- Phase 3: career-specific future-self reflection chat -->
@@ -958,7 +1240,7 @@
                         </button>
                     </template>
                 </div>
-                <div x-show="!loading && !currentScenario?.options && !['mcq_quiz', 'workspace_activity', 'future_role'].includes(currentScenario?.type)" style="display: flex; gap: 1rem;">
+                <div class="reply-row" x-show="!loading && !currentScenario?.options && !['mcq_quiz', 'workspace_activity', 'future_role'].includes(currentScenario?.type)" style="display: flex; gap: 1rem;">
                     <textarea x-model="textInput"
                         placeholder="Type your response..."
                         style="flex:1; min-height: 74px; resize: vertical; background: rgba(255,255,255,0.75); border: 1px solid var(--pink-border); border-radius: 1rem; padding: 1rem; color: var(--text-main);"></textarea>
@@ -970,81 +1252,87 @@
         </main>
 
         <!-- Right Pane: Analysis & Dashboard -->
+        <div class="sheet-backdrop" onclick="closeSheet()"></div>
         <aside class="right-pane">
-            <div class="metric-card" style="margin: 0;">
-                <div class="metric-label">Dashboard Telemetry</div>
-                <div style="display: flex; justify-content: space-between; margin-top: 1rem;">
-                    <span x-text="currentScenario?.visual_dashboard?.metric_name || 'System Load'"></span>
-                    <span style="color: var(--accent); font-weight: 800;"
-                        x-text="currentScenario?.visual_dashboard?.value || '45%'"></span>
-                </div>
-                <div class="progress-track" style="height: 4px;">
-                    <div class="progress-fill" :style="'width: ' + (currentScenario?.visual_dashboard?.value || '45%')">
+            <div class="sheet-head"><span class="sheet-grab"></span><button type="button" onclick="closeSheet()" aria-label="Close"><i class="fas fa-xmark"></i></button></div>
+            <div class="metric-card tele-card">
+                <div class="tele-inner">
+                    <div class="tele-ring" :style="'--p:' + pct(currentScenario?.visual_dashboard?.value)">
+                        <span x-text="Math.round(pct(currentScenario?.visual_dashboard?.value)) + '%'"></span>
+                    </div>
+                    <div class="tele-text">
+                        <div class="tele-kicker"><i class="fas fa-satellite-dish"></i> Live telemetry</div>
+                        <div class="tele-name" x-text="currentScenario?.visual_dashboard?.metric_name || 'System Load'"></div>
                     </div>
                 </div>
             </div>
 
-            <div class="log-card">
-                <div class="metric-label" style="margin-bottom: 1rem;">Behavioral Feedback</div>
-                <template x-for="log in logs">
-                    <div class="log-entry" x-text="log"></div>
+            <div class="log-card fb-card">
+                <div class="fb-head">
+                    <span class="fb-ico"><i class="fas fa-comment-dots"></i></span>
+                    <div>
+                        <div class="fb-title">Behavioral feedback</div>
+                        <div class="fb-count" x-text="logs.length ? logs.length + (logs.length === 1 ? ' insight' : ' insights') : 'Live coaching'"></div>
+                    </div>
+                </div>
+                <template x-for="(log, i) in logs" :key="i + log">
+                    <div class="fb-item" :class="{ 'is-new': i === 0 }">
+                        <span class="fb-dot"><i class="fas fa-lightbulb"></i></span>
+                        <p x-text="log"></p>
+                    </div>
                 </template>
-                <div x-show="logs.length == 0" style="color: var(--text-muted); font-size: 0.8rem;">Awaiting your first
-                    move...</div>
+                <div class="fb-empty" x-show="logs.length == 0">
+                    <i class="fas fa-seedling"></i>
+                    <span>Awaiting your first move…</span>
+                </div>
             </div>
         </aside>
     </div>
 
     <!-- Final Evaluation Overlay -->
     <div class="overlay" x-show="isCompleted" x-cloak>
-        <div class="report-card">
-            <img src="/static/images/point.png" alt="Point" class="report-mascot" onerror="this.style.display='none'">
-            <h1 style="font-family: 'Plus Jakarta Sans'; font-size: 2.5rem; margin-bottom: 0.5rem;">Simulation Complete
-            </h1>
-            <p style="color: var(--text-muted); margin-bottom: 2rem;">{{ career_title }} Evaluation for {{
-                user.full_name }}</p>
-
-            <div class="score-circle" x-text="report?.overall_score || '0%'"></div>
-
-            <h2 style="color: var(--primary);" x-text="report?.persona"></h2>
-
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin: 2rem 0; text-align: left;">
-                <div>
-                    <h4 style="color: var(--success);"><i class="fas fa-check-circle"></i> Strengths</h4>
-                    <ul style="padding-left: 1.2rem; font-size: 0.9rem; color: var(--text-muted);">
-                        <template x-for="s in report?.strengths">
-                            <li x-text="s"></li>
-                        </template>
-                    </ul>
+        <div class="rp">
+            <div class="rp-side">
+                <img src="/static/images/point.png" alt="Point" class="rp-mascot" onerror="this.style.display='none'">
+                <div class="rp-ring" :style="'--p:' + pct(report?.overall_score)">
+                    <span x-text="report?.overall_score || '0%'"></span>
                 </div>
-                <div>
-                    <h4 style="color: var(--accent);"><i class="fas fa-lightbulb"></i> Growth Areas</h4>
-                    <ul style="padding-left: 1.2rem; font-size: 0.9rem; color: var(--text-muted);">
-                        <template x-for="w in report?.weaknesses">
-                            <li x-text="w"></li>
-                        </template>
-                    </ul>
+                <div class="rp-persona" x-text="report?.persona || 'Evaluation'"></div>
+                <div class="rp-actions">
+                    <a href="/dashboard" class="rp-btn rp-btn-light"><i class="fas fa-house"></i> Dashboard</a>
+                    <button @click="location.reload()" class="rp-btn rp-btn-ghost"><i class="fas fa-rotate-right"></i> Try Again</button>
                 </div>
             </div>
-
-            <div
-                style="background: rgba(232,121,160,0.06); padding: 1.5rem; border-radius: 1rem; margin-bottom: 2rem; text-align: left; border: 1px solid var(--pink-border);">
-                <h4 style="margin-top:0;">Mentor's Verdict</h4>
-                <p x-text="report?.career_readiness"
-                    style="font-size: 0.95rem; line-height: 1.6; color: var(--text-main);"></p>
-            </div>
-
-            <div style="display: flex; gap: 1rem; justify-content: center;">
-                <a href="/dashboard" class="btn-primary"
-                    style="background: white; color: var(--text-main); border-radius: 2rem; padding: 1rem 1.75rem; text-decoration:none; font-weight:700; border: 1px solid var(--pink-border); display:inline-flex; align-items:center;">Return to Dashboard</a>
-                <button @click="location.reload()" class="btn-primary"
-                    style="background: linear-gradient(135deg, var(--primary), #d6577f); color: white; border-radius: 2rem; padding: 1rem 1.75rem; border:none; cursor:pointer; font-weight:700;">Try Again</button>
+            <div class="rp-main">
+                <div>
+                    <div class="rp-kicker">Simulation complete</div>
+                    <h1 class="rp-title">{{ career_title }}</h1>
+                    <p class="rp-sub">Evaluation for {{ user.full_name }}</p>
+                </div>
+                <div class="rp-cols">
+                    <div class="rp-box rp-good">
+                        <h4><i class="fas fa-circle-check"></i> Strengths</h4>
+                        <ul><template x-for="s in report?.strengths"><li x-text="s"></li></template></ul>
+                    </div>
+                    <div class="rp-box rp-grow">
+                        <h4><i class="fas fa-lightbulb"></i> Growth areas</h4>
+                        <ul><template x-for="w in report?.weaknesses"><li x-text="w"></li></template></ul>
+                    </div>
+                </div>
+                <div class="rp-verdict">
+                    <h4><i class="fas fa-user-graduate"></i> Mentor's verdict</h4>
+                    <p x-text="report?.career_readiness"></p>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <script>
+    function openSheet(n) { document.body.dataset.sheet = n; }
+    function closeSheet() { delete document.body.dataset.sheet; }
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeSheet(); });
+    window.addEventListener('resize', function () { if (window.innerWidth >= 1024) closeSheet(); });
     function simApp() {
         return {
             sessionId: null,
@@ -1078,6 +1366,11 @@
                         this.sendMove(JSON.stringify(event.data.payload || { status: 'completed' }));
                     }
                 });
+            },
+
+            pct(v) {
+                const n = parseFloat(String(v ?? '').replace('%', ''));
+                return isNaN(n) ? 0 : Math.max(0, Math.min(100, n));
             },
 
             selectQuizAnswer(optionIndex) {

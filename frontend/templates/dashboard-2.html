@@ -1,0 +1,1494 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{# ── Standalone navbar for this page only ──
+   Deliberately does NOT reuse #base-nav / .nav-links / .nav-logo etc from
+   base.html — new class names under .hero-nav so nothing from base.html's
+   CSS (or any other stylesheet targeting those selectors) can touch it.
+   Element IDs (base-menu-toggle / base-mobile-menu / base-menu-icon) are
+   kept the same so the existing mobile-toggle JS in base.html still wires
+   up automatically — no extra script needed. #}
+{% block navbar %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Jersey+10&display=swap');
+
+    .hero-nav {
+        position: fixed;
+        top: 40px;
+        left: 0;
+        right: 0;
+        width: 100%;
+        z-index: 1000;
+        background: transparent;
+        box-shadow: none;
+    }
+
+    .hero-nav-inner {
+        max-width: 80vw;
+        width: 80vw;
+        margin: 0 auto;
+        padding: 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .hero-nav-logo {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        text-decoration: none;
+        margin-right: auto;
+    }
+
+    .hero-nav-logo-badge {
+        width: 120px; height: 120px;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+        background: transparent !important;
+        border: 0 !important; border-radius: 0 !important;
+        box-shadow: none !important; padding: 0 !important;
+    }
+
+    .hero-nav-logo-badge img {
+        width: 100%; height: 100%;
+        object-fit: contain;
+        background: transparent !important;
+        border: 0 !important; border-radius: 0 !important;
+        box-shadow: none !important; padding: 0 !important;
+    }
+
+    .hero-nav-logo-text {
+        font-family: 'Jersey 10', 'Playfair Display', serif;
+        font-size: 4rem; font-weight: 400;
+        color: #020c14; white-space: nowrap;
+        position: relative; z-index: 1;
+        letter-spacing: 0.02em;
+    }
+
+    .hero-nav-links {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        flex-wrap: nowrap;
+        justify-content: flex-end;
+        flex-shrink: 1;
+    }
+
+    .hero-nav-links a {
+        display: inline-block;
+        font-family: 'Jersey 10', sans-serif;
+        color: #fff;
+        font-size: 30px;
+        font-weight: 400;
+        white-space: nowrap;
+        text-decoration: none;
+        letter-spacing: 0.02em;
+        text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+        transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+
+    .hero-nav-links a:hover {
+        transform: scale(1.1);
+        opacity: 0.75;
+    }
+
+    .hero-nav-links a.nav-active {
+        text-decoration: underline;
+        text-underline-offset: 4px;
+    }
+
+    /* ── Fixed settings gear (replaces old logout pill) ── */
+    .hero-settings-fixed {
+        position: fixed;
+        bottom: 50px;
+        right: 50px;
+        z-index: 1100;
+    }
+
+    .hero-settings-gear {
+        width: 68px;
+        height: 68px;
+        border-radius: 50%;
+        background: #000000;
+        color: #fff;
+        border: none;
+        font-size: 1.7rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+        transition: transform 0.35s ease, background 0.3s ease;
+    }
+
+    .hero-settings-gear:hover,
+    .hero-settings-fixed:focus-within .hero-settings-gear {
+        background: #1a1a1a;
+        transform: rotate(60deg);
+    }
+
+    .hero-settings-menu {
+        position: absolute;
+        bottom: calc(100% + 12px);
+        right: 0;
+        min-width: 210px;
+        background: #fff;
+        border-radius: 1rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 12px 28px -6px rgba(0,0,0,0.25);
+        padding: 0.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(8px);
+        transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+    }
+
+    .hero-settings-fixed:hover .hero-settings-menu,
+    .hero-settings-fixed:focus-within .hero-settings-menu {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+
+    .hero-settings-menu a {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.65rem 0.75rem;
+        border-radius: 0.6rem;
+        color: #1e293b;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.85rem;
+        transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .hero-settings-menu a:hover {
+        background: #f1f5f9;
+        color: #0d9488;
+    }
+
+    .hero-settings-menu a.hero-settings-logout {
+        color: #b45309;
+    }
+
+    .hero-settings-menu a.hero-settings-logout:hover {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    @media (max-width: 820px) {
+        .hero-settings-fixed { bottom: 20px; right: 20px; }
+        .hero-settings-gear { width: 52px; height: 52px; font-size: 1.3rem; }
+    }
+
+    .hero-mobile-toggle {
+        display: none;
+        background: none; border: none;
+        color: #12202b; font-size: 1.35rem;
+        cursor: pointer;
+    }
+
+    .hero-mobile-menu {
+        display: none;
+        position: absolute; top: 100%; left: 1.5rem; right: 1.5rem;
+        margin-top: 0.75rem; padding: 1.5rem;
+        flex-direction: column; gap: 0.75rem;
+        background: #fff; border-radius: 1.25rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.15);
+    }
+
+    .hero-mobile-menu.open { display: flex; }
+
+    .hero-mobile-menu a {
+        padding: 0.8rem 0.5rem;
+        color: var(--text-main);
+        text-decoration: none;
+        font-weight: 500;
+        border-bottom: 1px solid var(--border-soft);
+        transition: color 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .hero-mobile-menu a.nav-active {
+        color: var(--primary);
+        font-weight: 700;
+        background: var(--primary-soft);
+        border-radius: 0.5rem;
+    }
+
+    .hero-mobile-menu a:last-child { border-bottom: none; }
+    .hero-mobile-menu a:hover { color: #0d9488; }
+
+    /* ══ RESPONSIVE NAVBAR — nothing here applies at 1600px and above ══ */
+
+    /* 821px – 1599px: scale down and let the links wrap onto two lines instead of being cut off */
+    @media (max-width: 1599px) {
+        .hero-nav-inner { width: 88vw; max-width: 88vw; }
+        .hero-nav-logo { flex-shrink: 0; gap: clamp(0.5rem, 1vw, 1rem); }
+        .hero-nav-logo-badge {
+            width: clamp(84px, 7.3vw, 120px);
+            height: clamp(84px, 7.3vw, 120px);
+        }
+        .hero-nav-logo-badge img { width: 100%; height: 100%; }
+        .hero-nav-logo-text { font-size: clamp(2.4rem, 3.9vw, 4rem); }
+
+        .hero-nav-links {
+            flex: 1 1 0;
+            min-width: 0;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            column-gap: clamp(0.9rem, 1.4vw, 1.5rem);
+            row-gap: 0.15rem;
+            text-align: right;
+        }
+        .hero-nav-links a {
+            font-size: clamp(21px, 1.85vw, 30px);
+            line-height: 1.15;
+        }
+    }
+
+    /* 820px and below: hamburger */
+    @media (max-width: 820px) {
+        .hero-nav { top: 16px; }
+        .hero-nav-inner { width: 92vw; max-width: 92vw; }
+        .hero-nav-links { display: none !important; }
+        .hero-mobile-toggle {
+            display: flex; align-items: center; justify-content: center;
+            width: 44px; height: 44px; flex-shrink: 0;
+            background: rgba(255,255,255,0.92);
+            border: 2px solid #0f172a; border-radius: 0.8rem;
+            box-shadow: 3px 3px 0 rgba(15,23,42,0.85);
+            color: #0f172a; font-size: 1.2rem;
+        }
+        .hero-nav-logo-badge { width: 56px; height: 56px; }
+        .hero-nav-logo-text { font-size: clamp(1.7rem, 6vw, 2.2rem); }
+
+        .hero-mobile-menu {
+            left: 50%; right: auto; transform: translateX(-50%);
+            width: min(92vw, 420px);
+            padding: 0.75rem 1.1rem;
+            max-height: calc(100dvh - 110px); overflow-y: auto;
+        }
+    }
+</style>
+
+<nav class="hero-nav">
+    <div class="hero-nav-inner">
+        <a href="/" class="hero-nav-logo">
+            <span class="hero-nav-logo-badge">
+                <img src="/static/images/logof.png" alt="CareStance Logo" width="90" height="90">
+            </span>
+            <span class="hero-nav-logo-text">CareStance</span>
+        </a>
+
+        <div class="hero-nav-links">
+            {% if user %}
+            <a href="/dashboard" class="nav-active">Dashboard</a>
+            {% if user.role in ['student', 'admin'] %}
+            <a href="/my-growth-profile" class="{% if request.url.path == '/my-growth-profile' %}nav-active{% endif %}">Growth Profile</a>
+            <a href="/my-monthly-path" class="{% if request.url.path == '/my-monthly-path' %}nav-active{% endif %}">Monthly Path</a>
+            {% endif %}
+            {% if user.role != 'counsellor' %}
+            <a href="/chatbot">Chat AI</a>
+            {% endif %}
+            <a href="/community">Community</a>
+            {% if user.role == 'admin' %}
+            <a href="/admin" class="{% if request.url.path == '/admin' %}nav-active{% endif %}" style="font-weight:700;">Admin</a>
+            {% endif %}
+            {% else %}
+            <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}">Home</a>
+            <a href="/login" class="{% if request.url.path == '/login' %}nav-active{% endif %}">Log In</a>
+            {% endif %}
+        </div>
+
+        <button class="hero-mobile-toggle" id="base-menu-toggle" aria-label="Menu">
+            <i class="fa-solid fa-bars" id="base-menu-icon"></i>
+        </button>
+    </div>
+
+    <div class="hero-mobile-menu" id="base-mobile-menu">
+        {% if user %}
+        <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i class="fa-solid fa-house"></i>Home</a>
+        <a href="/dashboard" class="nav-active"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
+        {% if user.role in ['student', 'admin'] %}
+        <a href="/my-growth-profile" class="{% if request.url.path == '/my-growth-profile' %}nav-active{% endif %}"><i class="fa-solid fa-compass"></i>Growth Profile</a>
+        <a href="/my-monthly-path" class="{% if request.url.path == '/my-monthly-path' %}nav-active{% endif %}"><i class="fa-solid fa-route"></i>Monthly Path</a>
+        {% endif %}
+        {% if user.role != 'counsellor' %}
+        <a href="/chatbot"><i class="fa-solid fa-comment-dots"></i>Chat AI</a>
+        {% endif %}
+        <a href="/community"><i class="fa-solid fa-users"></i>Community</a>
+        {% if user.role == 'admin' %}<a href="/admin"><i class="fa-solid fa-shield-halved"></i>Admin Panel</a>{% endif %}
+        {% else %}
+        <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i class="fa-solid fa-house"></i>Home</a>
+        <a href="/login"><i class="fa-solid fa-right-to-bracket"></i>Log In</a>
+        {% endif %}
+    </div>
+</nav>
+
+{% if user %}
+<div class="hero-settings-fixed" id="hero-settings-fixed">
+    <button class="hero-settings-gear" aria-label="Settings" aria-haspopup="true" aria-expanded="false">
+        <i class="fa-solid fa-gear"></i>
+    </button>
+    <div class="hero-settings-menu">
+        <a href="/student/{{ user.id }}"><i class="fa-solid fa-user"></i> Student Profile</a>
+        <a href="/feedback"><i class="fa-solid fa-star"></i> Feedback</a>
+        <a href="/ticket"><i class="fa-solid fa-circle-question"></i> Support</a>
+        <a href="/logout" class="hero-settings-logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* ── Background override ── */
+    body {
+        background: url('/static/images/BG1.png') center top / cover no-repeat fixed !important;
+    }
+
+    /* Dashboard page padding & container */
+    main>* { padding: 1.5rem; }
+    @media(min-width: 768px) { main>* { padding: 2rem; } }
+    .db-page { max-width: 80vw; width: 80vw; margin: 0 auto; }
+
+    /* ── Pink glass token palette ── */
+    :root {
+        --db-pink-glass: rgba(255, 248, 252, 0.55);
+        --db-pink-border: rgba(255, 180, 200, 0.45);
+        --db-pink-accent: #e879a0;
+        --db-lavender: rgba(220, 210, 255, 0.35);
+        --db-lavender-border: rgba(190, 175, 255, 0.4);
+        --db-gold: #f59e0b;
+    }
+
+    /* ── Gamified dashboard card ── */
+    .db-card {
+        background: var(--db-pink-glass);
+        backdrop-filter: blur(18px) saturate(160%);
+        -webkit-backdrop-filter: blur(18px) saturate(160%);
+        border: 1.5px solid var(--db-pink-border);
+        border-radius: 1.75rem;
+        box-shadow: 0 16px 40px rgba(180, 60, 100, 0.1), 0 2px 0 rgba(255,255,255,0.5) inset;
+        transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .db-card:hover {
+        box-shadow: 0 24px 56px rgba(180, 60, 100, 0.15), 0 2px 0 rgba(255,255,255,0.6) inset;
+        transform: translateY(-2px);
+    }
+
+    /* Top accent line on cards */
+    .db-card-accent::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--db-pink-accent), #a78bfa, #0d9488);
+        opacity: 0.7;
+    }
+
+    /* ── Quest / XP badge ── */
+    .db-xp-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: linear-gradient(135deg, #fef3c7, #fde68a);
+        border: 1.5px solid #fbbf24;
+        color: #92400e;
+        border-radius: 20px;
+        padding: 3px 10px;
+        font-size: 0.68rem;
+        font-weight: 800;
+        box-shadow: 0 2px 8px rgba(245,158,11,0.2);
+    }
+
+    /* ── Phase badge (pink) ── */
+    .db-phase-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: linear-gradient(135deg, rgba(232,121,160,0.14), rgba(167,139,250,0.14));
+        border: 1px solid rgba(232,121,160,0.3);
+        color: #be185d;
+        border-radius: 20px;
+        padding: 4px 12px;
+        font-size: 0.68rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    /* ── Achievement row ── */
+    .db-achievement-row {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 1rem;
+        background: linear-gradient(135deg, rgba(255,243,199,0.55), rgba(254,215,170,0.3));
+        border: 1px solid rgba(251,191,36,0.3);
+        border-radius: 14px;
+    }
+
+    /* ── Progress bar ── */
+    .db-progress-bg {
+        height: 8px;
+        background: rgba(255, 220, 235, 0.5);
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 180, 200, 0.3);
+    }
+
+    .db-progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--db-pink-accent), #a78bfa, #0d9488);
+        border-radius: 10px;
+        transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+        position: relative;
+    }
+    .db-progress-fill::after {
+        content: '';
+        position: absolute;
+        top: 0; left: -100%; width: 100%; height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+        animation: db-shimmer 2.5s infinite;
+    }
+    @keyframes db-shimmer { to { left: 200%; } }
+
+    /* ── Hover scale utility for CTA buttons ── */
+    .db-hover-scale { will-change: transform; }
+    .db-hover-scale:hover {
+        transform: scale(1.06) translateY(-2px);
+        box-shadow: 0 10px 24px -6px rgba(232,121,160,0.4);
+    }
+    .db-hover-scale:active { transform: scale(0.97); }
+
+    /* ── Tool grid: circular quest badges, not boxes ── */
+    .db-tool-card {
+        --tool-c: var(--db-pink-accent);
+        --tool-glow: rgba(232,121,160,0.35);
+        background: transparent;
+        border: none;
+        border-radius: 20px;
+        padding: 0.6rem 0.35rem 0.75rem;
+        text-align: center;
+        transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.35s ease, box-shadow 0.35s ease;
+        text-decoration: none;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        position: relative;
+    }
+
+    /* Gentle wave so the row doesn't read as a flat grid of boxes */
+    .db-tool-card:nth-child(3n+2) { transform: translateY(10px); }
+    .db-tool-card:nth-child(3n+3) { transform: translateY(4px); }
+
+    /* Soft glow bloom behind the badge on hover */
+    .db-tool-card::before {
+        content: '';
+        position: absolute;
+        top: 50%; left: 50%;
+        width: 94px; height: 94px;
+        border-radius: 50%;
+        background: radial-gradient(circle, var(--tool-c) 0%, transparent 72%);
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.6);
+        transition: opacity 0.4s ease, transform 0.4s ease;
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    .db-tool-card:hover {
+        background: rgba(255,255,255,0.4);
+        box-shadow: 0 10px 24px -8px var(--tool-glow), 0 1px 0 rgba(255,255,255,0.6) inset;
+        transform: translateY(-6px) scale(1.04);
+    }
+    .db-tool-card:nth-child(3n+2):hover { transform: translateY(4px) scale(1.04); }
+    .db-tool-card:nth-child(3n+3):hover { transform: translateY(-2px) scale(1.04); }
+    .db-tool-card:hover::before { opacity: 0.28; transform: translate(-50%, -50%) scale(1); }
+    .db-tool-card:active { transform: translateY(-2px) scale(0.97); }
+
+    /* Ring: circular gradient border like the match-score badge */
+    .db-tool-ring {
+        width: 76px; height: 76px;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        padding: 3px;
+        background: conic-gradient(from 180deg, var(--tool-c), rgba(255,255,255,0.15) 65%, var(--tool-c));
+        position: relative; z-index: 1;
+        animation: db-tool-float 3.4s ease-in-out infinite;
+        animation-delay: var(--float-delay, 0s);
+        transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), padding 0.3s ease;
+    }
+    .db-tool-inner {
+        width: 100%; height: 100%;
+        border-radius: 50%;
+        background: rgba(255,251,253,0.92);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.4rem;
+        color: var(--tool-c);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.06) inset;
+    }
+    .db-tool-card:hover .db-tool-ring {
+        transform: scale(1.14) rotate(-8deg);
+        padding: 3.5px;
+    }
+    .db-tool-label {
+        font-size: 0.72rem;
+        font-weight: 800;
+        color: #1e293b;
+        line-height: 1.2;
+        transition: color 0.3s ease;
+    }
+    .db-tool-card:hover .db-tool-label { color: var(--tool-c); }
+
+    @keyframes db-tool-float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-4px); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .db-tool-ring { animation: none; }
+    }
+
+    /* ── Stat pill ── */
+    .db-stat-pill {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        padding: 0.75rem 1rem;
+        background: rgba(255,255,255,0.6);
+        border: 1px solid rgba(255,200,225,0.4);
+        border-radius: 14px;
+        text-align: center;
+        flex: 1;
+        min-width: 80px;
+    }
+
+    /* ── Floating mascot animation ── */
+    @keyframes floatMascot {
+        0%, 100% { transform: translateY(0) rotate(0deg); }
+        50%       { transform: translateY(-8px) rotate(1deg); }
+    }
+    .mascot-container { animation: floatMascot 4s ease-in-out infinite; }
+
+    /* ── Speech Bubble ── */
+    .speech-bubble {
+        position: relative;
+        background: rgba(255, 248, 252, 0.95);
+        border: 2px solid rgba(232,121,160,0.35);
+        border-radius: 1.5rem;
+        box-shadow: 0 10px 25px -5px rgba(232,121,160,0.12);
+    }
+    .speech-bubble::after {
+        content: '';
+        position: absolute;
+        bottom: -12px; left: 50%;
+        transform: translateX(-50%);
+        border-width: 12px 12px 0;
+        border-style: solid;
+        border-color: rgba(255,248,252,0.95) transparent;
+        display: block; width: 0;
+    }
+    .speech-bubble::before {
+        content: '';
+        position: absolute;
+        bottom: -15px; left: 50%;
+        transform: translateX(-50%);
+        border-width: 13px 13px 0;
+        border-style: solid;
+        border-color: rgba(232,121,160,0.35) transparent;
+        display: block; width: 0; z-index: -1;
+    }
+    @media(min-width: 768px) {
+        .speech-bubble::after {
+            bottom: auto; left: -12px; top: 50%; transform: translateY(-50%);
+            border-width: 12px 12px 12px 0;
+            border-color: transparent rgba(255,248,252,0.95);
+        }
+        .speech-bubble::before {
+            bottom: auto; left: -15px; top: 50%; transform: translateY(-50%);
+            border-width: 13px 13px 13px 0;
+            border-color: transparent rgba(232,121,160,0.35);
+        }
+    }
+
+    /* ── Glassmorphism override ── */
+    .glass-card {
+        background: rgba(255, 248, 252, 0.72);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border: 1.5px solid rgba(255, 200, 225, 0.45);
+    }
+
+    /* ── Tailwind color overrides (Tailwind purge safety) ── */
+    .bg-\[var\(--navy\)\]            { background-color: var(--navy) !important; }
+    .hover\:bg-\[var\(--teal\)\]:hover { background-color: var(--teal) !important; }
+    .bg-\[var\(--teal\)\]            { background-color: var(--teal) !important; }
+    .bg-\[var\(--teal-soft\)\]       { background-color: var(--teal-soft) !important; }
+    .text-\[var\(--teal\)\]          { color: var(--teal) !important; }
+    .text-\[var\(--navy\)\]          { color: var(--navy) !important; }
+    .hover\:bg-\[var\(--teal-light\)\]:hover { background-color: var(--teal-light) !important; }
+
+    .btn-teal-primary {
+        background: linear-gradient(135deg, #0d9488, #0b7a70) !important;
+        color: white !important;
+        border: 2px solid rgba(15, 23, 42, 0.7) !important;
+        box-shadow: 3px 3px 0 rgba(15,23,42,0.5) !important;
+        border-radius: 0.75rem !important;
+    }
+    .btn-teal-primary:hover {
+        background: linear-gradient(135deg, #0b7a70, #065f46) !important;
+        transform: translateY(-1px) !important;
+    }
+
+    /* ── Mascot Scene Banner ── */
+    .mascot-scene-card {
+        position: fixed;
+        top: 0; left: 0;
+        width: 100vw; height: 100vh;
+        margin: 0; z-index: 1;
+        background-image: url('/static/images/BG1.png');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        display: flex;
+        align-items: center;
+        overflow: hidden;
+    }
+
+    body:has(.mascot-scene-card) { overflow: hidden; }
+
+    .mascot-scene-inner {
+        width: 100%;
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 2.5rem 2.25rem 3rem;
+        display: flex;
+        align-items: flex-end;
+        gap: 1.5rem;
+    }
+
+    .mascot-scene-char {
+        height: min(420px, 46vw);
+        width: auto; flex-shrink: 0;
+        margin-right: -0.5rem;
+        margin-bottom: -0.5rem;
+        transform: translateY(75px);
+        filter: drop-shadow(0 14px 18px rgba(0, 0, 0, 0.3));
+    }
+
+    .mascot-scene-panel {
+        flex: 1; min-width: 0;
+        padding: 2rem 2.25rem;
+        background: rgba(255, 248, 252, 0.96);
+        border: 3px solid var(--navy, #0f172a);
+        border-radius: 1.25rem;
+        box-shadow: 6px 6px 0 rgba(15, 23, 42, 0.85);
+        margin-bottom: 3.5rem;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    }
+
+    .mascot-scene-text {
+        font-size: 1.15rem; font-weight: 700;
+        color: var(--navy, #0f172a);
+        line-height: 1.5; min-height: 3.3rem;
+    }
+
+    .mascot-scene-panel button,
+    .mascot-scene-panel a.btn-teal-primary { border-radius: 0.75rem; }
+
+    @media (min-width: 768px) { .mascot-scene-text { font-size: 1.4rem; } }
+
+    /* Mobile / small tablet (<=820px). Layout, top to bottom:
+       navbar -> 15vh space -> mascot -> 15px gap -> compact text box */
+    @media (max-width: 820px) {
+        .mascot-scene-card {
+            align-items: flex-start !important;
+            overflow-y: auto;
+            height: 100vh; height: 100dvh;
+        }
+        .mascot-scene-inner {
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: flex-start !important;
+            gap: 15px !important;
+            height: auto !important;
+            min-height: 0 !important;
+            max-width: 100% !important;
+            /* logo row (~72px + 16px top offset) + 15vh */
+            padding: calc(88px + 15vh) 1rem 5rem !important;
+        }
+        .mascot-scene-char {
+            height: clamp(120px, 22vh, 230px) !important;
+            width: auto !important;
+            max-width: 60vw;
+            object-fit: contain;
+            margin: 0 !important;
+            transform: none !important;
+        }
+        .mascot-scene-panel {
+            flex: 0 0 auto !important;      /* size to content, never fill the screen */
+            box-sizing: border-box;
+            width: 75vw !important;         /* 12.5vw margin on each side */
+            height: auto !important;
+            max-height: 80px;               /* compact box */
+            overflow-y: auto;
+            margin: 0 !important;
+            padding: 8px 12px !important;
+            border-width: 2px;
+            border-radius: 0.85rem;
+            box-shadow: 3px 3px 0 rgba(15, 23, 42, 0.85);
+        }
+        .mascot-scene-text {
+            font-size: 0.8rem !important; line-height: 1.25 !important;
+            min-height: 0 !important; margin: 0;
+        }
+        .mascot-scene-panel .mt-6 { margin-top: 6px !important; }
+        .mascot-scene-panel button,
+        .mascot-scene-panel a.btn-teal-primary {
+            padding: 4px 12px !important;
+            font-size: 0.72rem !important;
+            line-height: 1.2 !important;
+            border-radius: 0.6rem;
+        }
+    }
+    @media (max-width: 380px) {
+        .mascot-scene-text { font-size: 0.75rem !important; }
+    }
+    /* short landscape phones: don't waste the little height there is */
+    @media (max-width: 900px) and (max-height: 500px) {
+        .mascot-scene-inner { padding-top: 90px !important; }
+        .mascot-scene-char { height: 100px !important; }
+    }
+
+    /* ── Stagger entrance ── */
+    .db-stagger {
+        opacity: 0;
+        transform: translateY(14px);
+        animation: db-stagger-in 0.5s cubic-bezier(0.4,0,0.2,1) forwards;
+    }
+    @keyframes db-stagger-in { to { opacity:1; transform:translateY(0); } }
+
+    /* ── Shared keyframes ── */
+    @keyframes journey-pulse {
+        0%, 100% { opacity: 0.5; transform: scale(1); }
+        50%       { opacity: 0.15; transform: scale(1.05); }
+    }
+    
+    /* CTA card gradient (pre-assessment state) */
+    .cta-card-gradient {
+        background: linear-gradient(135deg, #f0fdfa 0%, #fef9f0 100%);
+        border: 1.5px solid var(--border-light);
+    }
+    .cta-heading { color: var(--text-main); }
+    .btn-gradient-primary {
+        background: var(--gradient-primary);
+        color: #fff;
+    }
+    .btn-gradient-primary:hover { opacity: 0.9; color: #fff; }
+
+    /* Post-onboarding workspace */
+    .onward-panel {
+        background: linear-gradient(125deg, rgba(46, 24, 88, 0.80), rgba(126, 58, 142, 0.68) 60%, rgba(232, 121, 160, 0.45));
+        backdrop-filter: blur(18px) saturate(160%);
+        -webkit-backdrop-filter: blur(18px) saturate(160%);
+        border: 1.5px solid var(--db-lavender-border);
+        box-shadow: 0 16px 40px rgba(76, 29, 149, 0.28), 0 2px 0 rgba(255,255,255,0.25) inset;
+        border-radius: 1.75rem;
+        color: #f8fafc;
+        padding: clamp(1.25rem, 3vw, 2rem);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .onward-panel::after {
+        content: '';
+        position: absolute;
+        width: 220px;
+        height: 220px;
+        right: -80px;
+        top: -100px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 50%;
+        box-shadow: 0 0 0 24px rgba(255, 255, 255, 0.04), 0 0 0 48px rgba(255, 255, 255, 0.03);
+        pointer-events: none;
+    }
+
+    .onward-panel h2,
+    .onward-panel p { color: inherit; }
+
+    .onward-kicker {
+        color: #fcd34d;
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+    }
+
+    .onward-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    .onward-item {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 1rem;
+        min-height: 132px;
+        padding: 1rem;
+    }
+
+    .onward-item-label {
+        color: #fbcfe8;
+        font-size: 0.65rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+    }
+
+    .onward-item p {
+        color: rgba(248, 250, 252, 0.78);
+        font-size: 0.8rem;
+        line-height: 1.5;
+        margin-top: 0.5rem;
+    }
+
+    .onward-item strong {
+        display: block;
+        font-size: 1rem;
+        line-height: 1.25;
+        margin-top: 0.4rem;
+    }
+
+    .onward-action {
+        align-items: center;
+        background: #fbbf24;
+        border-radius: 0.75rem;
+        color: #172554;
+        display: inline-flex;
+        font-size: 0.78rem;
+        font-weight: 800;
+        gap: 0.45rem;
+        margin-top: 1.25rem;
+        padding: 0.7rem 0.95rem;
+        position: relative;
+        transition: transform 0.2s ease, background 0.2s ease;
+        z-index: 1;
+    }
+
+    .onward-action:hover {
+        background: #fde68a;
+        color: #172554;
+        transform: translateY(-2px);
+    }
+
+    @media (max-width: 768px) {
+        .onward-grid { grid-template-columns: 1fr; }
+        .onward-item { min-height: auto; }
+    }
+
+    /* ── Action tiles: 2x2 grid on desktop, swipeable track + arrows on small screens ── */
+    .tile-wrap { width: 100%; flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .tile-track {
+        display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr;
+        gap: 0.75rem; width: 100%; flex: 1; min-width: 0;
+    }
+    .tile-arrows { display: none; }
+    .tile-arrow {
+        width: 38px; height: 38px; border-radius: 50%;
+        display: inline-flex; align-items: center; justify-content: center;
+        background: linear-gradient(135deg, var(--db-pink-accent), #a78bfa);
+        color: #fff; border: 0; cursor: pointer; font-size: 0.8rem;
+        box-shadow: 0 4px 12px rgba(167, 139, 250, 0.4);
+        transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+    .tile-arrow:active { transform: scale(0.92); }
+    .tile-arrow:disabled { opacity: 0.35; cursor: default; box-shadow: none; }
+
+    @media (max-width: 640px) {
+        .tile-track {
+            display: flex; gap: 0.75rem;
+            overflow-x: auto; scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch; scrollbar-width: none;
+            padding-bottom: 2px;
+        }
+        .tile-track::-webkit-scrollbar { display: none; }
+        .tile-item { flex: 0 0 82%; min-height: 110px; scroll-snap-align: start; }
+        .tile-arrows { display: flex; justify-content: center; gap: 0.75rem; margin-top: 0.75rem; }
+        .onward-panel::after { display: none; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="db-page space-y-8">
+    {% set has_dashboard_assessment = assessment and (assessment.assessment_report or (assessment.recommended_stream and assessment.final_analysis)) %}
+
+    {# Admin denied / generic error message banner (used by admin_auth redirects) #}
+    {% if request.query_params.get('error') %}
+    <div class="mt-4 p-4 bg-rose-50 border border-rose-100 text-rose-700 rounded-xl text-sm font-medium flex items-center gap-3">
+        <i class="fas fa-exclamation-circle"></i>
+        {{ request.query_params.get('error') }}
+    </div>
+    {% endif %}
+
+    <!-- STATE 1: WELCOME INTRO FLOW (No Assessment or Assessment in Progress) -->
+    {% if not has_dashboard_assessment %}
+    <div class="mascot-scene-card" x-data="{
+        step: 1,
+        isReturning: {% if assessment %}true{% else %}false{% endif %},
+        dialogues: {
+            new: [
+                'Hi! I am Careo, your personal career guide. 🐾 Welcome!',
+                'This is the CareStance platform! We help you discover your careers.',
+                'Let\'s find your superpower! Click below to start your career assessment.'
+            ],
+            returning: [
+                'Welcome back! 🐾 Great to see you again!',
+                'I see you started your career assessment earlier, but had to leave in between.',
+                'Let\'s continue your assessment from where you left off!'
+            ]
+        },
+        get currentText() {
+            return this.isReturning ? this.dialogues.returning[this.step - 1] : this.dialogues.new[this.step - 1];
+        },
+        nextStep() {
+            if (this.step < 3) {
+                this.step++;
+            }
+        },
+        prevStep() {
+            if (this.step > 1) {
+                this.step--;
+            }
+        }
+    }">
+        <div class="mascot-scene-inner">
+            <img src="/static/images/G1.png" alt="Careo Mascot" class="mascot-scene-char mascot-container">
+            <div class="mascot-scene-panel">
+                <p class="mascot-scene-text" x-text="currentText"></p>
+                <div class="flex items-center justify-between gap-3 mt-6">
+                    <button x-show="step < 3" @click="step = 3" class="text-sm font-bold text-slate-500 hover:text-slate-800">Skip intro</button>
+                    <div class="flex gap-2 ml-auto">
+                        <button x-show="step > 1" @click="prevStep()" class="px-4 py-2 text-sm font-bold text-slate-600">Back</button>
+                        <button x-show="step < 3" @click="nextStep()" class="btn-teal-primary px-5 py-2 text-sm font-bold">Next</button>
+                        <a x-show="step === 3" href="{% if assessment %}/assessment{% else %}/assessment/start?class_level=12th{% endif %}" class="btn-teal-primary px-5 py-2 text-sm font-bold">
+                            {{ 'Resume assessment' if assessment else 'Start assessment' }}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- STATE 2: COMPLETED USERS (Dashboard Widgets Panel) -->
+    {% else %}
+    {% set dashboard_sim_career = assessment.recommended_stream or assessment.phase_2_category or 'Career Explorer' %}
+    {% set report_dashboard = assessment.assessment_report.dashboard if assessment.assessment_report and assessment.assessment_report.dashboard else {} %}
+    {% set strengths = report_dashboard.strengths if report_dashboard.strengths else ['Curiosity', 'Adaptability'] %}
+    {% set growth_areas = report_dashboard.weaknesses if report_dashboard.weaknesses else ['Keep building evidence through practice'] %}
+    <section class="onward-panel db-stagger" aria-labelledby="onward-title">
+        <div class="onward-kicker">Your next chapter</div>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;position:relative;z-index:1;">
+            <div>
+                <h2 id="onward-title" style="font-size:clamp(1.35rem, 3vw, 2rem);margin-top:0.45rem;">Turn your results into momentum.</h2>
+                <p style="font-size:0.9rem;max-width:620px;margin-top:0.55rem;">Your assessment is complete. Use these signals to choose one direction, practise deliberately, and keep a record of what you learn.</p>
+            </div>
+            <span class="db-xp-badge" style="flex-shrink:0;background:rgba(255,255,255,0.14);border-color:rgba(255,255,255,0.22);color:#fef3c7;"><i class="fas fa-check" style="font-size:0.6rem;"></i> Onboarded</span>
+        </div>
+        <div class="onward-grid">
+            <div class="onward-item">
+                <div class="onward-item-label"><i class="fas fa-sparkles"></i> You bring</div>
+                <strong>{{ strengths[0] if strengths|length > 0 else 'Curiosity' }}</strong>
+                <p>{{ strengths[1] if strengths|length > 1 else 'A starting point worth exploring.' }}</p>
+            </div>
+            <div class="onward-item">
+                <div class="onward-item-label"><i class="fas fa-arrow-trend-up"></i> Build next</div>
+                <strong>{{ growth_areas[0] if growth_areas|length > 0 else 'Practical confidence' }}</strong>
+                <p>Make this your focus for the next few weeks.</p>
+            </div>
+            <div class="onward-item">
+                <div class="onward-item-label"><i class="fas fa-compass"></i> Direction</div>
+                <strong>{{ dashboard_sim_career }}</strong>
+                <p>Compare this path with the full report before you commit.</p>
+            </div>
+        </div>
+        <a class="onward-action" href="/my-monthly-path"><i class="fas fa-route"></i> Open your monthly path <i class="fas fa-arrow-right"></i></a>
+    </section>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <!-- Left Column: Main Results, Action and Sessions -->
+        <div class="lg:col-span-2 space-y-6">
+
+            <!-- ── Career Unlocked Summary: split into two adjacent tiles (40:60) ── -->
+            <div class="db-stagger" style="display:grid;grid-template-columns:40% 60%;gap:1rem;align-items:stretch;">
+
+                <!-- Tile 1 (40%): Match score -->
+                <div class="db-card db-card-accent" style="padding:1rem;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-width:0;">
+                    <div class="relative" style="width:112px;height:112px;">
+                        <div style="width:112px;height:112px;border-radius:50%;padding:4px;background:linear-gradient(135deg,var(--db-pink-accent),#a78bfa,#0d9488);">
+                            <div style="width:100%;height:100%;background:rgba(255,248,252,0.95);border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                                <span style="font-family:'Jersey 10','Playfair Display',serif;font-weight:400;font-size:2.4rem;color:#1e293b;line-height:1;">
+                                    {{ ((assessment.confidence or 0.85) * 100) | int }}%
+                                </span>
+                                <span style="font-size:0.65rem;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Match</span>
+                            </div>
+                        </div>
+                        <!-- Orbit ring animation -->
+                        <div style="position:absolute;inset:-6px;border-radius:50%;border:2px solid rgba(232,121,160,0.2);animation:journey-pulse 3s infinite;"></div>
+                    </div>
+                    <span style="margin-top:0.85rem;font-family:'Jersey 10','Playfair Display',serif;font-weight:400;font-size:1.75rem;letter-spacing:0.03em;color:#1e293b;line-height:1.15;">{{ assessment.phase_2_category }}</span>
+                </div>
+
+                <!-- Tile 2 (60%): Career Unlocked badge (centered) + 4 evenly-sized action tiles -->
+                <div class="db-card db-card-accent" style="padding:1.25rem;min-width:0;display:flex;flex-direction:column;align-items:center;">
+                    <!-- Phase badge, centered -->
+                    <span class="db-phase-badge" style="margin:0 auto 1rem;">
+                        <i class="fas fa-trophy" style="font-size:0.55rem;"></i>
+                        Career Unlocked
+                    </span>
+
+                    <div class="tile-wrap">
+                    <div class="tile-track" id="action-tile-track">
+                        <a href="/assessment/result" class="db-hover-scale tile-item"
+                           style="background:linear-gradient(135deg,var(--db-pink-accent),#a78bfa);color:white;border-radius:14px;font-weight:800;font-size:0.85rem;text-decoration:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.4rem;box-shadow:0 6px 18px rgba(232,121,160,0.3);transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1),box-shadow 0.3s ease;text-align:center;padding:0.75rem;">
+                            <i class="fas fa-scroll" style="font-size:1.1rem;"></i> View Full Report
+                        </a>
+                        <a href="/chatbot" class="db-hover-scale tile-item"
+                           style="background:rgba(255,255,255,0.75);border:1.5px solid rgba(255,200,225,0.5);color:#1e293b;border-radius:14px;font-weight:700;font-size:0.85rem;text-decoration:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.4rem;transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1),box-shadow 0.3s ease;text-align:center;padding:0.75rem;">
+                            <i class="fas fa-comment-dots" style="color:#0d9488;font-size:1.1rem;"></i> Ask CareerBuddy AI
+                        </a>
+                        <a href="/assessment/simulation/start/{{ dashboard_sim_career | urlencode }}" class="db-hover-scale tile-item"
+                            style="background:#f59e0b;color:white;border-radius:14px;font-weight:800;font-size:0.85rem;text-decoration:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.4rem;box-shadow:0 6px 18px rgba(245,158,11,0.25);transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1),box-shadow 0.3s ease;text-align:center;padding:0.75rem;">
+                            <i class="fas fa-vr-cardboard" style="font-size:1.1rem;"></i> Try Career Simulation
+                        </a>
+                        <button type="button" onclick="document.getElementById('retake-modal').classList.remove('hidden')" class="db-hover-scale tile-item"
+                           style="background:#fecaca;color:#b91c1c;border:none;border-radius:14px;font-weight:800;font-size:0.85rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.4rem;box-shadow:0 6px 18px rgba(248,113,113,0.25);transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1),box-shadow 0.3s ease;text-align:center;padding:0.75rem;">
+                            <i class="fas fa-undo" style="font-size:1.1rem;"></i> Retake Assessment
+                        </button>
+                    </div>
+                    <div class="tile-arrows" aria-hidden="false">
+                        <button type="button" class="tile-arrow" id="tile-prev" aria-label="Previous actions"><i class="fas fa-chevron-left"></i></button>
+                        <button type="button" class="tile-arrow" id="tile-next" aria-label="More actions"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                    </div>
+                    <script>
+                    (function () {
+                        var t = document.getElementById('action-tile-track');
+                        var p = document.getElementById('tile-prev');
+                        var n = document.getElementById('tile-next');
+                        if (!t || !p || !n) return;
+                        function step() { var i = t.querySelector('.tile-item'); return i ? i.getBoundingClientRect().width + 12 : 150; }
+                        function update() {
+                            p.disabled = t.scrollLeft <= 2;
+                            n.disabled = t.scrollLeft + t.clientWidth >= t.scrollWidth - 2;
+                        }
+                        p.addEventListener('click', function () { t.scrollBy({ left: -step(), behavior: 'smooth' }); });
+                        n.addEventListener('click', function () { t.scrollBy({ left: step(), behavior: 'smooth' }); });
+                        t.addEventListener('scroll', update, { passive: true });
+                        window.addEventListener('resize', update);
+                        update();
+                    })();
+                    </script>
+                </div>
+            </div>
+
+            <!-- ── Quest Tools Grid ── -->
+            <div class="grid grid-cols-3 gap-2 db-stagger" style="animation-delay:0.15s;">
+                <a href="/career/colleges" class="db-tool-card" style="--tool-c:#6366f1;--tool-glow:rgba(99,102,241,0.35);--float-delay:0.45s;">
+                    <span class="db-tool-ring"><span class="db-tool-inner"><i class="fas fa-university"></i></span></span>
+                    <span class="db-tool-label">Colleges</span>
+                </a>
+                <a href="/counsellors" class="db-tool-card" style="--tool-c:var(--db-pink-accent);--tool-glow:rgba(232,121,160,0.35);--float-delay:0.6s;">
+                    <span class="db-tool-ring"><span class="db-tool-inner"><i class="fas fa-video"></i></span></span>
+                    <span class="db-tool-label">Talk to Expert</span>
+                </a>
+                <a href="/assessment/simulation/start/{{ dashboard_sim_career | urlencode }}" class="db-tool-card" style="--tool-c:#a78bfa;--tool-glow:rgba(167,139,250,0.35);--float-delay:0.9s;">
+                    <span class="db-tool-ring"><span class="db-tool-inner"><i class="fas fa-vr-cardboard"></i></span></span>
+                    <span class="db-tool-label">Simulation</span>
+                </a>
+                <a href="/subscription" class="db-tool-card" style="--tool-c:#eab308;--tool-glow:rgba(234,179,8,0.35);--float-delay:1.05s;">
+                    <span class="db-tool-ring"><span class="db-tool-inner"><i class="fas fa-crown"></i></span></span>
+                    <span class="db-tool-label">Plans</span>
+                </a>
+                <a href="/weekly-checkin" class="db-tool-card" style="--tool-c:#10b981;--tool-glow:rgba(16,185,129,0.35);--float-delay:1.2s;grid-column:3;">
+                    <span class="db-tool-ring"><span class="db-tool-inner"><i class="fas fa-calendar-check"></i></span></span>
+                    <span class="db-tool-label">Weekly AI</span>
+                </a>
+            </div>
+
+            <!-- ── Scheduled Sessions ── -->
+            {% if appointments %}
+            <div x-data="{ ratingModal: false, selectedAppt: null }" class="db-card p-7">
+                <div style="font-size:0.68rem;font-weight:800;color:#be185d;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:1rem;display:flex;align-items:center;gap:6px;">
+                    <i class="fas fa-calendar-alt"></i> Your Sessions
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {% for appt in appointments %}
+                    <div style="background:rgba(255,255,255,0.65);border-radius:18px;padding:1.25rem;border:1.5px solid rgba(255,200,225,0.4);transition:all 0.3s;"
+                        x-data="{
+                            aptTime: new Date('{{ appt.appointment_time.strftime('%Y-%m-%dT%H:%M:%S') }}'),
+                            now: new Date(),
+                            get windowStart() { return this.aptTime; },
+                            get windowEnd() { return new Date(this.aptTime.getTime() + 60 * 60 * 1000); },
+                            get isActive() { return this.now >= this.windowStart && this.now <= this.windowEnd; },
+                            get isExpired() { return this.now > this.windowEnd; },
+                            get isBefore() { return this.now < this.windowStart; },
+                            get timeLabel() {
+                                if (this.isActive) return 'Join Video Call';
+                                if (this.isExpired) return 'Session Expired';
+                                const h = this.aptTime.getHours();
+                                const m = this.aptTime.getMinutes();
+                                const ampm = h >= 12 ? 'PM' : 'AM';
+                                const hh = h % 12 || 12;
+                                const mm = m < 10 ? '0' + m : m;
+                                return 'Opens at ' + hh + ':' + mm + ' ' + ampm;
+                            },
+                            init() { setInterval(() => { this.now = new Date(); }, 30000); }
+                        }">
+                        
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="h-12 w-12 rounded-xl bg-[var(--teal-soft)] flex items-center justify-center text-[var(--navy)]">
+                                <i class="fas fa-video"></i>
+                            </div>
+                            <div>
+                                {% if appt.status == 'scheduled' %}
+                                <div id="status-container-{{ appt.id }}">
+                                    <span class="px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full uppercase tracking-wider">Scheduled</span>
+                                </div>
+                                {% elif appt.status == 'requested' %}
+                                <span class="px-3 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-full uppercase tracking-wider">Requested</span>
+                                {% elif appt.status == 'accepted' %}
+                                <span class="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded-full uppercase tracking-wider">Accepted</span>
+                                {% elif appt.status == 'completed' %}
+                                <span class="px-3 py-1 bg-[var(--teal-soft)] text-[var(--navy)] text-xs font-bold rounded-full uppercase tracking-wider">Completed</span>
+                                {% else %}
+                                <span class="px-3 py-1 bg-slate-100 text-slate-600 text-xs font-bold rounded-full uppercase tracking-wider">{{ appt.status }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <h4 class="font-bold text-slate-900 mb-1">Counsellor: {{ appt.counsellor.full_name }}</h4>
+                        <p class="text-sm text-slate-500 mb-4 font-medium">
+                            <i class="far fa-calendar-check mr-2"></i> {{ appt.appointment_time.strftime('%b %d, %Y') }} at {{ appt.appointment_time.strftime('%I:%M %p') }}
+                        </p>
+
+                        <div id="join-container-{{ appt.id }}">
+                            {% if appt.status in ['scheduled', 'requested', 'accepted'] %}
+                            <template x-if="isActive">
+                                <div>
+                                    <a href="/join_meeting/{{ appt.id }}" target="_blank"
+                                        class="inline-flex w-full items-center justify-center px-4 py-3 bg-[var(--navy)] text-white text-sm font-bold rounded-xl hover:bg-[var(--teal)] transition-all transform active:scale-95 shadow-lg shadow-[var(--teal-soft)] animate-pulse">
+                                        <i class="fas fa-video mr-2"></i> <span x-text="timeLabel"></span>
+                                    </a>
+                                </div>
+                            </template>
+                            <template x-if="isBefore">
+                                <div>
+                                    <span class="inline-flex w-full items-center justify-center px-4 py-3 bg-slate-200 text-slate-500 text-sm font-bold rounded-xl cursor-not-allowed select-none">
+                                        <i class="fas fa-clock mr-2"></i> <span x-text="timeLabel"></span>
+                                    </span>
+                                    <form action="/appointment/delete/{{ appt.id }}" method="POST" class="mt-2"
+                                        onsubmit="return confirm('Are you sure you want to cancel this appointment?')">
+                                        <button type="submit"
+                                            class="w-full text-[10px] text-slate-400 hover:text-red-500 font-bold uppercase tracking-wider transition-colors">
+                                            <i class="fas fa-trash-alt mr-1"></i> Cancel Session
+                                        </button>
+                                    </form>
+                                </div>
+                            </template>
+                            <template x-if="isExpired">
+                                <span class="inline-flex w-full items-center justify-center px-4 py-3 bg-red-50 text-red-400 text-sm font-bold rounded-xl cursor-not-allowed select-none">
+                                    <i class="fas fa-times-circle mr-2"></i> <span x-text="timeLabel"></span>
+                                </span>
+                            </template>
+                            {% elif appt.status == 'completed' %}
+                            {% if not appt.rating_record %}
+                            <button @click="ratingModal = true; selectedAppt = {{ appt.id }}"
+                                class="inline-flex w-full items-center justify-center px-4 py-3 bg-[var(--navy)] text-white text-sm font-bold rounded-xl hover:bg-[var(--teal)] transition-all shadow-lg shadow-[var(--teal-soft)]">
+                                <i class="fas fa-star mr-2"></i> Rate Counselor
+                            </button>
+                            {% else %}
+                            <div class="flex items-center gap-1 text-amber-400">
+                                {% for i in range(appt.rating_record.rating) %}
+                                <i class="fas fa-star"></i>
+                                {% endfor %}
+                                <span class="text-xs text-slate-400 ml-2 font-bold">Rated</span>
+                            </div>
+                            {% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Rating Modal -->
+                <div x-show="ratingModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" x-cloak>
+                    <div @click.away="ratingModal = false" class="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl animate-fade-in-up">
+                        <div class="text-center mb-8">
+                            <div class="h-16 w-16 bg-[var(--teal-soft)] text-[var(--navy)] rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4">
+                                <i class="fas fa-award"></i>
+                            </div>
+                            <h3 class="text-2xl font-black text-slate-900">How was your session?</h3>
+                            <p class="text-slate-500 text-sm mt-1">Your rating helps us improve our guidance.</p>
+                        </div>
+
+                        <form :action="'/appointment/rate/' + selectedAppt" method="POST" class="space-y-6">
+                            <div class="flex justify-center gap-3" x-data="{ currentRating: 5 }">
+                                <input type="hidden" name="rating" :value="currentRating">
+                                {% for i in range(1, 6) %}
+                                <button type="button" @click="currentRating = {{ i }}" class="text-3xl transition-all hover:scale-125">
+                                    <i class="fas fa-star" :class="currentRating >= {{ i }} ? 'text-amber-400' : 'text-slate-200'"></i>
+                                </button>
+                                {% endfor %}
+                            </div>
+
+                            <div>
+                                <label class="block text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Write a review (Optional)</label>
+                                <textarea name="review" rows="3" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-[var(--teal)] focus:outline-none text-sm" placeholder="Tell us about your experience..."></textarea>
+                            </div>
+
+                            <div class="flex gap-4">
+                                <button type="button" @click="ratingModal = false" class="flex-1 py-4 bg-slate-100 text-slate-600 font-bold rounded-2xl hover:bg-slate-200 transition-all">Cancel</button>
+                                <button type="submit" class="flex-1 py-4 bg-[var(--navy)] text-white font-bold rounded-2xl shadow-xl shadow-[var(--teal-soft)] hover:bg-[var(--teal)] transition-all">Submit Rating</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Polling script for appointment -->
+            <script>
+                function pollAppointmentStatus(apptId) {
+                    setInterval(async () => {
+                        try {
+                            const response = await fetch(`/appointment_status/${apptId}`);
+                            const data = await response.json();
+
+                            if (data.counsellor_joined) {
+                                const statusDiv = document.getElementById(`status-container-${apptId}`);
+                                const joinDiv = document.getElementById(`join-container-${apptId}`);
+
+                                if (statusDiv && !statusDiv.innerHTML.includes('Online')) {
+                                    statusDiv.innerHTML = `
+                                    <span class="flex items-center gap-1.5 px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full uppercase tracking-wider animate-pulse">
+                                        <span class="w-2 h-2 bg-white rounded-full"></span> Online
+                                    </span>
+                                `;
+
+                                    const joinBtn = joinDiv.querySelector('a');
+                                    if (joinBtn) {
+                                        joinBtn.classList.remove('bg-[var(--navy)]', 'hover:bg-[var(--teal)]');
+                                        joinBtn.classList.add('bg-green-600', 'hover:bg-green-700', 'animate-bounce');
+                                        joinBtn.innerText = "Join Now - Counsellor is waiting!";
+                                    }
+                                }
+                            }
+                        } catch (err) {
+                            console.error("Status check failed:", err);
+                        }
+                    }, 5000);
+                }
+
+                // {% for appt in appointments %}
+                // {% if appt.status == 'scheduled' %}
+                pollAppointmentStatus(Number('{{ appt.id }}'));
+                // {% endif %}
+                // {% endfor %}
+
+                document.addEventListener('DOMContentLoaded', () => {
+                    document.querySelectorAll('.confidence-bar').forEach(bar => {
+                        bar.style.width = bar.getAttribute('data-width') + '%';
+                    });
+                });
+            </script>
+            {% endif %}
+
+            <!-- ── Support Tickets ── -->
+            {% if tickets %}
+            <div class="db-card p-7">
+                <div style="font-size:0.68rem;font-weight:800;color:#be185d;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:1rem;display:flex;align-items:center;gap:6px;">
+                    <i class="fas fa-ticket-alt"></i> Support Tickets
+                </div>
+                <div class="space-y-4">
+                    {% for ticket in tickets %}
+                    <div class="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+                        <div class="flex justify-between items-start mb-2">
+                            <h4 class="font-bold text-slate-900">{{ ticket.subject }}</h4>
+                            {% if ticket.status == 'Closed' %}
+                            <span class="px-2.5 py-0.5 text-[10px] font-bold rounded-full bg-green-100 text-green-700 uppercase border border-green-200">Resolved</span>
+                            {% else %}
+                            <span class="px-2.5 py-0.5 text-[10px] font-bold rounded-full bg-yellow-100 text-yellow-700 uppercase border border-yellow-200">Open</span>
+                            {% endif %}
+                        </div>
+                        <p class="text-sm text-slate-500 mb-4 italic">"{{ ticket.description }}"</p>
+                        {% if ticket.admin_reply %}
+                        <div class="mt-4 p-4 bg-[var(--teal-soft)] rounded-2xl border border-[var(--teal-light)]">
+                            <p class="text-xs font-bold text-[var(--navy)] uppercase tracking-wider mb-2">Admin Response</p>
+                            <p class="text-sm text-slate-700">{{ ticket.admin_reply }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+
+        <!-- ── Right Column: Explorer Profile + Tools + Bio ── -->
+        <div class="space-y-5">
+
+            <!-- ── Explorer Profile Card ── -->
+            <div class="db-card db-card-accent p-5 flex items-center gap-4 db-stagger" style="animation-delay:0.1s;">
+                <div class="relative group flex-shrink-0">
+                    <img src="{{ user.profile_photo if user.profile_photo else 'https://ui-avatars.com/api/?name=' ~ (user.full_name or 'User') ~ '&background=random' }}"
+                         alt="Profile"
+                         style="width:60px;height:60px;border-radius:18px;object-fit:cover;border:2.5px solid var(--db-pink-accent);box-shadow:0 4px 14px rgba(232,121,160,0.25);">
+                    <button onclick="document.getElementById('photo-upload').click()"
+                            style="position:absolute;bottom:-4px;right:-4px;background:var(--navy);color:white;padding:0.3rem;border-radius:8px;border:none;cursor:pointer;opacity:0;transition:opacity 0.2s;"
+                            class="group-hover:opacity-100">
+                        <i class="fas fa-camera" style="font-size:0.6rem;"></i>
+                    </button>
+                    <form id="photo-form" action="/profile/upload-photo" method="POST" enctype="multipart/form-data" class="hidden">
+                        <input type="file" id="photo-upload" name="file" onchange="handleImageUpload(event, 'photo-form')" accept="image/*">
+                    </form>
+                </div>
+                <div style="flex:1;min-width:0;">
+                    <div style="font-size:1rem;font-weight:900;color:#1e293b;line-height:1.2;">{{ user.full_name }}</div>
+                    <div style="font-size:0.68rem;color:#475569;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-top:2px;">{{ user.role or 'Explorer' }}</div>
+                </div>
+                <span class="db-xp-badge">
+                    <i class="fas fa-bolt" style="font-size:0.55rem;"></i> Active
+                </span>
+            </div>
+
+            <!-- ── Quest Stats ── -->
+            <div class="db-card p-5 db-stagger" style="animation-delay:0.15s;">
+                <div style="font-size:0.68rem;font-weight:800;color:#be185d;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:0.875rem;display:flex;align-items:center;gap:6px;">
+                    <i class="fas fa-chart-line"></i> Quest Insights
+                </div>
+                <div style="display:flex;flex-direction:column;gap:0.75rem;">
+                    <div>
+                        <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:4px;">
+                            <span style="color:#64748b;">AI Match Confidence</span>
+                            <span style="font-weight:800;color:#1e293b;">{{ (assessment.confidence * 100)|int if assessment.confidence else 0 }}%</span>
+                        </div>
+                        <div class="db-progress-bg">
+                            <div class="db-progress-fill confidence-bar" data-width="{{ (assessment.confidence * 100)|int if assessment.confidence else 0 }}"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:4px;">
+                            <span style="color:#64748b;">Interest Clarity</span>
+                            <span style="font-weight:800;color:#1e293b;">{{ assessment.goal_status or 'High' }}</span>
+                        </div>
+                        <div class="db-progress-bg">
+                            <div class="db-progress-fill" style="width:68%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bio Section -->
+            <div class="db-card p-5">
+                <h4 class="font-bold mb-3 flex items-center gap-2 text-sm" style="color:var(--text-main);">
+                    <i class="fas fa-user-circle" style="color:var(--primary);"></i> Your Bio
+                </h4>
+                <div x-data="{ editing: false }">
+                    <div x-show="!editing">
+                        <p style="font-size:0.82rem;color:#475569;line-height:1.55;" class="{% if not user.bio %}italic{% endif %}">
+                            {{ user.bio if user.bio else 'Add a bio to let other students know about you.' }}
+                        </p>
+                        <button @click="editing = true"
+                                style="margin-top:0.6rem;font-size:0.72rem;font-weight:700;color:#0d9488;display:inline-flex;align-items:center;gap:4px;background:none;border:none;cursor:pointer;padding:0;">
+                            <i class="fas fa-pen" style="font-size:0.65rem;"></i>
+                            {{ 'Edit Bio' if user.bio else 'Add Bio' }}
+                        </button>
+                    </div>
+                    <div x-show="editing" style="display: none;">
+                        <form action="/profile/update-bio" method="POST">
+                            <textarea name="bio" rows="3" maxlength="500"
+                                      style="width:100%;border-radius:12px;border:1.5px solid rgba(255,200,225,0.5);padding:0.6rem 0.75rem;font-size:0.82rem;color:#1e293b;outline:none;resize:none;background:rgba(255,255,255,0.8);"
+                                      placeholder="Tell other students about yourself...">{{ user.bio or '' }}</textarea>
+                            <div style="display:flex;gap:0.5rem;margin-top:0.5rem;">
+                                <button type="submit"
+                                        style="padding:0.4rem 1rem;background:var(--navy);color:white;border-radius:10px;font-size:0.75rem;font-weight:700;border:none;cursor:pointer;">Save</button>
+                                <button type="button" @click="editing = false"
+                                        style="padding:0.4rem 1rem;background:rgba(255,255,255,0.6);color:#64748b;border-radius:10px;font-size:0.75rem;font-weight:700;border:1px solid rgba(255,200,225,0.4);cursor:pointer;">Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Retake Class-Level Modal -->
+            <div id="retake-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(15,23,42,0.65);backdrop-filter:blur(8px);">
+                <div class="bg-white rounded-3xl w-full max-w-sm p-8 shadow-2xl" style="border:1.5px solid rgba(255,200,225,0.4);">
+                    <h3 class="text-xl font-black text-slate-900 mb-1 text-center">Retake Assessment</h3>
+                    <p class="text-sm text-slate-500 mb-6 text-center">Choose your current academic stage to begin a fresh assessment.</p>
+                    <div class="flex flex-col gap-3">
+                        <a href="/assessment/start?class_level=12th"
+                           class="flex items-center gap-3 p-4 rounded-2xl border border-teal-100 hover:border-teal-400 hover:bg-teal-50 transition-all"
+                           onclick="return confirm('This will clear your current results and start fresh. Continue?')">
+                            <div class="w-10 h-10 bg-teal-50 text-teal-700 rounded-xl flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-graduation-cap"></i>
+                            </div>
+                            <div class="text-left">
+                                <div class="font-black text-slate-900 text-sm">Class 12th / Above</div>
+                                <div class="text-xs text-slate-500">Science, Commerce, Arts streams</div>
+                            </div>
+                        </a>
+                        <a href="/assessment/start?class_level=10th"
+                           class="flex items-center gap-3 p-4 rounded-2xl border border-indigo-100 hover:border-indigo-400 hover:bg-indigo-50 transition-all"
+                           onclick="return confirm('This will clear your current results and start fresh. Continue?')">
+                            <div class="w-10 h-10 bg-indigo-50 text-indigo-700 rounded-xl flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-school"></i>
+                            </div>
+                            <div class="text-left">
+                                <div class="font-black text-slate-900 text-sm">Class 10th</div>
+                                <div class="text-xs text-slate-500">Explore career paths early</div>
+                            </div>
+                        </a>
+                    </div>
+                    <button onclick="document.getElementById('retake-modal').classList.add('hidden')"
+                            class="mt-5 w-full py-3 text-sm font-bold text-slate-500 rounded-2xl hover:bg-slate-100 transition-all">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+
+            <!-- ── Sleeping mascot: sits in the open background space below the panels ── -->
+            <img src="/static/images/mascot_sleeping.png" alt="Sleeping mascot" class="mascot-container"
+                 style="width:400px;height:auto;display:block;margin:1.5rem auto 0 auto;filter:drop-shadow(0 10px 18px rgba(0,0,0,0.25));">
+
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
