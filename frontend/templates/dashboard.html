@@ -47,17 +47,24 @@
         width: 120px; height: 120px;
         display: flex; align-items: center; justify-content: center;
         flex-shrink: 0;
+        background: transparent !important;
+        border: 0 !important; border-radius: 0 !important;
+        box-shadow: none !important; padding: 0 !important;
     }
 
     .hero-nav-logo-badge img {
         width: 100%; height: 100%;
         object-fit: contain;
+        background: transparent !important;
+        border: 0 !important; border-radius: 0 !important;
+        box-shadow: none !important; padding: 0 !important;
     }
 
     .hero-nav-logo-text {
         font-family: 'Jersey 10', 'Playfair Display', serif;
         font-size: 4rem; font-weight: 400;
         color: #020c14; white-space: nowrap;
+        position: relative; z-index: 1;
         letter-spacing: 0.02em;
     }
 
@@ -82,6 +89,21 @@
         text-shadow: 0 2px 6px rgba(0,0,0,0.35);
         transition: transform 0.25s ease, opacity 0.25s ease;
     }
+
+    /* ── Scrolled state: light black tint so content never clashes with nav ── */
+    .hero-nav { transition: top .3s ease, padding .3s ease, background .3s ease, box-shadow .3s ease, backdrop-filter .3s ease; }
+    .hero-nav.is-scrolled {
+        top: 0;
+        padding: 8px 0;
+        background: rgba(0, 0, 0, 0.55);
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+    .hero-nav.is-scrolled .hero-nav-logo-text { color: #fff; }
+    .hero-nav.is-scrolled .hero-nav-logo-badge { width: 56px !important; height: 56px !important; transition: all .3s ease; }
+    .hero-nav.is-scrolled .hero-nav-logo-text { font-size: clamp(1.8rem, 3vw, 2.6rem) !important; }
+    .hero-nav.is-scrolled .hero-nav-links a { font-size: clamp(20px, 1.6vw, 26px) !important; }
 
     .hero-nav-links a:hover {
         transform: scale(1.1);
@@ -328,6 +350,15 @@
         {% endif %}
     </div>
 </nav>
+<script>
+    (function () {
+        var nav = document.querySelector('.hero-nav');
+        if (!nav) return;
+        function onScroll() { nav.classList.toggle('is-scrolled', window.scrollY > 20); }
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+    })();
+</script>
 
 {% if user %}
 <div class="hero-settings-fixed" id="hero-settings-fixed">
@@ -799,8 +830,11 @@
 
     /* Post-onboarding workspace */
     .onward-panel {
-        background: linear-gradient(125deg, rgba(15, 23, 42, 0.96), rgba(15, 118, 110, 0.94));
-        border: 1px solid rgba(255, 255, 255, 0.16);
+        background: linear-gradient(125deg, rgba(46, 24, 88, 0.80), rgba(126, 58, 142, 0.68) 60%, rgba(232, 121, 160, 0.45));
+        backdrop-filter: blur(18px) saturate(160%);
+        -webkit-backdrop-filter: blur(18px) saturate(160%);
+        border: 1.5px solid var(--db-lavender-border);
+        box-shadow: 0 16px 40px rgba(76, 29, 149, 0.28), 0 2px 0 rgba(255,255,255,0.25) inset;
         border-radius: 1.75rem;
         color: #f8fafc;
         padding: clamp(1.25rem, 3vw, 2rem);
@@ -825,7 +859,7 @@
     .onward-panel p { color: inherit; }
 
     .onward-kicker {
-        color: #99f6e4;
+        color: #fcd34d;
         font-size: 0.68rem;
         font-weight: 800;
         letter-spacing: 0.16em;
@@ -850,7 +884,7 @@
     }
 
     .onward-item-label {
-        color: #a7f3d0;
+        color: #fbcfe8;
         font-size: 0.65rem;
         font-weight: 800;
         letter-spacing: 0.12em;
@@ -893,9 +927,123 @@
         transform: translateY(-2px);
     }
 
+
+    /* ── New look: hero character sheet + quest map ── */
+    .hero-sheet{display:grid;grid-template-columns:auto minmax(0,1fr);gap:clamp(1.25rem,3vw,2.75rem);align-items:center;padding:clamp(1.25rem,3vw,2rem);border-radius:1.75rem;position:relative;overflow:hidden;color:#fff;
+        background:linear-gradient(125deg,rgba(46,24,88,.82),rgba(126,58,142,.7) 60%,rgba(245,158,11,.45));backdrop-filter:blur(18px) saturate(160%);-webkit-backdrop-filter:blur(18px) saturate(160%);border:1.5px solid var(--db-lavender-border);box-shadow:0 16px 40px rgba(76,29,149,.3)}
+    .hs-avatar{position:relative;width:150px;height:150px}
+    .hs-ring{width:150px;height:150px;border-radius:50%;padding:7px;background:conic-gradient(#fbbf24 calc(var(--p)*1%),rgba(255,255,255,.18) 0);display:grid;place-items:center}
+    .hs-ring-in{width:100%;height:100%;border-radius:50%;background:rgba(40,20,80,.9);display:flex;flex-direction:column;align-items:center;justify-content:center}
+    .hs-ring-in b{font-family:'Jersey 10','Playfair Display',serif;font-weight:400;font-size:2.6rem;line-height:1}
+    .hs-ring-in small{font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;opacity:.7;font-weight:800}
+    .hs-careo{position:absolute;right:-26px;bottom:-12px;width:64px;animation:hs-float 3s ease-in-out infinite;filter:drop-shadow(0 4px 6px rgba(0,0,0,.35))}
+    @keyframes hs-float{50%{transform:translateY(-7px)}}
+    .hs-kicker{font-size:.68rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#fcd34d;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+    .hs-onb{background:rgba(255,255,255,.16);color:#fef3c7;border-radius:20px;padding:2px 9px;letter-spacing:0;text-transform:none}
+    .hero-sheet h2{font-family:'Jersey 10','Playfair Display',serif;font-weight:400;font-size:clamp(2.2rem,5vw,3.4rem);line-height:1;margin:.3rem 0;color:#fff}
+    .hs-sub{font-size:.92rem;opacity:.85;max-width:720px;color:#fff}
+    .hs-stats{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.9rem}
+    .hs-chip{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);border-radius:20px;padding:.3rem .75rem;font-size:.75rem;font-weight:700}
+    .hs-chip-gold{background:rgba(251,191,36,.25);border-color:#fbbf24}
+    .hs-bottom{display:flex;flex-wrap:wrap;gap:.9rem 1.1rem;margin-top:1.1rem;align-items:stretch}
+    .hs-quest{flex:1 1 320px;min-width:0;background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.12);border-radius:1.25rem;padding:1rem 1.25rem}
+    .hs-bottom .hs-actions{margin-top:0;flex:0 1 auto;align-content:center;align-items:stretch}
+    .hs-bottom .hs-btn{justify-content:center}
+    .hs-quest-top{display:flex;justify-content:space-between;font-size:.65rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#fbcfe8}
+    .hs-quest strong{display:block;margin:.5rem 0 .8rem;font-size:1.05rem;line-height:1.35}
+    .hs-bar{height:9px;border-radius:9px;background:rgba(255,255,255,.18);overflow:hidden}
+    .hs-bar i{display:block;height:100%;border-radius:9px;background:linear-gradient(90deg,#e879a0,#fbbf24)}
+    .hs-actions{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:1.1rem}
+    .hs-btn{display:inline-flex;align-items:center;gap:.45rem;padding:.65rem .95rem;border-radius:.8rem;font-size:.78rem;font-weight:800;color:#fff;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.25);cursor:pointer;transition:transform .2s}
+    .hs-btn:hover{transform:translateY(-2px) scale(1.03);color:#fff}
+    .hs-btn-gold{background:#fbbf24;color:#172554;border-color:#fbbf24}.hs-btn-gold:hover{color:#172554}
+    .hs-btn-ghost{background:rgba(254,202,202,.2);color:#fecaca}
+    @media(max-width:900px){.hs-bottom .hs-actions{flex:1 1 100%}.hs-bottom .hs-btn{flex:1 1 auto}}
+    @media(max-width:640px){
+        .hero-sheet{grid-template-columns:1fr;justify-items:center;text-align:center}
+        .hs-kicker,.hs-stats,.hs-actions{justify-content:center}.hs-quest{text-align:left;flex-basis:100%}.hs-sub{margin-inline:auto}
+    }
+    @keyframes qm-flow{to{stroke-dashoffset:-16}}
+        background:radial-gradient(circle at 30% 25%,color-mix(in srgb,var(--c) 55%,#fff),var(--c) 60%);border:4px solid #fff;
+        box-shadow:0 0 0 7px color-mix(in srgb,var(--c) 28%,transparent),0 0 28px color-mix(in srgb,var(--c) 75%,transparent),0 10px 0 -2px rgba(0,0,0,.25);
+        animation:qm-bob 3s ease-in-out infinite;animation-delay:calc(var(--i)*-.4s);transition:transform .3s cubic-bezier(.34,1.56,.64,1)}
+    @keyframes qm-bob{50%{transform:translateY(-6px)}}
+    .qm-title{font-size:.72rem;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:#fde68a;margin-bottom:.4rem;display:flex;gap:.5rem;align-items:center;text-shadow:0 2px 6px rgba(0,0,0,.5)}
+    .qm-map{position:relative;width:100%;aspect-ratio:600/460;max-width:680px;margin:0 auto}
+    .qm-map svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+    .qm-map path{fill:none;stroke-linecap:round;vector-effect:non-scaling-stroke}
+    .qm-glow{stroke:rgba(251,191,36,.35);stroke-width:16;filter:blur(6px)}
+    .qm-line{stroke:#fff;stroke-width:5;stroke-dasharray:2 14;animation:qm-flow 1.2s linear infinite}
+    @keyframes qm-flow{to{stroke-dashoffset:-16}}
+    .qm-node{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:.35rem;text-decoration:none;width:130px}
+    .qm-dot{width:clamp(58px,13vw,82px);aspect-ratio:1;border-radius:50%;display:grid;place-items:center;font-size:clamp(1.15rem,3.2vw,1.7rem);color:#fff;
+        background:radial-gradient(circle at 30% 25%,color-mix(in srgb,var(--c) 55%,#fff),var(--c) 60%);border:4px solid #fff;
+        box-shadow:0 0 0 7px color-mix(in srgb,var(--c) 28%,transparent),0 0 28px color-mix(in srgb,var(--c) 75%,transparent),0 10px 0 -2px rgba(0,0,0,.25);
+        animation:qm-bob 3s ease-in-out infinite;animation-delay:calc(var(--i)*-.4s);transition:transform .3s cubic-bezier(.34,1.56,.64,1)}
+    @keyframes qm-bob{50%{transform:translateY(-6px)}}
+    .qm-node:hover .qm-dot{transform:scale(1.18) rotate(-8deg);animation-play-state:paused}
+    .qm-label{font-family:'Jersey 10','Playfair Display',serif;font-size:1.15rem;letter-spacing:.03em;line-height:1;color:#fff;background:rgba(30,15,60,.72);border:1px solid rgba(255,255,255,.3);border-radius:20px;padding:.25rem .8rem;white-space:nowrap;backdrop-filter:blur(8px)}
+    .qm-here{position:absolute;top:-30px;background:#fbbf24;color:#172554;font-size:.62rem;font-weight:800;padding:2px 9px;border-radius:20px;white-space:nowrap;animation:qm-bob 2s ease-in-out infinite}
+    @media(max-width:480px){.qm-map{aspect-ratio:600/540}.qm-node{width:92px}.qm-label{font-size:.9rem;padding:.2rem .5rem}}
+    /* sidebar: ID card, hero stats, scroll bio */
+    .id-card{position:relative;overflow:hidden;border-radius:1.4rem;padding:1rem 1.1rem;color:#fff;border:2px solid #fbbf24;
+        background:linear-gradient(135deg,#2e1858,#7e3a8e 60%,#e879a0);box-shadow:0 14px 34px rgba(76,29,149,.35),0 0 0 4px rgba(251,191,36,.18)}
+    .id-card::after{content:'';position:absolute;inset:-40%;background:linear-gradient(105deg,transparent 40%,rgba(255,255,255,.35) 50%,transparent 60%);transform:translateX(-80%);animation:id-shine 5s ease-in-out infinite;pointer-events:none}
+    @keyframes id-shine{60%,100%{transform:translateX(80%)}}
+    .id-top{display:flex;justify-content:space-between;font-size:.62rem;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:#fde68a;margin-bottom:.7rem}
+    .id-lv{background:#fbbf24;color:#172554;border-radius:20px;padding:1px 9px;letter-spacing:.04em}
+    .id-body{display:flex;align-items:center;gap:.9rem}
+    .id-photo{width:72px;height:72px;object-fit:cover;border-radius:50%;border:3px solid #fbbf24;box-shadow:0 0 0 4px rgba(255,255,255,.2),0 0 18px rgba(251,191,36,.6)}
+    .id-name{font-family:'Jersey 10','Playfair Display',serif;font-size:1.7rem;line-height:1;word-break:break-word}
+    .id-rank{font-size:.65rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#fbcfe8;margin-top:3px}
+    .id-class{display:inline-block;margin-top:.4rem;font-size:.7rem;font-weight:700;background:rgba(0,0,0,.25);border-radius:20px;padding:2px 10px}
+    .hp-panel{border-radius:1.4rem;padding:1.1rem 1.2rem;color:#fff;background:rgba(30,15,60,.72);backdrop-filter:blur(16px);border:1.5px solid var(--db-lavender-border)}
+    .hp-title{font-size:.68rem;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:#fde68a;margin-bottom:.7rem}
+    .hp-row{display:flex;justify-content:space-between;font-size:.78rem;margin:.55rem 0 .3rem;color:#e9d5ff}.hp-row b{color:#fff}
+    .sg .db-progress-bg{height:14px;border-radius:3px;background:rgba(255,255,255,.2);-webkit-mask-image:repeating-linear-gradient(90deg,#000 0 9px,transparent 9px 12px);mask-image:repeating-linear-gradient(90deg,#000 0 9px,transparent 9px 12px)}
+    .sg .db-progress-fill{border-radius:0;background:linear-gradient(90deg,#e879a0,#fbbf24)}
+    .scroll-bio{position:relative;padding:1.1rem 1.3rem;border-radius:.6rem 1.4rem .6rem 1.4rem;transform:rotate(-1.2deg);transition:transform .3s;
+        background:repeating-linear-gradient(transparent 0 25px,rgba(180,83,9,.14) 25px 26px),linear-gradient(135deg,#fff7e0,#fde9b8);
+        border:2px solid #d97706;box-shadow:0 10px 24px rgba(120,53,15,.28),inset 0 0 22px rgba(217,119,6,.2)}
+    .scroll-bio:hover{transform:rotate(0)}
+    .scroll-bio h4{font-family:'Jersey 10','Playfair Display',serif;font-size:1.35rem;color:#92400e;margin-bottom:.4rem;display:flex;gap:.5rem;align-items:center}
+    .scroll-bio p{font-size:.84rem;color:#78350f;line-height:26px}
+    .sb-btn{margin-top:.5rem;font-size:.72rem;font-weight:800;color:#92400e;display:inline-flex;align-items:center;gap:4px;background:none;border:1px solid #d97706;border-radius:20px;padding:.2rem .7rem;cursor:pointer}
+    @media(prefers-reduced-motion:reduce){.hs-careo,.qm-here,.qm-dot,.qm-line,.id-card::after{animation:none}}
     @media (max-width: 768px) {
         .onward-grid { grid-template-columns: 1fr; }
         .onward-item { min-height: auto; }
+    }
+
+    /* ── Action tiles: 2x2 grid on desktop, swipeable track + arrows on small screens ── */
+    .tile-wrap { width: 100%; flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .tile-track {
+        display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr;
+        gap: 0.75rem; width: 100%; flex: 1; min-width: 0;
+    }
+    .tile-arrows { display: none; }
+    .tile-arrow {
+        width: 38px; height: 38px; border-radius: 50%;
+        display: inline-flex; align-items: center; justify-content: center;
+        background: linear-gradient(135deg, var(--db-pink-accent), #a78bfa);
+        color: #fff; border: 0; cursor: pointer; font-size: 0.8rem;
+        box-shadow: 0 4px 12px rgba(167, 139, 250, 0.4);
+        transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+    .tile-arrow:active { transform: scale(0.92); }
+    .tile-arrow:disabled { opacity: 0.35; cursor: default; box-shadow: none; }
+
+    @media (max-width: 640px) {
+        .tile-track {
+            display: flex; gap: 0.75rem;
+            overflow-x: auto; scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch; scrollbar-width: none;
+            padding-bottom: 2px;
+        }
+        .tile-track::-webkit-scrollbar { display: none; }
+        .tile-item { flex: 0 0 82%; min-height: 110px; scroll-snap-align: start; }
+        .tile-arrows { display: flex; justify-content: center; gap: 0.75rem; margin-top: 0.75rem; }
+        .onward-panel::after { display: none; }
     }
 </style>
 {% endblock %}
@@ -969,111 +1117,54 @@
     {% set report_dashboard = assessment.assessment_report.dashboard if assessment.assessment_report and assessment.assessment_report.dashboard else {} %}
     {% set strengths = report_dashboard.strengths if report_dashboard.strengths else ['Curiosity', 'Adaptability'] %}
     {% set growth_areas = report_dashboard.weaknesses if report_dashboard.weaknesses else ['Keep building evidence through practice'] %}
-    <section class="onward-panel db-stagger" aria-labelledby="onward-title">
-        <div class="onward-kicker">Your next chapter</div>
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;position:relative;z-index:1;">
-            <div>
-                <h2 id="onward-title" style="font-size:clamp(1.35rem, 3vw, 2rem);margin-top:0.45rem;">Turn your results into momentum.</h2>
-                <p style="font-size:0.9rem;max-width:620px;margin-top:0.55rem;">Your assessment is complete. Use these signals to choose one direction, practise deliberately, and keep a record of what you learn.</p>
-            </div>
-            <span class="db-xp-badge" style="flex-shrink:0;background:rgba(255,255,255,0.14);border-color:rgba(255,255,255,0.22);color:#fef3c7;"><i class="fas fa-check" style="font-size:0.6rem;"></i> Onboarded</span>
+    <section class="hero-sheet db-stagger" aria-labelledby="onward-title">
+        {% set pct = ((assessment.confidence or 0.85) * 100) | int %}
+        <div class="hs-avatar">
+            <div class="hs-ring" style="--p:{{ pct }}"><div class="hs-ring-in"><b>{{ pct }}%</b><small>Match</small></div></div>
+            <img src="/static/images/G1.png" alt="" class="hs-careo">
         </div>
-        <div class="onward-grid">
-            <div class="onward-item">
-                <div class="onward-item-label"><i class="fas fa-sparkles"></i> You bring</div>
-                <strong>{{ strengths[0] if strengths|length > 0 else 'Curiosity' }}</strong>
-                <p>{{ strengths[1] if strengths|length > 1 else 'A starting point worth exploring.' }}</p>
+        <div class="hs-main">
+            <div class="hs-kicker"><i class="fas fa-trophy"></i> Career unlocked <span class="hs-onb"><i class="fas fa-check"></i> Onboarded</span></div>
+            <h2 id="onward-title">{{ assessment.phase_2_category or dashboard_sim_career }}</h2>
+            <p class="hs-sub">Your assessment is complete. Pick one direction, practise deliberately, and keep a record of what you learn.</p>
+            <div class="hs-stats">
+                <span class="hs-chip"><i class="fas fa-sparkles"></i> {{ strengths[0] if strengths|length > 0 else 'Curiosity' }}</span>
+                <span class="hs-chip"><i class="fas fa-bolt"></i> {{ strengths[1] if strengths|length > 1 else 'Adaptability' }}</span>
+                <span class="hs-chip hs-chip-gold"><i class="fas fa-compass"></i> {{ dashboard_sim_career }}</span>
             </div>
-            <div class="onward-item">
-                <div class="onward-item-label"><i class="fas fa-arrow-trend-up"></i> Build next</div>
+            <div class="hs-bottom">
+            <div class="hs-quest">
+                <div class="hs-quest-top"><span><i class="fas fa-arrow-trend-up"></i> Active quest</span><span>Next few weeks</span></div>
                 <strong>{{ growth_areas[0] if growth_areas|length > 0 else 'Practical confidence' }}</strong>
-                <p>Make this your focus for the next few weeks.</p>
+                <div class="hs-bar"><i style="width:{{ pct }}%"></i></div>
             </div>
-            <div class="onward-item">
-                <div class="onward-item-label"><i class="fas fa-compass"></i> Direction</div>
-                <strong>{{ dashboard_sim_career }}</strong>
-                <p>Compare this path with the full report before you commit.</p>
+            <div class="hs-actions">
+                <a class="hs-btn hs-btn-gold" href="/my-monthly-path"><i class="fas fa-route"></i> Open your monthly path</a>
+                <a class="hs-btn" href="/assessment/result"><i class="fas fa-scroll"></i> Full report</a>
+                <button type="button" class="hs-btn hs-btn-ghost" onclick="document.getElementById('retake-modal').classList.remove('hidden')"><i class="fas fa-undo"></i> Retake</button>
+            </div>
             </div>
         </div>
-        <a class="onward-action" href="/my-monthly-path"><i class="fas fa-route"></i> Open your monthly path <i class="fas fa-arrow-right"></i></a>
     </section>
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         <!-- Left Column: Main Results, Action and Sessions -->
         <div class="lg:col-span-2 space-y-6">
 
-            <!-- ── Career Unlocked Summary: split into two adjacent tiles (40:60) ── -->
-            <div class="db-stagger" style="display:grid;grid-template-columns:40% 60%;gap:1rem;align-items:stretch;">
-
-                <!-- Tile 1 (40%): Match score -->
-                <div class="db-card db-card-accent" style="padding:1rem;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-width:0;">
-                    <div class="relative" style="width:112px;height:112px;">
-                        <div style="width:112px;height:112px;border-radius:50%;padding:4px;background:linear-gradient(135deg,var(--db-pink-accent),#a78bfa,#0d9488);">
-                            <div style="width:100%;height:100%;background:rgba(255,248,252,0.95);border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;">
-                                <span style="font-family:'Jersey 10','Playfair Display',serif;font-weight:400;font-size:2.4rem;color:#1e293b;line-height:1;">
-                                    {{ ((assessment.confidence or 0.85) * 100) | int }}%
-                                </span>
-                                <span style="font-size:0.65rem;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Match</span>
-                            </div>
-                        </div>
-                        <!-- Orbit ring animation -->
-                        <div style="position:absolute;inset:-6px;border-radius:50%;border:2px solid rgba(232,121,160,0.2);animation:journey-pulse 3s infinite;"></div>
-                    </div>
-                    <span style="margin-top:0.85rem;font-family:'Jersey 10','Playfair Display',serif;font-weight:400;font-size:1.75rem;letter-spacing:0.03em;color:#1e293b;line-height:1.15;">{{ assessment.phase_2_category }}</span>
-                </div>
-
-                <!-- Tile 2 (60%): Career Unlocked badge (centered) + 4 evenly-sized action tiles -->
-                <div class="db-card db-card-accent" style="padding:1.25rem;min-width:0;display:flex;flex-direction:column;align-items:center;">
-                    <!-- Phase badge, centered -->
-                    <span class="db-phase-badge" style="margin:0 auto 1rem;">
-                        <i class="fas fa-trophy" style="font-size:0.55rem;"></i>
-                        Career Unlocked
-                    </span>
-
-                    <div style="display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:0.75rem;width:100%;flex:1;">
-                        <a href="/assessment/result" class="db-hover-scale"
-                           style="background:linear-gradient(135deg,var(--db-pink-accent),#a78bfa);color:white;border-radius:14px;font-weight:800;font-size:0.85rem;text-decoration:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.4rem;box-shadow:0 6px 18px rgba(232,121,160,0.3);transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1),box-shadow 0.3s ease;text-align:center;padding:0.75rem;">
-                            <i class="fas fa-scroll" style="font-size:1.1rem;"></i> View Full Report
-                        </a>
-                        <a href="/chatbot" class="db-hover-scale"
-                           style="background:rgba(255,255,255,0.75);border:1.5px solid rgba(255,200,225,0.5);color:#1e293b;border-radius:14px;font-weight:700;font-size:0.85rem;text-decoration:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.4rem;transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1),box-shadow 0.3s ease;text-align:center;padding:0.75rem;">
-                            <i class="fas fa-comment-dots" style="color:#0d9488;font-size:1.1rem;"></i> Ask CareerBuddy AI
-                        </a>
-                        <a href="/assessment/simulation/start/{{ dashboard_sim_career | urlencode }}" class="db-hover-scale"
-                            style="background:#f59e0b;color:white;border-radius:14px;font-weight:800;font-size:0.85rem;text-decoration:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.4rem;box-shadow:0 6px 18px rgba(245,158,11,0.25);transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1),box-shadow 0.3s ease;text-align:center;padding:0.75rem;">
-                            <i class="fas fa-vr-cardboard" style="font-size:1.1rem;"></i> Try Career Simulation
-                        </a>
-                        <button type="button" onclick="document.getElementById('retake-modal').classList.remove('hidden')" class="db-hover-scale"
-                           style="background:#fecaca;color:#b91c1c;border:none;border-radius:14px;font-weight:800;font-size:0.85rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.4rem;box-shadow:0 6px 18px rgba(248,113,113,0.25);transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1),box-shadow 0.3s ease;text-align:center;padding:0.75rem;">
-                            <i class="fas fa-undo" style="font-size:1.1rem;"></i> Retake Assessment
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ── Quest Tools Grid ── -->
-            <div class="grid grid-cols-3 gap-2 db-stagger" style="animation-delay:0.15s;">
-                <a href="/career/colleges" class="db-tool-card" style="--tool-c:#6366f1;--tool-glow:rgba(99,102,241,0.35);--float-delay:0.45s;">
-                    <span class="db-tool-ring"><span class="db-tool-inner"><i class="fas fa-university"></i></span></span>
-                    <span class="db-tool-label">Colleges</span>
-                </a>
-                <a href="/counsellors" class="db-tool-card" style="--tool-c:var(--db-pink-accent);--tool-glow:rgba(232,121,160,0.35);--float-delay:0.6s;">
-                    <span class="db-tool-ring"><span class="db-tool-inner"><i class="fas fa-video"></i></span></span>
-                    <span class="db-tool-label">Talk to Expert</span>
-                </a>
-                <a href="/assessment/simulation/start/{{ dashboard_sim_career | urlencode }}" class="db-tool-card" style="--tool-c:#a78bfa;--tool-glow:rgba(167,139,250,0.35);--float-delay:0.9s;">
-                    <span class="db-tool-ring"><span class="db-tool-inner"><i class="fas fa-vr-cardboard"></i></span></span>
-                    <span class="db-tool-label">Simulation</span>
-                </a>
-                <a href="/subscription" class="db-tool-card" style="--tool-c:#eab308;--tool-glow:rgba(234,179,8,0.35);--float-delay:1.05s;">
-                    <span class="db-tool-ring"><span class="db-tool-inner"><i class="fas fa-crown"></i></span></span>
-                    <span class="db-tool-label">Plans</span>
-                </a>
-                <a href="/weekly-checkin" class="db-tool-card" style="--tool-c:#10b981;--tool-glow:rgba(16,185,129,0.35);--float-delay:1.2s;grid-column:3;">
-                    <span class="db-tool-ring"><span class="db-tool-inner"><i class="fas fa-calendar-check"></i></span></span>
-                    <span class="db-tool-label">Weekly AI</span>
-                </a>
-            </div>
+            <!-- ── Quest Map ── -->
+<div class="qm db-stagger" style="animation-delay:0.1s;">
+<div class="qm-title"><i class="fas fa-map"></i> Your quest map</div>
+<div class="qm-map">
+<svg viewBox="0 0 600 460" preserveAspectRatio="none" aria-hidden="true"><path d="M100 60 C150 30 250 90 300 60 C350 30 450 90 500 60 C600 60 600 230 500 230 C450 200 350 260 300 230 C250 200 150 260 100 230 C0 230 0 400 100 400" class="qm-glow"/><path d="M100 60 C150 30 250 90 300 60 C350 30 450 90 500 60 C600 60 600 230 500 230 C450 200 350 260 300 230 C250 200 150 260 100 230 C0 230 0 400 100 400" class="qm-line"/></svg>
+<a class="qm-node" href="/assessment/result" style="--c:#e879a0;left:16.67%;top:13.04%;--i:0"><span class="qm-dot"><i class="fas fa-scroll"></i></span><span class="qm-label">Your report</span><span class=qm-here>You are here</span></a>
+<a class="qm-node" href="/chatbot" style="--c:#a78bfa;left:50.00%;top:13.04%;--i:1"><span class="qm-dot"><i class="fas fa-comment-dots"></i></span><span class="qm-label">Ask CareerBuddy</span></a>
+<a class="qm-node" href="/assessment/simulation/start/{{ dashboard_sim_career | urlencode }}" style="--c:#f59e0b;left:83.33%;top:13.04%;--i:2"><span class="qm-dot"><i class="fas fa-vr-cardboard"></i></span><span class="qm-label">Simulation</span></a>
+<a class="qm-node" href="/career/colleges" style="--c:#6366f1;left:83.33%;top:50.00%;--i:3"><span class="qm-dot"><i class="fas fa-university"></i></span><span class="qm-label">Colleges</span></a>
+<a class="qm-node" href="/counsellors" style="--c:#ec4899;left:50.00%;top:50.00%;--i:4"><span class="qm-dot"><i class="fas fa-video"></i></span><span class="qm-label">Talk to expert</span></a>
+<a class="qm-node" href="/weekly-checkin" style="--c:#10b981;left:16.67%;top:50.00%;--i:5"><span class="qm-dot"><i class="fas fa-calendar-check"></i></span><span class="qm-label">Weekly check-in</span></a>
+<a class="qm-node" href="/subscription" style="--c:#eab308;left:16.67%;top:86.96%;--i:6"><span class="qm-dot"><i class="fas fa-crown"></i></span><span class="qm-label">Plans</span></a>
+</div>
+</div>
 
             <!-- ── Scheduled Sessions ── -->
             {% if appointments %}
@@ -1298,83 +1389,50 @@
         <!-- ── Right Column: Explorer Profile + Tools + Bio ── -->
         <div class="space-y-5">
 
-            <!-- ── Explorer Profile Card ── -->
-            <div class="db-card db-card-accent p-5 flex items-center gap-4 db-stagger" style="animation-delay:0.1s;">
-                <div class="relative group flex-shrink-0">
-                    <img src="{{ user.profile_photo if user.profile_photo else 'https://ui-avatars.com/api/?name=' ~ (user.full_name or 'User') ~ '&background=random' }}"
-                         alt="Profile"
-                         style="width:60px;height:60px;border-radius:18px;object-fit:cover;border:2.5px solid var(--db-pink-accent);box-shadow:0 4px 14px rgba(232,121,160,0.25);">
-                    <button onclick="document.getElementById('photo-upload').click()"
-                            style="position:absolute;bottom:-4px;right:-4px;background:var(--navy);color:white;padding:0.3rem;border-radius:8px;border:none;cursor:pointer;opacity:0;transition:opacity 0.2s;"
-                            class="group-hover:opacity-100">
-                        <i class="fas fa-camera" style="font-size:0.6rem;"></i>
-                    </button>
-                    <form id="photo-form" action="/profile/upload-photo" method="POST" enctype="multipart/form-data" class="hidden">
-                        <input type="file" id="photo-upload" name="file" onchange="handleImageUpload(event, 'photo-form')" accept="image/*">
-                    </form>
-                </div>
-                <div style="flex:1;min-width:0;">
-                    <div style="font-size:1rem;font-weight:900;color:#1e293b;line-height:1.2;">{{ user.full_name }}</div>
-                    <div style="font-size:0.68rem;color:#475569;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-top:2px;">{{ user.role or 'Explorer' }}</div>
-                </div>
-                <span class="db-xp-badge">
-                    <i class="fas fa-bolt" style="font-size:0.55rem;"></i> Active
-                </span>
-            </div>
-
-            <!-- ── Quest Stats ── -->
-            <div class="db-card p-5 db-stagger" style="animation-delay:0.15s;">
-                <div style="font-size:0.68rem;font-weight:800;color:#be185d;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:0.875rem;display:flex;align-items:center;gap:6px;">
-                    <i class="fas fa-chart-line"></i> Quest Insights
-                </div>
-                <div style="display:flex;flex-direction:column;gap:0.75rem;">
-                    <div>
-                        <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:4px;">
-                            <span style="color:#64748b;">AI Match Confidence</span>
-                            <span style="font-weight:800;color:#1e293b;">{{ (assessment.confidence * 100)|int if assessment.confidence else 0 }}%</span>
-                        </div>
-                        <div class="db-progress-bg">
-                            <div class="db-progress-fill confidence-bar" data-width="{{ (assessment.confidence * 100)|int if assessment.confidence else 0 }}"></div>
-                        </div>
+            <!-- ── Player ID card ── -->
+            <div class="id-card db-stagger" style="animation-delay:0.1s;">
+                <div class="id-top"><span>CareStance ID</span><span class="id-lv"><i class="fas fa-bolt"></i> Active</span></div>
+                <div class="id-body">
+                    <div class="relative group flex-shrink-0">
+                        <img class="id-photo" src="{{ user.profile_photo if user.profile_photo else 'https://ui-avatars.com/api/?name=' ~ (user.full_name or 'User') ~ '&background=random' }}" alt="Profile">
+                        <button onclick="document.getElementById('photo-upload').click()" class="group-hover:opacity-100" style="position:absolute;bottom:-4px;right:-4px;background:#fbbf24;color:#172554;padding:0.35rem;border-radius:8px;border:none;cursor:pointer;opacity:0;transition:opacity 0.2s;">
+                            <i class="fas fa-camera" style="font-size:0.6rem;"></i>
+                        </button>
+                        <form id="photo-form" action="/profile/upload-photo" method="POST" enctype="multipart/form-data" class="hidden">
+                            <input type="file" id="photo-upload" name="file" onchange="handleImageUpload(event, 'photo-form')" accept="image/*">
+                        </form>
                     </div>
-                    <div>
-                        <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:4px;">
-                            <span style="color:#64748b;">Interest Clarity</span>
-                            <span style="font-weight:800;color:#1e293b;">{{ assessment.goal_status or 'High' }}</span>
-                        </div>
-                        <div class="db-progress-bg">
-                            <div class="db-progress-fill" style="width:68%;"></div>
-                        </div>
+                    <div style="min-width:0;">
+                        <div class="id-name">{{ user.full_name }}</div>
+                        <div class="id-rank">{{ user.role or 'Explorer' }}</div>
+                        <div class="id-class">{{ assessment.phase_2_category or 'Explorer' }}</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Bio Section -->
-            <div class="db-card p-5">
-                <h4 class="font-bold mb-3 flex items-center gap-2 text-sm" style="color:var(--text-main);">
-                    <i class="fas fa-user-circle" style="color:var(--primary);"></i> Your Bio
-                </h4>
+            <!-- ── Hero stats (segmented bars) ── -->
+            <div class="hp-panel db-stagger sg" style="animation-delay:0.15s;">
+                <div class="hp-title"><i class="fas fa-heart-pulse"></i> Hero stats</div>
+                <div class="hp-row"><span>AI Match</span><b>{{ (assessment.confidence * 100)|int if assessment.confidence else 0 }}%</b></div>
+                <div class="db-progress-bg"><div class="db-progress-fill confidence-bar" data-width="{{ (assessment.confidence * 100)|int if assessment.confidence else 0 }}"></div></div>
+                <div class="hp-row"><span>Interest clarity</span><b>{{ assessment.goal_status or 'High' }}</b></div>
+                <div class="db-progress-bg"><div class="db-progress-fill" style="width:68%;"></div></div>
+            </div>
+
+            <!-- ── Bio as a parchment scroll ── -->
+            <div class="scroll-bio">
+                <h4><i class="fas fa-feather-pointed"></i> Your story</h4>
                 <div x-data="{ editing: false }">
                     <div x-show="!editing">
-                        <p style="font-size:0.82rem;color:#475569;line-height:1.55;" class="{% if not user.bio %}italic{% endif %}">
-                            {{ user.bio if user.bio else 'Add a bio to let other students know about you.' }}
-                        </p>
-                        <button @click="editing = true"
-                                style="margin-top:0.6rem;font-size:0.72rem;font-weight:700;color:#0d9488;display:inline-flex;align-items:center;gap:4px;background:none;border:none;cursor:pointer;padding:0;">
-                            <i class="fas fa-pen" style="font-size:0.65rem;"></i>
-                            {{ 'Edit Bio' if user.bio else 'Add Bio' }}
-                        </button>
+                        <p class="{% if not user.bio %}italic{% endif %}">{{ user.bio if user.bio else 'Add a bio to let other students know about you.' }}</p>
+                        <button @click="editing = true" class="sb-btn"><i class="fas fa-pen" style="font-size:0.65rem;"></i> {{ 'Edit Bio' if user.bio else 'Add Bio' }}</button>
                     </div>
                     <div x-show="editing" style="display: none;">
                         <form action="/profile/update-bio" method="POST">
-                            <textarea name="bio" rows="3" maxlength="500"
-                                      style="width:100%;border-radius:12px;border:1.5px solid rgba(255,200,225,0.5);padding:0.6rem 0.75rem;font-size:0.82rem;color:#1e293b;outline:none;resize:none;background:rgba(255,255,255,0.8);"
-                                      placeholder="Tell other students about yourself...">{{ user.bio or '' }}</textarea>
+                            <textarea name="bio" rows="3" maxlength="500" placeholder="Tell other students about yourself..." style="width:100%;border-radius:10px;border:1.5px solid #d97706;padding:0.6rem 0.75rem;font-size:0.82rem;color:#1e293b;outline:none;resize:none;background:rgba(255,255,255,0.7);">{{ user.bio or '' }}</textarea>
                             <div style="display:flex;gap:0.5rem;margin-top:0.5rem;">
-                                <button type="submit"
-                                        style="padding:0.4rem 1rem;background:var(--navy);color:white;border-radius:10px;font-size:0.75rem;font-weight:700;border:none;cursor:pointer;">Save</button>
-                                <button type="button" @click="editing = false"
-                                        style="padding:0.4rem 1rem;background:rgba(255,255,255,0.6);color:#64748b;border-radius:10px;font-size:0.75rem;font-weight:700;border:1px solid rgba(255,200,225,0.4);cursor:pointer;">Cancel</button>
+                                <button type="submit" class="sb-btn" style="background:#92400e;color:#fff;padding:0.4rem 1rem;border-radius:10px;">Save</button>
+                                <button type="button" @click="editing = false" class="sb-btn" style="padding:0.4rem 1rem;">Cancel</button>
                             </div>
                         </form>
                     </div>
