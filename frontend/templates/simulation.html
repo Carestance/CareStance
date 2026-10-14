@@ -1084,6 +1084,55 @@ textarea{font-family:'Inter',sans-serif}
   .rp-title{font-size:1.25rem}
   .rp-cols{grid-template-columns:1fr}
 }
+@media (max-width:1023px){
+  /* compact report: ring + persona in one row, buttons below, tighter content */
+  .rp{max-height:calc(100dvh - 1rem);border-radius:1.2rem}
+  .rp-side{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;justify-items:start;gap:.55rem .85rem;padding:.85rem 1rem;text-align:left}
+  .rp-mascot{display:none}
+  .rp-ring{grid-row:1;grid-column:1;width:84px;height:84px}
+  .rp-ring::before{inset:7px}
+  .rp-ring span{font-size:1.35rem}
+  .rp-persona{grid-row:1;grid-column:2;font-size:.82rem;padding:.3rem .8rem}
+  .rp-actions{grid-column:1/-1;grid-row:2;flex-direction:row;gap:.5rem;margin:0}
+  .rp-btn{padding:.5rem .6rem;font-size:.8rem}
+  .rp-main{padding:.8rem .9rem 1rem;gap:.65rem}
+  .rp-kicker{font-size:.6rem}
+  .rp-title{font-size:1.1rem}
+  .rp-sub{font-size:.75rem;margin:0}
+  .rp-cols{gap:.55rem}
+  .rp-box{padding:.65rem .75rem;border-radius:.9rem}
+  .rp-box h4,.rp-verdict h4{font-size:.8rem;margin-bottom:.35rem}
+  .rp-box ul{gap:.3rem}
+  .rp-box li{font-size:.76rem;line-height:1.4}
+  .rp-verdict{padding:.7rem .8rem;border-radius:.9rem}
+  .rp-verdict p{font-size:.78rem;line-height:1.5}
+}
+@property --p{syntax:'<number>';inherits:true;initial-value:0}
+.role-ico{display:none}
+@media (min-width:1024px){
+  /* role: gradient hero card */
+  .sidebar{background:linear-gradient(180deg,rgba(255,255,255,.55),rgba(255,240,247,.45))}
+  .role-card{position:relative;overflow:hidden;padding:.75rem .85rem .75rem 3.5rem;border:0;color:#fff;background:linear-gradient(135deg,#3b2370,#6a3fa0 55%,#c0568f);box-shadow:0 10px 22px -10px rgba(106,63,160,.6)}
+  .role-card::after{content:'';position:absolute;right:-26px;top:-30px;width:90px;height:90px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.28),transparent 70%)}
+  .role-ico{display:grid;place-items:center;position:absolute;left:.75rem;top:50%;transform:translateY(-50%);width:2.1rem;height:2.1rem;border-radius:.8rem;font-size:.95rem;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3)}
+  .role-card .metric-label{color:rgba(255,255,255,.7);letter-spacing:.14em}
+  .role-name{color:#fff}
+  .role-level{display:inline-block;margin-top:.3rem;padding:.08rem .55rem;border-radius:999px;font-size:.62rem;font-weight:700;letter-spacing:.04em;color:#fff;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3)}
+
+  /* metrics: three animated gauges in one row */
+  .m-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.4rem}
+  .m-row{--c:#e879a0;display:flex;flex-direction:column;align-items:center;padding:.55rem .2rem .45rem;border-radius:1rem;background:rgba(255,255,255,.65);border:1px solid var(--pink-border);transition:--p .8s cubic-bezier(.4,0,.2,1),transform .2s}
+  .m-row:nth-child(2){--c:#8b7cf0}
+  .m-row:nth-child(3){--c:#2bb6c9}
+  .m-row:hover{transform:translateY(-2px)}
+  .m-row .progress-track{display:none}
+  .m-top{display:flex;flex-direction:column-reverse;align-items:center;gap:.4rem;width:100%}
+  .m-list .l-full{display:none!important}
+  .m-list .l-short{display:inline!important}
+  .m-label{font-size:.6rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted)}
+  .m-val{position:relative;isolation:isolate;display:grid;place-items:center;width:100%;max-width:62px;aspect-ratio:1;border-radius:50%;font-size:.82rem;color:var(--text-main);background:conic-gradient(var(--c) calc(var(--p)*1%),rgba(124,92,180,.14) 0);box-shadow:0 6px 14px -8px var(--c)}
+  .m-val::before{content:'';position:absolute;inset:6px;border-radius:50%;background:#fff;z-index:-1}
+}
 </style>
 {% endblock %}
 
@@ -1096,21 +1145,22 @@ textarea{font-family:'Inter',sans-serif}
         <aside class="sidebar">
 
             <div class="role-card">
+                <span class="role-ico"><i class="fas fa-user-astronaut"></i></span>
                 <div class="metric-label">Role</div>
                 <div class="role-name">{{ career_title }}</div>
                 <div class="role-level">{{ difficulty }} Level</div>
             </div>
 
             <div class="m-list">
-                <div class="m-row">
+                <div class="m-row" :style="'--p:' + Math.round(metrics.eq * 100)">
                     <div class="m-top"><span class="m-label"><span class="l-full">Emotional IQ</span><span class="l-short">EQ</span></span><span class="m-val" x-text="(metrics.eq * 100).toFixed(0) + '%'"></span></div>
                     <div class="progress-track"><div class="progress-fill" :style="'width: ' + (metrics.eq * 100) + '%'"></div></div>
                 </div>
-                <div class="m-row">
+                <div class="m-row" :style="'--p:' + Math.round(metrics.problem_solving * 100)">
                     <div class="m-top"><span class="m-label"><span class="l-full">Problem Solving</span><span class="l-short">Solve</span></span><span class="m-val" x-text="(metrics.problem_solving * 100).toFixed(0) + '%'"></span></div>
                     <div class="progress-track"><div class="progress-fill" :style="'width: ' + (metrics.problem_solving * 100) + '%'"></div></div>
                 </div>
-                <div class="m-row">
+                <div class="m-row" :style="'--p:' + Math.round(metrics.clarity * 100)">
                     <div class="m-top"><span class="m-label"><span class="l-full">Clarity</span><span class="l-short">Clarity</span></span><span class="m-val" x-text="(metrics.clarity * 100).toFixed(0) + '%'"></span></div>
                     <div class="progress-track"><div class="progress-fill" :style="'width: ' + (metrics.clarity * 100) + '%'"></div></div>
                 </div>
@@ -1205,7 +1255,7 @@ textarea{font-family:'Inter',sans-serif}
                 <div class="workspace-panel" x-show="currentScenario?.type === 'workspace_activity' && !loading" x-transition>
                     <div class="metric-label">Practical workspace</div>
                     <p style="color:var(--text-muted);line-height:1.5">Build the workflow inside the workspace: drag in resources, configure them, connect the important steps, then click <strong>Export</strong> to continue.</p>
-                    <iframe class="ws-frame" x-show="sessionId" :src="sessionId ? '/simulation/workspace/' + sessionId : ''" title="Simulation practical workspace" style="display:block;width:100%;height:clamp(420px,72dvh,780px);border:1px solid var(--pink-border);border-radius:1rem;background:#020617"></iframe>
+                    <iframe class="ws-frame" x-show="sessionId" :src="sessionId ? '/simulation/workspace/' + sessionId + '?v=3' : ''" title="Simulation practical workspace" style="display:block;width:100%;height:clamp(420px,72dvh,780px);border:1px solid var(--pink-border);border-radius:1rem;background:#020617"></iframe>
                 </div>
 
                 <!-- Phase 3: career-specific future-self reflection chat -->
