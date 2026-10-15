@@ -55,6 +55,7 @@ CAREER_CONTEXTS: Dict[str, Dict] = {
             "and your teammates available. Choose your next action."
         ),
         "task": "Fix the bug before the release",
+        "workflow_resources": ["database", "ai_model", "frontend", "api", "team", "analytics", "security", "timeline"],
         "mcq_topic": "software development, debugging, code reviews, team communication, and professional responsibility",
         "options": [
             ("Stop the release, fix the bug first, then tell your manager clearly.", "best"),
@@ -82,6 +83,7 @@ CAREER_CONTEXTS: Dict[str, Dict] = {
             "A senior doctor is available nearby. Choose the safest next step."
         ),
         "task": "Protect the patient and act on the warning sign",
+        "workflow_resources": ["team", "employees", "partners", "analytics", "security", "timeline"],
         "mcq_topic": "clinical decision making, patient communication, medical ethics, triage, and teamwork in healthcare",
         "options": [
             ("Escalate to the senior doctor immediately, document the warning sign, and monitor the patient.", "best"),
@@ -109,6 +111,7 @@ CAREER_CONTEXTS: Dict[str, Dict] = {
             "Choose the best recommendation to give your client."
         ),
         "task": "Recommend a plan that balances growth and safety",
+        "workflow_resources": ["budget", "analytics", "team", "partners", "security", "timeline"],
         "mcq_topic": "financial analysis, investment advising, client communication, risk management, and financial ethics",
         "options": [
             ("Explain the risk mismatch clearly, show safer alternatives, and document your advice.", "best"),
@@ -136,6 +139,7 @@ CAREER_CONTEXTS: Dict[str, Dict] = {
             "available by phone. Choose your next professional action."
         ),
         "task": "Prepare an honest and professional legal brief",
+        "workflow_resources": ["team", "employees", "partners", "analytics", "security", "timeline"],
         "mcq_topic": "legal research, courtroom ethics, client representation, professional conduct, and conflict resolution",
         "options": [
             ("Research the law objectively, flag your ethical concern to your senior, and document your findings.", "best"),
@@ -162,6 +166,7 @@ CAREER_CONTEXTS: Dict[str, Dict] = {
             "and two draft directions ready. Choose how to move forward."
         ),
         "task": "Recover the project with a focused creative direction",
+        "workflow_resources": ["frontend", "logo", "marketing", "ppt", "team", "analytics", "timeline"],
         "mcq_topic": "creative problem solving, client feedback, design iteration, project management, and professional communication",
         "options": [
             ("Clarify what the client actually wants, then propose a focused revision plan.", "best"),
@@ -189,6 +194,7 @@ CAREER_CONTEXTS: Dict[str, Dict] = {
             "the support of the school counsellor. Choose your best next action."
         ),
         "task": "Re-engage the student without embarrassing them",
+        "workflow_resources": ["employees", "team", "partners", "analytics", "security", "timeline"],
         "mcq_topic": "classroom management, student motivation, educational psychology, lesson planning, and inclusive teaching",
         "options": [
             ("Have a private, kind one-on-one conversation to understand what is going on.", "best"),
@@ -216,6 +222,7 @@ CAREER_CONTEXTS: Dict[str, Dict] = {
             "logs, and a senior engineer on the phone. Choose your next action."
         ),
         "task": "Diagnose and restore the production system",
+        "workflow_resources": ["database", "team", "employees", "analytics", "security", "timeline", "land"],
         "mcq_topic": "engineering problem-solving, safety protocols, equipment failure, team coordination, and technical documentation",
         "options": [
             ("Run a systematic check from the last known working state and document each step.", "best"),
@@ -243,6 +250,7 @@ CAREER_CONTEXTS: Dict[str, Dict] = {
             "Choose the best action to get accurate insights ready in time."
         ),
         "task": "Deliver clean and reliable data insights",
+        "workflow_resources": ["database", "ai_model", "api", "analytics", "security", "team", "timeline"],
         "mcq_topic": "data analysis, data cleaning, visualization, ethical data use, and communicating findings clearly",
         "options": [
             ("Clean the data first, note the issues clearly, then build honest charts and insights.", "best"),
@@ -270,6 +278,7 @@ CAREER_CONTEXTS: Dict[str, Dict] = {
             "and your manager available for one quick question. Choose the best next action."
         ),
         "task": "Complete the task professionally under pressure",
+        "workflow_resources": ["strategy", "budget", "analytics", "team", "timeline"],
         "mcq_topic": "professional decision-making, communication, time management, teamwork, and handling ambiguity",
         "options": [
             ("Clarify the top priority with your manager, break the task into clear steps, then start.", "best"),
@@ -308,6 +317,11 @@ def _career_context(career_title: str) -> Dict:
     if any(t in title for t in ("engineer", "engineering", "mechanical", "civil", "electrical", "chemical", "structural")):
         return {**CAREER_CONTEXTS["engineering"], "_career": career_title}
     return {**CAREER_CONTEXTS["default"], "_career": career_title}
+
+
+def get_workflow_resource_types(career_title: str) -> List[str]:
+    """Return only the workspace resources relevant to the selected career scenario."""
+    return list(_career_context(career_title)["workflow_resources"])
 
 
 def _fallback_mcqs(career_title: str, context: Dict) -> List[Dict]:
@@ -412,7 +426,6 @@ async def build_live_simulation(career_title: str, difficulty: str = "Foundation
       Phase 3 – Future-self reflection chat (3 open questions)
     """
     context = _career_context(career_title)
-    mcqs = await generate_simulation_mcqs(career_title, context)
 
     # Build career-specific chat questions for Phase 3
     future_qs = context.get("future_questions", [
@@ -424,19 +437,18 @@ async def build_live_simulation(career_title: str, difficulty: str = "Foundation
     return [
         {
             "phase": 1,
-            "type": "mcq_quiz",
+            "type": "situation_response",
             "scenario": (
-                f"Phase 1 — Role Readiness Check\n\n"
+                f"Phase 1 — Situation\n\n"
                 f"{context['scenario']}\n\n"
-                f"Answer the 5 questions below to show how you think in this role."
+                "Write what you would do and why, then submit your answer to continue."
             ),
-            "objective": "Answer 5 career-specific questions to show your professional judgement",
+            "objective": "Read the situation and write your professional response",
             "theme_hint": context["theme"],
             "visual_cue": "pulse-green",
-            "emergency_alert": f"Phase 1 of 3  •  5 Questions  •  {career_title}",
+            "emergency_alert": f"Phase 1 of 3  •  Situation  •  {career_title}",
             "visual_dashboard": {"metric_name": context["metric"], "value": "40%"},
             "workspace": None,
-            "mcqs": mcqs,
         },
         {
             "phase": 2,
@@ -462,6 +474,7 @@ async def build_live_simulation(career_title: str, difficulty: str = "Foundation
                     {"label": "Task", "value": context["task"]},
                     {"label": "What is expected", "value": "Clear thinking, ownership, and good judgement"},
                 ],
+                "resource_types": context["workflow_resources"],
             },
         },
         {
@@ -581,10 +594,6 @@ def analyze_live_simulation_move(user_input: str, scenario: Dict, response_time:
             if len(words) < 25 else
             "Thoughtful answer — you gave enough detail to show how you reason under pressure."
         )
-
-    if response_time and response_time > 25:
-        clarity = max(0.2, clarity - 0.05)
-        feedback += " Try to decide a little faster in timed situations."
 
     return {
         "eq_impact": round(eq, 2),
