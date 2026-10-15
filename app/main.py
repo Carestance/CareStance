@@ -7028,6 +7028,14 @@ async def simulation_workspace(session_id: str, request: Request, db: AsyncSessi
         f'value="{role_goal}"',
         1,
     )
+    resource_types_marker = "__WORKFLOW_RESOURCE_TYPES__"
+    if resource_types_marker not in workspace_html:
+        raise HTTPException(status_code=500, detail="Workspace resource filter could not be installed")
+    workspace_html = workspace_html.replace(
+        resource_types_marker,
+        json.dumps(simulation_service.get_workflow_resource_types(career_title)),
+        1,
+    )
     completion_hook = """
             window.parent.postMessage({
                 source: 'carestance-simulation-workspace',

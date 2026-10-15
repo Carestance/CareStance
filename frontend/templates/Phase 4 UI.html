@@ -350,7 +350,7 @@
 
             <div class="flex flex-col gap-2 px-3.5 pb-12 overflow-y-auto">
 
-                <div class="palette-category">
+                <div class="palette-category" data-palette-category>
                     <i class="fa-solid fa-microchip text-xs" style="color: var(--teal);"></i>
                     <span class="label-eyebrow" style="color: var(--text-muted);">Architecture &amp; Tech</span>
                 </div>
@@ -387,7 +387,7 @@
                     </div>
                 </div>
 
-                <div class="palette-category">
+                <div class="palette-category" data-palette-category>
                     <i class="fa-solid fa-chart-simple text-xs" style="color: var(--gold);"></i>
                     <span class="label-eyebrow" style="color: var(--text-muted);">Business &amp; Strategy</span>
                 </div>
@@ -416,7 +416,7 @@
                     </div>
                 </div>
 
-                <div class="palette-category">
+                <div class="palette-category" data-palette-category>
                     <i class="fa-solid fa-people-group text-xs" style="color: var(--rose);"></i>
                     <span class="label-eyebrow" style="color: var(--text-muted);">Team &amp; People</span>
                 </div>
@@ -445,7 +445,7 @@
                     </div>
                 </div>
 
-                <div class="palette-category">
+                <div class="palette-category" data-palette-category>
                     <i class="fa-solid fa-rocket text-xs" style="color: var(--purple);"></i>
                     <span class="label-eyebrow" style="color: var(--text-muted);">Marketing &amp; Brand</span>
                 </div>
@@ -474,7 +474,7 @@
                     </div>
                 </div>
 
-                <div class="palette-category">
+                <div class="palette-category" data-palette-category>
                     <i class="fa-solid fa-industry text-xs" style="color: var(--sky);"></i>
                     <span class="label-eyebrow" style="color: var(--text-muted);">Operations &amp; Infrastructure</span>
                 </div>
@@ -575,6 +575,25 @@
         let dragOffsetX = 0;
         let dragOffsetY = 0;
         let sidebarCollapsed = false;
+
+        const allowedResourceTypes = new Set(__WORKFLOW_RESOURCE_TYPES__);
+        document.querySelectorAll('.palette-item').forEach((item) => {
+            item.hidden = !allowedResourceTypes.has(item.dataset.type);
+            item.style.display = item.hidden ? 'none' : '';
+        });
+        document.querySelectorAll('[data-palette-category]').forEach((category) => {
+            let hasVisibleItems = false;
+            let sibling = category.nextElementSibling;
+            while (sibling && !sibling.hasAttribute('data-palette-category')) {
+                if (sibling.classList.contains('palette-item') && !sibling.hidden) {
+                    hasVisibleItems = true;
+                    break;
+                }
+                sibling = sibling.nextElementSibling;
+            }
+            category.hidden = !hasVisibleItems;
+            category.style.display = category.hidden ? 'none' : '';
+        });
 
         const sessionStartTime = Date.now();
         let modalOpenTime = 0;

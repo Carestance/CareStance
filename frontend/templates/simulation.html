@@ -852,7 +852,7 @@
                     <p style="margin:0; font-size: 0.8rem; color: var(--text-muted);"
                         x-text="'Objective: ' + (currentScenario?.objective || 'Analyze and Respond')"></p>
                 </div>
-                <div class="timer-ring" x-text="timeLeft"></div>
+                <div class="timer-ring" x-text="formatElapsedTime(timeElapsed)" title="Elapsed time - submit when ready" aria-label="Elapsed time"></div>
             </div>
 
             <!-- Emergency Alert Ticker -->
@@ -960,11 +960,11 @@
                 </div>
                 <div x-show="!loading && !currentScenario?.options && !['mcq_quiz', 'workspace_activity', 'future_role'].includes(currentScenario?.type)" style="display: flex; gap: 1rem;">
                     <textarea x-model="textInput"
-                        placeholder="Type your response..."
+                        :placeholder="currentScenario?.type === 'situation_response' ? 'Write your answer to the situation...' : 'Type your response...'"
                         style="flex:1; min-height: 74px; resize: vertical; background: rgba(255,255,255,0.75); border: 1px solid var(--pink-border); border-radius: 1rem; padding: 1rem; color: var(--text-main);"></textarea>
                     <button @click="sendMove(textInput)" class="btn-primary"
-                        style="border-radius: 1rem; background: linear-gradient(135deg, var(--primary), #d6577f); color: white; padding: 1rem 1.5rem; border:none; cursor:pointer; font-weight:700;">Send <i
-                            class="fas fa-paper-plane"></i></button>
+                        style="border-radius: 1rem; background: linear-gradient(135deg, var(--primary), #d6577f); color: white; padding: 1rem 1.5rem; border:none; cursor:pointer; font-weight:700;"
+                        x-text="currentScenario?.type === 'situation_response' ? 'Submit answer' : 'Send'"></button>
                 </div>
             </div>
         </main>
@@ -1055,7 +1055,7 @@
             loading: true,
             isCompleted: false,
             report: null,
-            timeLeft: 30,
+            timeElapsed: 0,
             timerInterval: null,
             textInput: '',
             startTime: null,
@@ -1141,8 +1141,8 @@
                     this.currentScenario = data.initial_state;
                     this.currentTheme = data.initial_state.theme_hint || 'default';
                     this.loading = false;
-                    this.startTimer();
                     this.startTime = Date.now();
+                    this.startTimer();
                 } catch (err) {
                     console.error('Failed to start simulation:', err);
                     this.loading = false;
@@ -1198,8 +1198,8 @@
                         }
 
                         this.loading = false;
-                        this.startTimer();
                         this.startTime = Date.now();
+                        this.startTimer();
 
                         // Stronger scroll to bottom
                         setTimeout(() => {
@@ -1234,18 +1234,23 @@
                 this.loading = false;
             },
 
+            formatElapsedTime(totalSeconds) {
+                const minutes = Math.floor(totalSeconds / 60);
+                const seconds = totalSeconds % 60;
+                return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            },
+
             startTimer() {
-                this.timeLeft = 30;
+                this.stopTimer();
+                this.timeElapsed = 0;
                 this.timerInterval = setInterval(() => {
-                    this.timeLeft--;
-                    if (this.timeLeft <= 0) {
-                        this.sendMove("I hesitated too long to make a clear decision.");
-                    }
+                    this.timeElapsed++;
                 }, 1000);
             },
 
             stopTimer() {
                 clearInterval(this.timerInterval);
+                this.timerInterval = null;
             }
         }
     }
