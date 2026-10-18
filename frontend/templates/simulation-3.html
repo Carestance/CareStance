@@ -1,0 +1,1471 @@
+{% extends "base.html" %}
+
+{% block title %}Career Simulation | {{ career_title }}{% endblock %}
+
+{% block navbar %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Jersey+10&display=swap');
+
+    .hero-nav {
+        position: fixed;
+        top: 40px;
+        left: 0;
+        right: 0;
+        width: 100%;
+        z-index: 1100;
+        background: transparent;
+        box-shadow: none;
+    }
+
+    .hero-nav-inner {
+        max-width: 1500px;
+        margin: 0 auto;
+        padding: 0 2.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .hero-nav-logo {
+        display: flex;
+        align-items: center;
+        gap: 1.75rem;
+        text-decoration: none;
+    }
+
+    .hero-nav-logo-badge {
+        width: 156px; height: 156px;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 50%;
+        background: #0f172a;
+        flex-shrink: 0;
+    }
+
+    .hero-nav-logo-badge img {
+        width: 90px; height: 90px;
+        border-radius: 50%; object-fit: cover;
+        transform: scale(1.6);
+    }
+
+    .hero-nav-logo-text {
+        font-family: 'Jersey 10', 'Playfair Display', serif;
+        font-size: 2rem; font-weight: 700;
+        color: #12202b; white-space: nowrap;
+        letter-spacing: 0.02em;
+    }
+
+    .hero-nav-links {
+        display: flex;
+        align-items: center;
+        gap: 1.9rem;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .hero-nav-links a {
+        display: inline-block;
+        font-family: 'Jersey 10', sans-serif;
+        color: #fff;
+        font-size: 30px;
+        font-weight: 400;
+        white-space: nowrap;
+        text-decoration: none;
+        letter-spacing: 0.02em;
+        text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+        transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+
+    /* ── Scrolled state: light black tint so nav never clashes with content ── */
+    .hero-nav { transition: top .3s ease, padding .3s ease, background .3s ease, box-shadow .3s ease, backdrop-filter .3s ease; }
+    .hero-nav.is-scrolled {
+        top: 0;
+        padding: 6px 0;
+        background: rgba(0, 0, 0, 0.55);
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+    .hero-nav .hero-nav-logo-badge, .hero-nav .hero-nav-logo-text, .hero-nav .hero-nav-links a { transition: all .3s ease; }
+    .hero-nav.is-scrolled .hero-nav-logo-badge { width: 64px; height: 64px; }
+    .hero-nav.is-scrolled .hero-nav-logo-badge img { width: 36px; height: 36px; }
+    .hero-nav.is-scrolled .hero-nav-logo-text { color: #fff; font-size: 1.6rem; }
+    .hero-nav.is-scrolled .hero-nav-links a { font-size: 24px; }
+    .hero-nav.is-scrolled .hero-nav-logout { font-size: 22px; }
+
+    .hero-nav-links a:hover {
+        transform: scale(1.1);
+        opacity: 0.75;
+    }
+
+    .hero-nav-links a.nav-active {
+        text-decoration: underline;
+        text-underline-offset: 4px;
+    }
+
+    .hero-nav-user-name {
+        font-family: 'Jersey 10', sans-serif;
+        color: #fff;
+        opacity: 0.75;
+        font-size: 22px;
+        text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+    }
+
+    .hero-nav-logout {
+        font-family: 'Jersey 10', sans-serif;
+        background: #12202b;
+        color: #fff !important;
+        padding: 0.4rem 1.6rem;
+        border-radius: 999px;
+        font-size: 28px;
+        text-shadow: none;
+    }
+
+    .hero-nav-logout:hover {
+        transform: scale(1.08);
+        opacity: 1 !important;
+        background: #1e2f3d;
+    }
+
+    .hero-mobile-toggle {
+        display: none;
+        background: none; border: none;
+        color: #12202b; font-size: 1.35rem;
+        cursor: pointer;
+    }
+
+    .hero-mobile-menu {
+        display: none;
+        position: absolute; top: 100%; left: 1.5rem; right: 1.5rem;
+        margin-top: 0.75rem; padding: 1.5rem;
+        flex-direction: column; gap: 0.75rem;
+        background: #fff; border-radius: 1.25rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.15);
+    }
+
+    .hero-mobile-menu.open { display: flex; }
+
+    .hero-mobile-menu a {
+        padding: 0.8rem 0.5rem;
+        color: var(--text-main);
+        text-decoration: none;
+        font-weight: 500;
+        border-bottom: 1px solid var(--border-soft);
+        transition: color 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .hero-mobile-menu a:last-child { border-bottom: none; }
+    .hero-mobile-menu a:hover { color: #0d9488; }
+
+    @media (max-width: 768px) {
+        .hero-nav-links { display: none; }
+        .hero-mobile-toggle { display: block; }
+        .hero-nav-logo-badge { width: 64px; height: 64px; }
+        .hero-nav-logo-badge img { width: 36px; height: 36px; }
+        .hero-nav-logo-text { font-size: 1.4rem; }
+        .hero-nav-inner { padding: 0 1.25rem; }
+        .hero-nav { top: 20px; }
+    }
+
+    body { padding-top: 0 !important; }
+
+    :root {
+        --content-top-gap: calc(40px + 156px + 30px);
+    }
+    @media (max-width: 768px) {
+        :root { --content-top-gap: calc(20px + 64px + 30px); }
+    }
+
+    /* ── Compact one-line navbar (replaces the old oversized brand block) ── */
+    .hero-nav { top: 12px; }
+    .hero-nav-inner { max-width: none; padding: 0 1.25rem; flex-wrap: nowrap; gap: 1rem; }
+    .hero-nav-logo { gap: .7rem; flex-shrink: 0; }
+    .hero-nav-logo-badge { width: auto; height: 58px; background: transparent; border-radius: 0; }
+    .hero-nav-logo-badge img { width: auto; height: 100%; max-width: none; border-radius: 0; transform: none; object-fit: contain; filter: drop-shadow(0 3px 8px rgba(0,0,0,.35)); }
+    /* Jersey 10 only ships weight 400, so 700 was being faux-bolded — use 400 */
+    .hero-nav-logo-text { font-size: 2.1rem; font-weight: 400; line-height: 1; color: #fff; letter-spacing: .03em; text-shadow: 0 1px 6px rgba(0,0,0,.4); }
+    .hero-nav-links { flex-wrap: nowrap; gap: 1.4rem; min-width: 0; }
+    .hero-nav-links a { font-size: 24px; line-height: 1; }
+    .hero-nav-user-name { font-size: 20px; white-space: nowrap; line-height: 1; }
+    .hero-nav-logout { font-size: 22px; padding: .35rem 1.2rem; }
+    .hero-nav.is-scrolled { top: 0; padding: 4px 0; }
+    .hero-nav.is-scrolled .hero-nav-logo-badge { height: 42px; }
+    .hero-nav.is-scrolled .hero-nav-logo-text { font-size: 1.7rem; }
+    .hero-nav.is-scrolled .hero-nav-links a { font-size: 21px; }
+    .hero-nav.is-scrolled .hero-nav-logout { font-size: 19px; }
+    :root { --content-top-gap: calc(12px + 58px + 12px); }
+
+    @media (max-width: 1280px) {
+        .hero-nav-logo-badge { height: 52px; }
+        .hero-nav-logo-text { font-size: 1.9rem; }
+        .hero-nav-links { gap: 1rem; }
+        .hero-nav-links a { font-size: 21px; }
+        .hero-nav-user-name { font-size: 18px; }
+        .hero-nav-logout { font-size: 19px; padding: .3rem 1rem; }
+        :root { --content-top-gap: calc(12px + 52px + 12px); }
+    }
+    @media (max-width: 1120px) {
+        .hero-nav-user-name { display: none; }
+    }
+    /* Tablet / phone: links collapse into the hamburger */
+    @media (max-width: 1023px) {
+        .hero-nav, .hero-nav.is-scrolled {
+            top: 0; padding: 6px 0;
+            background: rgba(10, 6, 30, 0.62);
+            -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+            box-shadow: 0 4px 16px rgba(0,0,0,.25);
+        }
+        .hero-nav-links { display: none; }
+        .hero-mobile-toggle { display: block; color: #fff; font-size: 1.45rem; padding: .45rem .6rem; line-height: 1; }
+        .hero-nav-inner { padding: 0 .9rem; }
+        .hero-nav-logo { gap: .5rem; }
+        .hero-nav .hero-nav-logo-badge, .hero-nav.is-scrolled .hero-nav-logo-badge { height: 40px; }
+        .hero-nav .hero-nav-logo-text, .hero-nav.is-scrolled .hero-nav-logo-text { font-size: 1.6rem; }
+        .hero-mobile-menu { left: .75rem; right: .75rem; margin-top: .5rem; padding: 1rem 1.1rem; }
+        .hero-mobile-menu a { border-bottom: 1px solid #e2e8f0; }
+        :root { --content-top-gap: calc(52px + 8px); }
+    }
+</style>
+
+<nav class="hero-nav">
+    <div class="hero-nav-inner">
+        <a href="/" class="hero-nav-logo">
+            <span class="hero-nav-logo-badge">
+                <img src="/static/images/logof.png" alt="CareStance Logo">
+            </span>
+            <span class="hero-nav-logo-text">CareStance</span>
+        </a>
+
+        <div class="hero-nav-links">
+            {% if user %}
+            <a href="/dashboard" class="nav-active">Dashboard</a>
+            {% if user.role != 'counsellor' %}
+            <a href="/chatbot">Chat AI</a>
+            {% endif %}
+            <a href="/community">Community</a>
+            <a href="/feedback">Feedback</a>
+            <a href="/ticket">Support</a>
+            {% if user.role == 'admin' %}
+            <a href="/admin" class="{% if request.url.path == '/admin' %}nav-active{% endif %}" style="font-weight:700;">Admin</a>
+            {% endif %}
+            {% if user.full_name and user.full_name != 'None' %}<span class="hero-nav-user-name">| {{ user.full_name }}</span>{% endif %}
+            <a href="/logout" class="hero-nav-logout">Logout</a>
+            {% else %}
+            <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}">Home</a>
+            <a href="/login" class="{% if request.url.path == '/login' %}nav-active{% endif %}">Log In</a>
+            {% endif %}
+        </div>
+
+        <button class="hero-mobile-toggle" id="base-menu-toggle" aria-label="Menu">
+            <i class="fa-solid fa-bars" id="base-menu-icon"></i>
+        </button>
+    </div>
+
+    <div class="hero-mobile-menu" id="base-mobile-menu">
+        {% if user %}
+        <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i class="fa-solid fa-house"></i>Home</a>
+        <a href="/dashboard" class="nav-active"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
+        {% if user.role != 'counsellor' %}
+        <a href="/chatbot"><i class="fa-solid fa-comment-dots"></i>Chat AI</a>
+        {% endif %}
+        <a href="/community"><i class="fa-solid fa-users"></i>Community</a>
+        <a href="/feedback"><i class="fa-solid fa-star"></i>Feedback</a>
+        <a href="/ticket"><i class="fa-solid fa-circle-question"></i>Support</a>
+        {% if user.role == 'admin' %}<a href="/admin"><i class="fa-solid fa-shield-halved"></i>Admin Panel</a>{% endif %}
+        <a href="/logout" style="color:#b45309;"><i class="fa-solid fa-right-from-bracket"></i>Logout</a>
+        {% else %}
+        <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i class="fa-solid fa-house"></i>Home</a>
+        <a href="/login"><i class="fa-solid fa-right-to-bracket"></i>Log In</a>
+        {% endif %}
+    </div>
+</nav>
+<script>
+    (function () {
+        var nav = document.querySelector('.hero-nav');
+        if (!nav) return;
+        function update(e) {
+            var y = window.scrollY;
+            if (e && e.target && e.target.scrollTop !== undefined && e.target !== document) y = Math.max(y, e.target.scrollTop);
+            nav.classList.toggle('is-scrolled', y > 20);
+        }
+        window.addEventListener('scroll', update, { passive: true });
+        // The page body is overflow:hidden, so scrolling happens inside panels.
+        document.addEventListener('scroll', update, { passive: true, capture: true });
+        update();
+    })();
+</script>
+{% endblock %}
+
+{% block extra_head %}
+<script defer src="/static/js/alpine.min.js"></script>
+<link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap"
+    rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+    :root {
+        --primary: #e879a0;
+        --primary-light: #a78bfa;
+        --bg-deep: #fdf6f8;
+        --surface: rgba(255, 255, 255, 0.78);
+        --accent: #f59e0b;
+        --danger: #ef4444;
+        --success: #10b981;
+        --text-main: #1e293b;
+        --text-muted: #64748b;
+        --pink-border: rgba(255, 180, 200, 0.45);
+    }
+
+    body {
+        background: url('/static/images/BG1.png') center top / cover no-repeat fixed;
+        color: var(--text-main);
+        font-family: 'Inter', sans-serif;
+        margin: 0;
+        overflow: hidden;
+        height: 100vh;
+        padding-top: 0 !important;
+    }
+
+    .sim-container {
+        display: grid;
+        grid-template-columns: 350px 1fr 300px;
+        height: calc(100vh - var(--content-top-gap));
+        margin-top: var(--content-top-gap);
+        gap: 1.5rem;
+        padding: 0 1.5rem 1.5rem;
+    }
+
+    /* Sidebar Dashboard */
+    .sidebar {
+        background: var(--surface);
+        backdrop-filter: blur(18px) saturate(160%);
+        -webkit-backdrop-filter: blur(18px) saturate(160%);
+        border-radius: 1.5rem;
+        padding: 1.5rem;
+        border: 1.5px solid var(--pink-border);
+        box-shadow: 0 16px 36px rgba(180, 60, 100, 0.1);
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        overflow-y: auto;
+        min-height: 0;
+    }
+
+    .sim-mascot-wrap {
+        text-align: center;
+        margin-bottom: -0.5rem;
+    }
+
+    .sim-mascot {
+        width: 84px;
+        height: auto;
+        filter: drop-shadow(0 8px 14px rgba(180, 60, 100, 0.22));
+        animation: mascot-bob 3s ease-in-out infinite;
+    }
+
+    @keyframes mascot-bob {
+        0%, 100% { transform: translateY(0) rotate(-2deg); }
+        50% { transform: translateY(-6px) rotate(2deg); }
+    }
+
+    .sim-mascot-caption {
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: var(--primary);
+        margin-top: 0.35rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+    }
+
+    .metric-card {
+        background: rgba(255, 248, 252, 0.6);
+        border-radius: 1rem;
+        padding: 1.2rem;
+        border: 1px solid var(--pink-border);
+    }
+
+    .metric-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--text-muted);
+        margin-bottom: 0.5rem;
+    }
+
+    .metric-value {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: var(--primary);
+    }
+
+    .progress-track {
+        height: 8px;
+        background: rgba(232, 121, 160, 0.12);
+        border-radius: 4px;
+        margin-top: 0.8rem;
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--primary), var(--primary-light));
+        transition: width 0.5s ease;
+    }
+
+    /* Main Chat/Scenario Area */
+    .main-stage {
+        background: var(--surface);
+        backdrop-filter: blur(22px) saturate(180%);
+        -webkit-backdrop-filter: blur(22px) saturate(180%);
+        border-radius: 2rem;
+        border: 1.5px solid var(--pink-border);
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        box-shadow: 0 24px 56px rgba(180, 60, 100, 0.13);
+        min-height: 0;
+        max-height: 100%;
+        overflow: hidden;
+    }
+
+    .main-stage::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--primary), var(--primary-light), #0d9488);
+        opacity: 0.8;
+        z-index: 2;
+    }
+
+    .chat-header {
+        padding: 1.5rem 2rem;
+        border-bottom: 1px solid var(--pink-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .chat-history {
+        flex: 1;
+        padding: 2rem;
+        overflow-y: auto;
+        scroll-behavior: smooth;
+    }
+
+    .msg {
+        margin-bottom: 1.5rem;
+        max-width: 80%;
+        animation: fadeIn 0.4s ease;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .msg-ai {
+        background: rgba(255, 248, 252, 0.85);
+        padding: 1.2rem;
+        border-radius: 0 1.5rem 1.5rem 1.5rem;
+        border-left: 3px solid var(--primary);
+        display: flex;
+        gap: 0.9rem;
+        align-items: flex-start;
+    }
+
+    .msg-ai-avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        object-fit: cover;
+        flex-shrink: 0;
+        box-shadow: 0 2px 8px rgba(180, 60, 100, 0.25);
+    }
+
+    .msg-user {
+        margin-left: auto;
+        background: linear-gradient(135deg, var(--primary), #d6577f);
+        padding: 1.2rem;
+        border-radius: 1.5rem 0 1.5rem 1.5rem;
+        color: white;
+        text-align: right;
+    }
+
+    .controls {
+        padding: 2rem;
+        background: rgba(255, 248, 252, 0.55);
+        border-radius: 0 0 2rem 2rem;
+        flex-shrink: 0;
+        border-top: 1px solid var(--pink-border);
+    }
+
+    .options-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.8rem;
+    }
+
+    @media (min-width: 1200px) {
+        .options-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    .opt-btn {
+        background: rgba(255, 255, 255, 0.75);
+        border: 1px solid var(--pink-border);
+        color: var(--text-main);
+        padding: 1.2rem;
+        border-radius: 1rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: left;
+        font-size: 0.95rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .opt-btn:hover:not(:disabled) {
+        background: #fff5f8;
+        transform: scale(1.02);
+        border-color: var(--primary);
+    }
+
+    .opt-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    /* Timer */
+    .timer-ring {
+        position: absolute;
+        top: 1.5rem;
+        right: 2rem;
+        width: 60px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(245, 158, 11, 0.1);
+        border-radius: 50%;
+        border: 2px solid var(--accent);
+        font-weight: 800;
+        color: var(--accent);
+    }
+
+    /* Feedback Ticker */
+    .right-pane {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        min-height: 0;
+        max-height: 100%;
+    }
+
+    .log-card {
+        background: var(--surface);
+        backdrop-filter: blur(18px) saturate(160%);
+        -webkit-backdrop-filter: blur(18px) saturate(160%);
+        border-radius: 1.5rem;
+        padding: 1.5rem;
+        flex: 1;
+        border: 1.5px solid var(--pink-border);
+        box-shadow: 0 16px 36px rgba(180, 60, 100, 0.1);
+        overflow-y: auto;
+    }
+
+    .log-entry {
+        font-size: 0.85rem;
+        padding: 0.8rem;
+        border-radius: 0.5rem;
+        background: rgba(255, 248, 252, 0.7);
+        margin-bottom: 0.8rem;
+        border-left: 2px solid var(--accent);
+        color: var(--text-main);
+    }
+
+    [x-cloak] {
+        display: none !important;
+    }
+
+    /* Custom Scrollbar */
+    .chat-history::-webkit-scrollbar,
+    .sidebar::-webkit-scrollbar,
+    .log-card::-webkit-scrollbar {
+        width: 5px;
+    }
+
+    .chat-history::-webkit-scrollbar-track,
+    .sidebar::-webkit-scrollbar-track,
+    .log-card::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.04);
+        border-radius: 10px;
+    }
+
+    .chat-history::-webkit-scrollbar-thumb,
+    .sidebar::-webkit-scrollbar-thumb,
+    .log-card::-webkit-scrollbar-thumb {
+        background: var(--primary);
+        border-radius: 10px;
+        opacity: 1;
+    }
+
+    .chat-history::-webkit-scrollbar-thumb:hover,
+    .sidebar::-webkit-scrollbar-thumb:hover,
+    .log-card::-webkit-scrollbar-thumb:hover {
+        background: var(--primary-light);
+    }
+
+    /* Dynamic Themes (server-supplied theme_hint) — light tints, no dark mode */
+    .theme-tech-neon {
+        --primary: #0ea5e9;
+        --accent: #0ea5e9;
+    }
+
+    .theme-finance-sapphire {
+        --primary: #334155;
+        --accent: #d97706;
+    }
+
+    .theme-creative-vibrant {
+        --primary: #db2777;
+        --primary-light: #f472b6;
+        --accent: #db2777;
+    }
+
+    .theme-medical-clean {
+        --primary: #0284c7;
+        --accent: #0ea5e9;
+    }
+
+    /* Animations for Cues */
+    .shake {
+        animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
+    }
+
+    @keyframes shake {
+
+        10%,
+        90% {
+            transform: translate3d(-1px, 0, 0);
+        }
+
+        20%,
+        80% {
+            transform: translate3d(2px, 0, 0);
+        }
+
+        30%,
+        50%,
+        70% {
+            transform: translate3d(-4px, 0, 0);
+        }
+
+        40%,
+        60% {
+            transform: translate3d(4px, 0, 0);
+        }
+    }
+
+    .flash-red {
+        animation: flash-red 1s ease-out;
+    }
+
+    @keyframes flash-red {
+        0% {
+            background-color: rgba(239, 68, 68, 0.3);
+        }
+
+        100% {
+            background-color: transparent;
+        }
+    }
+
+    .pulse-green {
+        animation: pulse-green 1s ease-out;
+    }
+
+    @keyframes pulse-green {
+        0% {
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+        }
+
+        70% {
+            box-shadow: 0 0 0 20px rgba(16, 185, 129, 0);
+        }
+
+        100% {
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+        }
+    }
+
+    #trauma-overlay {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 999;
+        transition: opacity 0.3s;
+    }
+
+    /* Report Overlay */
+    .overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(30, 20, 25, 0.75);
+        backdrop-filter: blur(10px);
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+    }
+
+    .report-card {
+        background: #fffbfd;
+        max-width: 800px;
+        width: 100%;
+        border-radius: 2.5rem;
+        padding: 3rem;
+        border: 1.5px solid var(--pink-border);
+        box-shadow: 0 30px 60px rgba(180, 60, 100, 0.25);
+        text-align: center;
+        color: var(--text-main);
+        animation: zoomIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes zoomIn {
+        from {
+            transform: scale(0.8);
+            opacity: 0;
+        }
+
+        to {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+
+        .log-card {
+            background: var(--surface);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            flex: 1;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            overflow-y: auto;
+        }
+
+        .workspace-panel {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 1rem;
+            background: rgba(245, 158, 11, 0.08);
+            border: 1px solid rgba(245, 158, 11, 0.25);
+        }
+
+        .workspace-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .workspace-item {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 0.75rem;
+            padding: 0.85rem;
+        }
+
+        .workspace-label {
+            color: var(--text-muted);
+            font-size: 0.68rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            margin-bottom: 0.35rem;
+        }
+
+        .workspace-value {
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+
+        .log-entry {
+            font-size: 0.85rem;
+            padding: 0.8rem;
+            border-radius: 0.5rem;
+            background: rgba(0, 0, 0, 0.2);
+            margin-bottom: 0.8rem;
+            border-left: 2px solid var(--accent);
+        }
+
+        [x-cloak] {
+            display: none !important;
+        }
+
+        /* Custom Scrollbar for Immersive Theme */
+        .chat-history::-webkit-scrollbar,
+        .sidebar::-webkit-scrollbar,
+        .log-card::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .chat-history::-webkit-scrollbar-track,
+        .sidebar::-webkit-scrollbar-track,
+        .log-card::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+
+        .chat-history::-webkit-scrollbar-thumb,
+        .sidebar::-webkit-scrollbar-thumb,
+        .log-card::-webkit-scrollbar-thumb {
+            background: var(--accent);
+            border-radius: 10px;
+        }
+
+    .report-mascot {
+        width: 90px;
+        height: auto;
+        margin: 0 auto 1rem;
+        display: block;
+        filter: drop-shadow(0 8px 16px rgba(180, 60, 100, 0.25));
+        animation: mascot-bob 3s ease-in-out infinite;
+    }
+
+    .score-circle {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        border: 8px solid var(--accent);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        font-weight: 800;
+        margin: 0 auto 2rem;
+        color: var(--accent);
+    }
+
+    .skeleton {
+        background: linear-gradient(90deg, rgba(0, 0, 0, 0.04) 25%, rgba(0, 0, 0, 0.08) 50%, rgba(0, 0, 0, 0.04) 75%);
+        background-size: 200% 100%;
+        animation: loading 1.5s infinite;
+    }
+
+    @keyframes loading {
+        0% {
+            background-position: 200% 0;
+        }
+
+        100% {
+            background-position: -200% 0;
+        }
+    }
+
+/* ═══════════ Layout: three info cards in ONE row on top, full-width centre stage below ═══════════ */
+body{height:100vh;height:100dvh}
+.sim-container{display:grid;grid-template-columns:minmax(0,1.9fr) minmax(0,1fr) minmax(0,1.35fr);grid-template-rows:100px minmax(0,1fr);gap:.75rem;padding:0 1rem 1rem;height:calc(100dvh - var(--content-top-gap))}
+
+/* card 1: role + metrics, laid out horizontally */
+.sidebar{grid-column:1;grid-row:1;flex-direction:row;align-items:center;gap:1rem;padding:.6rem 1rem;border-radius:1.25rem;overflow:hidden;min-width:0}
+.side-head{display:flex;align-items:center;gap:.6rem;flex-shrink:0}
+.sim-mascot{width:44px}
+.sim-mascot-caption{margin:0;font-size:.62rem;line-height:1.3;text-align:left}
+.role-card{flex:0 1 200px;min-width:0;padding:.5rem .8rem;border-radius:.9rem;background:linear-gradient(135deg,rgba(232,121,160,.16),rgba(167,139,250,.16));border:1px solid var(--pink-border)}
+.role-card .metric-label{margin-bottom:.1rem;font-size:.58rem}
+.role-name{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:.88rem;line-height:1.2;color:var(--text-main);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.role-level{font-size:.68rem;color:var(--text-muted);margin-top:.1rem}
+.m-list{flex:1;min-width:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.9rem}
+.m-row{min-width:0}
+.m-top{display:flex;justify-content:space-between;align-items:baseline;gap:.4rem}
+.m-label{font-size:.6rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.m-val{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:.9rem;color:var(--primary)}
+.m-row .progress-track{height:6px;margin-top:.35rem}
+.l-short{display:none}
+
+/* cards 2 + 3: the old right column now sits in the same top row */
+.right-pane{display:contents}
+.tele-card{grid-column:2;grid-row:1;margin:0;padding:.6rem 1rem;border-radius:1.25rem;display:flex;flex-direction:column;justify-content:center;min-width:0;background:var(--surface);backdrop-filter:blur(18px) saturate(160%);-webkit-backdrop-filter:blur(18px) saturate(160%);border:1.5px solid var(--pink-border);box-shadow:0 16px 36px rgba(180,60,100,.1)}
+.tele-card .metric-label,.fb-card .metric-label{font-size:.6rem;margin-bottom:.2rem}
+.fb-card{grid-column:3;grid-row:1;min-width:0;min-height:0;padding:.55rem .9rem;border-radius:1.25rem;overflow-y:auto;background:var(--surface);backdrop-filter:blur(18px) saturate(160%);-webkit-backdrop-filter:blur(18px) saturate(160%);border:1.5px solid var(--pink-border);box-shadow:0 16px 36px rgba(180,60,100,.1)}
+.fb-card .metric-label{margin-bottom:.35rem!important}
+.log-entry{font-size:.78rem;line-height:1.35;padding:.45rem .65rem;margin-bottom:.4rem;background:rgba(255,248,252,.85);color:var(--text-main)}
+.sheet-head,.fab-wrap,.sheet-backdrop{display:none}
+
+/* centre stage: unchanged look, now full width */
+.main-stage{grid-column:1/-1;grid-row:2;border-radius:1.5rem;background:rgba(255,255,255,.82)}
+.chat-header{padding:1rem 1.5rem;background:linear-gradient(90deg,rgba(232,121,160,.1),rgba(167,139,250,.08),transparent)}
+.chat-header h2{font-size:1.15rem}
+.timer-ring{width:46px;height:46px;top:.9rem;right:1.25rem;font-size:.95rem;background:#fff;box-shadow:0 4px 14px rgba(245,158,11,.25)}
+.chat-history{padding:1.25rem 1.5rem}
+.msg{max-width:88%}
+.msg-ai{background:#fff;box-shadow:0 4px 16px rgba(180,60,100,.08);border-left-width:3px}
+.controls{padding:1rem 1.5rem 1.25rem;background:rgba(255,255,255,.7)}
+.opt-btn{padding:.9rem 1rem;border-radius:.9rem;font-size:.92rem;box-shadow:0 2px 8px rgba(180,60,100,.06)}
+.opt-btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 20px rgba(232,121,160,.2)}
+.opt-btn.selected-option{border-color:var(--primary);background:#fff0f6;box-shadow:0 0 0 2px rgba(232,121,160,.25)}
+.workspace-panel{background:rgba(255,255,255,.7);border:1px solid var(--pink-border)}
+.workspace-item{background:#fff;border:1px solid var(--pink-border);color:var(--text-main)}
+.options-grid{grid-template-columns:1fr}
+@media (min-width:1400px){.options-grid{grid-template-columns:1fr 1fr}}
+textarea{font-family:'Inter',sans-serif}
+
+/* narrower laptops: short metric labels so the top row never wraps */
+@media (max-width:1280px){
+  .sim-container{grid-template-columns:minmax(0,2.2fr) minmax(0,1fr) minmax(0,1.3fr)}
+  .sim-mascot-caption{display:none}
+  .role-card{flex-basis:150px}
+  .m-list{gap:.6rem}
+  .l-full{display:none}.l-short{display:inline}
+}
+
+/* ═══════════ Tablet / phone ═══════════ */
+@media (max-width:1023px){
+  .sim-container{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);gap:.5rem;padding:0 .5rem .5rem}
+
+  /* top strip: role + 3 compact metric chips, all visible, no sideways scrolling */
+  .sidebar{grid-column:1;grid-row:1;gap:.5rem;padding:.4rem 3.3rem .4rem .55rem;border-radius:1rem;align-self:stretch}
+  .sim-mascot{width:30px}
+  .role-card{flex:1.4 1 0;padding:.3rem .55rem}
+  .role-card .metric-label{display:none}
+  .role-name{font-size:.76rem;-webkit-line-clamp:1}
+  .role-level{font-size:.6rem;margin:0}
+  .m-list{flex:2.6 1 0;gap:.35rem}
+  .m-row{padding:.26rem .45rem;border-radius:.7rem;background:rgba(255,255,255,.7);border:1px solid var(--pink-border)}
+  .m-top{flex-direction:column;align-items:flex-start;gap:0}
+  .m-label{font-size:.5rem;letter-spacing:.02em;max-width:100%}
+  .m-val{font-size:.74rem;line-height:1.15}
+  .m-row .progress-track{height:3px;margin-top:.2rem}
+  .l-full{display:none}.l-short{display:inline}
+
+  /* centre stage */
+  .main-stage{grid-column:1;grid-row:2;border-radius:1.1rem}
+  .chat-header{padding:.6rem 3.4rem .6rem .9rem}
+  .chat-header h2{font-size:1rem}
+  .chat-header p{font-size:.68rem!important;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .timer-ring{width:36px;height:36px;font-size:.78rem;top:.55rem;right:.7rem;border-width:2px}
+  .alert-bar{padding:.45rem .8rem!important;font-size:.7rem!important;gap:.5rem!important;line-height:1.3}
+  .chat-history{padding:.7rem}
+  .msg{max-width:100%;margin-bottom:.8rem}
+  .msg-ai{padding:.8rem;gap:.6rem;font-size:.9rem}
+  .msg-ai-avatar{width:28px;height:28px}
+  .msg-user{max-width:92%;padding:.8rem}
+  .workspace-panel{padding:.6rem;border-radius:.8rem;margin-top:.6rem}
+  .workspace-grid{grid-template-columns:1fr}
+  .workspace-panel h3{font-size:1rem}
+  .ws-frame{height:clamp(360px,calc(100dvh - 230px),780px)!important;border-radius:.8rem!important}
+  .controls{padding:.6rem .7rem calc(.6rem + env(safe-area-inset-bottom));border-radius:0 0 1.1rem 1.1rem}
+  .opt-btn{padding:.75rem .85rem;font-size:.86rem}
+  .reply-row{gap:.5rem!important}
+  .reply-row textarea{min-height:56px!important;padding:.7rem!important}
+  .reply-row button{padding:.7rem 1rem!important}
+
+  /* telemetry + feedback become a bottom sheet */
+  .right-pane{display:flex;flex-direction:column;position:fixed;left:0;right:0;bottom:0;z-index:1300;max-height:70dvh;overflow-y:auto;padding:.5rem 1rem calc(1rem + env(safe-area-inset-bottom));background:rgba(255,250,252,.98);border-radius:1.5rem 1.5rem 0 0;box-shadow:0 -14px 40px rgba(20,8,50,.35);transform:translateY(110%);transition:transform .35s cubic-bezier(.2,.8,.2,1);gap:.8rem}
+  body[data-sheet] .right-pane{transform:none}
+  .tele-card,.fb-card{grid-column:auto;grid-row:auto;overflow:visible}
+  .sheet-head{display:flex;justify-content:center;align-items:center;position:relative;padding:.4rem 0 .2rem}
+  .sheet-grab{width:42px;height:4px;border-radius:4px;background:rgba(100,116,139,.35)}
+  .sheet-head button{position:absolute;right:0;top:.1rem;width:32px;height:32px;border-radius:50%;border:0;background:rgba(232,121,160,.14);color:var(--primary);cursor:pointer}
+  .right-pane .tele-card,.right-pane .fb-card{display:none;flex:none}
+  body[data-sheet="tele"] .right-pane .tele-card,body[data-sheet="fb"] .right-pane .fb-card{display:block}
+  .sheet-backdrop{display:block;position:fixed;inset:0;z-index:1250;background:rgba(10,5,30,.5);opacity:0;pointer-events:none;transition:opacity .3s}
+  body[data-sheet] .sheet-backdrop{opacity:1;pointer-events:auto}
+
+  /* plus button sits in the right end of the strip (strip has padding for it) */
+  .fab-wrap{display:block;position:fixed;z-index:1200;right:calc(.5rem + 7px);top:calc(var(--content-top-gap) + 7px);width:40px;height:40px}
+  .fab-dim{position:fixed;inset:0;background:rgba(10,5,30,.35);z-index:-1}
+  .fab-main{position:absolute;inset:0;border-radius:50%;border:0;cursor:pointer;color:#fff;font-size:.95rem;background:linear-gradient(135deg,var(--primary),#a78bfa);box-shadow:0 6px 16px rgba(180,60,100,.4);transition:transform .3s}
+  .fab-wrap.open .fab-main{transform:rotate(45deg)}
+  .fab-item{position:absolute;left:0;top:0;width:40px;height:40px;border-radius:50%;border:1px solid var(--pink-border);background:#fff;color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:.9rem;text-decoration:none;cursor:pointer;box-shadow:0 8px 18px rgba(0,0,0,.2);opacity:0;pointer-events:none;transform:translate(0,0) scale(.3);transition:transform .38s cubic-bezier(.34,1.56,.64,1),opacity .2s}
+  .fab-item span{position:absolute;top:100%;margin-top:3px;font-size:.58rem;font-weight:800;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.7);white-space:nowrap}
+  .fab-wrap.open .fab-item{opacity:1;pointer-events:auto}
+  .fab-wrap.open .fab-i1{transform:translate(-80px,0) scale(1)}
+  .fab-wrap.open .fab-i2{transform:translate(-57px,57px) scale(1)}
+  .fab-wrap.open .fab-i3{transform:translate(0,80px) scale(1)}
+
+  /* final report */
+  .overlay{padding:.75rem;align-items:flex-start;overflow-y:auto}
+  .report-card{margin:auto;padding:1.25rem;border-radius:1.5rem}
+  .report-card h1{font-size:1.6rem!important;margin-bottom:.3rem!important}
+  .report-card>p{margin-bottom:1rem!important}
+  .report-grid{grid-template-columns:1fr!important;gap:1rem!important;margin:1rem 0!important}
+  .score-circle{width:104px;height:104px;font-size:2rem;border-width:6px;margin-bottom:1rem}
+  .report-actions{flex-wrap:wrap}
+  .report-actions>*{flex:1 1 140px;justify-content:center;text-align:center}
+}
+@media (prefers-reduced-motion:reduce){.fab-item,.right-pane,.fab-main{transition:none}}
+</style>
+{% endblock %}
+
+{% block content %}
+<div x-data="simApp()">
+    <div id="trauma-overlay" :class="visualCueClass"></div>
+
+    <div class="sim-container" :class="'theme-' + currentTheme" x-show="!isCompleted">
+        <!-- Sidebar: Status & Metrics -->
+        <aside class="sidebar">
+            <div class="side-head">
+                <img src="/static/images/point.png" alt="Point — your career guide mascot" class="sim-mascot"
+                     onerror="this.style.display='none'">
+                <div class="sim-mascot-caption">Point is<br>watching</div>
+            </div>
+
+            <div class="role-card">
+                <div class="metric-label">Role</div>
+                <div class="role-name">{{ career_title }}</div>
+                <div class="role-level">{{ difficulty }} Level</div>
+            </div>
+
+            <div class="m-list">
+                <div class="m-row">
+                    <div class="m-top"><span class="m-label"><span class="l-full">Emotional IQ</span><span class="l-short">EQ</span></span><span class="m-val" x-text="(metrics.eq * 100).toFixed(0) + '%'"></span></div>
+                    <div class="progress-track"><div class="progress-fill" :style="'width: ' + (metrics.eq * 100) + '%'"></div></div>
+                </div>
+                <div class="m-row">
+                    <div class="m-top"><span class="m-label"><span class="l-full">Problem Solving</span><span class="l-short">Solve</span></span><span class="m-val" x-text="(metrics.problem_solving * 100).toFixed(0) + '%'"></span></div>
+                    <div class="progress-track"><div class="progress-fill" :style="'width: ' + (metrics.problem_solving * 100) + '%'"></div></div>
+                </div>
+                <div class="m-row">
+                    <div class="m-top"><span class="m-label"><span class="l-full">Clarity</span><span class="l-short">Clarity</span></span><span class="m-val" x-text="(metrics.clarity * 100).toFixed(0) + '%'"></span></div>
+                    <div class="progress-track"><div class="progress-fill" :style="'width: ' + (metrics.clarity * 100) + '%'"></div></div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Mobile: plus button that fans the side panels out in an arc -->
+        <div class="fab-wrap" x-data="{ fab: false }" :class="{ open: fab }" @keydown.escape.window="fab = false">
+            <div class="fab-dim" x-show="fab" x-transition.opacity @click="fab = false"></div>
+            <button type="button" class="fab-item fab-i1" aria-label="Behavioral feedback" @click="openSheet('fb'); fab = false"><i class="fas fa-comment-dots"></i><span>Feedback</span></button>
+            <button type="button" class="fab-item fab-i2" aria-label="Dashboard telemetry" @click="openSheet('tele'); fab = false"><i class="fas fa-gauge-high"></i><span>Telemetry</span></button>
+            <a class="fab-item fab-i3" href="/dashboard" aria-label="Back to dashboard"><i class="fas fa-house"></i><span>Home</span></a>
+            <button type="button" class="fab-main" :aria-expanded="fab" aria-label="More panels" @click="fab = !fab"><i class="fas fa-plus"></i></button>
+        </div>
+
+        <!-- Main Area: The Simulation Stage -->
+        <main class="main-stage">
+            <div class="chat-header">
+                <div>
+                    <h2 style="margin:0; font-family: 'Plus Jakarta Sans'; color: var(--text-main);">Live Situation</h2>
+                    <p style="margin:0; font-size: 0.8rem; color: var(--text-muted);"
+                        x-text="'Objective: ' + (currentScenario?.objective || 'Analyze and Respond')"></p>
+                </div>
+                <div class="timer-ring" x-text="timeLeft"></div>
+            </div>
+
+            <!-- Emergency Alert Ticker -->
+            <div class="alert-bar" x-show="currentScenario?.emergency_alert" x-transition:enter="transition ease-out duration-500"
+                x-transition:enter-start="opacity-0 -translate-y-4" x-transition:enter-end="opacity-100 translate-y-0"
+                style="background: var(--danger); color: white; padding: 0.75rem 2rem; font-weight: 800; font-size: 0.8rem; display: flex; align-items: center; gap: 1rem; border-bottom: 2px solid rgba(0,0,0,0.1);">
+                <i class="fas fa-exclamation-triangle animate-pulse"></i>
+                <span x-text="currentScenario?.emergency_alert"></span>
+            </div>
+
+            <div class="chat-history" id="chatbox">
+                <template x-for="item in history">
+                    <div>
+                        <div class="msg msg-ai">
+                            <img src="/static/images/point.png" alt="Point" class="msg-ai-avatar" onerror="this.style.display='none'">
+                            <p x-text="item.scenario" style="margin:0;"></p>
+                        </div>
+                        <div class="msg msg-user">
+                            <p x-text="item.user_input"></p>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Current Scenario -->
+                <div class="msg msg-ai" x-show="currentScenario" x-transition>
+                    <img src="/static/images/point.png" alt="Point" class="msg-ai-avatar" onerror="this.style.display='none'">
+                    <div>
+                        <p x-text="currentScenario?.scenario" style="margin:0; line-height: 1.6;"></p>
+                        <div class="workspace-panel" x-show="currentScenario?.workspace" x-transition>
+                            <div class="metric-label">Workspace Task</div>
+                            <h3 x-text="currentScenario?.workspace?.task"
+                                style="margin:0.25rem 0 0.5rem; font-family:'Plus Jakarta Sans';"></h3>
+                            <p x-text="currentScenario?.workspace?.brief"
+                                style="margin:0; color:var(--text-muted); font-size:0.9rem; line-height:1.5;"></p>
+                            <div class="workspace-grid">
+                                <template x-for="panel in currentScenario?.workspace?.panels || []">
+                                    <div class="workspace-item">
+                                        <div class="workspace-label" x-text="panel.label"></div>
+                                        <div class="workspace-value" x-text="panel.value"></div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Phase 1: career-specific MCQs -->
+                <div class="workspace-panel" x-show="currentScenario?.type === 'mcq_quiz' && !loading" x-transition>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
+                        <div class="metric-label" style="margin-bottom:0">Question <span x-text="quizIndex + 1"></span> of <span x-text="currentScenario?.mcqs?.length || 5"></span></div>
+                        <div style="font-size:0.75rem;color:var(--text-muted)">Select the best professional response</div>
+                    </div>
+                    <h3 x-text="currentScenario?.mcqs?.[quizIndex]?.question" style="line-height:1.6;margin-top:0"></h3>
+                    <div class="options-grid">
+                        <template x-for="(option, optionIndex) in (currentScenario?.mcqs?.[quizIndex]?.options || [])" :key="optionIndex">
+                            <button class="opt-btn" :class="{'selected-option': quizAnswers[quizIndex] === optionIndex}" @click="selectQuizAnswer(optionIndex)">
+                                <span style="flex:1" x-text="option"></span><i class="fas fa-check" x-show="quizAnswers[quizIndex] === optionIndex"></i>
+                            </button>
+                        </template>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;margin-top:1.25rem;gap:1rem">
+                        <button class="btn-primary" @click="previousQuiz()" :disabled="quizIndex === 0" style="background:transparent;border:1px solid var(--accent);color:var(--text-main)">Back</button>
+                        <button class="btn-primary" @click="nextQuiz()" :disabled="quizAnswers[quizIndex] === undefined || quizAnswers[quizIndex] === null" style="background:var(--accent);color:#071419" x-text="quizIndex >= (currentScenario?.mcqs?.length || 5) - 1 ? 'Submit all answers' : 'Next question'"></button>
+                    </div>
+                </div>
+
+                <!-- Phase 2: the exact Phase 4 UI workspace, isolated in its own interactive frame -->
+                <div class="workspace-panel" x-show="currentScenario?.type === 'workspace_activity' && !loading" x-transition>
+                    <div class="metric-label">Practical workspace</div>
+                    <p style="color:var(--text-muted);line-height:1.5">Build the workflow inside the workspace: drag in resources, configure them, connect the important steps, then click <strong>Export</strong> to continue.</p>
+                    <iframe class="ws-frame" x-show="sessionId" :src="sessionId ? '/simulation/workspace/' + sessionId : ''" title="Simulation practical workspace" style="display:block;width:100%;height:clamp(420px,72dvh,780px);border:1px solid var(--pink-border);border-radius:1rem;background:#020617"></iframe>
+                </div>
+
+                <!-- Phase 3: career-specific future-self reflection chat -->
+                <div class="workspace-panel" x-show="currentScenario?.type === 'future_role' && !loading" x-transition>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
+                        <div class="metric-label" style="margin-bottom:0">Reflection Question <span x-text="futureQuestionIndex + 1"></span> of <span x-text="currentScenario?.chat_questions?.length || 3"></span></div>
+                        <div style="font-size:0.75rem;color:var(--text-muted)">Be honest and specific</div>
+                    </div>
+                    <h3 x-text="currentScenario?.chat_questions?.[futureQuestionIndex]" style="line-height:1.6;margin-top:0"></h3>
+                    <textarea x-model="futureText" placeholder="Write your answer here — the more specific you are, the more useful this reflection will be..." style="width:100%;box-sizing:border-box;min-height:120px;resize:vertical;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.14);border-radius:1rem;padding:1rem;color:var(--text-main);font-size:0.95rem;line-height:1.5"></textarea>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:1rem">
+                        <span style="font-size:0.8rem;color:var(--text-muted)" x-text="futureText.trim().length > 0 ? futureText.trim().split(/\s+/).length + ' words' : ''"></span>
+                        <button class="btn-primary" @click="nextFutureQuestion()" :disabled="!futureText.trim()" style="background:var(--accent);color:#071419" x-text="futureQuestionIndex >= (currentScenario?.chat_questions?.length || 3) - 1 ? 'Complete simulation' : 'Next question'"></button>
+                    </div>
+                </div>
+
+                <!-- AI Typing Indicator -->
+                <div class="msg msg-ai" x-show="loading" x-transition>
+                    <div style="flex:1;">
+                        <div class="skeleton" style="height: 20px; width: 60%; border-radius: 4px;"></div>
+                        <div class="skeleton" style="height: 20px; width: 40%; border-radius: 4px; margin-top: 5px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="controls">
+                <div class="options-grid" x-show="!loading && currentScenario?.options">
+                    <template x-for="opt in (currentScenario?.options || [])">
+                        <button class="opt-btn" @click="sendMove(opt.text)" :disabled="loading">
+                            <span x-text="opt.text"></span>
+                            <i class="fas fa-arrow-right" style="margin-left: auto; opacity: 0.5;"></i>
+                        </button>
+                    </template>
+                </div>
+                <div class="reply-row" x-show="!loading && !currentScenario?.options && !['mcq_quiz', 'workspace_activity', 'future_role'].includes(currentScenario?.type)" style="display: flex; gap: 1rem;">
+                    <textarea x-model="textInput"
+                        placeholder="Type your response..."
+                        style="flex:1; min-height: 74px; resize: vertical; background: rgba(255,255,255,0.75); border: 1px solid var(--pink-border); border-radius: 1rem; padding: 1rem; color: var(--text-main);"></textarea>
+                    <button @click="sendMove(textInput)" class="btn-primary"
+                        style="border-radius: 1rem; background: linear-gradient(135deg, var(--primary), #d6577f); color: white; padding: 1rem 1.5rem; border:none; cursor:pointer; font-weight:700;">Send <i
+                            class="fas fa-paper-plane"></i></button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Right Pane: Analysis & Dashboard -->
+        <div class="sheet-backdrop" onclick="closeSheet()"></div>
+        <aside class="right-pane">
+            <div class="sheet-head"><span class="sheet-grab"></span><button type="button" onclick="closeSheet()" aria-label="Close"><i class="fas fa-xmark"></i></button></div>
+            <div class="metric-card tele-card" style="margin: 0;">
+                <div class="metric-label">Dashboard Telemetry</div>
+                <div style="display: flex; justify-content: space-between; margin-top: .5rem;">
+                    <span x-text="currentScenario?.visual_dashboard?.metric_name || 'System Load'"></span>
+                    <span style="color: var(--accent); font-weight: 800;"
+                        x-text="currentScenario?.visual_dashboard?.value || '45%'"></span>
+                </div>
+                <div class="progress-track" style="height: 4px;">
+                    <div class="progress-fill" :style="'width: ' + (currentScenario?.visual_dashboard?.value || '45%')">
+                    </div>
+                </div>
+            </div>
+
+            <div class="log-card fb-card">
+                <div class="metric-label" style="margin-bottom: 1rem;">Behavioral Feedback</div>
+                <template x-for="log in logs">
+                    <div class="log-entry" x-text="log"></div>
+                </template>
+                <div x-show="logs.length == 0" style="color: var(--text-muted); font-size: 0.8rem;">Awaiting your first
+                    move...</div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Final Evaluation Overlay -->
+    <div class="overlay" x-show="isCompleted" x-cloak>
+        <div class="report-card">
+            <img src="/static/images/point.png" alt="Point" class="report-mascot" onerror="this.style.display='none'">
+            <h1 style="font-family: 'Plus Jakarta Sans'; font-size: 2.5rem; margin-bottom: 0.5rem;">Simulation Complete
+            </h1>
+            <p style="color: var(--text-muted); margin-bottom: 2rem;">{{ career_title }} Evaluation for {{
+                user.full_name }}</p>
+
+            <div class="score-circle" x-text="report?.overall_score || '0%'"></div>
+
+            <h2 style="color: var(--primary);" x-text="report?.persona"></h2>
+
+            <div class="report-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin: 2rem 0; text-align: left;">
+                <div>
+                    <h4 style="color: var(--success);"><i class="fas fa-check-circle"></i> Strengths</h4>
+                    <ul style="padding-left: 1.2rem; font-size: 0.9rem; color: var(--text-muted);">
+                        <template x-for="s in report?.strengths">
+                            <li x-text="s"></li>
+                        </template>
+                    </ul>
+                </div>
+                <div>
+                    <h4 style="color: var(--accent);"><i class="fas fa-lightbulb"></i> Growth Areas</h4>
+                    <ul style="padding-left: 1.2rem; font-size: 0.9rem; color: var(--text-muted);">
+                        <template x-for="w in report?.weaknesses">
+                            <li x-text="w"></li>
+                        </template>
+                    </ul>
+                </div>
+            </div>
+
+            <div
+                style="background: rgba(232,121,160,0.06); padding: 1.5rem; border-radius: 1rem; margin-bottom: 2rem; text-align: left; border: 1px solid var(--pink-border);">
+                <h4 style="margin-top:0;">Mentor's Verdict</h4>
+                <p x-text="report?.career_readiness"
+                    style="font-size: 0.95rem; line-height: 1.6; color: var(--text-main);"></p>
+            </div>
+
+            <div class="report-actions" style="display: flex; gap: 1rem; justify-content: center;">
+                <a href="/dashboard" class="btn-primary"
+                    style="background: white; color: var(--text-main); border-radius: 2rem; padding: 1rem 1.75rem; text-decoration:none; font-weight:700; border: 1px solid var(--pink-border); display:inline-flex; align-items:center;">Return to Dashboard</a>
+                <button @click="location.reload()" class="btn-primary"
+                    style="background: linear-gradient(135deg, var(--primary), #d6577f); color: white; border-radius: 2rem; padding: 1rem 1.75rem; border:none; cursor:pointer; font-weight:700;">Try Again</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openSheet(n) { document.body.dataset.sheet = n; }
+    function closeSheet() { delete document.body.dataset.sheet; }
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeSheet(); });
+    window.addEventListener('resize', function () { if (window.innerWidth >= 1024) closeSheet(); });
+    function simApp() {
+        return {
+            sessionId: null,
+            currentScenario: null,
+            history: [],
+            metrics: { eq: 0.5, problem_solving: 0.5, clarity: 0.5 },
+            logs: [],
+            loading: true,
+            isCompleted: false,
+            report: null,
+            timeLeft: 30,
+            timerInterval: null,
+            textInput: '',
+            startTime: null,
+            currentTheme: 'default',
+            visualCueClass: '',
+
+            // Phase 1 (MCQ) State
+            quizIndex: 0,
+            quizAnswers: [],
+
+            // Phase 3 (Future Reflection) State
+            futureQuestionIndex: 0,
+            futureText: '',
+            futureAnswers: [],
+
+            init() {
+                this.startSim();
+                window.addEventListener('message', (event) => {
+                    if (event.data && event.data.source === 'carestance-simulation-workspace' && event.data.type === 'complete') {
+                        this.sendMove(JSON.stringify(event.data.payload || { status: 'completed' }));
+                    }
+                });
+            },
+
+            selectQuizAnswer(optionIndex) {
+                this.quizAnswers[this.quizIndex] = optionIndex;
+                this.quizAnswers = [...this.quizAnswers];
+            },
+
+            previousQuiz() {
+                if (this.quizIndex > 0) {
+                    this.quizIndex--;
+                }
+            },
+
+            nextQuiz() {
+                const totalQs = this.currentScenario?.mcqs?.length || 5;
+                if (this.quizIndex < totalQs - 1) {
+                    this.quizIndex++;
+                } else {
+                    const answersToSubmit = JSON.stringify(this.quizAnswers);
+                    this.quizIndex = 0;
+                    this.quizAnswers = [];
+                    this.sendMove(answersToSubmit);
+                }
+            },
+
+            nextFutureQuestion() {
+                const totalQs = this.currentScenario?.chat_questions?.length || 3;
+                if (!this.futureAnswers) this.futureAnswers = [];
+                this.futureAnswers[this.futureQuestionIndex] = this.futureText.trim();
+
+                if (this.futureQuestionIndex < totalQs - 1) {
+                    this.futureQuestionIndex++;
+                    this.futureText = this.futureAnswers[this.futureQuestionIndex] || '';
+                } else {
+                    const answersToSubmit = JSON.stringify(this.futureAnswers);
+                    this.futureQuestionIndex = 0;
+                    this.futureText = '';
+                    this.futureAnswers = [];
+                    this.sendMove(answersToSubmit);
+                }
+            },
+
+            async startSim() {
+                const formData = new FormData();
+                formData.append('career_title', '{{ career_title }}');
+                formData.append('difficulty', '{{ difficulty }}');
+
+                try {
+                    const res = await fetch('/simulation/start', { method: 'POST', body: formData });
+                    if (!res.ok) {
+                        if (res.status === 402) {
+                            window.location.href = `/assessment/simulation/pay/${encodeURIComponent('{{ career_title }}')}`;
+                            return;
+                        }
+                        console.error('Simulation start failed:', res.status, await res.text());
+                        this.loading = false;
+                        return;
+                    }
+                    const data = await res.json();
+                    this.sessionId = data.session_id;
+                    this.currentScenario = data.initial_state;
+                    this.currentTheme = data.initial_state.theme_hint || 'default';
+                    this.loading = false;
+                    this.startTimer();
+                    this.startTime = Date.now();
+                } catch (err) {
+                    console.error('Failed to start simulation:', err);
+                    this.loading = false;
+                }
+            },
+
+            async sendMove(input) {
+                if (!input || this.loading) return;
+
+                const timeTaken = (Date.now() - this.startTime) / 1000;
+                this.loading = true;
+                this.history.push({ scenario: this.currentScenario.scenario, user_input: input });
+                this.textInput = '';
+                this.stopTimer();
+
+                const formData = new FormData();
+                formData.append('session_id', this.sessionId);
+                formData.append('user_input', input);
+                formData.append('response_time', timeTaken);
+
+                try {
+                    const res = await fetch('/simulation/step', { method: 'POST', body: formData });
+                    if (!res.ok) {
+                        console.error('Simulation step error:', res.status, await res.text());
+                        this.loading = false;
+                        return;
+                    }
+                    const data = await res.json();
+
+                    if (data.analysis) {
+                        this.metrics.eq = Math.max(0, Math.min(1, this.metrics.eq + data.analysis.eq_impact));
+                        this.metrics.problem_solving = (this.metrics.problem_solving + data.analysis.problem_solving_score) / 2;
+                        this.metrics.clarity = (this.metrics.clarity + data.analysis.clarity_score) / 2;
+                        this.logs.unshift(data.analysis.feedback);
+                    }
+
+                    if (data.is_last_step) {
+                        this.finalize();
+                    } else {
+                        this.currentScenario = data.next_state;
+
+                        // Reset phase indices if moving to phase 2 or 3
+                        this.quizIndex = 0;
+                        this.quizAnswers = [];
+                        this.futureQuestionIndex = 0;
+                        this.futureText = '';
+                        this.futureAnswers = [];
+
+                        // Handle Visual Cues
+                        if (data.next_state.visual_cue) {
+                            this.visualCueClass = data.next_state.visual_cue;
+                            setTimeout(() => this.visualCueClass = '', 1000);
+                        }
+
+                        this.loading = false;
+                        this.startTimer();
+                        this.startTime = Date.now();
+
+                        // Stronger scroll to bottom
+                        setTimeout(() => {
+                            const cb = document.getElementById('chatbox');
+                            if (cb) {
+                                cb.scrollTo({
+                                    top: cb.scrollHeight,
+                                    behavior: 'smooth'
+                                });
+                            }
+                        }, 200);
+                    }
+                } catch (err) {
+                    console.error('Failed to send move:', err);
+                    this.loading = false;
+                }
+            },
+
+            async finalize() {
+                this.loading = true;
+                try {
+                    // Wait for the server to finish final report processing
+                    const res = await fetch(`/simulation/session/${this.sessionId}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        this.report = data.final_evaluation;
+                    }
+                } catch (err) {
+                    console.error('Failed to finalize simulation:', err);
+                }
+                this.isCompleted = true;
+                this.loading = false;
+            },
+
+            startTimer() {
+                this.timeLeft = 30;
+                this.timerInterval = setInterval(() => {
+                    this.timeLeft--;
+                    if (this.timeLeft <= 0) {
+                        this.sendMove("I hesitated too long to make a clear decision.");
+                    }
+                }, 1000);
+            },
+
+            stopTimer() {
+                clearInterval(this.timerInterval);
+            }
+        }
+    }
+</script>
+{% endblock %}

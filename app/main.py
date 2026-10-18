@@ -5,6 +5,7 @@ import datetime
 import asyncio
 import io
 import os
+import ipaddress
 import certifi
 if not os.getenv("SSL_CERT_FILE"):
     os.environ["SSL_CERT_FILE"] = certifi.where()
@@ -48,7 +49,6 @@ from .data.career_keywords import career_keywords
 from .services import simulation_service
 from .services import assessment_engine
 from .services.onboarding_milestone_service import build_onboarding_milestone_payload
-from .utils.resource_aggregator import ResourceAggregator
 
 LIVE_SIMULATION_SESSIONS = {}
 
@@ -76,6 +76,11 @@ except Exception as e:
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+SIMULATION_TEST_MODE = (
+    os.getenv("SIMULATION_TEST_MODE", "false").strip().lower() in ("1", "true", "yes")
+    and not os.getenv("VERCEL")
+    and not os.getenv("RAILWAY_ENVIRONMENT")
+)
 RUN_MIGRATIONS_ON_STARTUP = False
 ENABLE_CLEANUP_TASK = os.getenv("ENABLE_CLEANUP_TASK", "false").strip().lower() in ("1", "true", "yes")
 ENABLE_GROWTH_PLAN_SCHEDULER = os.getenv("ENABLE_GROWTH_PLAN_SCHEDULER", "true").strip().lower() in ("1", "true", "yes")
@@ -308,6 +313,15 @@ def has_customised_subscription(user) -> bool:
 def has_assessment_all_access(user) -> bool:
     """One-time access for Career Talk, complete results, and all simulations."""
     return bool(getattr(user, "role", None) == "admin" or getattr(user, "assessment_all_access", False))
+
+def is_local_simulation_test_mode(request: Request) -> bool:
+    """Allow payment-free simulation testing only when explicitly enabled on loopback."""
+    if not SIMULATION_TEST_MODE or request.client is None:
+        return False
+    try:
+        return ipaddress.ip_address(request.client.host).is_loopback
+    except ValueError:
+        return False
 
 def build_free_assessment_preview(result) -> dict:
     archetype = get_assessment_display_archetype(result)
@@ -2605,12 +2619,13 @@ async def assessment_result(request: Request, db: AsyncSession = Depends(get_db)
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     
     try:
-        from .appwrite_helper import get_assessment_by_user_id
-        result = get_assessment_by_user_id(user.id)
-        if not result:
-            result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
-    except Exception:
+        # Fetch assessment result from primary database (PostgreSQL/Supabase) first
         result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+        if not result:
+            from .appwrite_helper import get_assessment_by_user_id
+            result = get_assessment_by_user_id(user.id)
+    except Exception:
+        result = None
     if not result:
         return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
 
@@ -2624,11 +2639,12 @@ async def assessment_result(request: Request, db: AsyncSession = Depends(get_db)
     
     sims_completed = max(getattr(result, 'simulations_completed', 0) or 0, getattr(user, 'simulations_completed', 0) or 0)
     simulation_credits = max(getattr(result, 'simulation_credits', 0) or 0, getattr(user, 'simulation_credits', 0) or 0)
+    simulation_test_mode = is_local_simulation_test_mode(request)
     simulation_access = {
-        "is_free": sims_completed < 1,
+        "is_free": simulation_test_mode or sims_completed < 1,
         "credits": simulation_credits,
         "completed": sims_completed,
-        "requires_payment": sims_completed >= 1 and simulation_credits <= 0,
+        "requires_payment": not simulation_test_mode and sims_completed >= 1 and simulation_credits <= 0,
     }
     display_archetype = get_assessment_display_archetype(result)
 
@@ -3094,14 +3110,14 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
             import traceback
             return HTMLResponse(content=f"Template Error: {e}<br><pre>{traceback.format_exc()}</pre>", status_code=500)
     
-    # Fetch assessment result to show on dashboard (prefer Appwrite per user request)
+    # Fetch assessment result from primary database (PostgreSQL/Supabase) first
     try:
-        from .appwrite_helper import get_assessment_by_user_id
-        assessment = get_assessment_by_user_id(user.id)
-        if not assessment:
-            assessment = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
-    except Exception:
         assessment = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
+        if not assessment:
+            from .appwrite_helper import get_assessment_by_user_id
+            assessment = get_assessment_by_user_id(user.id)
+    except Exception:
+        assessment = None
     
     # Ensure confidence is populated if assessment exists but analysis is partial
     if assessment and (not assessment.confidence or assessment.confidence < 0.81):
@@ -6766,14 +6782,11 @@ async def simulation_pay_with_category(category: str, career_title: str, request
 async def simulation_pay(career_title: str, request: Request, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
 
-
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     
-    if getattr(user, "role", None) == "admin":
-        # Admins have free simulations; redirect to start without payment
+    if getattr(user, "role", None) == "admin" or is_local_simulation_test_mode(request):
         return RedirectResponse(url=f"/assessment/simulation/start/{career_title}", status_code=status.HTTP_302_FOUND)
-    # Existing behavior for non-admins
     return templates.TemplateResponse(request=request, name="simulation_payment.html", context={
         "user": user,
         "career_title": career_title,
@@ -6893,14 +6906,15 @@ async def live_simulation_start(
     result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
     if not result:
         raise HTTPException(status_code=404, detail="Assessment result not found")
-    if not has_assessment_all_access(user):
+    simulation_test_mode = is_local_simulation_test_mode(request)
+    if not has_assessment_all_access(user) and not simulation_test_mode:
         raise HTTPException(status_code=402, detail="Assessment All Access is required for simulations")
 
     db_user = (await db.execute(select(models.User).where(models.User.id == user.id))).scalars().first()
     sims_completed = max(result.simulations_completed or 0, (db_user.simulations_completed or 0) if db_user else 0)
     sim_credits = max(result.simulation_credits or 0, (db_user.simulation_credits or 0) if db_user else 0)
 
-    if not has_assessment_all_access(user) and getattr(user, "role", None) != "admin" and sims_completed >= 1 and sim_credits <= 0:
+    if not simulation_test_mode and not has_assessment_all_access(user) and getattr(user, "role", None) != "admin" and sims_completed >= 1 and sim_credits <= 0:
         raise HTTPException(status_code=402, detail="Simulation payment required")
 
     scenarios = await simulation_service.build_live_simulation(career_title, difficulty)
@@ -6917,7 +6931,7 @@ async def live_simulation_start(
     }
     LIVE_SIMULATION_SESSIONS[session_id] = session
 
-    if sims_completed >= 1:
+    if sims_completed >= 1 and not simulation_test_mode:
         if result.simulation_credits and result.simulation_credits > 0:
             result.simulation_credits -= 1
         if db_user and db_user.simulation_credits and db_user.simulation_credits > 0:
@@ -7119,7 +7133,8 @@ async def simulation_start(career_title: str, request: Request, db: AsyncSession
     result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
     if not result:
         return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
-    if not has_assessment_all_access(user):
+    simulation_test_mode = is_local_simulation_test_mode(request)
+    if not has_assessment_all_access(user) and not simulation_test_mode:
         return RedirectResponse(url="/assessment/unlock", status_code=status.HTTP_302_FOUND)
     
     db_user = (await db.execute(select(models.User).where(models.User.id == user.id))).scalars().first()
@@ -7130,7 +7145,7 @@ async def simulation_start(career_title: str, request: Request, db: AsyncSession
     if getattr(user, "role", None) == "admin":
         # Proceed without checking credits
         pass
-    elif not has_assessment_all_access(user) and sims_completed >= 1 and sim_credits <= 0:
+    elif not simulation_test_mode and not has_assessment_all_access(user) and sims_completed >= 1 and sim_credits <= 0:
         return RedirectResponse(url=f"/assessment/simulation/pay/{career_title}", status_code=status.HTTP_302_FOUND)
     
     # Handle Class 10th Academic Discovery simulation
@@ -7146,7 +7161,7 @@ async def simulation_start(career_title: str, request: Request, db: AsyncSession
         result.simulation_answers = [] # Reset answers
         result.simulation_evaluation = None # Reset evaluation
         
-        if sims_completed >= 1:
+        if sims_completed >= 1 and not simulation_test_mode:
             if result.simulation_credits > 0:
                 result.simulation_credits -= 1
             if db_user and db_user.simulation_credits > 0:

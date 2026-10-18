@@ -58,8 +58,14 @@ async def test_session_manager():
     assert session.session_id is not None
     assert manager.get_session(session.session_id) == session
     
-    manager.remove_session(session.session_id)
-    assert manager.get_session(session.session_id) is None
+    # Reconnecting with same client_id triggers cleanup of previous session
+    session2 = manager.create_session("client_1")
+    await asyncio.sleep(0.01) # allow async cleanup task to run
+    assert session2.session_id != session.session_id
+    assert session.status in ["CLEANING", "CLOSED"]
+    
+    manager.remove_session(session2.session_id)
+    assert manager.get_session(session2.session_id) is None
 
 @pytest.mark.asyncio
 async def test_pipeline_runner():

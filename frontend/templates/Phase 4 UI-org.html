@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sequence Planner | CareStance</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+    :root {
+        --navy-bg: #0a0a18;
+        --card-bg: rgba(255, 255, 255, 0.03);
+        --card-bg-strong: rgba(255, 255, 255, 0.05);
+        --card-border: rgba(148, 130, 255, 0.16);
+        --teal: #2dd4bf;       --teal-soft: rgba(45, 212, 191, 0.14);
+        --purple: #a78bfa;     --purple-soft: rgba(167, 139, 250, 0.14);
+        --green: #34d399;      --green-soft: rgba(52, 211, 153, 0.14);
+        --gold: #f59e0b;       --gold-soft: rgba(245, 158, 11, 0.14);
+        --rose: #fb7185;       --rose-soft: rgba(251, 113, 133, 0.14);
+        --sky: #38bdf8;        --sky-soft: rgba(56, 189, 248, 0.14);
+        --indigo: #818cf8;     --indigo-soft: rgba(129, 140, 248, 0.14);
+        --text-primary: #f8fafc;
+        --text-secondary: #a1a8c0;
+        --text-muted: #6b7189;
+    }
+
+    * { font-family: 'Plus Jakarta Sans', sans-serif; }
+    h1, h2, h3, h4, h5, h6, .font-outfit { font-family: 'Outfit', sans-serif; }
+
+    body {
+        background: var(--navy-bg);
+        min-height: 100vh;
+    }
+
+    .label-eyebrow {
+        font-size: 0.66rem;
+        font-weight: 800;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+    }
+
+    /* ---------- Signature asset: hexagon badge (from Growth Profile hero icon) ---------- */
+    .hex-badge {
+        clip-path: polygon(25% 6%, 75% 6%, 100% 50%, 75% 94%, 25% 94%, 0% 50%);
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+        transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+    }
+
+    /* ---------- Accent system (reuses Growth Profile palette) ---------- */
+    .accent-teal   { --accent: var(--teal);   --accent-soft: var(--teal-soft); }
+    .accent-purple { --accent: var(--purple); --accent-soft: var(--purple-soft); }
+    .accent-green  { --accent: var(--green);  --accent-soft: var(--green-soft); }
+    .accent-gold   { --accent: var(--gold);   --accent-soft: var(--gold-soft); }
+    .accent-rose   { --accent: var(--rose);   --accent-soft: var(--rose-soft); }
+    .accent-sky    { --accent: var(--sky);    --accent-soft: var(--sky-soft); }
+    .accent-indigo { --accent: var(--indigo); --accent-soft: var(--indigo-soft); }
+
+    .accent-hex {
+        background: var(--accent-soft);
+        border: 1.5px solid color-mix(in srgb, var(--accent) 45%, transparent);
+        color: var(--accent);
+    }
+
+    /* ---------- Custom scrollbar ---------- */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: rgba(10, 10, 24, 0.4); border-radius: 8px; }
+    ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, var(--teal), var(--purple)); border-radius: 8px; }
+    ::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, #5eead4, #c4b5fd); }
+
+    /* ---------- Animations ---------- */
+    @keyframes popIn {
+        0% { opacity: 0; transform: scale(0.9) translateY(15px); }
+        100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    @keyframes dash-flow { to { stroke-dashoffset: -20; } }
+    @keyframes floatSlow {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-6px); }
+    }
+    .animated-connection { stroke-dasharray: 6, 6; animation: dash-flow 0.5s linear infinite; }
+    .animate-pop { animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+    .float-slow { animation: floatSlow 4s ease-in-out infinite; }
+
+    /* ---------- Top bar ---------- */
+    .app-header {
+        background: rgba(10, 10, 24, 0.85);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border-bottom: 1px solid var(--card-border);
+    }
+
+    .logo-hex {
+        width: 46px; height: 46px;
+        background: linear-gradient(135deg, var(--teal), var(--purple));
+        box-shadow: 0 8px 22px -8px rgba(45, 212, 191, 0.45);
+    }
+    .logo-hex:hover { transform: scale(1.12) rotate(8deg); }
+
+    .brand-title .accent-text {
+        background: linear-gradient(135deg, #5eead4, #c4b5fd);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+
+    #situation-input:focus { border-color: var(--teal) !important; }
+
+    .pill {
+        display: inline-flex; align-items: center; gap: 0.4rem;
+        padding: 0.5rem 1rem;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        border: 1px solid;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .pill:hover { transform: scale(1.06); }
+
+    .pill-timer { color: var(--sky); background: var(--sky-soft); border-color: rgba(56,189,248,0.35); font-family: 'Outfit', monospace; }
+    .pill-link { color: var(--purple); background: var(--purple-soft); border-color: rgba(167,139,250,0.4); }
+
+    .btn-ghost-rose {
+        display: inline-flex; align-items: center; gap: 0.5rem;
+        padding: 0.55rem 1.1rem;
+        border-radius: 0.85rem;
+        border: 1px solid rgba(251, 113, 133, 0.25);
+        color: var(--text-secondary);
+        background: rgba(255,255,255,0.02);
+        font-weight: 700; font-size: 0.78rem;
+        transition: all 0.2s ease;
+    }
+    .btn-ghost-rose:hover { color: var(--rose); border-color: rgba(251,113,133,0.5); background: var(--rose-soft); transform: scale(1.05); }
+
+    .btn-gradient-teal {
+        display: inline-flex; align-items: center; gap: 0.55rem;
+        padding: 0.6rem 1.4rem;
+        border-radius: 0.85rem;
+        background: linear-gradient(135deg, var(--teal), var(--purple));
+        color: #06110f;
+        font-weight: 800; font-size: 0.8rem;
+        box-shadow: 0 8px 22px -8px rgba(45, 212, 191, 0.5);
+        transition: all 0.25s ease;
+    }
+    .btn-gradient-teal:hover { transform: translateY(-2px) scale(1.05); box-shadow: 0 14px 30px -10px rgba(167, 139, 250, 0.55); }
+    .btn-gradient-teal:active { transform: scale(0.97); }
+
+    .sidebar-toggle-btn {
+        width: 38px; height: 38px;
+        border-radius: 0.7rem;
+        display: flex; align-items: center; justify-content: center;
+        background: rgba(255,255,255,0.03);
+        border: 1px solid var(--card-border);
+        color: var(--text-secondary);
+        transition: all 0.2s ease;
+    }
+    .sidebar-toggle-btn:hover { color: var(--teal); border-color: rgba(45,212,191,0.4); transform: scale(1.1); }
+
+    /* ---------- Sidebar / Palette ---------- */
+    .palette-sidebar {
+        width: 264px;
+        min-width: 264px;
+        background: rgba(255,255,255,0.02);
+        border-right: 1px solid var(--card-border);
+        transition: width 0.3s ease, min-width 0.3s ease, opacity 0.2s ease, padding 0.3s ease;
+        overflow: hidden;
+    }
+    .palette-sidebar.collapsed { width: 0; min-width: 0; opacity: 0; border-right: none; }
+
+    .palette-category {
+        display: flex; align-items: center; gap: 0.5rem;
+        margin: 1.1rem 0 0.5rem 0.15rem;
+    }
+
+    .palette-item {
+        background: var(--card-bg);
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 1rem;
+        transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+        cursor: grab;
+    }
+    .palette-item:hover {
+        transform: translateX(5px) scale(1.03);
+        border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+        background: var(--accent-soft);
+        box-shadow: 0 10px 26px -12px color-mix(in srgb, var(--accent) 60%, transparent);
+    }
+    .palette-item:active { cursor: grabbing; transform: scale(0.98); }
+    .palette-item .hex-badge { width: 38px; height: 38px; font-size: 0.95rem; }
+    .palette-item:hover .hex-badge { transform: scale(1.15) rotate(-6deg); }
+
+    /* ---------- Canvas ---------- */
+    .workspace-grid {
+        background:
+            radial-gradient(circle at 15% 20%, var(--teal-soft) 0%, transparent 45%),
+            radial-gradient(circle at 85% 75%, var(--purple-soft) 0%, transparent 45%),
+            radial-gradient(rgba(255,255,255,0.045) 1px, transparent 1px),
+            var(--navy-bg);
+        background-size: 100% 100%, 100% 100%, 30px 30px, 100% 100%;
+    }
+
+    .empty-state-hex {
+        width: 92px; height: 92px;
+        background: rgba(255,255,255,0.03);
+        border: 1.5px solid var(--card-border);
+        box-shadow: 0 20px 45px -20px rgba(167, 139, 250, 0.4);
+    }
+
+    /* ---------- Node cards ---------- */
+    .workspace-node {
+        background: linear-gradient(160deg, rgba(255,255,255,0.045), rgba(255,255,255,0.015));
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border: 1px solid var(--card-border);
+        border-left: 3px solid var(--accent, var(--teal));
+        border-radius: 1.15rem;
+        transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+        cursor: grab;
+        position: absolute;
+        min-width: 260px;
+        z-index: 100;
+        user-select: none;
+        box-shadow: 0 14px 34px -16px rgba(0,0,0,0.6);
+    }
+    .workspace-node.dragging {
+        cursor: grabbing; opacity: 0.95; z-index: 1000;
+        transform: scale(1.03);
+        box-shadow: 0 24px 48px -14px color-mix(in srgb, var(--accent, var(--teal)) 45%, transparent);
+    }
+    .workspace-node:hover {
+        transform: translateY(-3px) scale(1.015);
+        box-shadow: 0 18px 40px -14px color-mix(in srgb, var(--accent, var(--teal)) 40%, transparent);
+        border-color: color-mix(in srgb, var(--accent, var(--teal)) 45%, transparent);
+    }
+    .workspace-node.selected {
+        border-color: var(--purple);
+        box-shadow: 0 0 0 2px var(--purple-soft), 0 18px 40px -14px rgba(167,139,250,0.4);
+    }
+    .workspace-node .hex-badge { width: 40px; height: 40px; font-size: 1.05rem; }
+    .workspace-node:hover .hex-badge { transform: scale(1.12) rotate(6deg); }
+
+    .type-pill {
+        display: inline-block;
+        font-size: 0.62rem; font-weight: 800;
+        letter-spacing: 0.1em; text-transform: uppercase;
+        padding: 0.15rem 0.55rem;
+        border-radius: 999px;
+        color: var(--accent, var(--teal));
+        background: var(--accent-soft, var(--teal-soft));
+        border: 1px solid color-mix(in srgb, var(--accent, var(--teal)) 35%, transparent);
+    }
+
+    .node-button {
+        cursor: pointer;
+        font-weight: 700;
+        transition: transform 0.2s ease, background 0.2s ease;
+    }
+    .node-button:hover { transform: translateY(-1px) scale(1.05); }
+    .node-button:active { transform: scale(0.95); }
+
+    /* ---------- Connections ---------- */
+    #connections-svg { filter: drop-shadow(0 0 5px rgba(45, 212, 191, 0.35)); pointer-events: none; }
+    .connection-path { transition: stroke 0.3s ease, stroke-width 0.3s ease; }
+
+    /* ---------- Modals ---------- */
+    .modal-backdrop { background: rgba(6, 6, 16, 0.82); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+    .modal-content {
+        background: linear-gradient(160deg, rgba(20, 20, 38, 0.97), rgba(10, 10, 24, 0.98));
+        border: 1px solid var(--card-border);
+        box-shadow: 0 30px 60px -15px rgba(0,0,0,0.6), 0 0 0 1px rgba(167,139,250,0.08);
+        border-radius: 1.5rem;
+    }
+
+    input, textarea {
+        background: rgba(255,255,255,0.03) !important;
+        border: 1px solid var(--card-border) !important;
+        color: var(--text-primary) !important;
+        border-radius: 0.85rem !important;
+        transition: all 0.2s ease;
+    }
+    input:focus, textarea:focus {
+        background: rgba(255,255,255,0.05) !important;
+        border-color: var(--teal) !important;
+        box-shadow: 0 0 0 3px var(--teal-soft) !important;
+    }
+
+    ::placeholder { color: var(--text-muted) !important; }
+</style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden antialiased" style="color: var(--text-primary);">
+
+    <header class="app-header px-5 py-3 flex flex-col md:flex-row md:items-center justify-between gap-3 shrink-0 z-20">
+        <div class="flex items-center gap-3 flex-1 min-w-0">
+            <button class="sidebar-toggle-btn" onclick="toggleSidebar()" title="Toggle palette">
+                <i class="fa-solid fa-angles-left" id="sidebar-toggle-icon"></i>
+            </button>
+
+            <div class="logo-hex hex-badge">
+                <i class="fa-solid fa-diagram-project text-white text-lg"></i>
+            </div>
+
+            <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2 mb-0.5">
+                    <span class="label-eyebrow" style="color: var(--teal);">Career Architecture Studio</span>
+                </div>
+                <input
+                    type="text"
+                    id="situation-input"
+                    value="Architect an AI-driven distraction-free educational platform"
+                    class="brand-title block w-full text-lg md:text-xl font-outfit font-bold border-b border-transparent hover:border-slate-700 focus:outline-none transition-all py-0.5 bg-transparent"
+                    style="color: var(--text-primary);"
+                    placeholder="Define your goal or mission..."
+                />
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2.5 shrink-0">
+            <div id="session-timer" class="pill pill-timer">
+                <i class="fa-solid fa-stopwatch"></i> 00:00:00
+            </div>
+
+            <span id="linking-indicator" class="hidden pill pill-link" style="animation: pulse 1.5s ease-in-out infinite;">
+                <i class="fa-solid fa-link"></i> Link mode active
+                <button onclick="cancelLinking()" class="ml-1 font-bold hover:text-rose-400 transition-colors">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </span>
+
+            <button onclick="clearCanvas()" class="btn-ghost-rose">
+                <i class="fa-solid fa-eraser"></i> Clear
+            </button>
+
+            <button onclick="completeProject()" class="btn-gradient-teal">
+                <i class="fa-solid fa-file-export"></i> Export <i class="fa-solid fa-arrow-right"></i>
+            </button>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden relative">
+
+        <aside class="palette-sidebar flex flex-col shrink-0 overflow-y-auto z-10" id="palette-sidebar">
+            <div class="p-4 pb-2 shrink-0 sticky top-0 z-10 backdrop-blur-md" style="background: rgba(10,10,24,0.7); border-bottom: 1px solid var(--card-border);">
+                <div class="flex items-center gap-2 mb-1">
+                    <i class="fa-solid fa-shapes" style="color: var(--purple);"></i>
+                    <h2 class="label-eyebrow" style="color: var(--text-secondary);">Resource Palette</h2>
+                </div>
+                <p class="text-[11px]" style="color: var(--text-muted);">Drag a piece onto the canvas to place it.</p>
+            </div>
+
+            <div class="flex flex-col gap-2 px-3.5 pb-12 overflow-y-auto">
+
+                <div class="palette-category">
+                    <i class="fa-solid fa-microchip text-xs" style="color: var(--teal);"></i>
+                    <span class="label-eyebrow" style="color: var(--text-muted);">Architecture &amp; Tech</span>
+                </div>
+
+                <div class="palette-item accent-teal group flex items-center gap-3 p-2.5" draggable="true" data-type="database" data-label="Cloud Database" data-icon="fa-database" data-accent="teal">
+                    <span class="hex-badge accent-hex"><i class="fa-solid fa-database"></i></span>
+                    <div>
+                        <div class="text-sm font-bold" style="color: var(--text-primary);">Database</div>
+                        <div class="text-[10px]" style="color: var(--text-muted);">Data storage</div>
+                    </div>
+                </div>
+
+                <div class="palette-item accent-purple group flex items-center gap-3 p-2.5" draggable="true" data-type="ai_model" data-label="AI / ML Model" data-icon="fa-brain" data-accent="purple">
+                    <span class="hex-badge accent-hex"><i class="fa-solid fa-brain"></i></span>
+                    <div>
+                        <div class="text-sm font-bold" style="color: var(--text-primary);">AI Model</div>
+                        <div class="text-[10px]" style="color: var(--text-muted);">Core algorithms</div>
+                    </div>
+                </div>
+
+                <div class="palette-item accent-sky group flex items-center gap-3 p-2.5" draggable="true" data-type="frontend" data-label="Frontend UI" data-icon="fa-display" data-accent="sky">
+                    <span class="hex-badge accent-hex"><i class="fa-solid fa-display"></i></span>
+                    <div>
+                        <div class="text-sm font-bold" style="color: var(--text-primary);">Frontend UI</div>
+                        <div class="text-[10px]" style="color: var(--text-muted);">User interface</div>
+                    </div>
+                </div>
+
+                <div class="palette-item accent-green group flex items-center gap-3 p-2.5" draggable="true" data-type="api" data-label="API Gateway" data-icon="fa-plug" data-accent="green">
+                    <span class="hex-badge accent-hex"><i class="fa-solid fa-plug"></i></span>
+                    <div>
+                        <div class="text-sm font-bold" style="color: var(--text-primary);">API Gateway</div>
+                        <div class="text-[10px]" style="color: var(--text-muted);">Backend services</div>
+                    </div>
+                </div>
+
+                <div class="palette-category">
+                    <i class="fa-solid fa-chart-simple text-xs" style="color: var(--gold);"></i>
+                    <span class="label-eyebrow" style="color: var(--text-muted);">Business &amp; Strategy</span>
+                </div>
+
+                <div class="palette-item accent-gold group flex items-center gap-3 p-2.5" draggable="true" data-type="strategy" data-label="GTM Strategy" data-icon="fa-bullseye" data-accent="gold">
+                    <span class="hex-badge accent-hex"><i class="fa-solid fa-bullseye"></i></span>
+                    <div>
+                        <div class="text-sm font-bold" style="color: var(--text-primary);">GTM Strategy</div>
+                        <div class="text-[10px]" style="color: var(--text-muted);">Positioning</div>
+                    </div>
+                </div>
+
+                <div class="palette-item accent-gold group flex items-center gap-3 p-2.5" draggable="true" data-type="budget" data-label="Budget & Funding" data-icon="fa-sack-dollar" data-accent="gold">
+                    <span class="hex-badge accent-hex"><i class="fa-solid fa-sack-dollar"></i></span>
+                    <div>
+                        <div class="text-sm font-bold" style="color: var(--text-primary);">Budget &amp; Funding</div>
+                        <div class="text-[10px]" style="color: var(--text-muted);">Financial planning</div>
+                    </div>
+                </div>
+
+                <div class="palette-item accent-indigo group flex items-center gap-3 p-2.5" draggable="true" data-type="analytics" data-label="Analytics & Metrics" data-icon="fa-chart-line" data-accent="indigo">
+                    <span class="hex-badge accent-hex"><i class="fa-solid fa-chart-line"></i></span>
+                    <div>
+                        <div class="text-sm font-bold" style="color: var(--text-primary);">Analytics</div>
+                        <div class="text-[10px]" style="color: var(--text-muted);">KPIs &amp; metrics</div>
+                    </div>
+                </div>
+
+                <div class="palette-category">
+                    <i class="fa-solid fa-people-group text-xs" style="color: var(--rose);"></i>
+                    <span class="label-eyebrow" style="color: var(--text-muted);">Team &amp; People</span>
+                </div>
+
+                <div class="palette-item accent-rose group flex items-center gap-3 p-2.5" draggable="true" data-type="team" data-label="Core Team" data-icon="fa-users" data-accent="rose">
+                    <span class="hex-badge accent-hex"><i class="fa-solid fa-users"></i></span>
+                    <div>
+                        <div class="text-sm font-bold" style="color: var(--text-primary);">Core Team</div>
+                        <div class="text-[10px]" style="color: var(--text-muted);">Founders &amp; leads</div>
+                    </div>
+                </div>
+
+                <div class="palette-item accent-rose group flex items-center gap-3 p-2.5" draggable="true" data-type="employees" data-label="Employees" data-icon="fa-user-tie" data-accent="rose">
+                    <span class="hex-badge accent-hex"><i class="fa-solid fa-user-tie"></i></span>
+                    <div>
+                        <div class="text-sm font-bold" style="color: var(--text-primary);">Employees</div>
+                        <div class="text-[10px]" style="color: var(--text-muted);">Staff &amp; resources</div>
+                    </div>
+                </div>
+
+                <div class="palette-item accent-teal group flex items-center gap-3 p-2.5" draggable="true" data-type="partners" data-label="Partners" data-icon="fa-handshake" data-accent="teal">
+                    <span class="hex-badge accent-hex"><i class="fa-solid fa-handshake"></i></span>
+                    <div>
+                        <div class="text-sm font-bold" style="color: var(--text-primary);">Partners</div>
+                        <div class="text-[10px]" style="color: var(--text-muted);">External partners</div>
+                    </div>
+                </div>
+
+                <div class="palette-category">
+                    <i class="fa-solid fa-rocket text-xs" style="color: var(--purple);"></i>
+                    <span class="label-eyebrow" style="color: var(--text-muted);">Marketing &amp; Brand</span>
+                </div>
+
+                <div class="palette-item accent-purple group flex items-center gap-3 p-2.5" draggable="true" data-type="logo" data-label="Logo & Branding" data-icon="fa-palette" data-accent="purple">
+                    <span class="hex-badge accent-hex"><i class="fa-solid fa-palette"></i></span>
+                    <div>
+                        <div class="text-sm font-bold" style="color: var(--text-primary);">Logo &amp; Brand</div>
+                        <div class="text-[10px]" style="color: var(--text-muted);">Visual identity</div>
+                    </div>
+                </div>
+
+                <div class="palette-item accent-rose group flex items-center gap-3 p-2.5" draggable="true" data-type="marketing" data-label="Marketing Campaign" data-icon="fa-bullhorn" data-accent="rose">
+                    <span class="hex-badge accent-hex"><i class="fa-solid fa-bullhorn"></i></span>
+                    <div>
+                        <div class="text-sm font-bold" style="color: var(--text-primary);">Marketing</div>
+                        <div class="text-[10px]" style="color: var(--text-muted);">Campaigns &amp; growth</div>
+                    </div>
+                </div>
+
+                <div class="palette-item accent-indigo group flex items-center gap-3 p-2.5" draggable="true" data-type="ppt" data-label="Presentation (PPT)" data-icon="fa-file-powerpoint" data-accent="indigo">
+                    <span class="hex-badge accent-hex"><i class="fa-solid fa-file-powerpoint"></i></span>
+                    <div>
+                        <div class="text-sm font-bold" style="color: var(--text-primary);">Presentation</div>
+                        <div class="text-[10px]" style="color: var(--text-muted);">Pitch decks &amp; slides</div>
+                    </div>
+                </div>
+
+                <div class="palette-category">
+                    <i class="fa-solid fa-industry text-xs" style="color: var(--sky);"></i>
+                    <span class="label-eyebrow" style="color: var(--text-muted);">Operations &amp; Infrastructure</span>
+                </div>
+
+                <div class="palette-item accent-teal group flex items-center gap-3 p-2.5" draggable="true" data-type="land" data-label="Land & Facilities" data-icon="fa-building" data-accent="teal">
+                    <span class="hex-badge accent-hex"><i class="fa-solid fa-building"></i></span>
+                    <div>
+                        <div class="text-sm font-bold" style="color: var(--text-primary);">Land &amp; Facilities</div>
+                        <div class="text-[10px]" style="color: var(--text-muted);">Office &amp; infrastructure</div>
+                    </div>
+                </div>
+
+                <div class="palette-item accent-gold group flex items-center gap-3 p-2.5" draggable="true" data-type="timeline" data-label="Timeline & Milestones" data-icon="fa-calendar-days" data-accent="gold">
+                    <span class="hex-badge accent-hex"><i class="fa-solid fa-calendar-days"></i></span>
+                    <div>
+                        <div class="text-sm font-bold" style="color: var(--text-primary);">Timeline</div>
+                        <div class="text-[10px]" style="color: var(--text-muted);">Milestones &amp; dates</div>
+                    </div>
+                </div>
+
+                <div class="palette-item accent-rose group flex items-center gap-3 p-2.5" draggable="true" data-type="security" data-label="Security & Compliance" data-icon="fa-shield-halved" data-accent="rose">
+                    <span class="hex-badge accent-hex"><i class="fa-solid fa-shield-halved"></i></span>
+                    <div>
+                        <div class="text-sm font-bold" style="color: var(--text-primary);">Security</div>
+                        <div class="text-[10px]" style="color: var(--text-muted);">Compliance &amp; safety</div>
+                    </div>
+                </div>
+
+            </div>
+        </aside>
+
+        <main class="flex-1 relative overflow-auto workspace-grid" id="canvas-container">
+            <svg id="connections-svg" class="absolute inset-0 pointer-events-none w-[4000px] h-[4000px] z-0">
+                <defs>
+                    <marker id="arrow" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+                        <path d="M 0 2 L 10 6 L 0 10 L 3 6 z" fill="#2dd4bf" stroke="#a78bfa" stroke-width="1" stroke-linejoin="round"/>
+                    </marker>
+                </defs>
+            </svg>
+
+            <div id="canvas" class="absolute inset-0 w-[4000px] h-[4000px] z-10">
+                <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none h-[calc(100vh-72px)] w-[calc(100vw-264px)]">
+                    <div class="empty-state-hex hex-badge float-slow mb-5">
+                        <i class="fa-solid fa-shapes text-3xl" style="color: var(--purple);"></i>
+                    </div>
+                    <h3 class="text-xl font-outfit font-bold mb-2" style="color: var(--text-primary);">Build your sequence</h3>
+                    <p class="text-xs max-w-xs text-center leading-relaxed" style="color: var(--text-muted);">Drag pieces from the palette onto the canvas to start routing your architecture.</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="details-modal" class="fixed inset-0 modal-backdrop flex items-center justify-center hidden z-50 transition-all opacity-0 duration-200">
+        <div class="modal-content w-full max-w-md mx-4 overflow-hidden transform scale-95 transition-transform duration-200" id="modal-content">
+            <div class="px-6 py-4 flex justify-between items-center" style="border-bottom: 1px solid var(--card-border); background: rgba(255,255,255,0.02);">
+                <h3 id="modal-title" class="text-base font-outfit font-bold flex items-center gap-2" style="color: var(--text-primary);">Configure Element</h3>
+                <div id="edit-timer" class="pill pill-timer" style="padding: 0.3rem 0.7rem; font-size: 0.65rem;">0s</div>
+            </div>
+
+            <div class="p-6">
+                <div class="mb-4">
+                    <label class="block label-eyebrow mb-1.5" style="color: var(--text-muted);">Element Name</label>
+                    <input type="text" id="modal-label-input" class="w-full px-4 py-2.5 text-sm font-medium focus:outline-none" placeholder="Enter element name..." />
+                </div>
+
+                <div class="mb-2">
+                    <label class="block label-eyebrow mb-1.5" style="color: var(--text-muted);">Specifications</label>
+                    <textarea id="modal-desc-input" rows="4" class="w-full px-4 py-2.5 text-sm resize-none focus:outline-none" placeholder="Add responsibilities, properties, or steps..."></textarea>
+                </div>
+            </div>
+
+            <div class="px-6 py-4 flex justify-end gap-3" style="border-top: 1px solid var(--card-border); background: rgba(255,255,255,0.02);">
+                <button onclick="closeModal()" class="btn-ghost-rose" style="border-color: var(--card-border); color: var(--text-secondary);">Cancel</button>
+                <button onclick="saveModalDetails()" class="btn-gradient-teal"><i class="fa-solid fa-check"></i> Save Node</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="success-modal" class="fixed inset-0 modal-backdrop flex items-center justify-center hidden z-50">
+        <div class="modal-content p-8 text-center max-w-sm mx-4">
+            <div class="hex-badge accent-hex accent-green mx-auto mb-4" style="width: 68px; height: 68px;">
+                <i class="fa-solid fa-check text-2xl"></i>
+            </div>
+            <h2 class="text-xl font-outfit font-bold mb-2" style="color: var(--text-primary);">Sequence Exported</h2>
+            <p class="text-xs mb-6" style="color: var(--text-muted);">Your workflow JSON has been generated successfully.</p>
+            <button onclick="document.getElementById('success-modal').classList.add('hidden')" class="w-full py-2.5 font-semibold text-sm transition rounded-xl" style="background: rgba(255,255,255,0.04); border: 1px solid var(--card-border); color: var(--text-primary);" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">Close</button>
+        </div>
+    </div>
+
+    <script>
+        let workspaceItems = [];
+        let connections = [];
+        let nextId = 1;
+        let activeModalItem = null;
+        let linkingSourceId = null;
+        let pendingNodeData = null;
+        let draggedNodeId = null;
+        let dragOffsetX = 0;
+        let dragOffsetY = 0;
+        let sidebarCollapsed = false;
+
+        const sessionStartTime = Date.now();
+        let modalOpenTime = 0;
+        let activeEditInterval = null;
+
+        setInterval(() => {
+            const elapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
+            const hours = Math.floor(elapsed / 3600);
+            const minutes = Math.floor((elapsed % 3600) / 60);
+            const seconds = elapsed % 60;
+            document.getElementById('session-timer').innerHTML = `<i class="fa-solid fa-stopwatch"></i> ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        }, 1000);
+
+        function toggleSidebar() {
+            sidebarCollapsed = !sidebarCollapsed;
+            document.getElementById('palette-sidebar').classList.toggle('collapsed', sidebarCollapsed);
+            const icon = document.getElementById('sidebar-toggle-icon');
+            icon.classList.toggle('fa-angles-left', !sidebarCollapsed);
+            icon.classList.toggle('fa-angles-right', sidebarCollapsed);
+            setTimeout(() => {
+                document.getElementById('empty-state').style.width = sidebarCollapsed ? '100vw' : 'calc(100vw - 264px)';
+                renderConnections();
+            }, 310);
+        }
+
+        document.addEventListener('dragstart', (e) => {
+            const item = e.target.closest('.palette-item');
+            if (item) {
+                e.dataTransfer.effectAllowed = 'copy';
+                e.dataTransfer.setData('type', item.dataset.type);
+                e.dataTransfer.setData('label', item.dataset.label);
+                e.dataTransfer.setData('icon', item.dataset.icon);
+                e.dataTransfer.setData('accent', item.dataset.accent);
+            }
+        });
+
+        document.getElementById('canvas-container').addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+        });
+
+        document.getElementById('canvas-container').addEventListener('drop', (e) => {
+            e.preventDefault();
+            const type = e.dataTransfer.getData('type');
+            const label = e.dataTransfer.getData('label');
+            const icon = e.dataTransfer.getData('icon');
+            const accent = e.dataTransfer.getData('accent') || 'teal';
+
+            if (type) {
+                const rect = document.getElementById('canvas-container').getBoundingClientRect();
+                const x = e.clientX - rect.left + document.getElementById('canvas-container').scrollLeft;
+                const y = e.clientY - rect.top + document.getElementById('canvas-container').scrollTop;
+
+                pendingNodeData = { type, label, icon, accent, x, y };
+                openNewNodeModal(label, icon);
+            }
+        });
+
+        function openNewNodeModal(label, icon) {
+            activeModalItem = null;
+            document.getElementById('modal-label-input').value = label;
+            document.getElementById('modal-desc-input').value = '';
+            document.getElementById('modal-title').innerHTML = `<i class="fa-solid ${icon}" style="color: var(--teal);"></i> ${label}`;
+
+            modalOpenTime = Date.now();
+            document.getElementById('details-modal').classList.remove('hidden');
+            setTimeout(() => {
+                document.getElementById('details-modal').classList.remove('opacity-0');
+                document.getElementById('modal-content').classList.remove('scale-95');
+            }, 10);
+
+            activeEditInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - modalOpenTime) / 1000);
+                document.getElementById('edit-timer').textContent = elapsed + 's';
+            }, 100);
+
+            setTimeout(() => document.getElementById('modal-label-input').focus(), 100);
+        }
+
+        function renderWorkspace() {
+            const canvas = document.getElementById('canvas');
+            canvas.querySelectorAll('.workspace-node').forEach(node => node.remove());
+
+            const emptyState = document.getElementById('empty-state');
+            emptyState.style.display = workspaceItems.length > 0 ? 'none' : 'flex';
+
+            workspaceItems.forEach((item) => {
+                const node = document.createElement('div');
+                node.className = `workspace-node animate-pop accent-${item.accent || 'teal'}`;
+                node.dataset.itemId = item.id;
+                node.style.left = item.x + 'px';
+                node.style.top = item.y + 'px';
+
+                node.innerHTML = `
+                    <div class="p-4">
+                        <div class="flex items-center gap-3 mb-3 pb-3" style="border-bottom: 1px solid rgba(255,255,255,0.07);">
+                            <span class="hex-badge accent-hex"><i class="fa-solid ${item.icon}"></i></span>
+                            <div class="min-w-0">
+                                <span class="text-sm font-bold block tracking-wide truncate" style="color: var(--text-primary);">${item.label}</span>
+                                <span class="type-pill mt-1 inline-block">${item.type}</span>
+                            </div>
+                        </div>
+                        <div class="text-xs mb-4 p-2.5 rounded-xl line-clamp-2 h-10 leading-relaxed" style="color: var(--text-secondary); background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);">${item.description || '<em style="color: var(--text-muted);">No description provided</em>'}</div>
+                        <div class="flex gap-2">
+                            <button class="node-button flex-1 py-1.5 text-xs rounded-lg" style="background: var(--teal-soft); color: var(--teal); border: 1px solid rgba(45,212,191,0.25);" onclick="editItem(${item.id})"><i class="fa-solid fa-pen"></i> Edit</button>
+                            <button class="node-button flex-1 py-1.5 text-xs rounded-lg" style="background: var(--purple-soft); color: var(--purple); border: 1px solid rgba(167,139,250,0.25);" onclick="startLinking(${item.id})"><i class="fa-solid fa-link"></i> Link</button>
+                            <button class="node-button px-2.5 py-1.5 text-xs rounded-lg" style="background: var(--rose-soft); color: var(--rose); border: 1px solid rgba(251,113,133,0.25);" onclick="deleteItem(${item.id})"><i class="fa-solid fa-xmark"></i></button>
+                        </div>
+                    </div>
+                `;
+
+                node.addEventListener('mousedown', (e) => {
+                    if (e.target.closest('.node-button')) return;
+                    startDragNode(e, item.id);
+                });
+
+                node.addEventListener('click', (e) => {
+                    if (e.target.closest('.node-button')) return;
+                    canvas.querySelectorAll('.workspace-node').forEach(n => n.classList.remove('selected'));
+                    node.classList.add('selected');
+                });
+
+                canvas.appendChild(node);
+            });
+
+            renderConnections();
+        }
+
+        function startDragNode(e, itemId) {
+            draggedNodeId = itemId;
+            const rect = e.target.closest('.workspace-node').getBoundingClientRect();
+            dragOffsetX = e.clientX - rect.left;
+            dragOffsetY = e.clientY - rect.top;
+
+            document.addEventListener('mousemove', dragNode);
+            document.addEventListener('mouseup', stopDragNode);
+        }
+
+        function dragNode(e) {
+            if (!draggedNodeId) return;
+            const item = workspaceItems.find(i => i.id === draggedNodeId);
+            if (!item) return;
+
+            const containerRect = document.getElementById('canvas-container').getBoundingClientRect();
+            const scrollLeft = document.getElementById('canvas-container').scrollLeft;
+            const scrollTop = document.getElementById('canvas-container').scrollTop;
+
+            item.x = Math.max(0, e.clientX - containerRect.left + scrollLeft - dragOffsetX);
+            item.y = Math.max(0, e.clientY - containerRect.top + scrollTop - dragOffsetY);
+
+            const node = document.querySelector(`[data-item-id="${draggedNodeId}"]`);
+            if (node) {
+                node.style.left = item.x + 'px';
+                node.style.top = item.y + 'px';
+                node.classList.add('dragging');
+                renderConnections();
+            }
+        }
+
+        function stopDragNode() {
+            const node = document.querySelector(`[data-item-id="${draggedNodeId}"]`);
+            if (node) node.classList.remove('dragging');
+            draggedNodeId = null;
+            document.removeEventListener('mousemove', dragNode);
+            document.removeEventListener('mouseup', stopDragNode);
+        }
+
+        function renderConnections() {
+            const svg = document.getElementById('connections-svg');
+            svg.querySelectorAll('path[data-connection]').forEach(path => path.remove());
+
+            const nodeWidth = 260;
+            const nodeHeight = 130; // Approx height
+
+            connections.forEach(conn => {
+                const fromItem = workspaceItems.find(i => i.id === conn.from);
+                const toItem = workspaceItems.find(i => i.id === conn.to);
+
+                if (fromItem && toItem) {
+                    const x1 = fromItem.x + nodeWidth / 2;
+                    const y1 = fromItem.y + nodeHeight / 2;
+                    const x2 = toItem.x + nodeWidth / 2;
+                    const y2 = toItem.y + nodeHeight / 2;
+
+                    const dx = x2 - x1;
+                    const dy = y2 - y1;
+
+                    let startX, startY, endX, endY;
+
+                    if (Math.abs(dx) > Math.abs(dy)) {
+                        startX = dx > 0 ? fromItem.x + nodeWidth : fromItem.x;
+                        startY = fromItem.y + nodeHeight / 2;
+                        endX = dx > 0 ? toItem.x : toItem.x + nodeWidth;
+                        endY = toItem.y + nodeHeight / 2;
+                    } else {
+                        startX = fromItem.x + nodeWidth / 2;
+                        startY = dy > 0 ? fromItem.y + nodeHeight : fromItem.y;
+                        endX = toItem.x + nodeWidth / 2;
+                        endY = dy > 0 ? toItem.y : toItem.y + nodeHeight;
+                    }
+
+                    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    const d = `M ${startX} ${startY} C ${startX + (dx * 0.3)} ${startY + (dy * 0.1)}, ${endX - (dx * 0.3)} ${endY - (dy * 0.1)}, ${endX} ${endY}`;
+
+                    path.setAttribute('d', d);
+                    path.setAttribute('stroke', '#2dd4bf');
+                    path.setAttribute('stroke-width', '3');
+                    path.setAttribute('fill', 'none');
+                    path.setAttribute('marker-end', 'url(#arrow)');
+                    path.setAttribute('data-connection', 'true');
+                    path.setAttribute('class', 'connection-path animated-connection');
+                    path.setAttribute('stroke-linecap', 'round');
+
+                    svg.appendChild(path);
+                }
+            });
+        }
+
+        function startLinking(id) {
+            linkingSourceId = id;
+            document.getElementById('linking-indicator').classList.remove('hidden');
+        }
+
+        function cancelLinking() {
+            linkingSourceId = null;
+            document.getElementById('linking-indicator').classList.add('hidden');
+        }
+
+        function editItem(id) {
+            activeModalItem = workspaceItems.find(i => i.id === id);
+            if (!activeModalItem) return;
+
+            document.getElementById('modal-label-input').value = activeModalItem.label;
+            document.getElementById('modal-desc-input').value = activeModalItem.description;
+            document.getElementById('modal-title').innerHTML = `<i class="fa-solid ${activeModalItem.icon}" style="color: var(--teal);"></i> Edit Node`;
+
+            modalOpenTime = Date.now();
+            document.getElementById('details-modal').classList.remove('hidden');
+            setTimeout(() => {
+                document.getElementById('details-modal').classList.remove('opacity-0');
+                document.getElementById('modal-content').classList.remove('scale-95');
+            }, 10);
+
+            activeEditInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - modalOpenTime) / 1000);
+                document.getElementById('edit-timer').textContent = elapsed + 's';
+            }, 100);
+        }
+
+        function closeModal() {
+            document.getElementById('details-modal').classList.add('opacity-0');
+            document.getElementById('modal-content').classList.add('scale-95');
+            setTimeout(() => document.getElementById('details-modal').classList.add('hidden'), 200);
+            if (activeEditInterval) clearInterval(activeEditInterval);
+            pendingNodeData = null;
+        }
+
+        function saveModalDetails() {
+            const labelVal = document.getElementById('modal-label-input').value.trim();
+            const descVal = document.getElementById('modal-desc-input').value.trim();
+            const sessionEditTime = (Date.now() - modalOpenTime) / 1000;
+
+            if (!labelVal) return alert('Please enter an element name');
+
+            if (activeModalItem) {
+                activeModalItem.label = labelVal;
+                activeModalItem.description = descVal;
+                activeModalItem.timeSpentEditing += sessionEditTime;
+            } else if (pendingNodeData) {
+                const item = {
+                    id: nextId++,
+                    type: pendingNodeData.type,
+                    label: labelVal,
+                    icon: pendingNodeData.icon,
+                    accent: pendingNodeData.accent,
+                    x: pendingNodeData.x,
+                    y: pendingNodeData.y,
+                    description: descVal,
+                    createdAt: Date.now(),
+                    timeSpentEditing: sessionEditTime
+                };
+                workspaceItems.push(item);
+            }
+
+            closeModal();
+            renderWorkspace();
+        }
+
+        function deleteItem(id) {
+            workspaceItems = workspaceItems.filter(item => item.id !== id);
+            connections = connections.filter(conn => conn.from !== id && conn.to !== id);
+            renderWorkspace();
+        }
+
+        function clearCanvas() {
+            if (confirm('Clear all elements from the canvas?')) {
+                workspaceItems = [];
+                connections = [];
+                renderWorkspace();
+            }
+        }
+
+        function completeProject() {
+            if (workspaceItems.length === 0) return alert('Add elements before exporting');
+            document.getElementById('success-modal').classList.remove('hidden');
+        }
+
+        window.addEventListener('resize', renderConnections);
+
+        document.addEventListener('click', (e) => {
+            if (linkingSourceId && e.target.closest('.workspace-node')) {
+                const targetNode = e.target.closest('.workspace-node');
+                const targetId = parseInt(targetNode.dataset.itemId);
+
+                if (targetId && targetId !== linkingSourceId) {
+                    if (!connections.some(c => c.from === linkingSourceId && c.to === targetId)) {
+                        connections.push({ from: linkingSourceId, to: targetId });
+                    }
+                    cancelLinking();
+                    renderWorkspace();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

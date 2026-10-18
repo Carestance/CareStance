@@ -286,6 +286,58 @@
     }
 
     ::placeholder { color: var(--text-muted) !important; }
+
+    /* ---------- Mobile: palette becomes a semicircle "+" menu ---------- */
+    .workspace-node { touch-action: none; }
+    .fab-root { display: none; }
+    @media (max-width: 820px) {
+        .palette-sidebar { display: none !important; }
+        .sidebar-toggle-btn { display: none; }
+        #empty-state { width: 100% !important; height: 100% !important; padding: 0 1.5rem; }
+        .fab-root { display: block; }
+    }
+    .fab-backdrop {
+        position: fixed; inset: 0; z-index: 40;
+        background: radial-gradient(circle at 50% 100%, rgba(45,212,191,0.18), rgba(6,6,16,0.82) 60%);
+        backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+        opacity: 0; pointer-events: none; transition: opacity 0.25s ease;
+    }
+    .fab-backdrop.open { opacity: 1; pointer-events: auto; }
+    .fab-main {
+        position: fixed; left: 50%; bottom: 18px; width: 58px; height: 58px; margin-left: -29px;
+        z-index: 45; border: 0; border-radius: 50%; color: #fff; font-size: 1.35rem;
+        display: grid; place-items: center; cursor: pointer;
+        background: linear-gradient(135deg, var(--teal), var(--purple));
+        box-shadow: 0 12px 28px -6px rgba(45,212,191,0.55), 0 0 0 4px rgba(255,255,255,0.06);
+        transition: transform 0.25s ease;
+    }
+    .fab-main:active { transform: scale(0.92); }
+    .fab-main i { transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    .fab-main.open.cats i { transform: rotate(45deg); }
+    .fab-opt {
+        position: fixed; left: 50%; bottom: 21px; width: 52px; height: 52px; margin-left: -26px; z-index: 44;
+        border-radius: 50%; display: grid; place-items: center; font-size: 1.1rem; cursor: pointer;
+        color: var(--accent); background: #12122a;
+        border: 1.5px solid color-mix(in srgb, var(--accent) 60%, transparent);
+        box-shadow: 0 10px 22px -8px color-mix(in srgb, var(--accent) 70%, transparent), inset 0 0 0 40px var(--accent-soft);
+        opacity: 0; pointer-events: none; transform: translate(0, 0) scale(0.3);
+        transition: transform 0.38s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
+    }
+    .fab-opt.open { opacity: 1; pointer-events: auto; transform: translate(var(--x), var(--y)) scale(1); }
+    .fab-opt:active { filter: brightness(1.3); }
+    .fab-opt span {
+        position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 4px;
+        width: 84px; text-align: center; font-size: 10px; font-weight: 700; line-height: 1.15;
+        color: var(--text-primary); text-shadow: 0 1px 6px #000; pointer-events: none;
+    }
+    .fab-title {
+        position: fixed; left: 50%; bottom: 92px; transform: translateX(-50%); z-index: 44;
+        font-size: 11px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap;
+        padding: 4px 12px; border-radius: 999px; color: var(--text-secondary);
+        background: rgba(255,255,255,0.08); border: 1px solid var(--card-border);
+        opacity: 0; pointer-events: none; transition: opacity 0.25s ease;
+    }
+    .fab-title.open { opacity: 1; }
 </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden antialiased" style="color: var(--text-primary);">
@@ -527,6 +579,14 @@
         </main>
     </div>
 
+    <!-- Mobile palette: semicircle "+" menu (built from the palette items by script) -->
+    <div class="fab-root" id="fab-root">
+        <div class="fab-backdrop" id="fab-backdrop"></div>
+        <div class="fab-title" id="fab-title"></div>
+        <div id="fab-options"></div>
+        <button class="fab-main" id="fab-main" aria-label="Add resource"><i class="fa-solid fa-plus" id="fab-main-icon"></i></button>
+    </div>
+
     <div id="details-modal" class="fixed inset-0 modal-backdrop flex items-center justify-center hidden z-50 transition-all opacity-0 duration-200">
         <div class="modal-content w-full max-w-md mx-4 overflow-hidden transform scale-95 transition-transform duration-200" id="modal-content">
             <div class="px-6 py-4 flex justify-between items-center" style="border-bottom: 1px solid var(--card-border); background: rgba(255,255,255,0.02);">
@@ -652,6 +712,131 @@
             }
         });
 
+        /* ---------- Mobile semicircle palette ---------- */
+        const fabState = { mode: 'closed', groups: [] };
+
+        function buildFabGroups() {
+            const side = document.getElementById('palette-sidebar');
+            let current = null;
+            side.querySelectorAll('.palette-category, .palette-item').forEach(el => {
+                if (el.classList.contains('palette-category')) {
+                    current = {
+                        name: el.querySelector('span').textContent.trim(),
+                        icon: el.querySelector('i').className.replace('text-xs', '').trim(),
+                        items: []
+                    };
+                    fabState.groups.push(current);
+                } else if (current) {
+                    current.items.push({
+                        type: el.dataset.type, label: el.dataset.label,
+                        icon: el.dataset.icon, accent: el.dataset.accent || 'teal',
+                        short: el.querySelector('.text-sm').textContent.trim()
+                    });
+                }
+            });
+        }
+
+        function fabRender(entries, mode) {
+            const wrap = document.getElementById('fab-options');
+            wrap.innerHTML = '';
+            const n = entries.length;
+            const radius = Math.max(86, Math.min(135, window.innerWidth / 2 - 46));
+            entries.forEach((en, i) => {
+                const a = (n === 1 ? 90 : 172 - (i * 164) / (n - 1)) * Math.PI / 180;
+                const b = document.createElement('button');
+                b.className = 'fab-opt accent-' + en.accent;
+                b.style.setProperty('--x', (Math.cos(a) * radius).toFixed(1) + 'px');
+                b.style.setProperty('--y', (-Math.sin(a) * radius - 14).toFixed(1) + 'px');
+                b.style.transitionDelay = (i * 35) + 'ms';
+                b.innerHTML = `<i class="${en.icon}"></i><span>${en.name}</span>`;
+                b.addEventListener('click', () => en.onTap());
+                wrap.appendChild(b);
+            });
+            void wrap.offsetWidth;
+            wrap.querySelectorAll('.fab-opt').forEach(b => b.classList.add('open'));
+        }
+
+        function fabShowCategories() {
+            fabState.mode = 'cats';
+            const accents = ['teal', 'gold', 'rose', 'purple', 'sky'];
+            fabRender(fabState.groups.map((g, i) => ({
+                name: g.name.replace('&amp;', '&'),
+                icon: g.icon,
+                accent: (g.items[0] && g.items[0].accent) || accents[i % accents.length],
+                onTap: () => fabShowItems(g)
+            })), 'cats');
+            fabSetChrome(true, 'cats', 'Choose a category', 'fa-plus');
+        }
+
+        function fabShowItems(group) {
+            fabState.mode = 'items';
+            fabRender(group.items.map(it => ({
+                name: it.short, icon: 'fa-solid ' + it.icon, accent: it.accent,
+                onTap: () => fabPlace(it)
+            })), 'items');
+            fabSetChrome(true, 'items', group.name, 'fa-arrow-left');
+        }
+
+        function fabSetChrome(open, mode, title, iconClass) {
+            document.getElementById('fab-backdrop').classList.toggle('open', open);
+            const main = document.getElementById('fab-main');
+            main.classList.toggle('open', open);
+            main.classList.toggle('cats', mode === 'cats');
+            document.getElementById('fab-main-icon').className = 'fa-solid ' + iconClass;
+            const t = document.getElementById('fab-title');
+            t.textContent = title || '';
+            t.classList.toggle('open', open);
+        }
+
+        function fabClose() {
+            fabState.mode = 'closed';
+            document.querySelectorAll('#fab-options .fab-opt').forEach(b => b.classList.remove('open'));
+            fabSetChrome(false, 'closed', '', 'fa-plus');
+        }
+
+        function fabPlace(it) {
+            const box = document.getElementById('canvas-container');
+            const jitter = (workspaceItems.length % 5) * 26;
+            pendingNodeData = {
+                type: it.type, label: it.label, icon: it.icon, accent: it.accent,
+                x: Math.max(10, box.scrollLeft + box.clientWidth / 2 - 130 + jitter - 20),
+                y: Math.max(10, box.scrollTop + box.clientHeight / 4 + jitter)
+            };
+            fabClose();
+            openNewNodeModal(it.label, it.icon);
+        }
+
+        document.getElementById('fab-main').addEventListener('click', () => {
+            if (fabState.mode === 'closed') fabShowCategories();
+            else if (fabState.mode === 'cats') fabClose();
+            else fabShowCategories();
+        });
+        document.getElementById('fab-backdrop').addEventListener('click', fabClose);
+        buildFabGroups();
+        if (window.matchMedia('(max-width: 820px)').matches) {
+            const p = document.querySelector('#empty-state p');
+            if (p) p.textContent = 'Tap the + button to add pieces and start routing your architecture.';
+        }
+
+        /* touch dragging for placed nodes */
+        function startTouchNode(e, itemId) {
+            const t = e.touches[0];
+            draggedNodeId = itemId;
+            const rect = e.target.closest('.workspace-node').getBoundingClientRect();
+            dragOffsetX = t.clientX - rect.left;
+            dragOffsetY = t.clientY - rect.top;
+            const move = (ev) => { ev.preventDefault(); const p = ev.touches[0]; dragNode({ clientX: p.clientX, clientY: p.clientY }); };
+            const end = () => {
+                stopDragNode();
+                document.removeEventListener('touchmove', move);
+                document.removeEventListener('touchend', end);
+                document.removeEventListener('touchcancel', end);
+            };
+            document.addEventListener('touchmove', move, { passive: false });
+            document.addEventListener('touchend', end);
+            document.addEventListener('touchcancel', end);
+        }
+
         function openNewNodeModal(label, icon) {
             activeModalItem = null;
             document.getElementById('modal-label-input').value = label;
@@ -709,6 +894,11 @@
                     if (e.target.closest('.node-button')) return;
                     startDragNode(e, item.id);
                 });
+
+                node.addEventListener('touchstart', (e) => {
+                    if (e.target.closest('.node-button')) return;
+                    startTouchNode(e, item.id);
+                }, { passive: true });
 
                 node.addEventListener('click', (e) => {
                     if (e.target.closest('.node-button')) return;

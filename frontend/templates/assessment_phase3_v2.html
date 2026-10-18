@@ -2,149 +2,150 @@
 
 {% block title %}Career Buddy — Voice Companion{% endblock %}
 
-{% block extra_head %}
+{# ── Navbar copied exactly from dashboard.html so this page matches
+   the rest of the app pixel-for-pixel. Do not edit independently —
+   if the dashboard navbar changes, re-copy this block. ── #}
+{% block navbar %}
 <style>
-    body {
-        background: url('/static/images/BG1.png') center top / cover no-repeat fixed !important;
-        padding-top: 0 !important;
-    }
-    
-    /* Animation for idle state */
-    @keyframes float {
-        0%, 100% { transform: translateY(0) scale(1); }
-        50% { transform: translateY(-10px) scale(1.02); }
-    }
-    
-    .avatar-idle {
-        animation: float 6s ease-in-out infinite;
-    }
-    
-    /* Animation for voice ring */
-    @keyframes pulse-ring {
-        0% { transform: scale(0.9); opacity: 0; }
-        50% { transform: scale(1.2); opacity: 0.3; }
-        100% { transform: scale(1.5); opacity: 0; }
-    }
-    
-    .ring-listening {
-        background-color: #10b981; /* Emerald 500 */
-        animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    @import url('https://fonts.googleapis.com/css2?family=Jersey+10&display=swap');
+
+    .hero-nav {
+        position: fixed;
+        top: 40px;
+        left: 0;
+        right: 0;
+        width: 100%;
+        z-index: 1000;
+        background: transparent;
+        box-shadow: none;
     }
 
-    .ring-thinking {
-        background: conic-gradient(from 0deg, transparent, #10b981, transparent);
-        animation: spin 2s linear infinite;
+    .hero-nav-inner {
+        max-width: 80vw;
+        width: 80vw;
+        margin: 0 auto;
+        padding: 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .hero-nav-logo {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        text-decoration: none;
+        margin-right: auto;
+    }
+
+    .hero-nav-logo-badge {
+        width: 120px; height: 120px;
+        display: flex; align-items: center; justify-content: center;
         border-radius: 50%;
-    }
-    
-    @keyframes spin {
-        100% { transform: rotate(360deg); }
-    }
-</style>
-{% endblock %}
-
-{% block content %}
-<div class="h-screen w-full flex flex-col pt-20">
-    <div class="flex-1 max-w-7xl w-full mx-auto flex flex-col items-center justify-center p-6 relative">
-        
-        <!-- Header Text -->
-        <div class="text-center mb-10 animate-fade-in-up">
-            <h1 class="text-3xl md:text-4xl font-black text-slate-800 mb-2">Career Buddy</h1>
-            <p class="text-emerald-600 font-bold tracking-widest uppercase text-sm">Your AI Career Companion</p>
-        </div>
-
-        <!-- Conversation Status -->
-        <h2 id="conversation-status" class="text-xl md:text-2xl font-bold text-slate-500 mb-12 tracking-wide transition-all h-8">
-            Ready when you are
-        </h2>
-        
-        <!-- Center Avatar Area -->
-        <div class="relative flex items-center justify-center mb-16 w-[280px] h-[280px] md:w-[360px] md:h-[360px]">
-            <!-- Dynamic Ring -->
-            <div id="voice-ring" class="absolute inset-0 rounded-full transition-all duration-300 pointer-events-none scale-100 opacity-0"></div>
-            
-            <!-- Avatar Container -->
-            <div id="careo-container" class="relative z-10 w-full h-full rounded-full overflow-hidden shadow-2xl border-4 border-white bg-white transition-all duration-300 avatar-idle group">
-                <video id="careo-img" src="/static/images/mascot.mp4" autoplay loop muted playsinline class="w-full h-full object-cover transition-transform duration-100"></video>
-                
-                <!-- Thinking Overlay (Optional Glow) -->
-                <div id="thinking-glow" class="absolute inset-0 bg-emerald-500/20 mix-blend-overlay opacity-0 transition-opacity duration-500 pointer-events-none"></div>
-            </div>
-        </div>
-
-        <!-- Live Captions -->
-        <div class="h-16 w-full max-w-2xl mb-8 flex items-center justify-center">
-            <div id="live-caption" class="text-center text-slate-700 text-lg md:text-xl font-medium transition-opacity duration-300 opacity-0 px-4 py-2 bg-white/60 backdrop-blur-md rounded-2xl shadow-sm border border-white/40 hidden">
-            </div>
-        </div>
-
-        <!-- Controls -->
-        <div class="flex items-center gap-6 z-20">
-            <!-- Optional Captions Toggle -->
-            <button id="captions-btn" onclick="toggleCaptions()" class="w-12 h-12 rounded-full bg-white/80 text-slate-500 hover:bg-white font-bold text-xs shadow-md border border-slate-200 transition-all flex flex-col items-center justify-center" title="Toggle Captions">
-                CC
-            </button>
-            
-            <!-- Mic / Action Button -->
-            <button id="mic-btn" onclick="toggleVoiceSession()" class="w-20 h-20 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-xl shadow-emerald-200 flex items-center justify-center text-3xl transition-all transform hover:scale-105 active:scale-95" title="Start Conversation">
-                🎙️
-            </button>
-            
-            <!-- End Conversation -->
-            <button id="end-btn" onclick="finishAssessment()" class="w-12 h-12 rounded-full bg-rose-50 text-rose-500 hover:bg-rose-100 shadow-md border border-rose-200 transition-all flex items-center justify-center hidden" title="End Conversation">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" />
-                </svg>
-            </button>
-        </div>
-
-        <!-- Footer Branding -->
-        <p class="absolute bottom-6 text-xs text-slate-400 font-medium">Powered by CareStance AI</p>
-
-    </div>
-</div>
-
-<script src="/static/js/voice_client.js"></script>
-<script>
-    // UI Elements
-    const statusText = document.getElementById('conversation-status');
-    const careoContainer = document.getElementById('careo-container');
-    const careoImg = document.getElementById('careo-img');
-    const voiceRing = document.getElementById('voice-ring');
-    const micBtn = document.getElementById('mic-btn');
-    const endBtn = document.getElementById('end-btn');
-    const liveCaption = document.getElementById('live-caption');
-    const captionsBtn = document.getElementById('captions-btn');
-    const thinkingGlow = document.getElementById('thinking-glow');
-
-    // State
-    let currentUIState = 'IDLE';
-    let captionsEnabled = false;
-    let chatHistory = {{ (result.chat_messages if result.chat_messages else []) | tojson | safe }};
-    if (!Array.isArray(chatHistory)) chatHistory = [];
-    
-    // Audio Context for Lip Sync
-    let audioCtx = null;
-    let analyser = null;
-    let dataArray = null;
-    let animationFrame = null;
-    let audioSource = null;
-    let isSpeakingActive = false; // Flag for TTS playback
-
-    function toggleCaptions() {
-        captionsEnabled = !captionsEnabled;
-        captionsBtn.classList.toggle('text-emerald-600', captionsEnabled);
-        captionsBtn.classList.toggle('bg-emerald-50', captionsEnabled);
-        liveCaption.classList.toggle('hidden', !captionsEnabled);
+        background: #0f172a;
+        flex-shrink: 0;
     }
 
-    function updateCaption(text) {
-        if (!text) {
-            liveCaption.style.opacity = '0';
-            return;
-        }
-        liveCaption.innerText = text;
-        liveCaption.style.opacity = '1';
+    .hero-nav-logo-badge img {
+        width: 80px; height: 80px;
+        border-radius: 50%; object-fit: cover;
+        transform: scale(1.6);
+    }
+
+    .hero-nav-logo-text {
+        font-family: 'Jersey 10', 'Playfair Display', serif;
+        font-size: 4rem; font-weight: 400;
+        color: #020c14; white-space: nowrap;
+        letter-spacing: 0.02em;
+    }
+
+    .hero-nav-links {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        flex-wrap: nowrap;
+        justify-content: flex-end;
+        flex-shrink: 1;
+    }
+
+    .hero-nav-links a {
+        display: inline-block;
+        font-family: 'Jersey 10', sans-serif;
+        color: #fff;
+        font-size: 30px;
+        font-weight: 400;
+        white-space: nowrap;
+        text-decoration: none;
+        letter-spacing: 0.02em;
+        text-shadow: 0 2px 6px rgba(0,0,0,0.35);
+        transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+
+    .hero-nav-links a:hover {
+        transform: scale(1.1);
+        opacity: 0.75;
+    }
+
+    .hero-nav-links a.nav-active {
+        text-decoration: underline;
+        text-underline-offset: 4px;
+    }
+
+    /* ── Fixed settings gear (replaces old logout pill) ── */
+    .hero-settings-fixed {
+        position: fixed;
+        bottom: 50px;
+        right: 50px;
+        z-index: 1100;
+    }
+
+    .hero-settings-gear {
+        width: 68px;
+        height: 68px;
+        border-radius: 50%;
+        background: #000000;
+        color: #fff;
+        border: none;
+        font-size: 1.7rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+        transition: transform 0.35s ease, background 0.3s ease;
+    }
+
+    .hero-settings-gear:hover,
+    .hero-settings-fixed:focus-within .hero-settings-gear {
+        background: #1a1a1a;
+        transform: rotate(60deg);
+    }
+
+    .hero-settings-menu {
+        position: absolute;
+        bottom: calc(100% + 12px);
+        right: 0;
+        min-width: 210px;
+        background: #fff;
+        border-radius: 1rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 12px 28px -6px rgba(0,0,0,0.25);
+        padding: 0.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(8px);
+        transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+    }
+
+    .hero-settings-fixed:hover .hero-settings-menu,
+    .hero-settings-fixed:focus-within .hero-settings-menu {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
     }
 
     function showFinishButton() {
@@ -233,88 +234,22 @@
         }
     }
 
-    // Audio Analysis for Lip Sync
-    function setupAudioAnalysis() {
-        if (!window.voiceClient || !window.voiceClient.remoteAudio || !window.voiceClient.remoteAudio.srcObject) {
-            // Fallback animation if Web Audio API can't connect
-            fakeLipSync();
-            return;
-        }
-        
-        if (!audioCtx) {
-            try {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                analyser = audioCtx.createAnalyser();
-                analyser.fftSize = 256;
-                dataArray = new Uint8Array(analyser.frequencyBinCount);
-                
-                const stream = window.voiceClient.remoteAudio.srcObject;
-                audioSource = audioCtx.createMediaStreamSource(stream);
-                audioSource.connect(analyser);
-            } catch (e) {
-                console.warn("Web Audio API setup failed, using fallback animation", e);
-                fakeLipSync();
-                return;
-            }
-        }
-        
-        if (audioCtx.state === 'suspended') {
-            audioCtx.resume().catch(() => {});
-        }
-        
-        analyzeAudio();
+    .hero-settings-menu a:hover {
+        background: #f1f5f9;
+        color: #0d9488;
     }
 
-    function analyzeAudio() {
-        if (!isSpeakingActive) {
-            // Cleanup
-            voiceRing.style.opacity = '0';
-            voiceRing.style.transform = 'scale(1)';
-            careoImg.style.transform = 'scale(1)';
-            return;
-        }
-        
-        analyser.getByteFrequencyData(dataArray);
-        let sum = 0;
-        // Average the lower frequencies (speech energy)
-        const limit = Math.min(dataArray.length, 64);
-        for (let i = 0; i < limit; i++) {
-            sum += dataArray[i];
-        }
-        const average = sum / limit;
-        const audioLevel = average / 255; // 0 to 1
-        
-        // Apply smoothed transform to the mascot image to simulate speaking / breathing
-        const scale = 1 + (audioLevel * 0.15); // Max scale 1.15
-        careoImg.style.transform = `scale(${scale})`;
-        
-        // React the ring as well
-        voiceRing.style.opacity = Math.max(0.1, audioLevel * 0.5).toString();
-        voiceRing.style.transform = `scale(${1 + audioLevel * 0.4})`;
-        
-        animationFrame = requestAnimationFrame(analyzeAudio);
-    }
-    
-    // Fallback if audio context fails
-    function fakeLipSync() {
-        if (!isSpeakingActive) return;
-        const randomScale = 1 + (Math.random() * 0.1);
-        careoImg.style.transform = `scale(${randomScale})`;
-        voiceRing.style.opacity = '0.3';
-        voiceRing.style.transform = `scale(${1 + Math.random() * 0.2})`;
-        setTimeout(fakeLipSync, 100);
+    .hero-settings-menu a.hero-settings-logout {
+        color: #b45309;
     }
 
-    // Pipecat Integration
-    function toggleVoiceSession() {
-        if (currentUIState === 'IDLE' || currentUIState === 'ERROR' || currentUIState === 'DISCONNECTED') {
-            startSession();
-        } else {
-            // Manually stop
-            if (window.voiceClient) {
-                window.voiceClient.disconnect();
-            }
-        }
+    .hero-settings-menu a.hero-settings-logout:hover {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    @media (max-width: 768px) {
+        .hero-settings-fixed { bottom: 24px; right: 24px; }
     }
 
     function startSession() {
@@ -364,72 +299,253 @@
         
         window.voiceClient.connect();
     }
-    
-    // Transition back to LISTENING when speech ends
-    let silenceDuration = 0;
-    setInterval(() => {
-        if (currentUIState === 'AI_SPEAKING' && analyser && dataArray) {
-            analyser.getByteFrequencyData(dataArray);
-            let sum = 0;
-            for(let i=0; i<dataArray.length; i++) sum += dataArray[i];
-            if (sum === 0) {
-                silenceDuration += 500;
-                if (silenceDuration >= 2000) {
-                    if (currentUIState === 'AI_SPEAKING') {
-                        setUIState('LISTENING');
-                    }
-                    silenceDuration = 0;
-                }
-            } else {
-                silenceDuration = 0;
-            }
-        } else {
-            silenceDuration = 0;
-        }
-    }, 500);
 
-    async function finishAssessment() {
-        endBtn.disabled = true;
-        endBtn.innerHTML = '⏳';
-        
-        if (window.voiceClient) {
-            window.voiceClient.disconnect();
-        }
-        
-        try {
-            const resp = await fetch('/assessment/phase3/finalize', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ history: chatHistory })
-            });
-            
-            if (!resp.ok) throw new Error(`Server returned ${resp.status}`);
-
-            const data = await resp.json();
-            if (data.redirect) {
-                window.location.href = data.redirect;
-            } else {
-                alert("Error: No redirect URL provided by server.");
-                endBtn.disabled = false;
-                endBtn.innerHTML = 'Finish';
-            }
-        } catch (e) {
-            console.error(e);
-            alert("Network error while finalizing. Please try again.");
-            endBtn.disabled = false;
-            endBtn.innerHTML = 'Finish';
-        }
+    .hero-mobile-menu {
+        display: none;
+        position: absolute; top: 100%; left: 1.5rem; right: 1.5rem;
+        margin-top: 0.75rem; padding: 1.5rem;
+        flex-direction: column; gap: 0.75rem;
+        background: #fff; border-radius: 1.25rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 10px 15px -3px rgba(0,0,0,0.15);
     }
 
-    // Expose control functions globally for inline HTML onclick attributes
-    window.toggleVoiceSession = toggleVoiceSession;
-    window.toggleCaptions = toggleCaptions;
-    window.finishAssessment = finishAssessment;
+    .hero-mobile-menu.open { display: flex; }
 
     // Initialization
     setUIState('IDLE');
     {% if is_completed %}
     showFinishButton();
     {% endif %}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="chat-shell" id="shell">
+  <div class="chat-card">
+    <div class="chat-head">
+      <div class="avatar lg" id="head-avatar"><video src="/static/images/mascot.mp4" loop muted playsinline preload="metadata"></video></div>
+      <div>
+        <div class="head-title">Careo · Career Buddy</div>
+        <div class="head-status" id="status">Ready when you are</div>
+      </div>
+      <button class="end-btn" id="end-btn" onclick="finishAssessment()" title="End conversation">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="3"/></svg> End
+      </button>
+    </div>
+
+    <div class="msgs" id="msgs">
+      <div class="empty" id="empty">
+        <div class="avatar"><video src="/static/images/mascot.mp4" loop muted playsinline preload="metadata"></video></div>
+        <h3>Hi, I'm Careo</h3>
+        <p>Tap the mic to start talking, or type a message below.</p>
+      </div>
+    </div>
+
+    <div class="composer">
+      <div class="caption" id="caption"></div>
+      <button class="finish" id="finish-btn" onclick="finishAssessment()">Finish &amp; Get Results</button>
+      <div class="bar">
+        <button class="cc" id="cc-btn" onclick="toggleCaptions()" aria-label="Connect with AI — live captions">CC
+          <span class="tip">Connect with AI<small>Toggle live captions</small></span>
+        </button>
+        <div class="pill">
+          <input id="txt" type="text" placeholder="Type a message…" autocomplete="off" onkeydown="if(event.key==='Enter')sendTyped()" oninput="syncSend()">
+          <button class="icon-btn send" id="send-btn" onclick="sendTyped()" disabled title="Send">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M3.4 20.4 21 12 3.4 3.6 3.3 10l12.6 2-12.6 2z"/></svg>
+          </button>
+          <button class="icon-btn mic" id="mic-btn" onclick="toggleVoiceSession()" title="Start conversation"></button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/static/js/voice_client.js?v=2.4.2"></script>
+<script>
+const $ = id => document.getElementById(id);
+const statusEl=$('status'), msgs=$('msgs'), micBtn=$('mic-btn'), endBtn=$('end-btn'), finishBtn=$('finish-btn'),
+      caption=$('caption'), ccBtn=$('cc-btn'), headAvatar=$('head-avatar'), txt=$('txt'), sendBtn=$('send-btn');
+
+let currentUIState='IDLE', captionsEnabled=false, micMuted=false, isSpeakingActive=false;
+let chatHistory = {{ (result.chat_messages if result.chat_messages else []) | tojson | safe }};
+if (!Array.isArray(chatHistory)) chatHistory = [];
+let audioCtx=null, analyser=null, dataArray=null, audioSource=null;
+let liveUser=null, botRow=null;          // in-progress bubbles
+const botVideos=()=>document.querySelectorAll('video');
+
+const ICON = {
+  mic:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>',
+  muted:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 9v2a3 3 0 0 0 5.1 2.1M15 9.3V6a3 3 0 0 0-5.9-.8"/><path d="M5 11a7 7 0 0 0 11.2 5.6M19 11a7 7 0 0 1-.6 2.8M12 18v3"/><path d="M3 3l18 18"/></svg>',
+  retry:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5"/></svg>',
+  user:'<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0z"/></svg>'
+};
+
+/* ---------- mascot video: plays only while the AI speaks ---------- */
+function setMascot(playing){
+  document.querySelectorAll('.avatar video').forEach(v=>{ if(!playing) v.pause(); });
+  if(playing){
+    const live = botRow ? botRow.querySelector('video') : null;
+    [headAvatar.querySelector('video'), live].forEach(v=>v && v.play().catch(()=>{}));
+  }
+  headAvatar.classList.toggle('speaking', playing);
+  if(botRow) botRow.querySelector('.avatar').classList.toggle('speaking', playing);
+}
+
+/* ---------- chat rendering ---------- */
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+function scrollDown(){msgs.scrollTop=msgs.scrollHeight;}
+function addRow(role, html, live){
+  $('empty') && $('empty').remove();
+  const row=document.createElement('div'); row.className='row '+role;
+  const av = role==='bot'
+    ? '<div class="avatar"><video src="/static/images/mascot.mp4" loop muted playsinline preload="metadata"></video></div>'
+    : '<div class="avatar me">'+ICON.user+'</div>';
+  row.innerHTML = av+'<div class="bubble'+(live?' live':'')+'">'+html+'</div>';
+  msgs.appendChild(row); scrollDown(); return row;
+}
+function setBubble(row, text, live){const b=row.querySelector('.bubble');b.innerHTML=esc(text);b.classList.toggle('live',!!live);scrollDown();}
+function showTyping(){ if(!botRow){ botRow=addRow('bot','<span class="dots"><i></i><i></i><i></i></span>'); } }
+function showBotMessage(text){ if(!botRow) botRow=addRow('bot',''); setBubble(botRow,text,false); }
+function renderHistory(){
+  chatHistory.forEach(m=>{ if(!m||!m.content) return;
+    addRow(m.role==='user'?'me':'bot', esc(m.content)); });
+}
+
+/* ---------- state ---------- */
+function setStatus(t,on){statusEl.textContent=t;statusEl.classList.toggle('on',!!on);}
+function paintMic(kind){
+  micBtn.className='icon-btn mic'+(kind==='active'?' active':kind==='muted'?' muted':'');
+  micBtn.disabled = kind==='loading';
+  micBtn.innerHTML = kind==='loading' ? '<span class="spin"></span>'
+                   : kind==='muted' ? ICON.muted : kind==='retry' ? ICON.retry : ICON.mic;
+  micBtn.title = kind==='idle'?'Start conversation': kind==='muted'?'Mic paused — tap to resume': kind==='active'?'Mic on — tap to pause':'';
+}
+function setUIState(state){
+  currentUIState=state;
+  if(state!=='AI_SPEAKING'){ isSpeakingActive=false; setMascot(false); }
+  switch(state){
+    case 'IDLE': setStatus('Ready when you are'); paintMic('idle'); endBtn.style.display='none'; micMuted=false; break;
+    case 'CONNECTING': setStatus('Connecting…'); paintMic('loading'); break;
+    case 'LISTENING': setStatus(micMuted?'Mic paused':'Listening…',!micMuted); paintMic(micMuted?'muted':'active'); endBtn.style.display='inline-flex'; break;
+    case 'USER_SPEAKING': setStatus('Listening to you…',true); break;
+    case 'THINKING': setStatus('Careo is thinking…'); showTyping(); break;
+    case 'AI_SPEAKING': setStatus('Careo is speaking',true); isSpeakingActive=true; setMascot(true); setupAudioAnalysis(); break;
+    case 'ERROR': setStatus('Trouble connecting — try again'); paintMic('retry'); break;
+  }
+}
+
+/* ---------- mic mute helper (best-effort across voice_client versions) ---------- */
+function setMicTracks(enabled){
+  const vc=window.voiceClient; if(!vc) return;
+  if(typeof vc.setMicEnabled==='function'){ vc.setMicEnabled(enabled); return; }
+  const tracks=[];
+  [vc.localStream,vc.stream,vc.micStream].forEach(s=>s&&s.getAudioTracks&&tracks.push(...s.getAudioTracks()));
+  if(vc.pc&&vc.pc.getSenders) vc.pc.getSenders().forEach(s=>s.track&&s.track.kind==='audio'&&tracks.push(s.track));
+  tracks.forEach(t=>t.enabled=enabled);
+}
+
+/* ---------- audio level -> avatar glow ---------- */
+function setupAudioAnalysis(){
+  const vc=window.voiceClient;
+  if(!vc||!vc.remoteAudio||!vc.remoteAudio.srcObject) return;
+  try{
+    if(!audioCtx){
+      audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+      analyser=audioCtx.createAnalyser(); analyser.fftSize=256;
+      dataArray=new Uint8Array(analyser.frequencyBinCount);
+      audioSource=audioCtx.createMediaStreamSource(vc.remoteAudio.srcObject); audioSource.connect(analyser);
+    }
+    if(audioCtx.state==='suspended') audioCtx.resume().catch(()=>{});
+    (function loop(){
+      if(!isSpeakingActive){ headAvatar.style.transform=''; return; }
+      analyser.getByteFrequencyData(dataArray);
+      let s=0; for(let i=0;i<64;i++) s+=dataArray[i];
+      headAvatar.style.transform='scale('+(1+(s/64/255)*0.12)+')';
+      requestAnimationFrame(loop);
+    })();
+  }catch(e){ console.warn('Audio analysis unavailable',e); }
+}
+
+/* ---------- captions ---------- */
+function toggleCaptions(){captionsEnabled=!captionsEnabled;ccBtn.classList.toggle('on',captionsEnabled);caption.classList.toggle('show',captionsEnabled);}
+function updateCaption(t){caption.textContent=t||'';}
+
+/* ---------- composer ---------- */
+function syncSend(){sendBtn.disabled=!txt.value.trim();}
+function sendTyped(){
+  const t=txt.value.trim(); if(!t) return;
+  addRow('me',esc(t)); chatHistory.push({role:'user',content:t});
+  txt.value=''; syncSend();
+  const vc=window.voiceClient;
+  if(vc && typeof vc.sendText==='function'){ vc.sendText(t); showTyping(); setStatus('Careo is thinking…'); }
+  else console.warn('voice_client.js has no sendText(); typed message saved to transcript only.');
+}
+
+/* ---------- session ---------- */
+function toggleVoiceSession(){
+  if(currentUIState==='CONNECTING') return;
+  if(['IDLE','ERROR','DISCONNECTED'].includes(currentUIState)){ startSession(); return; }
+  micMuted=!micMuted; setMicTracks(!micMuted);                 // pause / resume the mic
+  setStatus(micMuted?'Mic paused':(currentUIState==='AI_SPEAKING'?'Careo is speaking':'Listening…'),!micMuted);
+  paintMic(micMuted?'muted':'active');
+}
+function startSession(){
+  setUIState('CONNECTING'); updateCaption('Connecting to AI…');
+  if(window.voiceClient){ try{window.voiceClient.disconnect();}catch(e){} }
+  const proto=location.protocol==='https:'?'wss:':'ws:';
+  window.voiceClient=new VoiceClient(`${proto}//${location.host}/api/webrtc/offer`, state=>{
+    if(state==='LISTENING') setUIState('LISTENING');
+    else if(state==='ERROR') setUIState('ERROR');
+    else if(state==='DISCONNECTED') setUIState('IDLE');
+  }, msg=>{
+    if(msg&&msg.type==='VOICE_ERROR'){ updateCaption(msg.message||'Microphone connection failed. Check browser permissions.'); return; }
+    if(!msg||!msg.type) return;
+    if(msg.type==='TRANSCRIPT_PARTIAL'){
+      setUIState('USER_SPEAKING'); updateCaption(msg.text);
+      if(!liveUser) liveUser=addRow('me','',true); setBubble(liveUser,msg.text,true);
+    } else if(msg.type==='TRANSCRIPT_FINAL'){
+      if(!liveUser) liveUser=addRow('me','',false); setBubble(liveUser,msg.text,false); liveUser=null;
+      updateCaption(msg.text); chatHistory.push({role:'user',content:msg.text}); setUIState('THINKING');
+    } else if(msg.type==='ASSISTANT_MESSAGE'){
+      showBotMessage(msg.text); updateCaption(msg.text); chatHistory.push({role:'assistant',content:msg.text});
+      setUIState('AI_SPEAKING');
+    } else if(msg.type==='BOT_STARTED_SPEAKING'){ setUIState('AI_SPEAKING');
+    } else if(msg.type==='BOT_STOPPED_SPEAKING'){
+      if(currentUIState==='AI_SPEAKING'){ botRow=null; setUIState('LISTENING'); }
+    } else if(msg.type==='CONVERSATION_COMPLETED'){ finishBtn.style.display='block'; }
+  });
+  window.voiceClient.connect();
+}
+
+/* fallback: AI audio went silent -> back to listening */
+let silence=0;
+setInterval(()=>{
+  if(currentUIState==='AI_SPEAKING'&&analyser&&dataArray){
+    analyser.getByteFrequencyData(dataArray);
+    let s=0; for(let i=0;i<dataArray.length;i++) s+=dataArray[i];
+    if(s===0){ silence+=500; if(silence>=2000){ botRow=null; setUIState('LISTENING'); silence=0; } } else silence=0;
+  } else silence=0;
+},500);
+
+async function finishAssessment(){
+  finishBtn.disabled=endBtn.disabled=true; finishBtn.textContent='Finishing…';
+  if(window.voiceClient) window.voiceClient.disconnect();
+  try{
+    const r=await fetch('/assessment/phase3/finalize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({history:chatHistory})});
+    if(!r.ok) throw new Error('Server returned '+r.status);
+    const d=await r.json();
+    if(d.redirect) location.href=d.redirect; else throw new Error('No redirect URL');
+  }catch(e){
+    console.error(e); alert('Could not finalize. Please try again.');
+    finishBtn.disabled=endBtn.disabled=false; finishBtn.textContent='Finish & Get Results';
+  }
+}
+
+window.toggleVoiceSession=toggleVoiceSession; window.toggleCaptions=toggleCaptions;
+window.finishAssessment=finishAssessment; window.sendTyped=sendTyped; window.syncSend=syncSend;
+renderHistory(); setUIState('IDLE');
+// Per-video first frame so paused avatars show the mascot, not a blank circle
+document.addEventListener('loadedmetadata',e=>{ if(e.target.tagName==='VIDEO' && e.target.paused) e.target.currentTime=0.1; },true);
 </script>
 {% endblock %}
