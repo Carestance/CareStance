@@ -147,6 +147,20 @@
         liveCaption.style.opacity = '1';
     }
 
+    function showFinishButton() {
+        endBtn.classList.remove(
+            'hidden', 'w-12', 'h-12', 'rounded-full',
+            'bg-rose-50', 'text-rose-500', 'hover:bg-rose-100',
+            'border-rose-200'
+        );
+        endBtn.classList.add(
+            'w-auto', 'px-6', 'rounded-xl', 'bg-emerald-600',
+            'hover:bg-emerald-700', 'text-white', 'font-bold', 'py-3'
+        );
+        endBtn.innerHTML = 'Finish & Get Results';
+        endBtn.title = 'Finish assessment and get results';
+    }
+
     function setUIState(state) {
         currentUIState = state;
         
@@ -184,7 +198,7 @@
                 voiceRing.style.opacity = '0.5';
                 micBtn.innerHTML = '🛑';
                 micBtn.className = 'w-20 h-20 rounded-full bg-rose-500 hover:bg-rose-600 text-white shadow-xl shadow-rose-200 flex items-center justify-center text-3xl transition-all transform hover:scale-105 active:scale-95';
-                endBtn.classList.remove('hidden');
+                showFinishButton();
                 break;
                 
             case 'USER_SPEAKING':
@@ -344,10 +358,7 @@
                     setUIState('LISTENING');
                 }
             } else if (msg.type === 'CONVERSATION_COMPLETED') {
-                // Change the end button to a prominent "Finish & Get Results" text button
-                endBtn.classList.remove('hidden', 'w-12', 'h-12', 'rounded-full');
-                endBtn.classList.add('w-auto', 'px-6', 'rounded-xl', 'bg-emerald-600', 'hover:bg-emerald-700', 'text-white', 'font-bold', 'py-3');
-                endBtn.innerHTML = 'Finish & Get Results';
+                showFinishButton();
             }
         });
         
@@ -417,5 +428,8 @@
 
     // Initialization
     setUIState('IDLE');
+    {% if is_completed %}
+    showFinishButton();
+    {% endif %}
 </script>
 {% endblock %}
