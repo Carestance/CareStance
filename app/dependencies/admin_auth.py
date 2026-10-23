@@ -13,22 +13,12 @@ from app.models import User
 logger = logging.getLogger(__name__)
 
 
-import jwt
-
-JWT_SECRET_KEY = os.getenv("SECRET_KEY", "a_very_secret_key_for_sessions")
-JWT_ALGORITHM = "HS256"
+from app.security import decode_access_token, JWT_ALGORITHM, JWT_SECRET_KEY
 
 
 def _decode_cookie_user_id(token: str) -> str | None:
-    if not token:
-        return None
-    try:
-        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
-        return payload.get("sub")
-    except Exception:
-        if token.isdigit():
-            return token
-        return None
+    return decode_access_token(token)
+
 
 
 async def get_current_admin(

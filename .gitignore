@@ -44,11 +44,25 @@ next-env.d.ts
 venv
 .venv/
 
-__pycache__
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
 
 *.db
+*.sqlite3
 
+# Logs and runtime dumps
+*.log
 .envserver.log
-
 server.log
+traceback_dump.txt
+assessment_error.log
+carestance_audit.txt
+*.zip
+
+# Sensitive database dumps and backups
+backups/*.sql
+backups/assets/
+
 .env
