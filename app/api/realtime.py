@@ -9,12 +9,8 @@ class ServerIceLogger(logging.Handler):
     def emit(self, record):
         try:
             msg = record.getMessage()
-            # Do not log ICE credentials/passwords
-            if " < " in msg or msg.startswith("< "):
-                print(f"[Server ICE] STUN_REQUEST_OR_DATA_RECEIVED: {msg}", flush=True)
-            elif " > " in msg or msg.startswith("> "):
-                print(f"[Server ICE] STUN_RESPONSE_OR_DATA_SENT: {msg}", flush=True)
-            elif "Check" in msg:
+            # Avoid excessive per-packet logging during streaming while preserving critical ICE lifecycle events
+            if "Check" in msg:
                 print(f"[Server ICE] ICE_CHECK_EVENT: {msg}", flush=True)
             elif "ICE completed" in msg:
                 print(f"[Server ICE] ICE_HANDSHAKE_COMPLETED", flush=True)
@@ -24,9 +20,10 @@ class ServerIceLogger(logging.Handler):
             pass
 
 _aioice_logger = logging.getLogger("aioice")
-_aioice_logger.setLevel(logging.DEBUG)
+_aioice_logger.setLevel(logging.INFO)
 if not any(isinstance(h, ServerIceLogger) for h in _aioice_logger.handlers):
     _aioice_logger.addHandler(ServerIceLogger())
+
 
 router = APIRouter()
 

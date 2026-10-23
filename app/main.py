@@ -1,4 +1,5 @@
 import json
+import logging
 import uuid
 import random
 import datetime
@@ -18,6 +19,9 @@ from .appwrite_helper import get_user_by_id, get_user_by_email, update_assessmen
 from dotenv import load_dotenv
 from starlette.middleware.sessions import SessionMiddleware
 from authlib.integrations.starlette_client import OAuth
+
+logger = logging.getLogger("carestance.main")
+
 from fastapi import FastAPI, Depends, HTTPException, status, Request, Form, Response, BackgroundTasks, File, UploadFile
 from pydantic import BaseModel
 from typing import List, Optional
@@ -51,21 +55,17 @@ from .services.onboarding_milestone_service import build_onboarding_milestone_pa
 
 LIVE_SIMULATION_SESSIONS = {}
 
-import jwt
-JWT_SECRET_KEY = os.getenv("SECRET_KEY", "a_very_secret_key_for_sessions")
-JWT_ALGORITHM = "HS256"
+import secrets
+from app.dependencies.admin_auth import get_current_admin
+from app.security import (
+    create_access_token,
+    decode_access_token,
+    get_auth_cookie_config,
+    is_production_environment,
+    JWT_SECRET_KEY,
+    JWT_ALGORITHM,
+)
 
-def create_access_token(user_id: str):
-    expire = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=30)
-    to_encode = {"sub": str(user_id), "exp": expire}
-    return jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
-
-def decode_access_token(token: str):
-    try:
-        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
-        return payload.get("sub")
-    except Exception:
-        return None
 try:
     from app.pipeline.feature_extractor import FeatureExtractor
     extractor_tool = FeatureExtractor()
@@ -902,27 +902,30 @@ try:
 except (ImportError, ModuleNotFoundError) as e:
     print(f"Warning: Realtime router module not available ({e}). Skipping realtime_router.")
 
-# Global Exception Handler for better debugging
+# Global Exception Handler for container-friendly structured logging
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    import traceback
-    print(f"GLOBAL ERROR: {exc}", flush=True)
-    traceback.print_exc()
-    with open("traceback_dump.txt", "w") as f:
-        traceback.print_exc(file=f)
+    logger.error(
+        "Unhandled exception processing %s %s: %s",
+        request.method,
+        request.url.path,
+        exc,
+        exc_info=True,
+    )
     try:
         return templates.TemplateResponse(
             request=request,
             name="error_update.html",
-            context={"error": str(exc)},
-            status_code=500
+            context={"error": "An unexpected error occurred. Please try again later."},
+            status_code=500,
         )
     except Exception as template_exc:
-        print(f"Error rendering error template: {template_exc}")
+        logger.error("Error rendering error template: %s", template_exc)
         return HTMLResponse(
-            content=f"<html><body><h1>Internal Server Error</h1><p>We'll be right back. Fixed soon!</p></body></html>",
-            status_code=500
+            content="<html><body><h1>Internal Server Error</h1><p>We'll be right back. Fixed soon!</p></body></html>",
+            status_code=500,
         )
+
 
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.middleware.cors import CORSMiddleware
@@ -1128,11 +1131,11 @@ from app.security import get_password_hash, verify_password, pwd_context
 
 async def get_current_user(request: Request, db: AsyncSession = Depends(get_db)):
     token = request.cookies.get("user_id")
-    if not token: return None
+    if not token:
+        return None
     user_id = decode_access_token(token)
-    if not user_id and str(token).isdigit():
-        user_id = str(token)
-    if not user_id: return None
+    if not user_id:
+        return None
     try:
         uid = int(user_id)
         stmt = select(models.User).options(selectinload(models.User.assessment)).where(models.User.id == uid)
@@ -1140,7 +1143,8 @@ async def get_current_user(request: Request, db: AsyncSession = Depends(get_db))
         db_user = result.scalars().first()
         if db_user:
             return db_user
-    except Exception: return None
+    except Exception:
+        return None
 
 # Routes
 
@@ -1245,24 +1249,34 @@ async def sitemap_xml(request: Request):
     return Response(content=content, media_type="application/xml")
 
 @app.get("/admin/create-adsense-test-user")
-async def create_adsense_test_user(db: AsyncSession = Depends(get_db)):
-    # Create a user for AdSense crawler to use
+async def create_adsense_test_user(
+    db: AsyncSession = Depends(get_db),
+    admin: models.User = Depends(get_current_admin),
+):
+    if is_production_environment():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Endpoint not found")
+
+    # Create or rotate test user credentials for crawler/testing in non-production environments
     email = "adsense-tester@carestance.me"
     existing = (await db.execute(select(models.User).where(models.User.email == email))).scalars().first()
+    generated_pw = f"AdSense_{secrets.token_urlsafe(16)}"
+    hashed_pw = get_password_hash(generated_pw)
+
     if existing:
-        return {"message": "User already exists", "email": email, "password": "CareStance2026!"}
-    
-    hashed_pw = get_password_hash("CareStance2026!")
+        existing.hashed_password = hashed_pw
+        await db.commit()
+        return {"message": "User credentials reset successfully", "email": email, "password": generated_pw}
+
     new_user = models.User(
-        email=email, 
-        hashed_password=hashed_pw, 
-        full_name="AdSense Analytics Tester", 
+        email=email,
+        hashed_password=hashed_pw,
+        full_name="AdSense Analytics Tester",
         role="student",
-        onboarded=True # Skip the onboarding for the bot
+        onboarded=True,  # Skip onboarding for the bot
     )
     db.add(new_user)
     await db.commit()
-    return {"message": "AdSense Test User Created Successfully", "email": email, "password": "CareStance2026!"}
+    return {"message": "AdSense Test User Created Successfully", "email": email, "password": generated_pw}
 
 @app.get("/signup", response_class=HTMLResponse)
 async def signup_page(request: Request):
@@ -1296,6 +1310,10 @@ async def signup(
     if not re.match(r'^\+\d{1,3}\s?\d{10}$', contact_number.strip()):
         return templates.TemplateResponse(request=request, name="signup.html", context={"error": "Invalid phone number. It must include a country code (e.g., +91) followed by a 10-digit number."})
     
+    # Prevent privilege escalation: self-service signup can only register student or counsellor
+    if role not in ("student", "counsellor"):
+        role = "student"
+
     try:
         # 2. Create User in Local DB
         hashed_pw = get_password_hash(password)
@@ -1368,19 +1386,24 @@ async def login(
     response = RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
     # 30 day persistent session
     token = create_access_token(str(user.id))
+    cookie_kwargs = get_auth_cookie_config(max_age=30 * 24 * 60 * 60)
     response.set_cookie(
-        key="user_id", 
-        value=token, 
-        max_age=30 * 24 * 60 * 60,
-        httponly=True,
-        samesite="lax"
+        key="user_id",
+        value=token,
+        **cookie_kwargs,
     )
     return response
 
 @app.get("/logout")
 async def logout(response: Response):
     response = RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
-    response.delete_cookie("user_id")
+    response.delete_cookie(
+        key="user_id",
+        path="/",
+        secure=is_production_environment(),
+        httponly=True,
+        samesite="lax",
+    )
     return response
 
 @app.get("/forgot-password", response_class=HTMLResponse)
@@ -1578,7 +1601,8 @@ async def auth_callback(request: Request, db: AsyncSession = Depends(get_db)):
         redirect_url = "/select-role" if (is_new_user or not user.role) else "/dashboard"
         response = RedirectResponse(url=redirect_url, status_code=status.HTTP_302_FOUND)
         token = create_access_token(str(user.id))
-        response.set_cookie(key="user_id", value=token, max_age=30 * 24 * 60 * 60, httponly=True, samesite="lax")
+        cookie_kwargs = get_auth_cookie_config(max_age=30 * 24 * 60 * 60)
+        response.set_cookie(key="user_id", value=token, **cookie_kwargs)
         return response
     except Exception as exc:
         import traceback
@@ -1771,13 +1795,10 @@ async def assessment_start(
         await db.commit()
         sync_assessment_to_appwrite(user.id, result)
     except Exception as e:
-        import traceback
-        error_trace = traceback.format_exc()
-        print(f"Assessment start error: {e}\n{error_trace}")
-        with open("assessment_error.log", "w") as f:
-            f.write(error_trace)
+        logger.error("Assessment start error for user: %s", e, exc_info=True)
         await db.rollback()
         return RedirectResponse(url="/dashboard?error=Assessment+failed+to+start", status_code=status.HTTP_302_FOUND)
+
     
     return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
 
