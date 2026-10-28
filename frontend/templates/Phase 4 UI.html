@@ -218,10 +218,10 @@
         transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease, border-color 0.2s ease;
         cursor: grab;
         position: absolute;
-        min-width: 260px;
+        min-width: 190px;
         z-index: 100;
         user-select: none;
-        box-shadow: 0 14px 34px -16px rgba(0,0,0,0.6);
+        box-shadow: 0 10px 24px -12px rgba(0,0,0,0.6);
     }
     .workspace-node.dragging {
         cursor: grabbing; opacity: 0.95; z-index: 1000;
@@ -873,19 +873,19 @@
                 node.style.top = item.y + 'px';
 
                 node.innerHTML = `
-                    <div class="p-4">
-                        <div class="flex items-center gap-3 mb-3 pb-3" style="border-bottom: 1px solid rgba(255,255,255,0.07);">
+                    <div class="p-3">
+                        <div class="flex items-center gap-2 mb-2 pb-2" style="border-bottom: 1px solid rgba(255,255,255,0.07);">
                             <span class="hex-badge accent-hex"><i class="fa-solid ${item.icon}"></i></span>
                             <div class="min-w-0">
-                                <span class="text-sm font-bold block tracking-wide truncate" style="color: var(--text-primary);">${item.label}</span>
-                                <span class="type-pill mt-1 inline-block">${item.type}</span>
+                                <span class="text-xs font-bold block tracking-wide truncate" style="color: var(--text-primary);">${item.label}</span>
+                                <span class="type-pill mt-0.5 inline-block">${item.type}</span>
                             </div>
                         </div>
-                        <div class="text-xs mb-4 p-2.5 rounded-xl line-clamp-2 h-10 leading-relaxed" style="color: var(--text-secondary); background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);">${item.description || '<em style="color: var(--text-muted);">No description provided</em>'}</div>
-                        <div class="flex gap-2">
-                            <button class="node-button flex-1 py-1.5 text-xs rounded-lg" style="background: var(--teal-soft); color: var(--teal); border: 1px solid rgba(45,212,191,0.25);" onclick="editItem(${item.id})"><i class="fa-solid fa-pen"></i> Edit</button>
-                            <button class="node-button flex-1 py-1.5 text-xs rounded-lg" style="background: var(--purple-soft); color: var(--purple); border: 1px solid rgba(167,139,250,0.25);" onclick="startLinking(${item.id})"><i class="fa-solid fa-link"></i> Link</button>
-                            <button class="node-button px-2.5 py-1.5 text-xs rounded-lg" style="background: var(--rose-soft); color: var(--rose); border: 1px solid rgba(251,113,133,0.25);" onclick="deleteItem(${item.id})"><i class="fa-solid fa-xmark"></i></button>
+                        <div class="text-xs mb-3 p-2 rounded-lg line-clamp-2 h-8 leading-relaxed" style="color: var(--text-secondary); background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);">${item.description || '<em style="color: var(--text-muted);">No description</em>'}</div>
+                        <div class="flex gap-1.5">
+                            <button class="node-button flex-1 py-1 text-xs rounded-md" style="background: var(--teal-soft); color: var(--teal); border: 1px solid rgba(45,212,191,0.25);" onclick="editItem(${item.id})"><i class="fa-solid fa-pen"></i> Edit</button>
+                            <button class="node-button flex-1 py-1 text-xs rounded-md" style="background: var(--purple-soft); color: var(--purple); border: 1px solid rgba(167,139,250,0.25);" onclick="startLinking(${item.id})"><i class="fa-solid fa-link"></i> Link</button>
+                            <button class="node-button px-2 py-1 text-xs rounded-md" style="background: var(--rose-soft); color: var(--rose); border: 1px solid rgba(251,113,133,0.25);" onclick="deleteItem(${item.id})"><i class="fa-solid fa-xmark"></i></button>
                         </div>
                     </div>
                 `;
@@ -955,8 +955,8 @@
             const svg = document.getElementById('connections-svg');
             svg.querySelectorAll('path[data-connection]').forEach(path => path.remove());
 
-            const nodeWidth = 260;
-            const nodeHeight = 130; // Approx height
+            const nodeWidth = 190;
+            const nodeHeight = 106; // Matches p-3 layout height
 
             connections.forEach(conn => {
                 const fromItem = workspaceItems.find(i => i.id === conn.from);

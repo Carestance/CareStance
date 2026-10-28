@@ -3642,6 +3642,75 @@ async def my_monthly_path(request: Request, career: str = "", db: AsyncSession =
     )
     growth_profile, plan = await _get_monthly_plan(user, db, career)
     progress = get_monthly_plan_progress(plan)
+
+    # ── Growth Map email (idempotent, fire-and-forget) ──────────────────────
+    # Send once per month/career when the plan is first generated.
+    if plan and not plan.get("plan_email_sent") and getattr(user, "email", None):
+        try:
+            user_name = getattr(user, "full_name", None) or getattr(user, "email", "")
+            career_label = plan.get("career_title") or growth_profile.get("top_career", "your chosen career")
+            milestone = plan.get("milestone", "Build skills and momentum")
+            app_url = os.getenv("APP_URL", "https://carestance.me")
+            path_url = f"{app_url}/my-monthly-path{('?career=' + career) if career else ''}"
+            email_html = f"""
+            <div style="font-family:'Segoe UI',sans-serif;max-width:600px;margin:auto;padding:24px;border:1px solid #e2e8f0;border-radius:16px;background:#f8fafc;">
+                <div style="text-align:center;margin-bottom:20px;">
+                    <h1 style="color:#0d9488;margin-bottom:6px;">Your Growth Map is Ready! 🗺️</h1>
+                    <p style="color:#64748b;font-size:15px;">Hello {user_name}, your personalised monthly career roadmap has been generated.</p>
+                </div>
+                <div style="background:#fff;padding:24px;border-radius:12px;box-shadow:0 4px 6px -1px rgba(0,0,0,0.08);">
+                    <p style="color:#1e293b;font-size:15px;line-height:1.6;">Your <strong>{career_label}</strong> growth road map for this month is live. This month's milestone:</p>
+                    <blockquote style="border-left:4px solid #0d9488;margin:16px 0;padding:10px 16px;background:#f0fdfa;color:#0f766e;font-weight:600;border-radius:0 8px 8px 0;">
+                        {milestone}
+                    </blockquote>
+                    <p style="color:#475569;font-size:14px;line-height:1.6;">Open your monthly path to see your week-by-week action plan, resources, and career experiments tailored specifically for you.</p>
+                    <div style="text-align:center;margin-top:24px;">
+                        <a href="{path_url}" style="display:inline-block;padding:12px 28px;background:#0d9488;color:#fff;text-decoration:none;border-radius:10px;font-weight:700;font-size:15px;">Open My Growth Map →</a>
+                    </div>
+                </div>
+                <p style="text-align:center;color:#94a3b8;font-size:12px;margin-top:20px;">© 2026 CareStance — Your personalised career compass.</p>
+            </div>
+            """
+            # Send in background to avoid blocking the page load
+            import asyncio
+            asyncio.get_event_loop().run_in_executor(
+                None,
+                lambda: send_email(
+                    user.email,
+                    f"🗺️ Your {career_label} Growth Map is Ready — CareStance",
+                    email_html
+                )
+            )
+            # Mark email as sent in the plan_data to prevent re-sending
+            # We need to update the persisted plan_record directly
+            month_key = datetime.date.today().strftime("%Y-%m")
+            if career:
+                pr = (await db.execute(
+                    select(models.CareerGrowthPlan).where(
+                        models.CareerGrowthPlan.user_id == user.id,
+                        models.CareerGrowthPlan.month_key == month_key,
+                        models.CareerGrowthPlan.career_title == career.strip(),
+                    )
+                )).scalars().first()
+            else:
+                pr = (await db.execute(
+                    select(models.MonthlyGrowthPlan).where(
+                        models.MonthlyGrowthPlan.user_id == user.id,
+                        models.MonthlyGrowthPlan.month_key == month_key,
+                    )
+                )).scalars().first()
+            if pr:
+                import copy
+                updated = copy.deepcopy(pr.plan_data or {})
+                updated["plan_email_sent"] = True
+                pr.plan_data = updated
+                from sqlalchemy.orm.attributes import flag_modified
+                flag_modified(pr, "plan_data")
+                await db.commit()
+        except Exception as _email_err:
+            print(f"Growth Map email skipped: {_email_err}")
+    # ────────────────────────────────────────────────────────────────────────
+
     return templates.TemplateResponse(request=request, name="monthly_path.html", context={
         "user": user,
         "growth_profile": growth_profile,
@@ -3654,6 +3723,7 @@ async def my_monthly_path(request: Request, career: str = "", db: AsyncSession =
         "growth_report": build_monthly_growth_report(plan or {}),
         "growth_momentum": get_growth_momentum(plan or {}),
     })
+
 
 
 @app.post("/my-monthly-path/evidence")
@@ -5563,16 +5633,24 @@ async def assessment_phase3(request: Request, mode: str = "chat", db: AsyncSessi
     if not result:
         return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
         
-    if mode in ["chat", "text"]:
-        return RedirectResponse(url="/chatbot?mode=assessment", status_code=status.HTTP_302_FOUND)
-
     is_completed = (result.phase3_result == "COMPLETED")
     import json
     history_json = json.dumps(result.chat_messages or [])
-    
+
+    # Chat / text mode → dedicated chat assessment interface
+    if mode in ["chat", "text"]:
+        return templates.TemplateResponse(request=request, name="assessment_phase3.html", context={
+            "user": user,
+            "result": result,
+            "mode": "chat",
+            "is_completed": is_completed,
+            "history_json": history_json
+        })
+
+    # Voice mode → voice companion interface
     return templates.TemplateResponse(request=request, name="assessment_phase3_v2.html", context={
-        "user": user, 
-        "result": result, 
+        "user": user,
+        "result": result,
         "mode": mode,
         "is_completed": is_completed,
         "history_json": history_json
