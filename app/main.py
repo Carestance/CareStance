@@ -5979,6 +5979,11 @@ async def phase3_chat_v2(request: Request, chat_req: Phase3V2ChatRequest, db: As
 class Phase3FinalizeRequest(BaseModel):
     history: list = []
 
+
+def _select_phase3_finalize_history(submitted_history, persisted_history):
+    return submitted_history or persisted_history or []
+
+
 @app.post("/assessment/phase3/finalize")
 async def phase3_finalize(request: Request, finalize_req: Phase3FinalizeRequest, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
@@ -5994,12 +5999,11 @@ async def phase3_finalize(request: Request, finalize_req: Phase3FinalizeRequest,
     # Always mark as COMPLETED when student initiates finalization
     result.phase3_result = "COMPLETED"
 
-    # Use canonical transcript persisted by the WebRTC session or fallback to request history
-    if not result.chat_messages and finalize_req.history:
-        result.chat_messages = finalize_req.history
-        await db.commit()
+    # The browser has the latest transcript on manual finish; persisted history is fallback.
+    history = _select_phase3_finalize_history(finalize_req.history, result.chat_messages)
+    if finalize_req.history:
+        result.chat_messages = history
 
-    history = result.chat_messages or finalize_req.history or []
     transcript = ""
     for msg in history:
         role = msg.get("role", "user")
