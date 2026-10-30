@@ -125,6 +125,62 @@
 
   @keyframes voice-dot { to { opacity: 0.3; transform: translateY(-3px); } }
 
+  .result-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(10, 34, 34, 0.72);
+    backdrop-filter: blur(7px);
+  }
+
+  .result-overlay.visible { display: flex; }
+
+  .result-card {
+    width: min(390px, 100%);
+    padding: 32px 28px;
+    border: 1px solid #dcebe5;
+    border-radius: 22px;
+    background: #fff;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.24);
+    text-align: center;
+  }
+
+  .result-orbit {
+    width: 76px;
+    height: 76px;
+    display: grid;
+    place-items: center;
+    margin: 0 auto 20px;
+    border: 4px solid #d9eee6;
+    border-top-color: #0e8069;
+    border-right-color: #0e8069;
+    border-radius: 50%;
+    animation: result-spin 1.15s linear infinite;
+  }
+
+  .result-orbit span {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #baf1dc, #0e8069);
+    box-shadow: 0 0 20px rgba(14, 128, 105, 0.3);
+    animation: result-pulse 1.5s ease-in-out infinite;
+  }
+
+  .result-card h2 { margin: 0 0 8px; color: #123b3b; font-size: 1.35rem; }
+  .result-card p { margin: 0; color: #62726d; line-height: 1.55; }
+
+  @keyframes result-spin { to { transform: rotate(360deg); } }
+  @keyframes result-pulse { 50% { transform: scale(0.82); opacity: 0.72; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .result-orbit, .result-orbit span { animation-duration: 3s; }
+  }
+
   @media (max-width: 600px) {
     .chat-shell { width: 100%; min-height: calc(100dvh - 70px); margin: 0 auto; }
     .chat-card { min-height: calc(100dvh - 70px); border-right: 0; border-left: 0; border-radius: 0; }
@@ -177,13 +233,24 @@
   </div>
 </div>
 
-<script src="/static/js/voice_client.js?v=2.4.2"></script>
+<div class="result-overlay" id="result-overlay" role="dialog" aria-modal="true"
+     aria-labelledby="result-title" aria-describedby="result-description" aria-hidden="true">
+  <div class="result-card" role="status" aria-live="polite">
+    <div class="result-orbit" aria-hidden="true"><span></span></div>
+    <h2 id="result-title">Preparing your results</h2>
+    <p id="result-description">We're reviewing what you shared to create your career recommendations.</p>
+  </div>
+</div>
+
+<script src="/static/js/voice_client.js?v=2.4.3"></script>
 <script>
 const $ = id => document.getElementById(id);
 const statusEl=$('status'), msgs=$('msgs'), micBtn=$('mic-btn'), endBtn=$('end-btn'), finishBtn=$('finish-btn'),
-      caption=$('caption'), ccBtn=$('cc-btn'), headAvatar=$('head-avatar'), txt=$('txt'), sendBtn=$('send-btn');
+      caption=$('caption'), ccBtn=$('cc-btn'), headAvatar=$('head-avatar'), txt=$('txt'), sendBtn=$('send-btn'),
+      resultOverlay=$('result-overlay');
 
 let currentUIState='IDLE', captionsEnabled=false, micMuted=false, isSpeakingActive=false;
+let isFinalizing=false;
 let chatHistory = JSON.parse($('shell').dataset.chatHistory || '[]');
 if (!Array.isArray(chatHistory)) chatHistory = [];
 let audioCtx=null, analyser=null, dataArray=null, audioSource=null;
@@ -291,11 +358,13 @@ function updateCaption(t){caption.textContent=t||'';}
 function syncSend(){sendBtn.disabled=!txt.value.trim();}
 function sendTyped(){
   const t=txt.value.trim(); if(!t) return;
-  addRow('me',esc(t)); chatHistory.push({role:'user',content:t});
-  txt.value=''; syncSend();
   const vc=window.voiceClient;
-  if(vc && typeof vc.sendText==='function'){ vc.sendText(t); showTyping(); setStatus('Careo is thinking…'); }
-  else console.warn('voice_client.js has no sendText(); typed message saved to transcript only.');
+  if(!vc || typeof vc.sendText!=='function' || !vc.sendText(t)){
+    updateCaption('Connect with the mic before sending a message.');
+    return;
+  }
+  addRow('me',esc(t)); chatHistory.push({role:'user',content:t});
+  txt.value=''; syncSend(); showTyping(); setStatus('Careo is thinking…');
 }
 
 /* ---------- session ---------- */
@@ -345,7 +414,12 @@ setInterval(()=>{
 },500);
 
 async function finishAssessment(){
-  finishBtn.disabled=endBtn.disabled=true; finishBtn.textContent='Finishing…';
+  if(isFinalizing) return;
+  isFinalizing=true;
+  finishBtn.disabled=endBtn.disabled=true; finishBtn.textContent='Preparing…';
+  resultOverlay.classList.add('visible');
+  resultOverlay.setAttribute('aria-hidden','false');
+  $('shell').setAttribute('aria-busy','true');
   if(window.voiceClient) window.voiceClient.disconnect();
   try{
     const r=await fetch('/assessment/phase3/finalize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({history:chatHistory})});
@@ -354,6 +428,10 @@ async function finishAssessment(){
     if(d.redirect) location.href=d.redirect; else throw new Error('No redirect URL');
   }catch(e){
     console.error(e); alert('Could not finalize. Please try again.');
+    isFinalizing=false;
+    resultOverlay.classList.remove('visible');
+    resultOverlay.setAttribute('aria-hidden','true');
+    $('shell').removeAttribute('aria-busy');
     finishBtn.disabled=endBtn.disabled=false; finishBtn.textContent='Finish & Get Results';
   }
 }

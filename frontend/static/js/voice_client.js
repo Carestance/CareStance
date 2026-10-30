@@ -817,6 +817,19 @@ class VoiceClient {
         this.chatHistory.push({ role: 'user', content: text });
     }
 
+    sendText(text) {
+        const content = typeof text === 'string' ? text.trim() : '';
+        if (!content || !this.dataChannel || this.dataChannel.readyState !== 'open') {
+            return false;
+        }
+
+        this.dataChannel.send(JSON.stringify({
+            type: 'USER_TEXT',
+            text: content
+        }));
+        return true;
+    }
+
     speak(text) {
         this.onMessage(text, 'assistant');
         this.setState('SPEAKING', this.connectionAttemptId);

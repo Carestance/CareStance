@@ -9,10 +9,13 @@ class STTProviderConfig:
         except ImportError:
             raise RuntimeError("pipecat-ai is not installed")
             
-        key = api_key or config.deepgram_api_key
+        key = api_key if api_key is not None else config.deepgram_api_key
+        if key is None:
+            raise ValueError("Deepgram API key not provided or found in environment.")
+        key = str(key).strip()
         if not key:
             raise ValueError("Deepgram API key not provided or found in environment.")
-            
+
         return DeepgramSTTService(
             api_key=key,
             settings=DeepgramSTTService.Settings(

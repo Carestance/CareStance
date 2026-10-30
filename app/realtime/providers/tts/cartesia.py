@@ -9,12 +9,18 @@ class TTSProviderConfig:
         except ImportError:
             raise RuntimeError("pipecat-ai is not installed")
             
-        key = api_key or config.cartesia_api_key
-        vid = voice_id or config.cartesia_voice_id
-        
+        key = api_key if api_key is not None else config.cartesia_api_key
+        if key is None:
+            raise ValueError("Cartesia API key not provided or found in environment.")
+        key = str(key).strip()
         if not key:
             raise ValueError("Cartesia API key not provided or found in environment.")
-            
+
+        vid = config.cartesia_voice_id if voice_id is None else voice_id
+        if vid is None:
+            vid = config.cartesia_voice_id
+        vid = str(vid).strip() or config.cartesia_voice_id
+
         from pipecat.services.tts_service import TextAggregationMode
         settings = CartesiaTTSService.Settings(
             voice=vid,

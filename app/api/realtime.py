@@ -100,6 +100,7 @@ async def webrtc_offer(request: Request, offer: WebRTCOffer, db = Depends(get_db
         from pipecat.pipeline.task import PipelineTask
         from pipecat.pipeline.runner import PipelineRunner
         from pipecat.processors.aggregators.llm_response_universal import LLMAssistantAggregator, LLMUserAggregator, LLMContext, LLMContextFrame
+        from pipecat.frames.frames import LLMMessagesAppendFrame
         import asyncio
         
         # Initialize connection with production ICE Servers (STUN + TURN)
@@ -209,6 +210,28 @@ async def webrtc_offer(request: Request, offer: WebRTCOffer, db = Depends(get_db
             print("SESSION_DISCONNECTED", flush=True)
             import asyncio
             asyncio.create_task(session_manager.cleanup_session(session.session_id))
+
+        @transport.event_handler("on_app_message")
+        async def on_app_message(t, message, sender):
+            if not isinstance(message, dict) or message.get("type") != "USER_TEXT":
+                return
+
+            text = message.get("text")
+            if not isinstance(text, str) or not text.strip():
+                logging.warning("Ignoring empty text message for realtime session %s", session.session_id)
+                return
+
+            text = text.strip()
+            if len(text) > 4000:
+                logging.warning("Ignoring oversized text message for realtime session %s", session.session_id)
+                return
+
+            await context_aggregator.queue_frame(
+                LLMMessagesAppendFrame(
+                    messages=[{"role": "user", "content": text}],
+                    run_llm=True,
+                )
+            )
         
         # We must initialize the WebRTC connection with the incoming SDP offer
         await webrtc_conn.initialize(offer.sdp, offer.type)

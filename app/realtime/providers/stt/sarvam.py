@@ -9,10 +9,13 @@ class SarvamSTTProviderConfig:
         except ImportError:
             raise RuntimeError("pipecat-ai[sarvam] is not installed")
             
-        key = api_key or config.sarvam_api_key
+        key = api_key if api_key is not None else config.sarvam_api_key
+        if key is None:
+            raise ValueError("Sarvam API key not provided or found in environment.")
+        key = str(key).strip()
         if not key:
             raise ValueError("Sarvam API key not provided or found in environment.")
-            
+
         return SarvamSTTService(
             api_key=key,
             settings=SarvamSTTService.Settings(model="saaras:v3")

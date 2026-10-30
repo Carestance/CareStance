@@ -10,13 +10,16 @@ class LLMProviderConfig:
         except ImportError:
             raise RuntimeError("pipecat-ai is not installed")
             
-        key = api_key or config.groq_api_key
+        key = api_key if api_key is not None else config.groq_api_key
+        if key is None:
+            raise ValueError("Groq API key not provided or found in environment.")
+        key = str(key).strip()
         if not key:
             raise ValueError("Groq API key not provided or found in environment.")
-            
+
         model = os.getenv("GROQ_MODEL", "qwen/qwen3.8-27b")
         max_tokens = int(os.getenv("GROQ_MAX_TOKENS", "250"))
-        
+
         return GroqLLMService(
             api_key=key,
             settings=GroqLLMService.Settings(

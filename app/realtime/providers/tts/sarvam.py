@@ -9,12 +9,18 @@ class SarvamTTSProviderConfig:
         except ImportError:
             raise RuntimeError("pipecat-ai[sarvam] is not installed")
             
-        key = api_key or config.sarvam_api_key
-        vid = voice_id or config.sarvam_voice_id
-        
+        key = api_key if api_key is not None else config.sarvam_api_key
+        if key is None:
+            raise ValueError("Sarvam API key not provided or found in environment.")
+        key = str(key).strip()
         if not key:
             raise ValueError("Sarvam API key not provided or found in environment.")
-            
+
+        vid = config.sarvam_voice_id if voice_id is None else voice_id
+        vid = str(vid).strip() if vid is not None else config.sarvam_voice_id
+        if not vid:
+            vid = config.sarvam_voice_id
+
         # bulbul:v3 has a different speaker list from v2.
         # "anushka" (v2 default) is NOT compatible — explicitly pick a v3 speaker.
         # v3 compatible voices: neha, priya, ritu, ishita, pooja, rahul, aditya, rohan …
