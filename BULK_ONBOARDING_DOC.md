@@ -2,7 +2,7 @@
 
 This repository now includes a reusable backend service and an admin entry point for creating a batch of accounts that immediately receive the paid ₹300 bundle behaviour without a Razorpay payment screen.
 
-## Required Flow
+## Required Flo
 
 1. Admin opens the bulk onboarding form route at `/admin/bulk-onboard-form`.
 2. Admin submits a JSON list of user records or a form payload with a `users` JSON array.
