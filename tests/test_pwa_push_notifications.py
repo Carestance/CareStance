@@ -122,16 +122,35 @@ def test_site_root_serves_pwa_manifest_worker_and_icons():
     manifest_response = client.get("/manifest.webmanifest")
     worker_response = client.get("/service-worker.js")
     icon_response = client.get("/static/pwa/icon-192.png")
+    screenshot_response = client.get("/static/pwa/screenshot-wide.png")
 
     assert json_manifest_response.status_code == 200
     assert json_manifest_response.json() == manifest_response.json()
     assert json_manifest_response.headers["content-type"].startswith("application/manifest+json")
     assert manifest_response.status_code == 200
-    assert manifest_response.json()["scope"] == "/"
+    manifest = manifest_response.json()
+    assert manifest["scope"] == "/"
+    assert {icon["sizes"] for icon in manifest["icons"]} >= {"192x192", "512x512"}
+    assert {shortcut["url"] for shortcut in manifest["shortcuts"]} >= {
+        "/dashboard",
+        "/assessment",
+        "/my-growth-profile",
+    }
+    assert manifest["screenshots"] == [
+        {
+            "src": "/static/pwa/screenshot-wide.png",
+            "sizes": "2560x1440",
+            "type": "image/png",
+            "form_factor": "wide",
+            "label": "CareStance home screen",
+        }
+    ]
     assert worker_response.status_code == 200
     assert worker_response.headers["service-worker-allowed"] == "/"
     assert icon_response.status_code == 200
     assert icon_response.headers["content-type"] == "image/png"
+    assert screenshot_response.status_code == 200
+    assert screenshot_response.headers["content-type"] == "image/png"
 
 
 @pytest.mark.asyncio

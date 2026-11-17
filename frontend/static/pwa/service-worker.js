@@ -1,10 +1,13 @@
-const CACHE_NAME = "carestance-site-v1";
+const CACHE_NAME = "carestance-site-v2";
 const OFFLINE_PAGE = "/static/pwa/offline.html";
 const CACHED_ASSETS = [
   OFFLINE_PAGE,
   "/static/pwa/icon-192.png",
   "/static/pwa/icon-512.png",
+  "/static/css/pwa.css",
+  "/static/js/pwa.js",
 ];
+const CACHED_ASSET_PATHS = new Set(CACHED_ASSETS);
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(CACHED_ASSETS)));
@@ -28,17 +31,26 @@ self.addEventListener("fetch", (event) => {
   const requestUrl = new URL(event.request.url);
   if (
     event.request.method !== "GET" ||
-    requestUrl.origin !== self.location.origin ||
-    event.request.mode !== "navigate"
+    requestUrl.origin !== self.location.origin
   ) {
     return;
   }
 
-  event.respondWith(
-    fetch(event.request).catch(async () => {
-      return (await caches.match(OFFLINE_PAGE)) || Response.error();
-    })
-  );
+  if (CACHED_ASSET_PATHS.has(requestUrl.pathname)) {
+    event.respondWith(
+      caches.match(event.request, { ignoreSearch: true })
+        .then((cachedResponse) => cachedResponse || fetch(event.request))
+    );
+    return;
+  }
+
+  if (event.request.mode === "navigate") {
+    event.respondWith(
+      fetch(event.request).catch(async () => {
+        return (await caches.match(OFFLINE_PAGE)) || Response.error();
+      })
+    );
+  }
 });
 
 self.addEventListener("push", (event) => {
