@@ -1,25 +1,14 @@
+
 {
-  "id": "/",
-  "name": "CareStance",
-  "short_name": "CareStance",
-  "description": "Career guidance and progress from CareStance.",
-  "start_url": "/",
-  "scope": "/",
+  "background_color": "#ffffff",
+  "dir": "ltr",
   "display": "standalone",
-  "background_color": "#f8fafc",
-  "theme_color": "#0d9488",
-  "icons": [
-    {
-      "src": "/static/pwa/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/static/pwa/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
-  ]
+  "name": "carestance",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "carestance",
+  "start_url": "/",
+  "theme_color": "#ffffff",
+  "id": "CareStance",
+  "description": "Discover . Experience . Track\nBest Counselling app for student who don't even know what they are good at"
 }
