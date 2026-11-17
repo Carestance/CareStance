@@ -36,6 +36,7 @@ def test_adapter_pipeline_creation():
     adapter = PipecatAdapter(config)
     
     with (
+        patch.dict("os.environ", {"DEEPGRAM_API_KEY": "test-key", "SARVAM_API_KEY": "test-key"}, clear=False),
         patch("app.realtime.providers.stt.deepgram.STTProviderConfig.create_deepgram_service", return_value="fallback-stt"),
         patch("app.realtime.providers.llm.groq.LLMProviderConfig.create_groq_service", return_value="llm"),
         patch("app.realtime.providers.tts.cartesia.TTSProviderConfig.create_cartesia_service", return_value="fallback-tts"),
@@ -46,3 +47,30 @@ def test_adapter_pipeline_creation():
     assert "stt" in pipeline
     assert "llm" in pipeline
     assert "tts" in pipeline
+
+
+def test_adapter_fails_explicitly_when_no_stt_provider_is_configured():
+    from app.realtime.pipecat.adapter import PipecatAdapter
+    from app.realtime.config import config
+
+    adapter = PipecatAdapter(config)
+    with patch.dict("os.environ", {"DEEPGRAM_API_KEY": "", "SARVAM_API_KEY": ""}, clear=False):
+        with pytest.raises(RuntimeError, match="No speech-to-text provider"):
+            adapter.create_pipeline()
+
+
+def test_adapter_falls_back_to_sarvam_when_deepgram_stt_fails():
+    from app.realtime.pipecat.adapter import PipecatAdapter
+    from app.realtime.config import config
+
+    adapter = PipecatAdapter(config)
+    with (
+        patch.dict("os.environ", {"DEEPGRAM_API_KEY": "test-key", "SARVAM_API_KEY": "test-key"}, clear=False),
+        patch("app.realtime.providers.stt.deepgram.STTProviderConfig.create_deepgram_service", side_effect=RuntimeError),
+        patch("app.realtime.providers.stt.sarvam.SarvamSTTProviderConfig.create_sarvam_service", return_value="sarvam-stt"),
+        patch("app.realtime.providers.llm.groq.LLMProviderConfig.create_groq_service", return_value="llm"),
+        patch("app.realtime.providers.tts.sarvam.SarvamTTSProviderConfig.create_sarvam_service", return_value="tts"),
+    ):
+        pipeline = adapter.create_pipeline()
+
+    assert pipeline["stt"] == "sarvam-stt"

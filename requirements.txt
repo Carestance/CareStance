@@ -28,7 +28,7 @@ pandas
 openpyxl
 reportlab
 pyjwt
-pipecat-ai[silero,webrtc]
+pipecat-ai[silero,webrtc,deepgram,sarvam]
 deepgram-sdk
 cartesia
 aiortc

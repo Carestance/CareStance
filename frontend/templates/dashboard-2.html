@@ -296,7 +296,9 @@
             <a href="/dashboard" class="nav-active">Dashboard</a>
             {% if user.role in ['student', 'admin'] %}
             <a href="/my-growth-profile" class="{% if request.url.path == '/my-growth-profile' %}nav-active{% endif %}">Growth Profile</a>
-            <a href="/my-monthly-path" class="{% if request.url.path == '/my-monthly-path' %}nav-active{% endif %}">Monthly Path</a>
+            {% if request.state.growth_map_url %}
+            <a href="{{ request.state.growth_map_url }}" class="{% if request.url.path == '/my-monthly-path' %}nav-active{% endif %}">Growth Map</a>
+            {% endif %}
             {% endif %}
             {% if user.role != 'counsellor' %}
             <a href="/chatbot">Chat AI</a>
@@ -322,7 +324,9 @@
         <a href="/dashboard" class="nav-active"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
         {% if user.role in ['student', 'admin'] %}
         <a href="/my-growth-profile" class="{% if request.url.path == '/my-growth-profile' %}nav-active{% endif %}"><i class="fa-solid fa-compass"></i>Growth Profile</a>
-        <a href="/my-monthly-path" class="{% if request.url.path == '/my-monthly-path' %}nav-active{% endif %}"><i class="fa-solid fa-route"></i>Monthly Path</a>
+        {% if request.state.growth_map_url %}
+        <a href="{{ request.state.growth_map_url }}" class="{% if request.url.path == '/my-monthly-path' %}nav-active{% endif %}"><i class="fa-solid fa-route"></i>Growth Map</a>
+        {% endif %}
         {% endif %}
         {% if user.role != 'counsellor' %}
         <a href="/chatbot"><i class="fa-solid fa-comment-dots"></i>Chat AI</a>
@@ -1036,7 +1040,9 @@
                 <p>Compare this path with the full report before you commit.</p>
             </div>
         </div>
-        <a class="onward-action" href="/my-monthly-path"><i class="fas fa-route"></i> Open your monthly path <i class="fas fa-arrow-right"></i></a>
+        {% if request.state.growth_map_url %}
+        <a class="onward-action" href="{{ request.state.growth_map_url }}"><i class="fas fa-route"></i> Open your Growth Map <i class="fas fa-arrow-right"></i></a>
+        {% endif %}
     </section>
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         

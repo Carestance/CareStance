@@ -73,6 +73,8 @@ VAPID_SUBJECT=mailto:support@yourdomain.com
 # VAPID_SUBJECT must be a monitored contact address or URL; it is not a notification recipient.
 ```
 
+Real-time voice assessment requires speech-to-text. Configure either `DEEPGRAM_API_KEY` or `SARVAM_API_KEY` in Railway; the app prefers Deepgram and falls back to Sarvam. If neither provider can initialize, the WebRTC offer now fails with a clear configuration error instead of starting a voice session that cannot hear the user.
+
 For Supabase, copy the PostgreSQL connection string from **Project Settings → Database → Connect** and set it as Railway's `DATABASE_URL`. Keep the hostname, username (including the project reference when Supabase supplies one), port, and database name exactly as shown. Do not use the `NEXT_PUBLIC_SUPABASE_URL` or `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` values as database credentials; the backend connects to PostgreSQL using `DATABASE_URL`. Keep the connection string private and enter it directly in Railway Variables or your local environment.
 
 At startup, the backend creates any missing PostgreSQL tables from the SQLAlchemy models in `app/models.py`. This initializes an empty Supabase database; it does not migrate existing Appwrite records. Since this project is being started empty, existing accounts and records will not appear in Supabase, and users will need to register again.

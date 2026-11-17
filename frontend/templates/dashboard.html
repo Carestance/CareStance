@@ -311,7 +311,9 @@
             <a href="/dashboard" class="nav-active">Dashboard</a>
             {% if user.role in ['student', 'admin'] %}
             <a href="/my-growth-profile" class="{% if request.url.path == '/my-growth-profile' %}nav-active{% endif %}">Growth Profile</a>
-            <a href="/my-monthly-path" class="{% if request.url.path == '/my-monthly-path' %}nav-active{% endif %}">Monthly Path</a>
+            {% if request.state.growth_map_url %}
+            <a href="{{ request.state.growth_map_url }}" class="{% if request.url.path == '/my-monthly-path' %}nav-active{% endif %}">Growth Map</a>
+            {% endif %}
             {% endif %}
             {% if user.role != 'counsellor' %}
             <a href="/chatbot">Chat AI</a>
@@ -337,7 +339,9 @@
         <a href="/dashboard" class="nav-active"><i class="fa-solid fa-gauge-high"></i>Dashboard</a>
         {% if user.role in ['student', 'admin'] %}
         <a href="/my-growth-profile" class="{% if request.url.path == '/my-growth-profile' %}nav-active{% endif %}"><i class="fa-solid fa-compass"></i>Growth Profile</a>
-        <a href="/my-monthly-path" class="{% if request.url.path == '/my-monthly-path' %}nav-active{% endif %}"><i class="fa-solid fa-route"></i>Monthly Path</a>
+        {% if request.state.growth_map_url %}
+        <a href="{{ request.state.growth_map_url }}" class="{% if request.url.path == '/my-monthly-path' %}nav-active{% endif %}"><i class="fa-solid fa-route"></i>Growth Map</a>
+        {% endif %}
         {% endif %}
         {% if user.role != 'counsellor' %}
         <a href="/chatbot"><i class="fa-solid fa-comment-dots"></i>Chat AI</a>
@@ -1139,7 +1143,9 @@
                 <div class="hs-bar"><i style="width:{{ pct }}%"></i></div>
             </div>
             <div class="hs-actions">
-                <a class="hs-btn hs-btn-gold" href="/my-monthly-path"><i class="fas fa-route"></i> Open your monthly path</a>
+                {% if request.state.growth_map_url %}
+                <a class="hs-btn hs-btn-gold" href="{{ request.state.growth_map_url }}"><i class="fas fa-route"></i> Open your Growth Map</a>
+                {% endif %}
                 <a class="hs-btn" href="/assessment/result"><i class="fas fa-scroll"></i> Full report</a>
                 <button type="button" class="hs-btn hs-btn-ghost" onclick="document.getElementById('retake-modal').classList.remove('hidden')"><i class="fas fa-undo"></i> Retake</button>
             </div>

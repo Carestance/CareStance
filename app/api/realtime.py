@@ -138,7 +138,7 @@ async def webrtc_offer(request: Request, offer: WebRTCOffer, db = Depends(get_db
         components = built_pipeline["components"]
         
         stt = components["stt"]
-        print("DEEPGRAM_INITIALIZED", flush=True)
+        print(f"STT_INITIALIZED: {type(stt).__name__}", flush=True)
         llm = components["llm"]
         print("GROQ_INITIALIZED", flush=True)
         tts = components["tts"]

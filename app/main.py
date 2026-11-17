@@ -1169,6 +1169,18 @@ async def pwa_service_worker():
     )
 
 
+async def _get_latest_generated_growth_map_url(user_id: int, db: AsyncSession) -> str | None:
+    plan = (await db.execute(
+        select(models.CareerGrowthPlan)
+        .where(models.CareerGrowthPlan.user_id == user_id)
+        .order_by(models.CareerGrowthPlan.created_at.desc(), models.CareerGrowthPlan.id.desc())
+        .limit(1)
+    )).scalars().first()
+    if not plan:
+        return None
+    return f"/my-monthly-path?career={quote(plan.career_title, safe='')}"
+
+
 async def get_current_user(request: Request, db: AsyncSession = Depends(get_db)):
     authorization_header = request.headers.get("authorization")
     token = (
@@ -1186,10 +1198,16 @@ async def get_current_user(request: Request, db: AsyncSession = Depends(get_db))
         stmt = select(models.User).options(selectinload(models.User.assessment)).where(models.User.id == uid)
         result = await db.execute(stmt)
         db_user = result.scalars().first()
-        if db_user:
-            return db_user
     except Exception:
         return None
+    if db_user:
+        if (
+            request.method == "GET"
+            and "text/html" in request.headers.get("accept", "").lower()
+            and db_user.role in ["student", "admin"]
+        ):
+            request.state.growth_map_url = await _get_latest_generated_growth_map_url(db_user.id, db)
+        return db_user
 
 # Routes
 
@@ -3607,6 +3625,8 @@ async def my_monthly_path(request: Request, career: str = "", db: AsyncSession =
         get_week_task_states,
     )
     growth_profile, plan = await _get_monthly_plan(user, db, career)
+    if career and plan:
+        request.state.growth_map_url = await _get_latest_generated_growth_map_url(user.id, db)
     progress = get_monthly_plan_progress(plan)
 
     # ── Growth Map email (idempotent, fire-and-forget) ──────────────────────
