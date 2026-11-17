@@ -7,8 +7,8 @@
     }
   ],
   "rewrites": [
-    { "source": "/manifest.webmanifest", "destination": "https://carestance-production.up.railway.app/manifest.webmanifest" },
-    { "source": "/service-worker.js", "destination": "https://carestance-production.up.railway.app/service-worker.js" },
+    { "source": "/manifest.webmanifest", "destination": "/static/pwa/manifest.webmanifest" },
+    { "source": "/service-worker.js", "destination": "/static/pwa/service-worker.js" },
     { "source": "/api/(.*)", "destination": "https://carestance-production.up.railway.app/api/$1" },
     { "source": "/login", "destination": "https://carestance-production.up.railway.app/login" },
     { "source": "/signup", "destination": "https://carestance-production.up.railway.app/signup" },
@@ -20,5 +20,22 @@
     { "source": "/sitemap.xml", "destination": "https://carestance-production.up.railway.app/sitemap.xml" },
     { "source": "/static/(.*)", "destination": "/static/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/manifest.webmanifest",
+      "headers": [
+        { "key": "Content-Type", "value": "application/manifest+json" },
+        { "key": "Cache-Control", "value": "no-cache" }
+      ]
+    },
+    {
+      "source": "/service-worker.js",
+      "headers": [
+        { "key": "Content-Type", "value": "application/javascript" },
+        { "key": "Cache-Control", "value": "no-cache" },
+        { "key": "Service-Worker-Allowed", "value": "/" }
+      ]
+    }
   ]
 }
