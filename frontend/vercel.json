@@ -7,6 +7,7 @@
     }
   ],
   "rewrites": [
+    { "source": "/manifest.json", "destination": "/static/pwa/manifest.webmanifest" },
     { "source": "/manifest.webmanifest", "destination": "/static/pwa/manifest.webmanifest" },
     { "source": "/service-worker.js", "destination": "/static/pwa/service-worker.js" },
     { "source": "/api/(.*)", "destination": "https://carestance-production.up.railway.app/api/$1" },
@@ -22,6 +23,13 @@
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
+    {
+      "source": "/manifest.json",
+      "headers": [
+        { "key": "Content-Type", "value": "application/manifest+json" },
+        { "key": "Cache-Control", "value": "no-cache" }
+      ]
+    },
     {
       "source": "/manifest.webmanifest",
       "headers": [

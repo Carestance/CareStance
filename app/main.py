@@ -1148,6 +1148,7 @@ templates.env.auto_reload = True
 from app.security import get_password_hash, verify_password, pwd_context
 
 
+@app.get("/manifest.json")
 @app.get("/manifest.webmanifest")
 async def pwa_manifest():
     return FileResponse(

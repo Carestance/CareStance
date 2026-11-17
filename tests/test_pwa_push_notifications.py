@@ -118,10 +118,14 @@ def test_site_root_serves_pwa_manifest_worker_and_icons():
     from app.main import app
 
     client = TestClient(app)
+    json_manifest_response = client.get("/manifest.json")
     manifest_response = client.get("/manifest.webmanifest")
     worker_response = client.get("/service-worker.js")
     icon_response = client.get("/static/pwa/icon-192.png")
 
+    assert json_manifest_response.status_code == 200
+    assert json_manifest_response.json() == manifest_response.json()
+    assert json_manifest_response.headers["content-type"].startswith("application/manifest+json")
     assert manifest_response.status_code == 200
     assert manifest_response.json()["scope"] == "/"
     assert worker_response.status_code == 200
