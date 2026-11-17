@@ -18,10 +18,9 @@ if DATABASE_URL:
         DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
     SQLALCHEMY_DATABASE_URL = DATABASE_URL
 else:
-    if os.getenv("VERCEL"):
-        SQLALCHEMY_DATABASE_URL = "sqlite+aiosqlite:////tmp/learnloop.db"
-    else:
-        SQLALCHEMY_DATABASE_URL = "sqlite+aiosqlite:///./learnloop.db"
+    if os.getenv("VERCEL") or os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("ENVIRONMENT", "").lower() == "production":
+        raise RuntimeError("DATABASE_URL must be configured for production deployments.")
+    SQLALCHEMY_DATABASE_URL = "sqlite+aiosqlite:///./learnloop.db"
 
 engine_args = {}
 

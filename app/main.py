@@ -13,10 +13,7 @@ if not os.getenv("SSL_CERT_FILE"):
 import shutil
 import warnings
 from functools import lru_cache
-from types import SimpleNamespace
 from . import email_utils
-from .appwrite_client import databases, tables_db, account, storage, DB_ID, COLLECTIONS
-from .appwrite_helper import get_user_by_id, get_user_by_email, update_assessment_simulation, sync_assessment_to_appwrite
 from dotenv import load_dotenv
 from starlette.middleware.sessions import SessionMiddleware
 from authlib.integrations.starlette_client import OAuth
@@ -392,7 +389,6 @@ async def mark_assessment_completed_once(user, result, db: AsyncSession):
     raw_answers = dict(result.raw_answers or {})
     if raw_answers.get("assessment_counted"):
         return
-    # Use getattr/setattr to be safe against Appwrite SimpleNamespace objects
     current_count = getattr(user, "assessments_completed", None) or 0
     try:
         setattr(user, "assessments_completed", max(current_count, 1))
@@ -781,13 +777,14 @@ async def _health():
 async def startup_event():
     """Run migrations on startup for local development and when explicitly enabled."""
     try:
+        async with engine.begin() as conn:
+            await conn.run_sync(models.Base.metadata.create_all)
+
         if not SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
-            # EMERGENCY FIX: Force add missing columns to core tables in ONE PostgreSQL batch.
             async with engine.begin() as conn:
                 from sqlalchemy import text
-                try:
-                    sql = """
-                    ALTER TABLE users 
+                await conn.execute(text("""
+                    ALTER TABLE users
                     ADD COLUMN IF NOT EXISTS profile_photo VARCHAR,
                     ADD COLUMN IF NOT EXISTS bio TEXT,
                     ADD COLUMN IF NOT EXISTS is_suspended BOOLEAN DEFAULT FALSE,
@@ -803,11 +800,9 @@ async def startup_event():
                     ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW(),
                     ADD COLUMN IF NOT EXISTS last_login TIMESTAMP,
                     ADD COLUMN IF NOT EXISTS referral_code VARCHAR;
-                    """
-                    await conn.execute(text(sql))
-                    print("DEBUG: Emergency batch migration for 'users' table completed.", flush=True)
-                    sql_cp = """
-                    ALTER TABLE counsellor_profiles 
+                """))
+                await conn.execute(text("""
+                    ALTER TABLE counsellor_profiles
                     ADD COLUMN IF NOT EXISTS is_blocked BOOLEAN DEFAULT FALSE,
                     ADD COLUMN IF NOT EXISTS block_reason VARCHAR,
                     ADD COLUMN IF NOT EXISTS verification_remarks TEXT,
@@ -821,23 +816,15 @@ async def startup_event():
                     ADD COLUMN IF NOT EXISTS commission_free_until TIMESTAMP,
                     ADD COLUMN IF NOT EXISTS tnc_accepted BOOLEAN DEFAULT FALSE,
                     ADD COLUMN IF NOT EXISTS tnc_accepted_at TIMESTAMP;
-                    """
-                    await conn.execute(text(sql_cp))
-                    print("DEBUG: Emergency batch migration for 'counsellor_profiles' table completed.", flush=True)
-                except Exception as e:
-                    print(f"DEBUG: Emergency batch migration failed (likely already patched): {e}", flush=True)
+                """))
 
-        # New tables are safe to create on every deployment.  This keeps
-        # additive features (such as career-specific growth maps) available
-        # even where full column migrations are intentionally disabled.
-        async with engine.begin() as conn:
-            await conn.run_sync(models.Base.metadata.create_all)
         if RUN_MIGRATIONS_ON_STARTUP or SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
             await run_migrations()
         else:
             print("Startup: Created missing tables; skipping optional column migrations. Set RUN_MIGRATIONS_ON_STARTUP=true to enable.")
     except Exception as e:
         print(f"Startup database error: {e}")
+        raise
 
     if ENABLE_CLEANUP_TASK:
         app.state.cleanup_stop = asyncio.Event()
@@ -1762,38 +1749,6 @@ async def select_role(
         await db.commit()
         user_cache.invalidate_user(user.id)
 
-        # Save User Metadata in Appwrite DB
-        try:
-            from appwrite.query import Query
-            from .appwrite_helper import _parse_list_response
-            res = tables_db.list_rows(DB_ID, COLLECTIONS["users"], [Query.equal('email', user.email)])
-            _, documents = _parse_list_response(res)
-            
-            if documents:
-                doc = documents[0]
-                doc_id = doc.get('$id') if isinstance(doc, dict) else getattr(doc, '$id', getattr(doc, 'id', None))
-                if doc_id:
-                    tables_db.update_row(DB_ID, COLLECTIONS["users"], doc_id, {
-                        "contact_number": contact_number,
-                        "role": role
-                    })
-            else:
-                new_user_id = str(uuid.uuid4())[:20]
-                tables_db.create_row(
-                    database_id=DB_ID,
-                    table_id=COLLECTIONS["users"],
-                    row_id=new_user_id,
-                    data={
-                        "email": user.email,
-                        "full_name": user.full_name,
-                        "contact_number": contact_number,
-                        "role": role,
-                        "local_id": user.id
-                    }
-                )
-        except Exception as de:
-            print(f"Appwrite DB Error in select_role: {de}")
-
     except Exception as e:
         print(f"Role selection error: {e}")
         await db.rollback()
@@ -1889,7 +1844,6 @@ async def assessment_start(
             db.add(result)
 
         await db.commit()
-        sync_assessment_to_appwrite(user.id, result)
     except Exception as e:
         logger.error("Assessment start error for user: %s", e, exc_info=True)
         await db.rollback()
@@ -1946,7 +1900,6 @@ async def assessment_reset(request: Request, db: AsyncSession = Depends(get_db))
         result.stream_pros = None
         result.stream_cons = None
         await db.commit()
-        sync_assessment_to_appwrite(user.id, result)
     
     return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
 
@@ -2053,26 +2006,6 @@ async def assessment_api_intake(request: Request, payload: dict, db: AsyncSessio
         
         await db.commit()
         
-        # Update referral_code in Appwrite users collection if provided
-        if referral_code:
-            try:
-                from appwrite.query import Query
-                from .appwrite_client import tables_db, DB_ID, COLLECTIONS
-                from .appwrite_helper import _parse_list_response
-                res = tables_db.list_rows(DB_ID, COLLECTIONS["users"], [Query.equal('email', user.email)])
-                _, documents = _parse_list_response(res)
-                if documents:
-                    doc = documents[0]
-                    doc_id = doc.get('$id') if isinstance(doc, dict) else getattr(doc, '$id', getattr(doc, 'id', None))
-                    if doc_id:
-                        tables_db.update_row(DB_ID, COLLECTIONS["users"], doc_id, {
-                            "referral_code": referral_code
-                        })
-            except Exception as e:
-                print(f"Appwrite Sync User Referral Error: {e}")
-
-        sync_assessment_to_appwrite(user.id, result)
-        
         validation_payload = {
             "student_metadata": {
                 "name": result.intake_name, 
@@ -2136,7 +2069,6 @@ async def assessment_api_intake(request: Request, payload: dict, db: AsyncSessio
             is_complete = True
 
     await db.commit()
-    sync_assessment_to_appwrite(user.id, result)
     return {"status": "success", "content": response_text, "is_complete": is_complete, "payload": validation_payload}
 
 @app.post("/assessment/api/archetype_confirm")
@@ -2297,7 +2229,6 @@ async def assessment_api_proxy(request: Request, payload: dict, db: AsyncSession
 
     result.current_phase = 4
     await db.commit()
-    sync_assessment_to_appwrite(user.id, result)
     return {"status": "success", "next_phase": 4}
 
 @app.post("/assessment/api/scenarios")
@@ -2313,7 +2244,6 @@ async def assessment_api_scenarios(request: Request, payload: dict, db: AsyncSes
     result.scenario_answers = payload.get("answers", [])
     result.current_phase = 5
     await db.commit()
-    sync_assessment_to_appwrite(user.id, result)
     return {"status": "success", "next_phase": 5}
 
 @app.get("/assessment/api/questions")
@@ -2399,7 +2329,6 @@ async def assessment_api_swipe(request: Request, payload: dict, db: AsyncSession
     from .pipeline.vector_utils import classify_archetype
     arch = classify_archetype(metrics.get("latent_profile", {}))
     
-    sync_assessment_to_appwrite(user.id, result)
     return {"status": "success", "next_phase": 2, "archetype": arch}
 
 @app.post("/assessment/api/chat")
@@ -2421,7 +2350,6 @@ async def assessment_api_chat(request: Request, payload: dict, db: AsyncSession 
         result.chat_messages = chat_history
         result.chat_turn = 0
         await db.commit()
-        sync_assessment_to_appwrite(user.id, result)
         return {"status": "success", "message": first_q, "chat_turn": 0, "phase_complete": False}
         
     chat_history.append({"role": "user", "content": user_message})
@@ -2439,7 +2367,6 @@ async def assessment_api_chat(request: Request, payload: dict, db: AsyncSession 
         result.personality = json.dumps(riasec)
         result.current_phase = 3
         await db.commit()
-        sync_assessment_to_appwrite(user.id, result)
         return {
             "status": "success",
             "message": "That was great! Ready for the next phase?",
@@ -2452,7 +2379,6 @@ async def assessment_api_chat(request: Request, payload: dict, db: AsyncSession 
         result.chat_messages = chat_history
         result.chat_turn = next_turn
         await db.commit()
-        sync_assessment_to_appwrite(user.id, result)
         
         return {"status": "success", "message": next_q, "chat_turn": next_turn, "phase_complete": False}
 
@@ -2505,7 +2431,6 @@ async def submit_phase2_mcqs(request: Request, payload: dict, db: AsyncSession =
     # talk, complete results, and simulations unlock together after payment.
     result.current_phase = 3 if has_assessment_all_access(user) else 6
     await db.commit()
-    sync_assessment_to_appwrite(user.id, result)
     
     return {"status": "success", "next_phase": result.current_phase, "redirect": "/assessment/free-preview" if result.current_phase == 6 else None}
 
@@ -2666,7 +2591,6 @@ async def assessment_api_compile(request: Request, db: AsyncSession = Depends(ge
         await mark_assessment_completed_once(user, result, db)
 
         await db.commit()
-        sync_assessment_to_appwrite(user.id, result)
         return {"status": "success", "redirect": "/assessment/result"}
 
     except Exception as e:
@@ -2685,9 +2609,6 @@ async def assessment_result(request: Request, db: AsyncSession = Depends(get_db)
     try:
         # Fetch assessment result from primary database (PostgreSQL/Supabase) first
         result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
-        if not result:
-            from .appwrite_helper import get_assessment_by_user_id
-            result = get_assessment_by_user_id(user.id)
     except Exception:
         result = None
     if not result:
@@ -3177,9 +3098,6 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
     # Fetch assessment result from primary database (PostgreSQL/Supabase) first
     try:
         assessment = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
-        if not assessment:
-            from .appwrite_helper import get_assessment_by_user_id
-            assessment = get_assessment_by_user_id(user.id)
     except Exception:
         assessment = None
     
@@ -6284,9 +6202,7 @@ async def phase3_finalize(request: Request, finalize_req: Phase3FinalizeRequest,
         flag_modified(result, "final_answers")
         # ── End local fallback ─────────────────────────────────────────────────
 
-    # Ensure we have a real SQLAlchemy User object, not an Appwrite SimpleNamespace.
-    # get_current_user() may return a SimpleNamespace from Appwrite which lacks
-    # the assessments_completed column — fetch from DB by id to be safe.
+    # Fetch the persisted user row before updating its completion count.
     try:
         db_user = (await db.execute(select(models.User).where(models.User.id == user.id))).scalars().first()
         if db_user:
@@ -7113,7 +7029,6 @@ async def live_simulation_start(
     if db_user:
         db_user.simulation_paid = False
 
-    update_assessment_simulation(user.id, career=career_title, questions=result.simulation_questions, answers=[], evaluation=None)
     await db.commit()
 
     return {
@@ -7160,7 +7075,6 @@ async def live_simulation_step(
         from sqlalchemy.orm.attributes import flag_modified
         flag_modified(result, "simulation_questions")
         result.simulation_answers = [move["answer"] for move in session["moves"]]
-        update_assessment_simulation(user.id, answers=result.simulation_answers)
         await db.commit()
 
     is_last_step = session["current_index"] >= len(scenarios)
@@ -7279,7 +7193,6 @@ async def _finalize_live_simulation_session(user_id: int, session: dict, db: Asy
         db_user = (await db.execute(select(models.User).where(models.User.id == user_id))).scalars().first()
         if db_user:
             db_user.simulations_completed = (db_user.simulations_completed or 0) + 1
-        update_assessment_simulation(user_id, answers=result.simulation_answers, evaluation=evaluation)
         await db.commit()
 
     return evaluation
@@ -7318,8 +7231,6 @@ async def simulation_start(career_title: str, request: Request, db: AsyncSession
         questions = await simulation_service.generate_academic_simulation_questions(career_title)
         if not questions:
             return RedirectResponse(url="/assessment/result?error=failed_to_generate_simulation", status_code=status.HTTP_302_FOUND)
-        
-        update_assessment_simulation(user.id, career=career_title, questions=questions, answers=[], evaluation=None)
         
         result.simulation_career = career_title
         result.simulation_questions = questions
@@ -7393,10 +7304,6 @@ async def simulation_answer(
         current_answers.append("")
     current_answers[index] = answer
     
-    # Appwrite Update
-    update_assessment_simulation(user.id, answers=current_answers)
-    
-    # SQL Fallback
     result.simulation_answers = current_answers
     await db.commit()
     
@@ -7431,10 +7338,6 @@ async def simulation_result(request: Request, db: AsyncSession = Depends(get_db)
                 result.simulation_answers
             )
         
-        # Appwrite Update
-        update_assessment_simulation(user.id, evaluation=evaluation)
-        
-        # SQL Fallback
         result.simulation_evaluation = evaluation
         result.simulations_completed += 1
         db_user = (await db.execute(select(models.User).where(models.User.id == user.id))).scalars().first()

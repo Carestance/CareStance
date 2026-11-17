@@ -55,10 +55,7 @@ Railway will run the FastAPI backend server and serve the HTML templates and sta
 In the Railway dashboard, go to **Variables** and add:
 
 ```
-DATABASE_URL=postgresql://user:password@host:5432/carestance
-APPWRITE_ENDPOINT=https://<your-appwrite-host>/v1
-APPWRITE_PROJECT_ID=your_appwrite_project_id
-APPWRITE_API_KEY=your_appwrite_api_key
+DATABASE_URL=<PostgreSQL connection string from Supabase Dashboard > Connect>
 GEMINI_API_KEY=your-google-gemini-key
 GROQ_API_KEY=your-groq-api-key
 RAZORPAY_KEY_ID=your-razorpay-key-id
@@ -76,6 +73,12 @@ VAPID_SUBJECT=mailto:support@yourdomain.com
 # VAPID_SUBJECT must be a monitored contact address or URL; it is not a notification recipient.
 ```
 
+For Supabase, copy the PostgreSQL connection string from **Project Settings → Database → Connect** and set it as Railway's `DATABASE_URL`. Keep the hostname, username (including the project reference when Supabase supplies one), port, and database name exactly as shown. Do not use the `NEXT_PUBLIC_SUPABASE_URL` or `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` values as database credentials; the backend connects to PostgreSQL using `DATABASE_URL`. Keep the connection string private and enter it directly in Railway Variables or your local environment.
+
+At startup, the backend creates any missing PostgreSQL tables from the SQLAlchemy models in `app/models.py`. This initializes an empty Supabase database; it does not migrate existing Appwrite records. Since this project is being started empty, existing accounts and records will not appear in Supabase, and users will need to register again.
+
+Profile photos and student-chat attachments are still written under the backend's local `static/uploads` directory. They are not database records and are not moved to Supabase Storage in this setup; on an ephemeral deployment filesystem, those files may not survive a redeploy.
+
 #### 3. Configure Build & Start Commands
 
 In the Railway settings:
@@ -86,12 +89,9 @@ In the Railway settings:
   python run.py
   ```
 
-#### 4. Add a PostgreSQL Database (Optional)
+#### 4. Connect the Supabase database
 
-If you don't have an external database:
-
-1. In Railway dashboard, click **"+ Add"** → **Postgres**
-2. Railway will auto-populate the `DATABASE_URL` environment variable
+Use the Supabase PostgreSQL connection string as Railway's `DATABASE_URL`. Do not add a separate Railway PostgreSQL service unless you intentionally want to use that database instead.
 
 #### 5. Deploy
 
