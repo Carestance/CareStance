@@ -2088,10 +2088,15 @@ async def assessment_free_preview(request: Request, db: AsyncSession = Depends(g
     user = await get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
-    if has_assessment_all_access(user):
-        return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
     result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
-    if not result or not result.phase_2_category:
+    if not result:
+        return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
+    if has_assessment_all_access(user):
+        if result.current_phase == 6:
+            result.current_phase = 3
+            await db.commit()
+        return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
+    if not result.phase_2_category:
         return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
     return templates.TemplateResponse(request=request, name="assessment_free_preview.html", context={"user": user, "preview": build_free_assessment_preview(result)})
 
