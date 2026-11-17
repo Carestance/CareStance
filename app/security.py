@@ -102,6 +102,17 @@ def decode_access_token(token: Optional[str]) -> Optional[str]:
         return None
 
 
+def get_bearer_token(authorization_header: Optional[str]) -> Optional[str]:
+    """Extract a non-empty bearer token from an Authorization header."""
+    if not authorization_header:
+        return None
+    scheme, separator, token = authorization_header.partition(" ")
+    if not separator or scheme.lower() != "bearer":
+        return None
+    token = token.strip()
+    return token or None
+
+
 
 def get_password_hash(password: str) -> str:
     """Hash a password using bcrypt.

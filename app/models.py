@@ -336,6 +336,19 @@ class Notification(Base):
 
     user = relationship("User", back_populates="notifications")
 
+class PushSubscription(Base):
+    __tablename__ = "push_subscriptions"
+    __table_args__ = (UniqueConstraint("endpoint", name="uq_push_subscription_endpoint"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    endpoint = Column(String(2048), nullable=False)
+    p256dh = Column(String(256), nullable=False)
+    auth = Column(String(256), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    user = relationship("User")
+
 class ModerationFlag(Base):
     __tablename__ = "moderation_flags"
 

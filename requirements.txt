@@ -15,6 +15,7 @@ groq
 authlib
 itsdangerous
 httpx
+pywebpush
 mangum
 razorpay
 redis

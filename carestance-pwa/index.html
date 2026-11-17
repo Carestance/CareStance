@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#102c3b">
+    <meta name="description" content="Your CareStance career journey, ready wherever you go.">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="CareStance">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/icon-192.png">
+    <link rel="stylesheet" href="/styles.css">
+    <title>CareStance</title>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="CareStance home">
+        <img src="/icon.svg" width="40" height="40" alt="">
+        <span>CareStance</span>
+      </a>
+      <button class="button button-outline" id="install-button" type="button" hidden>Install app</button>
+    </header>
+
+    <main>
+      <section class="hero">
+        <p class="eyebrow">YOUR NEXT STEP, MADE CLEARER</p>
+        <h1>A little more direction.<br><span>Wherever you are.</span></h1>
+        <p class="hero-copy">Keep your career journey close, pick up where you left off, and get important CareStance updates even when the app is closed.</p>
+      </section>
+
+      <section class="card account-card" aria-labelledby="account-heading">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">YOUR ACCOUNT</p>
+            <h2 id="account-heading">Sign in to CareStance</h2>
+          </div>
+          <span class="status-dot" aria-hidden="true"></span>
+        </div>
+
+        <form id="login-form">
+          <label for="email">Email address</label>
+          <input id="email" name="email" type="email" autocomplete="username" required>
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" required>
+          <button class="button button-primary full-width" type="submit">Sign in</button>
+          <p class="form-message" id="login-message" role="status" aria-live="polite"></p>
+        </form>
+
+        <div id="signed-in" hidden>
+          <p class="welcome" id="welcome-message"></p>
+          <div class="overview" id="overview"></div>
+          <div class="actions">
+            <button class="button button-primary" id="notification-button" type="button">Enable notifications</button>
+            <a class="button button-outline" href="https://carestance-production.up.railway.app/dashboard" target="_blank" rel="noopener">Open full CareStance</a>
+          </div>
+          <p class="form-message" id="notification-message" role="status" aria-live="polite"></p>
+          <button class="text-button" id="sign-out-button" type="button">Sign out</button>
+        </div>
+        <p class="signup-note" id="signup-note">New to CareStance? <a href="https://carestance-production.up.railway.app/signup" target="_blank" rel="noopener">Create an account</a></p>
+      </section>
+
+      <section class="install-hint" aria-label="Installation help">
+        <div class="hint-icon" aria-hidden="true">+</div>
+        <div>
+          <h2>Make it yours</h2>
+          <p>Install CareStance from your browser menu to add it to your home screen. On iPhone or iPad, tap <strong>Share</strong>, then <strong>Add to Home Screen</strong>.</p>
+        </div>
+      </section>
+
+      <p class="offline-message" id="offline-message" hidden>You are offline. Your installed app will reconnect when internet access returns.</p>
+    </main>
+
+    <footer>
+      <span>CareStance</span>
+      <a href="https://carestance-production.up.railway.app/privacy" target="_blank" rel="noopener">Privacy</a>
+    </footer>
+    <script src="/app.js" defer></script>
+  </body>
+</html>

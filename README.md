@@ -87,6 +87,18 @@ Recommended first tasks for interns:
 
 ---
 
+## Mobile client
+
+The sibling [`CareStance-app`](../CareStance-app/README.md) Flutter source client uses
+`/api/v1/auth/login`, `/api/v1/auth/register`, `/api/v1/me`, and
+`/api/v1/student/{overview,growth-profile,monthly-plan}`. These endpoints use
+the existing SQLAlchemy user, assessment, and monthly-plan records; they do not
+create a second data store. Existing browser authentication remains cookie
+based. Other workflows remain web-only or use existing unversioned JSON routes.
+See its README for current mobile coverage and limitations.
+
+---
+
 ## Common Commands
 
 Activate venv (PowerShell):

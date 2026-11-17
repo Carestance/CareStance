@@ -53,6 +53,7 @@ from .data.career_keywords import career_keywords
 from .services import simulation_service
 from .services import assessment_engine
 from .services.onboarding_milestone_service import build_onboarding_milestone_payload
+from .services.push_notifications import send_user_push_notification
 
 LIVE_SIMULATION_SESSIONS = {}
 
@@ -61,6 +62,7 @@ from app.dependencies.admin_auth import get_current_admin
 from app.security import (
     create_access_token,
     decode_access_token,
+    get_bearer_token,
     get_auth_cookie_config,
     is_production_environment,
     JWT_SECRET_KEY,
@@ -732,15 +734,20 @@ from app.realtime.session.manager import manager as session_manager
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup actions
-    yield
-    # Shutdown actions
+    await startup_event()
     try:
-        import asyncio
-        # We must allow time for shutdown to complete cleanly
-        await asyncio.wait_for(session_manager.shutdown_all(), timeout=15.0)
+        yield
     except Exception as e:
-        print(f"Error during graceful shutdown: {e}")
+        logger.error("Application lifespan failed: %s", e, exc_info=True)
+        raise
+    finally:
+        try:
+            await shutdown_event()
+        finally:
+            try:
+                await asyncio.wait_for(session_manager.shutdown_all(), timeout=15.0)
+            except Exception as e:
+                logger.error("Error during graceful shutdown: %s", e, exc_info=True)
 
 app = FastAPI(title="CareStance", lifespan=lifespan)
 
@@ -910,6 +917,9 @@ app.include_router(payments_router)
 
 from .routes import admin
 app.include_router(admin.router)
+
+from .api.v1.mobile import router as mobile_api_router
+app.include_router(mobile_api_router)
 
 try:
     from app.api.realtime import router as realtime_router
@@ -1105,7 +1115,12 @@ async def check_suspension(request: Request, call_next):
     is_exempt = any(path == p or path.startswith("/static/") or path.startswith("/auth/") for p in exempt_paths)
     
     if not is_exempt:
-        token = request.cookies.get("user_id")
+        authorization_header = request.headers.get("authorization")
+        token = (
+            get_bearer_token(authorization_header)
+            if authorization_header is not None
+            else request.cookies.get("user_id")
+        )
         user_id = decode_access_token(token) if token else None
         if user_id and str(user_id).strip(): # Added safety check for empty/invalid strings
             try:
@@ -1125,6 +1140,8 @@ async def check_suspension(request: Request, call_next):
                             user_cache.set_user_status(uid, cached_status)
                 
                 if cached_status and cached_status.get("is_suspended"):
+                    if path.startswith("/api/v1/"):
+                        return JSONResponse(status_code=status.HTTP_403_FORBIDDEN, content={"detail": "This account is suspended."})
                     return RedirectResponse(url="/suspended", status_code=status.HTTP_302_FOUND)
             except Exception: pass
 
@@ -1145,7 +1162,12 @@ from app.security import get_password_hash, verify_password, pwd_context
 
 
 async def get_current_user(request: Request, db: AsyncSession = Depends(get_db)):
-    token = request.cookies.get("user_id")
+    authorization_header = request.headers.get("authorization")
+    token = (
+        get_bearer_token(authorization_header)
+        if authorization_header is not None
+        else request.cookies.get("user_id")
+    )
     if not token:
         return None
     user_id = decode_access_token(token)
@@ -4709,6 +4731,7 @@ async def verify_counsellor(
             )
             db.add(notif)
             await db.commit()
+            await send_user_push_notification(db, counsellor_id, "CareStance", msg)
     except Exception as e:
         print(f"Admin Verification Error: {e}")
         await db.rollback()
@@ -4786,6 +4809,9 @@ async def give_founding_badge(
         )
         db.add(notification)
         await db.commit()
+        await send_user_push_notification(
+            db, counsellor_id, "CareStance", notification.message
+        )
     
     return RedirectResponse(url="/admin?message=Founding+badge+awarded", status_code=status.HTTP_302_FOUND)
 
@@ -4813,6 +4839,9 @@ async def take_founding_badge(
         )
         db.add(notification)
         await db.commit()
+        await send_user_push_notification(
+            db, counsellor_id, "CareStance", notification.message
+        )
     
     return RedirectResponse(url="/admin?message=Founding+badge+removed", status_code=status.HTTP_302_FOUND)
 
@@ -4850,6 +4879,9 @@ async def admin_update_counsellor_fee(
             )
             db.add(notification)
             await db.commit()
+            await send_user_push_notification(
+                db, counsellor_id, "CareStance", notification.message
+            )
 
     return RedirectResponse(url="/admin", status_code=status.HTTP_302_FOUND)
 
@@ -5490,6 +5522,9 @@ async def verify_payment(request: Request, background_tasks: BackgroundTasks, db
 
         # 6. Final Commit
         await db.commit()
+        await send_user_push_notification(
+            db, counsellor_id, "New booking request", notif.message
+        )
     except Exception as e:
         print(f"Payment verification DB error: {e}")
         await db.rollback()
@@ -5554,6 +5589,9 @@ async def accept_appointment(appt_id: int, request: Request, background_tasks: B
         )
         db.add(notif)
         await db.commit()
+        await send_user_push_notification(
+            db, student.id, "Booking confirmed", notif.message
+        )
 
     return RedirectResponse(url="/dashboard?message=Appointment+accepted", status_code=status.HTTP_302_FOUND)
 
@@ -5600,6 +5638,9 @@ async def reject_appointment(appt_id: int, request: Request, background_tasks: B
         )
         db.add(notif)
         await db.commit()
+        await send_user_push_notification(
+            db, student.id, "Booking update", notif.message
+        )
 
     return RedirectResponse(url="/dashboard?message=Appointment+rejected", status_code=status.HTTP_302_FOUND)
 
