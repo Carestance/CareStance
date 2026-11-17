@@ -6,6 +6,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>CareStance AI | Discover the Career You Were Meant For</title>
   <link rel="icon" type="image/webp" href="/static/images/image.webp?v=101">
+  <meta name="theme-color" content="#0d9488">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="CareStance">
+  <link rel="apple-touch-icon" href="/static/pwa/icon-192.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/static/css/pwa.css?v=1">
   <meta name="description"
     content="AI-powered personality analysis, immersive career simulations, and personalized guidance designed for students.">
   <meta name="google-adsense-account" content="ca-pub-6546135271987768">
@@ -3162,6 +3168,7 @@
         <a href="#simulations">Simulations</a>
         {% if user %}
         <a href="/dashboard">Dashboard</a>
+        <button type="button" class="btn-nav-cta pwa-nav-action" data-pwa-notifications>Enable notifications</button>
         <a href="/logout" class="nav-logout">Logout</a>
         {% else %}
         <a href="/login" class="nav-ghost-link">Log In</a>
@@ -3178,6 +3185,7 @@
       <a href="#simulations" onclick="closeMobileF()">Simulations</a>
       {% if user %}
       <a href="/dashboard" onclick="closeMobileF()">Dashboard</a>
+      <button type="button" class="btn-nav-cta pwa-nav-action" data-pwa-notifications>Enable notifications</button>
       <a href="/logout">Logout</a>
       {% else %}
       <a href="/login">Log In</a>
@@ -3202,7 +3210,17 @@
           <div class="hero-actions">
             <a href="/signup" class="btn-primary"><i class="fa-solid fa-rocket"></i> Start Assessment</a>
             <a href="#career-discovery" class="btn-secondary"><i class="fa-regular fa-compass"></i> Explore Paths</a>
+            <button type="button" class="btn-secondary pwa-install-button" data-pwa-install>
+              <i class="fa-solid fa-download"></i> Install App
+            </button>
           </div>
+          {% if user %}
+          <div class="hero-actions">
+            <button type="button" class="btn-secondary pwa-notifications-button" data-pwa-notifications>
+              <i class="fa-regular fa-bell"></i> Enable notifications
+            </button>
+          </div>
+          {% endif %}
           <div class="hero-stats">
             <div class="stat-chip card">
               <div class="stat-num">50K+</div>
@@ -3448,6 +3466,8 @@
     </div>
   </section>
 
+  <p id="pwa-feedback" class="pwa-feedback" role="status" aria-live="polite" hidden></p>
+  <script src="/static/js/pwa.js?v=1" defer></script>
   <script>
     // ── CAR SCROLL ANIMATION: rides the *actual* curves of the road path, not just a straight vertical line ──
     (function () {

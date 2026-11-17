@@ -11,7 +11,7 @@
     <link rel="manifest" href="/manifest.webmanifest">
     <link rel="icon" href="/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/icon-192.png">
-    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/styles.css?v=3">
     <title>CareStance</title>
   </head>
   <body>
@@ -28,6 +28,10 @@
         <p class="eyebrow">YOUR NEXT STEP, MADE CLEARER</p>
         <h1>A little more direction.<br><span>Wherever you are.</span></h1>
         <p class="hero-copy">Keep your career journey close, pick up where you left off, and get important CareStance updates even when the app is closed.</p>
+        <div class="hero-actions">
+          <button class="button button-primary" id="hero-install-button" type="button">Install app</button>
+        </div>
+        <p class="install-status" id="install-status" role="status" aria-live="polite" hidden></p>
       </section>
 
       <section class="card account-card" aria-labelledby="account-heading">
@@ -76,6 +80,6 @@
       <span>CareStance</span>
       <a href="https://carestance-production.up.railway.app/privacy" target="_blank" rel="noopener">Privacy</a>
     </footer>
-    <script src="/app.js" defer></script>
+    <script src="/app.js?v=3" defer></script>
   </body>
 </html>

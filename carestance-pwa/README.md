@@ -31,3 +31,5 @@ The backend installs `pywebpush` through the root `requirements.txt`. Startup cr
 ## Local checks
 
 Serve this folder from a local HTTPS origin (or `localhost`) to test installation and service-worker behavior. For API use, either configure a local proxy for `/api/*` or deploy the Vercel project so the rewrite to Railway is active.
+
+When releasing updated app-shell assets, increment the cache version in `service-worker.js` and the asset query versions in `index.html` so installed copies refresh cleanly.

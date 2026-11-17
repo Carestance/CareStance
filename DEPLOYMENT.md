@@ -68,9 +68,12 @@ SECRET_KEY=your-random-secret-key-here
 REDIS_URL=redis://host:6379/0
 BASE_URL=https://your-railway-app.up.railway.app
 VERCEL=false
+VAPID_PRIVATE_KEY=<generated P-256 private key; keep this secret>
+VAPID_SUBJECT=mailto:support@yourdomain.com
 
 # Note
 # BASE_URL is used for OAuth callback generation and custom host validation within the backend.
+# VAPID_SUBJECT must be a monitored contact address or URL; it is not a notification recipient.
 ```
 
 #### 3. Configure Build & Start Commands
@@ -185,6 +188,17 @@ If you need frontend pages to call the Railway backend API:
 - **Deploy fails**: Ensure `frontend/vercel.json` exists and is valid JSON.
 - **CSS not loading**: Check that `frontend/static/css/` files are referenced correctly in templates.
 - **API calls fail**: Verify the `NEXT_PUBLIC_API_URL` environment variable matches your Railway backend URL.
+
+## Installable PWA and Push Notifications
+
+The existing CareStance site is installable from its Vercel domain; this does not create a separate app or change the site's routes. The Vercel rewrites in `frontend/vercel.json` send the manifest, root-scope service worker, and `/api/` requests to the Railway backend.
+
+1. Deploy the backend and frontend after updating the repository.
+2. Set `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT` as Railway variables. Keep the private key secret; if needed, store its PEM line breaks as literal `\n` sequences. Use a monitored email address or URL for the subject.
+3. Visit the HTTPS Vercel site and choose **Install app** on the landing page, or use the browser's install/Add to Home Screen menu.
+4. Signed-in users can enable push notifications from the notification control. The browser will ask for permission.
+
+Push delivery currently follows the notification events wired into the backend (booking request/accept/reject and counsellor account updates). The service worker does not cache private pages or API responses, so server-backed site flows still require an internet connection.
 
 ---
 

@@ -7,8 +7,10 @@ from fastapi import HTTPException
 from app.api.v1.mobile import (
     PushSubscriptionRequest,
     _is_supported_push_endpoint,
+    require_push_user,
     save_push_subscription,
 )
+from app.security import create_access_token
 from app.services.push_notifications import get_vapid_public_key
 
 
@@ -56,6 +58,32 @@ async def test_subscription_route_rejects_untrusted_endpoint_before_database_acc
     assert error.value.status_code == 422
 
 
+@pytest.mark.asyncio
+async def test_push_auth_accepts_existing_website_session_cookie():
+    user = SimpleNamespace(id=73, is_suspended=False)
+
+    class _Scalars:
+        def first(self):
+            return user
+
+    class _Result:
+        def scalars(self):
+            return _Scalars()
+
+    class _Database:
+        async def execute(self, statement):
+            return _Result()
+
+    request = SimpleNamespace(
+        headers={},
+        cookies={"user_id": create_access_token(73)},
+    )
+
+    authenticated_user = await require_push_user(request=request, db=_Database())
+
+    assert authenticated_user is user
+
+
 def test_public_vapid_key_is_derived_from_private_key(monkeypatch):
     from cryptography.hazmat.primitives import serialization
     from cryptography.hazmat.primitives.asymmetric import ec
@@ -83,6 +111,23 @@ def test_push_is_disabled_when_vapid_is_not_configured(monkeypatch):
     monkeypatch.delenv("VAPID_SUBJECT", raising=False)
 
     assert get_vapid_public_key() is None
+
+
+def test_site_root_serves_pwa_manifest_worker_and_icons():
+    from fastapi.testclient import TestClient
+    from app.main import app
+
+    client = TestClient(app)
+    manifest_response = client.get("/manifest.webmanifest")
+    worker_response = client.get("/service-worker.js")
+    icon_response = client.get("/static/pwa/icon-192.png")
+
+    assert manifest_response.status_code == 200
+    assert manifest_response.json()["scope"] == "/"
+    assert worker_response.status_code == 200
+    assert worker_response.headers["service-worker-allowed"] == "/"
+    assert icon_response.status_code == 200
+    assert icon_response.headers["content-type"] == "image/png"
 
 
 @pytest.mark.asyncio

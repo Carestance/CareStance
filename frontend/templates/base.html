@@ -7,6 +7,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>CareStance — {% block title %}{% endblock %}</title>
     <link rel="icon" type="image/webp" href="/static/images/image.webp?v=101">
+    <meta name="theme-color" content="#0d9488">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="CareStance">
+    <link rel="apple-touch-icon" href="/static/pwa/icon-192.png">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="stylesheet" href="/static/css/pwa.css?v=1">
 
     <!-- DNS Prefetch for third-party resources -->
     <link rel="dns-prefetch" href="//fonts.googleapis.com">
@@ -943,6 +949,7 @@
                 <a href="/admin" class="{% if request.url.path == '/admin' %}nav-active{% endif %}"
                     style="font-weight:700;"><i class="fa-solid fa-shield-halved"></i>Admin</a>
                 {% endif %}
+                <button type="button" class="btn-nav-cta pwa-nav-action" data-pwa-notifications>Enable notifications</button>
                 <a href="/logout" class="nav-logout">Logout</a>
                 {% else %}
                 <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i
@@ -987,6 +994,7 @@
             {% if user.role == 'admin' %}<a href="/admin"
                 class="{% if request.url.path == '/admin' %}nav-active{% endif %}"><i
                     class="fa-solid fa-shield-halved"></i>Admin Panel</a>{% endif %}
+            <button type="button" class="btn-nav-cta pwa-nav-action" data-pwa-notifications>Enable notifications</button>
             <a href="/logout" style="color:#b45309;"><i class="fa-solid fa-right-from-bracket"></i>Logout</a>
             {% else %}
             <a href="/" class="{% if request.url.path == '/' %}nav-active{% endif %}"><i
@@ -1005,6 +1013,7 @@
             {% endif %}
         </div>
     </nav>
+    <p id="pwa-feedback" class="pwa-feedback" role="status" aria-live="polite" hidden></p>
     <script>
         window.addEventListener('scroll', () => {
             const nav = document.getElementById('base-nav');
@@ -1128,6 +1137,7 @@
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6546135271987768"
         crossorigin="anonymous"></script>
     {% endblock %}
+    <script src="/static/js/pwa.js?v=1" defer></script>
 </body>
 
 </html>

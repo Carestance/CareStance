@@ -1,8 +1,8 @@
-const CACHE_NAME = "carestance-pwa-v1";
+const CACHE_NAME = "carestance-pwa-v3";
 const APP_SHELL = [
   "/",
-  "/styles.css",
-  "/app.js",
+  "/styles.css?v=3",
+  "/app.js?v=3",
   "/manifest.webmanifest",
   "/icon.svg",
   "/icon-192.png",

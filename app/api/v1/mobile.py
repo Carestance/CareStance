@@ -167,11 +167,46 @@ async def require_mobile_user(
     db: AsyncSession = Depends(get_db),
 ) -> models.User:
     token = get_bearer_token(request.headers.get("authorization"))
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="A valid bearer access token is required.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return await _get_active_user(
+        token,
+        db,
+        invalid_token_detail="A valid bearer access token is required.",
+    )
+
+
+async def require_push_user(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> models.User:
+    token = get_bearer_token(request.headers.get("authorization")) or request.cookies.get("user_id")
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="A signed-in CareStance account is required.",
+        )
+    return await _get_active_user(
+        token,
+        db,
+        invalid_token_detail="The access token is invalid.",
+    )
+
+
+async def _get_active_user(
+    token: str,
+    db: AsyncSession,
+    invalid_token_detail: str,
+) -> models.User:
     user_id = decode_access_token(token)
     if not user_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="A valid bearer access token is required.",
+            detail=invalid_token_detail,
             headers={"WWW-Authenticate": "Bearer"},
         )
     try:
@@ -302,7 +337,7 @@ async def push_public_key():
 @router.post("/push/subscriptions", status_code=status.HTTP_201_CREATED)
 async def save_push_subscription(
     payload: PushSubscriptionRequest,
-    user: models.User = Depends(require_mobile_user),
+    user: models.User = Depends(require_push_user),
     db: AsyncSession = Depends(get_db),
 ):
     if not _is_supported_push_endpoint(payload.endpoint):
@@ -338,7 +373,7 @@ async def save_push_subscription(
 @router.delete("/push/subscriptions")
 async def delete_push_subscription(
     payload: PushSubscriptionRequest,
-    user: models.User = Depends(require_mobile_user),
+    user: models.User = Depends(require_push_user),
     db: AsyncSession = Depends(get_db),
 ):
     subscription = (

@@ -8,6 +8,9 @@ const signupNote = document.querySelector("#signup-note");
 const notificationButton = document.querySelector("#notification-button");
 const notificationMessage = document.querySelector("#notification-message");
 const installButton = document.querySelector("#install-button");
+const heroInstallButton = document.querySelector("#hero-install-button");
+const installStatus = document.querySelector("#install-status");
+const installHint = document.querySelector(".install-hint");
 let installPrompt;
 
 function showMessage(element, message, isError = false) {
@@ -228,20 +231,43 @@ window.addEventListener("beforeinstallprompt", (event) => {
   event.preventDefault();
   installPrompt = event;
   installButton.hidden = false;
+  heroInstallButton.textContent = "Install CareStance";
 });
 
-installButton.addEventListener("click", async () => {
-  if (!installPrompt) return;
-  installPrompt.prompt();
-  await installPrompt.userChoice;
+async function requestInstallation() {
+  if (!installPrompt) {
+    installStatus.hidden = false;
+    installStatus.textContent = "Use your browser menu to choose Install app or Add to Home Screen.";
+    installHint.scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
+
+  const prompt = installPrompt;
   installPrompt = null;
+  await prompt.prompt();
+  const choice = await prompt.userChoice;
+  installStatus.hidden = false;
+  installStatus.textContent = choice.outcome === "accepted"
+    ? "CareStance is being installed."
+    : "Installation was cancelled. You can try again from your browser menu.";
   installButton.hidden = true;
-});
+}
+
+installButton.addEventListener("click", requestInstallation);
+heroInstallButton.addEventListener("click", requestInstallation);
 
 window.addEventListener("appinstalled", () => {
   installButton.hidden = true;
+  heroInstallButton.hidden = true;
   installPrompt = null;
+  installStatus.hidden = false;
+  installStatus.textContent = "CareStance is installed on this device.";
 });
+
+if (window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true) {
+  installButton.hidden = true;
+  heroInstallButton.hidden = true;
+}
 
 function updateOnlineStatus() {
   document.querySelector("#offline-message").hidden = navigator.onLine;

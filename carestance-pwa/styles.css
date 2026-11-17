@@ -87,6 +87,20 @@ h1 span {
   line-height: 1.7;
 }
 
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 23px;
+}
+
+.install-status {
+  margin: 10px 0 0;
+  color: #526b75;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
 .card {
   padding: clamp(24px, 6vw, 42px);
   border: 1px solid #e0eae7;

@@ -1,0 +1,27 @@
+.pwa-install-button,
+.pwa-notifications-button {
+  font: inherit;
+  cursor: pointer;
+}
+
+.pwa-nav-action {
+  border: 0;
+}
+
+.pwa-feedback {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 2000;
+  max-width: min(28rem, calc(100vw - 2rem));
+  padding: 0.8rem 1rem;
+  border-radius: 0.75rem;
+  background: #0f172a;
+  box-shadow: 0 8px 24px rgb(15 23 42 / 0.2);
+  color: #fff;
+  font-size: 0.9rem;
+}
+
+.pwa-feedback-error {
+  background: #9f1239;
+}

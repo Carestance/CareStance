@@ -26,7 +26,7 @@ logger = logging.getLogger("carestance.main")
 from fastapi import FastAPI, Depends, HTTPException, status, Request, Form, Response, BackgroundTasks, File, UploadFile
 from pydantic import BaseModel
 from typing import List, Optional
-from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse, JSONResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse, JSONResponse, FileResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -1159,6 +1159,27 @@ templates = Jinja2Templates(directory=TEMPLATES_DIR)
 templates.env.auto_reload = True
 # Re-enabled cache as standard practice
 from app.security import get_password_hash, verify_password, pwd_context
+
+
+@app.get("/manifest.webmanifest")
+async def pwa_manifest():
+    return FileResponse(
+        os.path.join(STATIC_DIR, "pwa", "manifest.webmanifest"),
+        media_type="application/manifest+json",
+        headers={"Cache-Control": "no-cache"},
+    )
+
+
+@app.get("/service-worker.js")
+async def pwa_service_worker():
+    return FileResponse(
+        os.path.join(STATIC_DIR, "pwa", "service-worker.js"),
+        media_type="application/javascript",
+        headers={
+            "Cache-Control": "no-cache",
+            "Service-Worker-Allowed": "/",
+        },
+    )
 
 
 async def get_current_user(request: Request, db: AsyncSession = Depends(get_db)):

@@ -7,6 +7,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>CareStance AI | Discover the Career You Were Meant For</title>
   <link rel="icon" type="image/webp" href="/static/images/image.webp?v=101">
+  <meta name="theme-color" content="#0d9488">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="CareStance">
+  <link rel="apple-touch-icon" href="/static/pwa/icon-192.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/static/css/pwa.css?v=1">
   <meta name="description"
     content="AI-powered personality analysis, immersive career simulations, and personalized guidance designed for students.">
   <meta name="google-adsense-account" content="ca-pub-6546135271987768">
@@ -1182,6 +1188,9 @@
           <div class="hero-actions">
             <a href="/signup" class="btn-primary"><i class="fa-solid fa-rocket"></i> Start Assessment</a>
             <a href="#career-discovery" class="btn-secondary"><i class="fa-regular fa-compass"></i> Explore Paths</a>
+            <button type="button" class="btn-secondary pwa-install-button" data-pwa-install>
+              <i class="fa-solid fa-download"></i> Install App
+            </button>
           </div>
           <div class="hero-stats">
             <div class="stat-chip card">
@@ -1631,6 +1640,8 @@
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6546135271987768"
     crossorigin="anonymous"></script>
 
+  <p id="pwa-feedback" class="pwa-feedback" role="status" aria-live="polite" hidden></p>
+  <script src="/static/js/pwa.js?v=1" defer></script>
   <script>
     // ── MOBILE MENU TOGGLE ──
     const menuToggle = document.getElementById('f-menu-toggle');

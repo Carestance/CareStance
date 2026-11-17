@@ -7,6 +7,9 @@
     }
   ],
   "rewrites": [
+    { "source": "/manifest.webmanifest", "destination": "https://carestance-production.up.railway.app/manifest.webmanifest" },
+    { "source": "/service-worker.js", "destination": "https://carestance-production.up.railway.app/service-worker.js" },
+    { "source": "/api/(.*)", "destination": "https://carestance-production.up.railway.app/api/$1" },
     { "source": "/login", "destination": "https://carestance-production.up.railway.app/login" },
     { "source": "/signup", "destination": "https://carestance-production.up.railway.app/signup" },
     { "source": "/dashboard", "destination": "https://carestance-production.up.railway.app/dashboard" },
