@@ -1152,7 +1152,7 @@ from app.security import get_password_hash, verify_password, pwd_context
 @app.get("/manifest.webmanifest")
 async def pwa_manifest():
     return FileResponse(
-        os.path.join(STATIC_DIR, "pwa", "manifest.webmanifest"),
+        os.path.join(FRONTEND_DIR, "manifest.json"),
         media_type="application/manifest+json",
         headers={"Cache-Control": "no-cache"},
     )

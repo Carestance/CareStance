@@ -7,8 +7,7 @@
     }
   ],
   "rewrites": [
-    { "source": "/manifest.json", "destination": "/static/pwa/manifest.webmanifest" },
-    { "source": "/manifest.webmanifest", "destination": "/static/pwa/manifest.webmanifest" },
+    { "source": "/manifest.webmanifest", "destination": "/manifest.json" },
     { "source": "/service-worker.js", "destination": "/static/pwa/service-worker.js" },
     { "source": "/api/(.*)", "destination": "https://carestance-production.up.railway.app/api/$1" },
     { "source": "/login", "destination": "https://carestance-production.up.railway.app/login" },
