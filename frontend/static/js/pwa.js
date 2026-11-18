@@ -16,6 +16,10 @@
       || window.navigator.standalone === true;
   }
 
+  function isAndroidDevice() {
+    return /Android/i.test(window.navigator.userAgent);
+  }
+
   function updateInstallButtons() {
     if (isInstalled()) {
       installButtons.forEach((button) => {
@@ -25,6 +29,17 @@
   }
 
   async function requestInstallation() {
+    if (isAndroidDevice()) {
+      const downloadLink = document.createElement("a");
+      downloadLink.href = "/static/pwa/carestance.apk";
+      downloadLink.download = "CareStance.apk";
+      document.body.append(downloadLink);
+      downloadLink.click();
+      downloadLink.remove();
+      showFeedback("Download started. Open CareStance.apk from your downloads to install the app.");
+      return;
+    }
+
     if (!installPrompt) {
       showFeedback("Use your browser menu to choose Install app or Add to Home Screen.");
       return;

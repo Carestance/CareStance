@@ -123,6 +123,7 @@ def test_site_root_serves_pwa_manifest_worker_and_icons():
     worker_response = client.get("/service-worker.js")
     icon_response = client.get("/static/pwa/icon-192.png")
     screenshot_response = client.get("/static/pwa/screenshot-wide.png")
+    apk_response = client.get("/static/pwa/carestance.apk")
 
     assert json_manifest_response.status_code == 200
     assert json_manifest_response.json() == manifest_response.json()
@@ -151,6 +152,9 @@ def test_site_root_serves_pwa_manifest_worker_and_icons():
     assert icon_response.headers["content-type"] == "image/png"
     assert screenshot_response.status_code == 200
     assert screenshot_response.headers["content-type"] == "image/png"
+    assert apk_response.status_code == 200
+    assert apk_response.headers["content-type"] == "application/octet-stream"
+    assert apk_response.content.startswith(b"PK")
 
 
 @pytest.mark.asyncio
