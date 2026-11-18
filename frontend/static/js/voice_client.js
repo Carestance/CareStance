@@ -9,10 +9,8 @@ class VoiceClient {
     static activeAttemptId = 0;
     static activeClient = null;
 
-    constructor(wsUrl, onStateChange, onMessage, options = {}) {
-        // wsUrl is repurposed as the API endpoint for WebRTC offer exchange if provided,
-        // otherwise it defaults to the /api/webrtc/offer endpoint.
-        this.apiUrl = wsUrl ? wsUrl.replace("ws://", "http://").replace("wss://", "https://") : '/api/webrtc/offer';
+    constructor(apiUrl, onStateChange, onMessage, options = {}) {
+        this.apiUrl = apiUrl || '/api/webrtc/offer';
         this.configUrl = (options && options.configUrl) || (this.apiUrl && this.apiUrl.endsWith('/offer') ? this.apiUrl.replace(/\/offer$/, '/config') : '/api/webrtc/config');
         this.iceServers = (options && options.iceServers) || null;
         this.onStateChange = onStateChange || function() {};
@@ -32,6 +30,7 @@ class VoiceClient {
         this.isConnecting = false;
         this.isDisconnecting = false;
         this.chatHistory = [];
+        this.connectionGraceTimer = null;
 
         // Client ID persistence
         if (typeof localStorage !== 'undefined') {
@@ -52,6 +51,19 @@ class VoiceClient {
         if (this.debug) {
             console.log(...args);
         }
+    }
+
+    getMicrophoneErrorMessage(error) {
+        const messages = {
+            NotAllowedError: 'Microphone permission was denied. Allow microphone access in your browser settings and try again.',
+            NotFoundError: 'No microphone was found. Connect or enable a microphone, then try again.',
+            NotReadableError: 'The microphone is unavailable or being used by another app. Close other recording apps and try again.',
+            OverconstrainedError: 'The microphone does not support the requested audio settings.',
+            SecurityError: 'Microphone access requires a secure HTTPS connection.'
+        };
+        return messages[error && error.name]
+            || (error && error.message)
+            || 'Could not initialize the microphone. Check its permissions and try again.';
     }
 
     logAudioState(prefix = "[WebRTC] Audio element state:") {
@@ -237,6 +249,7 @@ class VoiceClient {
             window.voiceClient = this;
         }
 
+        let initializingMicrophone = true;
         try {
             // Cancel any prior in-flight fetch request
             if (this.abortController) {
@@ -246,23 +259,38 @@ class VoiceClient {
 
             // 1. Get user media (microphone)
             this.log(`[WebRTC] [Attempt #${attemptId}] Requesting microphone access`);
-            try {
-                this.localStream = await navigator.mediaDevices.getUserMedia({
-                    audio: {
-                        echoCancellation: true,
-                        noiseSuppression: true,
-                        autoGainControl: true
-                    },
-                    video: false
-                });
-            } catch (mediaError) {
-                if (mediaError.name === 'NotAllowedError') {
-                    console.error("[WebRTC] Microphone access denied by user (NotAllowedError)");
-                } else {
-                    console.error("[WebRTC] Failed to access microphone:", mediaError);
-                }
-                throw mediaError;
+            this.onMessage({
+                type: 'VOICE_STATUS',
+                status: 'MIC_INITIALIZING',
+                message: 'Requesting microphone permission…'
+            });
+            if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
+                const error = new Error('Microphone access requires a supported browser and a secure HTTPS connection.');
+                error.name = 'SecurityError';
+                throw error;
             }
+            this.localStream = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true
+                },
+                video: false
+            });
+            const audioTracks = typeof this.localStream.getAudioTracks === 'function'
+                ? this.localStream.getAudioTracks()
+                : this.localStream.getTracks().filter((track) => track.kind === 'audio');
+            if (!audioTracks.length) {
+                const error = new Error('No audio track was provided by the selected microphone.');
+                error.name = 'NotFoundError';
+                throw error;
+            }
+            initializingMicrophone = false;
+            this.onMessage({
+                type: 'VOICE_STATUS',
+                status: 'AI_CONNECTING',
+                message: 'Microphone ready. Connecting to Careo…'
+            });
 
             // Check if connection was aborted while waiting for mic permission
             if (!this.isCurrentAttempt(attemptId)) {
@@ -376,6 +404,26 @@ class VoiceClient {
 
             // 4. Create Data Channel for Pipecat transcripts & events
             this.dataChannel = pc.createDataChannel("pipecat");
+            this.dataChannel.onopen = () => {
+                if (!this.isValidPeerConnection(pc, attemptId)) return;
+                this.onMessage({ type: 'DATA_CHANNEL_OPEN' });
+            };
+            this.dataChannel.onclose = () => {
+                if (!this.isValidPeerConnection(pc, attemptId)) return;
+                this.onMessage({
+                    type: 'VOICE_STATUS',
+                    status: 'DATA_CHANNEL_CLOSED',
+                    message: 'The conversation channel closed. Reconnect to continue.'
+                });
+            };
+            this.dataChannel.onerror = () => {
+                if (!this.isValidPeerConnection(pc, attemptId)) return;
+                this.onMessage({
+                    type: 'VOICE_ERROR',
+                    code: 'DATA_CHANNEL_ERROR',
+                    message: 'The conversation channel failed. Check your connection and reconnect.'
+                });
+            };
             this.dataChannel.onmessage = (event) => {
                 if (!this.isValidPeerConnection(pc, attemptId)) return;
                 try {
@@ -455,22 +503,42 @@ class VoiceClient {
                 }
                 const cState = pc.connectionState;
                 this.log(`[WebRTC] [Attempt #${attemptId}] connectionState=${cState}`);
-                await this.collectIceDiagnostics(pc, attemptId, `Connection State: ${cState}`);
                 
                 if (cState === 'connected') {
+                    if (this.connectionGraceTimer) {
+                        clearTimeout(this.connectionGraceTimer);
+                        this.connectionGraceTimer = null;
+                    }
                     this.setState('LISTENING', attemptId);
                     this.startStatsMonitoring(2500, attemptId);
-                } else if (cState === 'disconnected' || cState === 'failed') {
+                } else if (cState === 'disconnected') {
+                    if (!this.connectionGraceTimer) {
+                        this.onMessage({
+                            type: 'VOICE_STATUS',
+                            status: 'RECONNECTING',
+                            message: 'Voice connection interrupted. Trying to reconnect…'
+                        });
+                        this.connectionGraceTimer = setTimeout(async () => {
+                            this.connectionGraceTimer = null;
+                            if (!this.isValidPeerConnection(pc, attemptId) || pc.connectionState !== 'disconnected') return;
+                            await this.collectIceDiagnostics(pc, attemptId, 'Connection State: disconnected');
+                            this.onMessage({
+                                type: 'VOICE_ERROR',
+                                code: 'CONNECTION_LOST',
+                                message: 'The voice connection was lost. Tap the microphone to reconnect; your conversation is still available to save.'
+                            });
+                            this.disconnect('ERROR');
+                        }, 5000);
+                    }
+                } else if (cState === 'failed') {
                     console.warn(`[WebRTC] [Attempt #${attemptId}] Connection state changed to ${cState}`);
                     await this.collectIceDiagnostics(pc, attemptId, "FINAL ICE DIAGNOSTICS");
-                    if (cState === 'failed' && typeof this.onMessage === 'function') {
-                        this.onMessage({
-                            type: 'VOICE_ERROR',
-                            code: 'ICE_CONNECTION_FAILED',
-                            message: 'WebRTC connection failed: ICE connectivity could not be established.'
-                        });
-                    }
-                    this.disconnect(cState === 'failed' ? 'ERROR' : 'DISCONNECTED');
+                    this.onMessage({
+                        type: 'VOICE_ERROR',
+                        code: 'ICE_CONNECTION_FAILED',
+                        message: 'The voice connection failed. Check your network and reconnect.'
+                    });
+                    this.disconnect('ERROR');
                 }
             };
 
@@ -579,7 +647,14 @@ class VoiceClient {
             }
 
             if (!response.ok) {
-                throw new Error(`Failed SDP negotiation: ${response.status} ${response.statusText}`);
+                let detail = `Could not connect to the voice service (${response.status}).`;
+                try {
+                    const errorBody = await response.json();
+                    detail = errorBody.detail || errorBody.error || detail;
+                } catch (error) {
+                    // Keep the HTTP status message when the server does not return JSON.
+                }
+                throw new Error(detail);
             }
 
             const answerData = await response.json();
@@ -628,7 +703,9 @@ class VoiceClient {
                 this.onMessage({
                     type: 'VOICE_ERROR',
                     code: error.name || 'VOICE_CONNECTION_FAILED',
-                    message: error.message || 'Unable to establish WebRTC connection.'
+                    message: initializingMicrophone
+                        ? this.getMicrophoneErrorMessage(error)
+                        : (error.message || 'Unable to establish the voice connection.')
                 });
             }
             if (this.isCurrentAttempt(attemptId)) {
@@ -791,8 +868,23 @@ class VoiceClient {
         return this.getInboundAudioStats();
     }
 
+    setMicEnabled(enabled) {
+        if (!this.localStream || typeof this.localStream.getTracks !== 'function') return false;
+        const tracks = typeof this.localStream.getAudioTracks === 'function'
+            ? this.localStream.getAudioTracks()
+            : this.localStream.getTracks().filter((track) => track.kind === 'audio');
+        tracks.forEach((track) => {
+            track.enabled = Boolean(enabled);
+        });
+        return tracks.length > 0;
+    }
+
     startStatsMonitoring(intervalMs = 2500, attemptId = this.connectionAttemptId) {
         this.stopStatsMonitoring();
+        if (this.connectionGraceTimer) {
+            clearTimeout(this.connectionGraceTimer);
+            this.connectionGraceTimer = null;
+        }
         this.statsInterval = setInterval(async () => {
             if (!this.isCurrentAttempt(attemptId) || !this.peerConnection || this.peerConnection.connectionState !== 'connected') {
                 return;
@@ -850,6 +942,10 @@ class VoiceClient {
             }
         }
 
+        if (this.connectionGraceTimer) {
+            clearTimeout(this.connectionGraceTimer);
+            this.connectionGraceTimer = null;
+        }
         this.stopStatsMonitoring();
 
         // Abort in-flight HTTP offer request

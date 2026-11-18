@@ -1,3 +1,4 @@
+from unittest.mock import AsyncMock
 from types import SimpleNamespace
 
 import pytest
@@ -85,3 +86,14 @@ async def test_non_html_requests_skip_growth_map_lookup(monkeypatch):
     assert result is user
     assert not hasattr(request.state, "growth_map_url")
     assert db.query_count == 1
+
+
+@pytest.mark.asyncio
+async def test_authenticated_home_redirects_to_dashboard(monkeypatch):
+    user = SimpleNamespace(id=42, role="student")
+    monkeypatch.setattr(main, "get_current_user", AsyncMock(return_value=user))
+
+    response = await main.home(_request("text/html"), db=None)
+
+    assert response.status_code == 302
+    assert response.headers["location"] == "/dashboard"

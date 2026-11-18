@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="max-w-3xl mx-auto py-4 space-y-5">
-    <a href="/my-monthly-path/week/{{ week_number }}" class="inline-flex items-center gap-2 text-sm font-bold text-teal-700 hover:text-teal-900"><i class="fas fa-arrow-left"></i> Back to Week {{ week_number }}</a>
+    <a href="/my-monthly-path/week/{{ week_number }}{% if career %}?career={{ career|urlencode }}{% endif %}" class="inline-flex items-center gap-2 text-sm font-bold text-teal-700 hover:text-teal-900"><i class="fas fa-arrow-left"></i> Back to Week {{ week_number }}</a>
     <section class="rounded-3xl bg-gradient-to-br from-teal-900 to-slate-900 p-7 text-white shadow-xl">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div><p class="text-xs font-black uppercase tracking-widest text-teal-200">Weekly support · Week {{ week_number }}</p><h1 class="mt-2 text-2xl font-black">3–4 minute AI conversation</h1><p class="mt-2 text-sm text-slate-200">Talk through your progress, one blocker, and your next small action.</p></div>

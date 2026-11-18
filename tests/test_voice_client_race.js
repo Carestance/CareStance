@@ -215,6 +215,8 @@ test('VoiceClient Comprehensive Regression Test Suite', async (t) => {
         assert.ok(stateChanges.includes('CONNECTING'), "Must emit CONNECTING state change");
         assert.ok(client.peerConnection, "PeerConnection must be created");
         assert.strictEqual(global.window.peerConnection, client.peerConnection, "window.peerConnection must be exposed");
+        assert.strictEqual(client.peerConnection.tracks.length, 1, "Microphone audio must be added to the peer connection");
+        assert.strictEqual(client.peerConnection.tracks[0].track.kind, 'audio');
 
         // Simulate connection established
         client.peerConnection.connectionState = 'connected';
@@ -474,5 +476,45 @@ test('VoiceClient Comprehensive Regression Test Suite', async (t) => {
         assert.strictEqual(client.state, 'ERROR', "State should transition to ERROR on ICE failure");
         assert.ok(messages.some(m => m.code === 'ICE_CONNECTION_FAILED'), "Must emit ICE_CONNECTION_FAILED error message");
         assert.strictEqual(global.window.peerConnection, null, "window.peerConnection must be cleaned up");
+    });
+
+    await t.test('Scenario H: microphone permission denial is surfaced clearly', async () => {
+        Object.defineProperty(global.navigator, 'mediaDevices', {
+            value: {
+                getUserMedia: async () => {
+                    const error = new Error('Permission denied');
+                    error.name = 'NotAllowedError';
+                    throw error;
+                }
+            },
+            configurable: true,
+            writable: true
+        });
+
+        const messages = [];
+        const client = new VoiceClient('/api/webrtc/offer', () => {}, (message) => {
+            messages.push(message);
+        });
+
+        await client.connect();
+
+        const errorMessage = messages.find(message => message.type === 'VOICE_ERROR');
+        assert.ok(errorMessage);
+        assert.match(errorMessage.message, /permission was denied/i);
+        assert.strictEqual(client.state, 'ERROR');
+    });
+
+    await t.test('Scenario I: disconnect clears the transient reconnection timer', async () => {
+        const client = new VoiceClient('/api/webrtc/offer');
+        let timerFired = false;
+        client.connectionGraceTimer = setTimeout(() => {
+            timerFired = true;
+        }, 20);
+
+        client.disconnect();
+        await new Promise(resolve => setTimeout(resolve, 30));
+
+        assert.strictEqual(client.connectionGraceTimer, null);
+        assert.strictEqual(timerFired, false);
     });
 });

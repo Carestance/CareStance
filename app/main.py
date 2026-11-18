@@ -21,7 +21,7 @@ from authlib.integrations.starlette_client import OAuth
 logger = logging.getLogger("carestance.main")
 
 from fastapi import FastAPI, Depends, HTTPException, status, Request, Form, Response, BackgroundTasks, File, UploadFile
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse, JSONResponse, FileResponse
 from fastapi.templating import Jinja2Templates
@@ -1233,6 +1233,8 @@ async def bing_site_auth():
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request, db: AsyncSession = Depends(get_db)):
     user = await get_current_user(request, db)
+    if user:
+        return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
     try:
         # Bypassing Starlette's TemplateResponse to avoid internal dict vs string ambiguity
         template = templates.get_template("landing.html")
@@ -3955,8 +3957,8 @@ async def weekly_growth_conversation(week_number: int, request: Request, db: Asy
     user = await get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
-    if user.role != "student":
-        raise HTTPException(status_code=403, detail="This page is only available to students")
+    if user.role not in ["student", "admin"]:
+        raise HTTPException(status_code=403, detail="This page is only available to students and admins")
     if week_number not in range(1, 5):
         raise HTTPException(status_code=404, detail="Week not found")
 
@@ -3995,7 +3997,7 @@ async def weekly_growth_conversation_message(week_number: int, request: Request,
     user = await get_current_user(request, db)
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
-    if user.role != "student" or week_number not in range(1, 5):
+    if user.role not in ["student", "admin"] or week_number not in range(1, 5):
         raise HTTPException(status_code=403, detail="This conversation is not available")
     try:
         message = str((await request.json()).get("message", "")).strip()
@@ -4048,7 +4050,7 @@ async def complete_weekly_growth_conversation(week_number: int, request: Request
     from .services.monthly_plan_service import get_monthly_plan_progress
     plan_record = await _get_current_monthly_plan_record(user, db, request.query_params.get("career", ""))
     plan_data = dict(plan_record.plan_data or {})
-    if user.role != "student" or get_monthly_plan_progress(plan_data)["current_week"] != week_number:
+    if user.role not in ["student", "admin"] or get_monthly_plan_progress(plan_data)["current_week"] != week_number:
         raise HTTPException(status_code=403, detail="This conversation is not available")
     conversations = list(plan_data.get("weekly_conversations", []))
     conversation = next((item for item in reversed(conversations) if item.get("week") == week_number), None)
@@ -5634,6 +5636,12 @@ async def assessment_phase3(request: Request, mode: str = "chat", db: AsyncSessi
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     if not has_assessment_all_access(user):
         return RedirectResponse(url="/assessment/unlock", status_code=status.HTTP_302_FOUND)
+
+    if mode in ["chat", "text"]:
+        return RedirectResponse(
+            url="/chatbot?mode=assessment",
+            status_code=status.HTTP_302_FOUND,
+        )
         
     result = (await db.execute(select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id))).scalars().first()
     if not result:
@@ -5642,16 +5650,6 @@ async def assessment_phase3(request: Request, mode: str = "chat", db: AsyncSessi
     is_completed = (result.phase3_result == "COMPLETED")
     import json
     history_json = json.dumps(result.chat_messages or [])
-
-    # Chat / text mode → dedicated chat assessment interface
-    if mode in ["chat", "text"]:
-        return templates.TemplateResponse(request=request, name="assessment_phase3.html", context={
-            "user": user,
-            "result": result,
-            "mode": "chat",
-            "is_completed": is_completed,
-            "history_json": history_json
-        })
 
     # Voice mode → voice companion interface
     return templates.TemplateResponse(request=request, name="assessment_phase3_v2.html", context={
@@ -5863,12 +5861,10 @@ from app.pipeline.prompts_phase3 import LIVE_CHAT_PROMPT
 
 class Phase3V2ChatRequest(BaseModel):
     message: str = ""
-    answers: list = []
+    answers: list = Field(default_factory=list)
 
-@app.post("/assessment/phase3/chat_v2", deprecated=True)
+@app.post("/assessment/phase3/chat_v2")
 async def phase3_chat_v2(request: Request, chat_req: Phase3V2ChatRequest, db: AsyncSession = Depends(get_db)):
-    import logging
-    logging.warning("DEPRECATION WARNING: /assessment/phase3/chat_v2 is deprecated and will be removed. Please transition to WebRTC /api/webrtc/offer")
     user = await get_current_user(request, db)
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
@@ -5881,10 +5877,24 @@ async def phase3_chat_v2(request: Request, chat_req: Phase3V2ChatRequest, db: As
     if not result:
         raise HTTPException(status_code=404, detail="Complete Phase 2 before starting Career Talk")
     
-    # Determine if conversation should wrap up (after ~10 exchanges)
-    user_msg_count = sum(1 for m in chat_req.answers if m.get("role") == "user")
-    if chat_req.message.strip():
-        user_msg_count += 1
+    full_history = []
+    for message in chat_req.answers:
+        if not isinstance(message, dict):
+            continue
+        role = message.get("role")
+        content = message.get("content")
+        if role in ["user", "assistant"] and isinstance(content, str) and content.strip():
+            full_history.append({"role": role, "content": content.strip()})
+
+    current_message = chat_req.message.strip()
+    if current_message and not (
+        full_history
+        and full_history[-1]["role"] == "user"
+        and full_history[-1]["content"] == current_message
+    ):
+        full_history.append({"role": "user", "content": current_message})
+
+    user_msg_count = sum(1 for message in full_history if message["role"] == "user")
         
     phase1 = result.raw_answers if isinstance(result.raw_answers, dict) else {}
     
@@ -5921,59 +5931,58 @@ async def phase3_chat_v2(request: Request, chat_req: Phase3V2ChatRequest, db: As
         parents_occupation=parents_occupation
     )
 
-    # Build conversation history as messages for Groq
-    messages = [
-        {"role": "system", "content": sys_prompt}
-    ]
+    messages = [{"role": "system", "content": sys_prompt}, *full_history]
 
-    # Add conversation history (already includes the current user message from client)
-    if chat_req.answers:
-        for msg in chat_req.answers:
-            role = msg.get("role", "user")
-            content = msg.get("content", "")
-            if role in ["user", "assistant"]:
-                messages.append({"role": role, "content": content})
-
-    # Immediately persist the user's message to the database before waiting for AI
-    # Note: chat_req.answers already contains the user message (appended client-side),
-    # so we do NOT append chat_req.message again to avoid duplication.
-    full_history = chat_req.answers.copy() if chat_req.answers else []
-
-    if result:
-        result.chat_messages = full_history.copy()
-        await db.commit()
+    result.chat_messages = full_history.copy()
+    await db.commit()
 
     ai_text = None
-    # Try Groq API directly
-    gclient = get_groq_client()
+    provider_attempted = False
+    try:
+        gclient = get_groq_client()
+    except Exception:
+        logger.exception("Could not initialize the assessment conversation AI provider")
+        gclient = None
+
     if gclient:
+        provider_attempted = True
         try:
-            completion = await gclient.chat.completions.create(
-                messages=messages,
-                model="qwen/qwen3.8-27b",
-                temperature=0.8,
-                max_tokens=300,
+            completion = await asyncio.wait_for(
+                gclient.chat.completions.create(
+                    messages=messages,
+                    model="qwen/qwen3.8-27b",
+                    temperature=0.8,
+                    max_tokens=300,
+                ),
+                timeout=30,
             )
-            ai_text = completion.choices[0].message.content
-        except Exception as groq_err:
-            print(f"Phase 3 Chat Groq Error: {groq_err}")
+            ai_text = (completion.choices[0].message.content or "").strip() or None
+        except Exception:
+            logger.exception("Assessment conversation Groq request failed")
             
     if not ai_text and GEMINI_API_KEY:
+        provider_attempted = True
         try:
-            # Fallback to Gemini if Groq not available or failed
             flat_prompt = "\n".join([f"{m['role'].upper()}: {m['content']}" for m in messages])
-            ai_text = await asyncio.wait_for(generate_content_with_fallback(flat_prompt), timeout=20)
-        except Exception as gemini_err:
-            print(f"Phase 3 Chat Gemini Error: {gemini_err}")
+            ai_text = (await asyncio.wait_for(generate_content_with_fallback(flat_prompt), timeout=20) or "").strip() or None
+        except Exception:
+            logger.exception("Assessment conversation Gemini request failed")
             
     if not ai_text:
-        ai_text = "I appreciate your patience. Could you tell me a bit more about that? I want to make sure I really understand your perspective."
+        if not provider_attempted:
+            raise HTTPException(
+                status_code=503,
+                detail="Assessment conversation is unavailable because no AI provider is configured.",
+            )
+        raise HTTPException(
+            status_code=502,
+            detail="The AI could not process that message. Your message was saved; please try again.",
+        )
 
     # Update conversation history in database with AI response
     full_history.append({"role": "assistant", "content": ai_text})
-    if result:
-        result.chat_messages = full_history.copy()
-        await db.commit()
+    result.chat_messages = full_history.copy()
+    await db.commit()
 
     return JSONResponse({
         "response": ai_text,
@@ -5983,7 +5992,21 @@ async def phase3_chat_v2(request: Request, chat_req: Phase3V2ChatRequest, db: As
 
 
 class Phase3FinalizeRequest(BaseModel):
-    history: list = []
+    history: list = Field(default_factory=list)
+
+
+def _normalize_phase3_finalize_history(messages):
+    normalized = []
+    if not isinstance(messages, list):
+        return normalized
+    for message in messages:
+        if not isinstance(message, dict):
+            continue
+        role = message.get("role")
+        content = message.get("content")
+        if role in {"user", "assistant"} and isinstance(content, str) and content.strip():
+            normalized.append({"role": role, "content": content.strip()})
+    return normalized
 
 
 def _select_phase3_finalize_history(submitted_history, persisted_history):
@@ -6006,9 +6029,12 @@ async def phase3_finalize(request: Request, finalize_req: Phase3FinalizeRequest,
     result.phase3_result = "COMPLETED"
 
     # The browser has the latest transcript on manual finish; persisted history is fallback.
-    history = _select_phase3_finalize_history(finalize_req.history, result.chat_messages)
-    if finalize_req.history:
-        result.chat_messages = history
+    history = _select_phase3_finalize_history(
+        _normalize_phase3_finalize_history(finalize_req.history),
+        _normalize_phase3_finalize_history(result.chat_messages),
+    )
+    result.chat_messages = history
+    await db.commit()
 
     transcript = ""
     for msg in history:
@@ -8015,13 +8041,40 @@ async def chatbot_page(request: Request, mode: str = "chat", db: AsyncSession = 
     user = await get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
-    
-    # Fetch History
-    history = (await db.execute(select(models.ChatMessage).where(models.ChatMessage.user_id == user.id).order_by(models.ChatMessage.timestamp))).scalars().all()
-    history_json = json.dumps([
-        {"role": "user" if msg.sender == "user" else "assistant", "content": msg.content}
-        for msg in history
-    ])
+
+    is_assessment_mode = mode == "assessment"
+    if is_assessment_mode:
+        if not has_assessment_all_access(user):
+            return RedirectResponse(url="/assessment/unlock", status_code=status.HTTP_302_FOUND)
+        result = (
+            await db.execute(
+                select(models.AssessmentResult).where(models.AssessmentResult.user_id == user.id)
+            )
+        ).scalars().first()
+        if not result:
+            return RedirectResponse(url="/assessment", status_code=status.HTTP_302_FOUND)
+
+        assessment_history = [
+            {"role": message["role"], "content": message["content"]}
+            for message in (result.chat_messages or [])
+            if isinstance(message, dict)
+            and message.get("role") in ["user", "assistant"]
+            and isinstance(message.get("content"), str)
+            and message["content"].strip()
+        ]
+        history = [
+            {"sender": message["role"], "content": message["content"]}
+            for message in assessment_history
+        ]
+    else:
+        history = (
+            await db.execute(
+                select(models.ChatMessage)
+                .where(models.ChatMessage.user_id == user.id)
+                .order_by(models.ChatMessage.timestamp)
+            )
+        ).scalars().all()
+        assessment_history = []
     
     try:
         template = templates.get_template("chatbot.html")
@@ -8029,8 +8082,8 @@ async def chatbot_page(request: Request, mode: str = "chat", db: AsyncSession = 
             "request": request,
             "user": user,
             "history": history,
-            "history_json": history_json,
-            "is_assessment_mode": mode == "assessment",
+            "assessment_history": assessment_history,
+            "is_assessment_mode": is_assessment_mode,
         })
         return HTMLResponse(content=content)
     except Exception as e:

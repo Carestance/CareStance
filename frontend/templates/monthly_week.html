@@ -669,7 +669,7 @@
             </div>
             {% if cycle.weekly_conversation_due is not defined or cycle.weekly_conversation_due %}
             <p class="mt-3 text-sm" style="color: var(--text-secondary);">Have a short, guided conversation about your progress, blocker, and next action.</p>
-            <a href="/my-monthly-path/week/{{ week.week }}/conversation" class="mt-4 inline-flex items-center gap-2 btn-solid-teal"><i class="fas fa-comments"></i> Start weekly conversation</a>
+            <a href="/my-monthly-path/week/{{ week.week }}/conversation{% if plan.career_title %}?career={{ plan.career_title|urlencode }}{% endif %}" class="mt-4 inline-flex items-center gap-2 btn-solid-teal"><i class="fas fa-comments"></i> Start weekly conversation</a>
             {% else %}
             <p class="mt-4 rounded-xl p-4 text-sm" style="background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.25); color:#a7f3d0;"><i class="fas fa-check-circle mr-1"></i>Your Week {{ week.week }} AI conversation is complete.</p>
             {% endif %}

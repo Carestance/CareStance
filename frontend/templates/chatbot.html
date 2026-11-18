@@ -430,9 +430,15 @@
                     <img src="/static/images/pfp.png" alt="AI" class="w-full h-full object-cover rounded-[0.85rem]">
                 </div>
                 <div class="bubble bubble--ai max-w-[90%] sm:max-w-[80%]">
-                    <p class="leading-relaxed text-sm sm:text-base">Hello! I'm your personal AI career guide. I have
-                        access to your assessment data and can help you explore career paths, suggest degrees, or create
-                        a growth plan. What's on your mind today?</p>
+                    <p class="leading-relaxed text-sm sm:text-base">
+                        {% if is_assessment_mode %}
+                        Hello! I'm Careo. I'll use your assessment profile to understand your interests, strengths, and
+                        career preferences. What's important to you when thinking about your future?
+                        {% else %}
+                        Hello! I'm your personal AI career guide. I have access to your assessment data and can help you
+                        explore career paths, suggest degrees, or create a growth plan. What's on your mind today?
+                        {% endif %}
+                    </p>
                 </div>
             </div>
 
@@ -514,9 +520,10 @@
             </form>
             {% if is_assessment_mode %}
             <button type="button" id="finish-assessment-btn"
-                class="block w-full sm:w-auto mx-auto mt-4 px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md transition-colors">
-                Finish Assessment
+                class="hidden block w-full sm:w-auto mx-auto mt-4 px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-md transition-colors">
+                End Chat
             </button>
+            <p id="assessment-conversation-status" class="quest-eyebrow text-center mt-3" role="status" aria-live="polite"></p>
             {% endif %}
             <p class="quest-eyebrow text-center mt-3 opacity-60">AI generated • Check important info</p>
         </div>
@@ -857,39 +864,52 @@
 
 <!-- SCRIPTS -->
 <script src="/static/js/marked.min.js"></script>
+<script src="/static/js/assessment_conversation.js?v=1"></script>
 
 <script>
     const chatBox = document.getElementById('chat-box');
     const chatForm = document.getElementById('chat-form');
     const finishAssessmentBtn = document.getElementById('finish-assessment-btn');
     const isAssessmentMode = {{ 'true' if is_assessment_mode else 'false' }};
-    const assessmentHistory = {{ history_json | safe }};
-    let assessmentTurnCount = 0;
-
-    function showFinishAssessment() {
-        if (finishAssessmentBtn) finishAssessmentBtn.classList.remove('hidden');
-    }
-
-    function responseSignalsCompletion(text) {
-        return /(?:deep\s*dive|assessment).{0,80}(?:complete|finish)|finish.{0,80}(?:assessment|results)|click.{0,80}finish/i.test(text);
-    }
+    const assessmentHistory = {{ assessment_history | tojson }};
+    const assessmentStatus = document.getElementById('assessment-conversation-status');
+    const conversationTimer = isAssessmentMode
+        ? AssessmentConversationTimer.createEndChatTimer(
+            finishAssessmentBtn,
+            'carestance-assessment-chat-{{ user.id }}'
+        )
+        : null;
+    let isSubmitting = false;
+    let isFinalizing = false;
+    if (conversationTimer && !assessmentHistory.length) conversationTimer.clear();
 
     async function finishAssessment() {
+        if (!isAssessmentMode || isSubmitting || isFinalizing || !finishAssessmentBtn) return;
+        if (!window.confirm('End this conversation and generate your assessment results?')) return;
+
+        isFinalizing = true;
         finishAssessmentBtn.disabled = true;
-        finishAssessmentBtn.textContent = 'Generating Insights...';
-        const response = await fetch('/assessment/phase3/finalize', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ history: assessmentHistory })
-        });
-        if (!response.ok) {
+        finishAssessmentBtn.textContent = 'Saving conversation…';
+        if (assessmentStatus) assessmentStatus.textContent = 'Saving your conversation and preparing your results…';
+        try {
+            const response = await fetch('/assessment/phase3/finalize', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ history: assessmentHistory })
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(data.detail || 'Unable to finish the assessment. Please try again.');
+            }
+            if (!data.redirect) throw new Error('The assessment could not provide a results page.');
+            conversationTimer.clear();
+            window.location.href = data.redirect;
+        } catch (error) {
+            isFinalizing = false;
             finishAssessmentBtn.disabled = false;
-            finishAssessmentBtn.textContent = 'Finish Assessment';
-            alert('Unable to finish the assessment. Please try again.');
-            return;
+            finishAssessmentBtn.textContent = 'End Chat';
+            if (assessmentStatus) assessmentStatus.textContent = error.message;
         }
-        const data = await response.json();
-        if (data.redirect) window.location.href = data.redirect;
     }
 
     if (finishAssessmentBtn) finishAssessmentBtn.addEventListener('click', finishAssessment);
@@ -1118,21 +1138,25 @@
         chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    // --- Submission Logic (Unchanged) ---
+    // --- Submission Logic ---
     chatForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (isSubmitting || isFinalizing) return;
         const message = userInput.value.trim();
         if (!message) return;
 
-        // 1. UI Updates: User Msg
+        isSubmitting = true;
         appendMessage(message, true);
         if (isAssessmentMode) {
-            assessmentTurnCount += 1;
             assessmentHistory.push({ role: 'user', content: message });
+            conversationTimer.start();
+            finishAssessmentBtn.disabled = true;
+            if (assessmentStatus) assessmentStatus.textContent = 'Reviewing your assessment and preparing a response…';
         }
         userInput.value = '';
         userInput.disabled = true;
         sendBtn.disabled = true;
+        chatForm.setAttribute('aria-busy', 'true');
 
         // Visual Thinking States
         if (buddyOrb) buddyOrb.classList.add('scale-110');
@@ -1149,7 +1173,8 @@
                 <img src="/static/images/pfp.png" alt="AI" class="w-full h-full object-cover rounded-[0.85rem]">
             </div>
             <div class="bubble bubble--ai max-w-[90%] sm:max-w-[80%]">
-                <div id="ai-response-content" class="prose prose-emerald prose-sm max-w-none">
+                <div id="ai-response-content" class="prose prose-emerald prose-sm max-w-none"
+                     role="status" aria-label="Careo is preparing a response">
                    <div class="flex space-x-1.5 h-5 items-center">
                         <div class="w-2 h-2 bg-[var(--teal)] rounded-full animate-bounce"></div>
                         <div class="w-2 h-2 bg-[var(--teal)] rounded-full animate-bounce" style="animation-delay: 0.15s"></div>
@@ -1163,14 +1188,21 @@
 
         const contentDiv = div.querySelector('#ai-response-content');
         let fullText = "";
+        let responseSucceeded = false;
 
-        // 3. Network Request
         try {
-            const response = await fetch('/chatbot/message', {
+            const response = await fetch(
+                isAssessmentMode ? '/assessment/phase3/chat_v2' : '/chatbot/message',
+                {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: message })
-            });
+                body: JSON.stringify(
+                    isAssessmentMode
+                        ? { message, answers: assessmentHistory }
+                        : { message }
+                )
+                }
+            );
 
             if (!response.ok) {
                 let errorText = 'Sorry, I could not respond right now. Please try again.';
@@ -1181,30 +1213,42 @@
                 throw new Error(errorText);
             }
 
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            contentDiv.innerHTML = ""; // Clear loader
-
-            // 4. Stream Reading
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                const chunk = decoder.decode(value, { stream: true });
-                fullText += chunk;
+            if (isAssessmentMode) {
+                const result = await response.json();
+                if (typeof result.response !== 'string' || !result.response.trim()) {
+                    throw new Error('The AI returned an empty response. Please try again.');
+                }
+                fullText = result.response;
                 contentDiv.innerHTML = marked.parse(fullText);
-                if (isAssessmentMode && responseSignalsCompletion(fullText)) showFinishAssessment();
-                chatBox.scrollTop = chatBox.scrollHeight;
-            }
+                responseSucceeded = true;
+            } else {
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                contentDiv.innerHTML = "";
 
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    fullText += decoder.decode(value, { stream: true });
+                    contentDiv.innerHTML = marked.parse(fullText);
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                }
+                responseSucceeded = true;
+            }
+            if (assessmentStatus) assessmentStatus.textContent = 'Ready for your next message.';
         } catch (error) {
-            fullText = `Sorry, connection issue. ${error.message || 'Please try again.'}`;
-            contentDiv.innerHTML = `<span class="text-rose-500 font-medium">${fullText}</span>`;
+            contentDiv.textContent = error.message || 'The response could not be generated. Please try again.';
+            contentDiv.classList.add('text-rose-500');
+            if (assessmentStatus) assessmentStatus.textContent = 'No AI response was generated. Your message was saved; please try again.';
         } finally {
-            // Reset UI
             userInput.disabled = false;
-            sendBtn.disabled = false;
+            isSubmitting = false;
+            sendBtn.disabled = !userInput.value.trim();
             userInput.focus();
+            chatForm.removeAttribute('aria-busy');
+            if (finishAssessmentBtn) finishAssessmentBtn.disabled = false;
+            if (conversationTimer) conversationTimer.refresh();
 
             if (buddyOrb) buddyOrb.classList.remove('scale-110');
             if (buddyStatus) {
@@ -1212,11 +1256,9 @@
                 buddyStatus.classList.remove('bg-emerald-400', 'shadow-[0_0_8px_#34d399]');
             }
 
-            // Final render to ensure clean markdown
-            if (fullText) contentDiv.innerHTML = marked.parse(fullText);
-            if (isAssessmentMode) {
+            if (responseSucceeded && fullText) contentDiv.innerHTML = marked.parse(fullText);
+            if (isAssessmentMode && responseSucceeded) {
                 assessmentHistory.push({ role: 'assistant', content: fullText });
-                if (assessmentTurnCount >= 10 || responseSignalsCompletion(fullText)) showFinishAssessment();
             }
         }
     });

@@ -178,15 +178,26 @@ async def webrtc_offer(request: Request, offer: WebRTCOffer, db = Depends(get_db
         assistant_aggregator = LLMAssistantAggregator(context)
         
         from app.realtime.pipecat.broadcaster import TranscriptBroadcaster
-        broadcaster = TranscriptBroadcaster(session=session, on_complete=save_completion_state)
+        user_transcript_broadcaster = TranscriptBroadcaster(
+            session=session,
+            broadcast_transcripts=True,
+            broadcast_assistant=False,
+        )
+        assistant_broadcaster = TranscriptBroadcaster(
+            session=session,
+            on_complete=save_completion_state,
+            broadcast_transcripts=False,
+            broadcast_assistant=True,
+        )
 
         pipeline = Pipeline([
             transport.input(),
             stt,
+            user_transcript_broadcaster,
             context_aggregator,
             llm,
             tts,
-            broadcaster,
+            assistant_broadcaster,
             transport.output(),
             assistant_aggregator
         ])

@@ -55,7 +55,7 @@
   .head-status { margin-top: 3px; color: #c9e2dc; font-size: 0.8rem; }
   .head-status.on { color: #8ff0ca; }
 
-  .end-btn, .finish {
+  .end-btn {
     border: 0;
     border-radius: 10px;
     padding: 10px 14px;
@@ -68,7 +68,7 @@
   }
 
   .end-btn { margin-left: auto; }
-  .end-btn:hover, .finish:hover { background: #cce9df; }
+  .end-btn:hover { background: #cce9df; }
 
   .msgs {
     flex: 1;
@@ -107,7 +107,6 @@
   .composer { padding: 14px clamp(12px, 3vw, 24px) 18px; border-top: 1px solid #e4ece9; background: #fff; }
   .caption { min-height: 0; margin: 0 auto 8px; color: #62726d; text-align: center; font-size: 0.85rem; }
   .caption.show { min-height: 20px; }
-  .finish { display: none; margin: 0 auto 12px; background: #0e8069; color: #fff; }
   .bar { display: flex; align-items: center; gap: 10px; }
   .cc, .icon-btn { width: 44px; height: 44px; flex: 0 0 auto; display: grid; place-items: center; border: 1px solid #d7e2de; border-radius: 50%; background: #fff; color: #28564c; cursor: pointer; }
   .cc.on { background: #d9f1e8; border-color: #9acdbb; }
@@ -122,8 +121,9 @@
   .dots i { width: 6px; height: 6px; border-radius: 50%; background: #68827a; animation: voice-dot 1s infinite alternate; }
   .dots i:nth-child(2) { animation-delay: 0.2s; }
   .dots i:nth-child(3) { animation-delay: 0.4s; }
-
+  .spin { display: inline-block; width: 18px; height: 18px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: voice-spin 0.7s linear infinite; }
   @keyframes voice-dot { to { opacity: 0.3; transform: translateY(-3px); } }
+  @keyframes voice-spin { to { transform: rotate(360deg); } }
 
   .result-overlay {
     position: fixed;
@@ -201,8 +201,8 @@
         <div class="head-title">Careo · Career Buddy</div>
         <div class="head-status" id="status">Ready when you are</div>
       </div>
-      <button class="end-btn" id="end-btn" onclick="finishAssessment()" title="End conversation">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="3"/></svg> End
+      <button class="end-btn hidden" id="end-btn" onclick="finishAssessment()" title="End conversation" hidden>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="3"/></svg> End Chat
       </button>
     </div>
 
@@ -216,7 +216,6 @@
 
     <div class="composer">
       <div class="caption" id="caption"></div>
-      <button class="finish" id="finish-btn" onclick="finishAssessment()">Finish &amp; Get Results</button>
       <div class="bar">
         <button class="cc" id="cc-btn" onclick="toggleCaptions()" aria-label="Connect with AI — live captions">CC
           <span class="tip">Connect with AI<small>Toggle live captions</small></span>
@@ -243,16 +242,22 @@
 </div>
 
 <script src="/static/js/voice_client.js?v=2.4.3"></script>
+<script src="/static/js/assessment_conversation.js?v=1"></script>
 <script>
 const $ = id => document.getElementById(id);
-const statusEl=$('status'), msgs=$('msgs'), micBtn=$('mic-btn'), endBtn=$('end-btn'), finishBtn=$('finish-btn'),
+const statusEl=$('status'), msgs=$('msgs'), micBtn=$('mic-btn'), endBtn=$('end-btn'),
       caption=$('caption'), ccBtn=$('cc-btn'), headAvatar=$('head-avatar'), txt=$('txt'), sendBtn=$('send-btn'),
       resultOverlay=$('result-overlay');
 
 let currentUIState='IDLE', captionsEnabled=false, micMuted=false, isSpeakingActive=false;
-let isFinalizing=false;
+let isFinalizing=false, isVoiceTurnPending=false;
 let chatHistory = JSON.parse($('shell').dataset.chatHistory || '[]');
 if (!Array.isArray(chatHistory)) chatHistory = [];
+const conversationTimer=AssessmentConversationTimer.createEndChatTimer(
+  endBtn,
+  'carestance-assessment-voice-{{ user.id }}'
+);
+if(!chatHistory.length) conversationTimer.clear();
 let audioCtx=null, analyser=null, dataArray=null, audioSource=null;
 let liveUser=null, botRow=null;          // in-progress bubbles
 const botVideos=()=>document.querySelectorAll('video');
@@ -308,13 +313,19 @@ function setUIState(state){
   currentUIState=state;
   if(state!=='AI_SPEAKING'){ isSpeakingActive=false; setMascot(false); }
   switch(state){
-    case 'IDLE': setStatus('Ready when you are'); paintMic('idle'); endBtn.style.display='none'; micMuted=false; break;
-    case 'CONNECTING': setStatus('Connecting…'); paintMic('loading'); break;
-    case 'LISTENING': setStatus(micMuted?'Mic paused':'Listening…',!micMuted); paintMic(micMuted?'muted':'active'); endBtn.style.display='inline-flex'; break;
-    case 'USER_SPEAKING': setStatus('Listening to you…',true); break;
-    case 'THINKING': setStatus('Careo is thinking…'); showTyping(); break;
-    case 'AI_SPEAKING': setStatus('Careo is speaking',true); isSpeakingActive=true; setMascot(true); setupAudioAnalysis(); break;
-    case 'ERROR': setStatus('Trouble connecting — try again'); paintMic('retry'); break;
+    case 'IDLE': setStatus('Ready when you are'); paintMic('idle'); micMuted=false; isVoiceTurnPending=false; syncSend(); break;
+    case 'CONNECTING': setStatus('Initializing microphone…'); paintMic('loading'); syncSend(); break;
+    case 'LISTENING':
+      conversationTimer.start();
+      isVoiceTurnPending=false;
+      setStatus(micMuted?'Mic paused':'Listening — speak when ready',!micMuted);
+      paintMic(micMuted?'muted':'active');
+      syncSend();
+      break;
+    case 'USER_SPEAKING': setStatus('Transcribing your speech…',true); syncSend(); break;
+    case 'THINKING': setStatus('Processing your response…'); showTyping(); syncSend(); break;
+    case 'AI_SPEAKING': setStatus('Careo is speaking',true); isSpeakingActive=true; setMascot(true); setupAudioAnalysis(); syncSend(); break;
+    case 'ERROR': setStatus('Voice connection needs attention — tap the mic to retry'); paintMic('retry'); isVoiceTurnPending=false; syncSend(); break;
   }
 }
 
@@ -355,16 +366,25 @@ function toggleCaptions(){captionsEnabled=!captionsEnabled;ccBtn.classList.toggl
 function updateCaption(t){caption.textContent=t||'';}
 
 /* ---------- composer ---------- */
-function syncSend(){sendBtn.disabled=!txt.value.trim();}
+function syncSend(){
+  const channelReady=window.voiceClient && window.voiceClient.dataChannel
+    && window.voiceClient.dataChannel.readyState==='open'
+    && ['LISTENING','USER_SPEAKING','THINKING','AI_SPEAKING'].includes(currentUIState);
+  sendBtn.disabled=!txt.value.trim()||isVoiceTurnPending||!channelReady||isFinalizing;
+  txt.disabled=!channelReady||isVoiceTurnPending||isFinalizing;
+  endBtn.disabled=isVoiceTurnPending||isFinalizing;
+}
 function sendTyped(){
+  if(isVoiceTurnPending||isFinalizing) return;
   const t=txt.value.trim(); if(!t) return;
   const vc=window.voiceClient;
   if(!vc || typeof vc.sendText!=='function' || !vc.sendText(t)){
-    updateCaption('Connect with the mic before sending a message.');
+    updateCaption('The voice channel is not ready. Reconnect before sending a message.');
     return;
   }
   addRow('me',esc(t)); chatHistory.push({role:'user',content:t});
-  txt.value=''; syncSend(); showTyping(); setStatus('Careo is thinking…');
+  isVoiceTurnPending=true;
+  txt.value=''; syncSend(); showTyping(); setStatus('Processing your response…');
 }
 
 /* ---------- session ---------- */
@@ -376,63 +396,89 @@ function toggleVoiceSession(){
   paintMic(micMuted?'muted':'active');
 }
 function startSession(){
-  setUIState('CONNECTING'); updateCaption('Connecting to AI…');
   if(window.voiceClient){ try{window.voiceClient.disconnect();}catch(e){} }
-  const proto=location.protocol==='https:'?'wss:':'ws:';
-  window.voiceClient=new VoiceClient(`${proto}//${location.host}/api/webrtc/offer`, state=>{
+  setUIState('CONNECTING'); updateCaption('Requesting microphone permission…');
+  window.voiceClient=new VoiceClient('/api/webrtc/offer', state=>{
     if(state==='LISTENING') setUIState('LISTENING');
     else if(state==='ERROR') setUIState('ERROR');
-    else if(state==='DISCONNECTED') setUIState('IDLE');
+    else if(state==='DISCONNECTED'&&!isFinalizing){
+      setUIState('ERROR');
+      updateCaption('Voice connection ended. Tap the microphone to reconnect.');
+    }
   }, msg=>{
-    if(msg&&msg.type==='VOICE_ERROR'){ updateCaption(msg.message||'Microphone connection failed. Check browser permissions.'); return; }
+    if(msg&&msg.type==='VOICE_STATUS'){
+      if(msg.status==='MIC_INITIALIZING'){
+        setStatus('Requesting microphone permission…');
+        updateCaption(msg.message);
+      }else if(msg.status==='AI_CONNECTING'){
+        setStatus('Connecting to AI…');
+        updateCaption(msg.message);
+      }else if(msg.status==='RECONNECTING'){
+        setStatus('Reconnecting voice…');
+        updateCaption(msg.message);
+      }else if(msg.status==='DATA_CHANNEL_CLOSED'){
+        updateCaption(msg.message);
+      }
+      return;
+    }
+    if(msg&&msg.type==='DATA_CHANNEL_OPEN'){
+      updateCaption('Voice connection ready. Speak when you are ready.');
+      syncSend();
+      return;
+    }
+    if(msg&&msg.type==='VOICE_ERROR'){
+      updateCaption(msg.message||'Microphone or voice connection failed. Check permissions and try again.');
+      return;
+    }
     if(!msg||!msg.type) return;
     if(msg.type==='TRANSCRIPT_PARTIAL'){
-      setUIState('USER_SPEAKING'); updateCaption(msg.text);
+      isVoiceTurnPending=true; setUIState('USER_SPEAKING'); updateCaption(msg.text); syncSend();
       if(!liveUser) liveUser=addRow('me','',true); setBubble(liveUser,msg.text,true);
     } else if(msg.type==='TRANSCRIPT_FINAL'){
-      if(!liveUser) liveUser=addRow('me','',false); setBubble(liveUser,msg.text,false); liveUser=null;
-      updateCaption(msg.text); chatHistory.push({role:'user',content:msg.text}); setUIState('THINKING');
+      const transcript=(msg.text||'').trim();
+      if(!transcript) return;
+      if(!liveUser) liveUser=addRow('me','',false); setBubble(liveUser,transcript,false); liveUser=null;
+      updateCaption(transcript); chatHistory.push({role:'user',content:transcript}); isVoiceTurnPending=true; setUIState('THINKING'); syncSend();
     } else if(msg.type==='ASSISTANT_MESSAGE'){
       showBotMessage(msg.text); updateCaption(msg.text); chatHistory.push({role:'assistant',content:msg.text});
       setUIState('AI_SPEAKING');
     } else if(msg.type==='BOT_STARTED_SPEAKING'){ setUIState('AI_SPEAKING');
     } else if(msg.type==='BOT_STOPPED_SPEAKING'){
       if(currentUIState==='AI_SPEAKING'){ botRow=null; setUIState('LISTENING'); }
-    } else if(msg.type==='CONVERSATION_COMPLETED'){ finishBtn.style.display='block'; }
+    } else if(msg.type==='CONVERSATION_COMPLETED'){
+      updateCaption('Careo has finished this conversation. End Chat will be available after five minutes.');
+    }
   });
   window.voiceClient.connect();
 }
 
-/* fallback: AI audio went silent -> back to listening */
-let silence=0;
-setInterval(()=>{
-  if(currentUIState==='AI_SPEAKING'&&analyser&&dataArray){
-    analyser.getByteFrequencyData(dataArray);
-    let s=0; for(let i=0;i<dataArray.length;i++) s+=dataArray[i];
-    if(s===0){ silence+=500; if(silence>=2000){ botRow=null; setUIState('LISTENING'); silence=0; } } else silence=0;
-  } else silence=0;
-},500);
-
 async function finishAssessment(){
-  if(isFinalizing) return;
+  if(isFinalizing||isVoiceTurnPending||currentUIState==='CONNECTING') return;
+  if(!window.confirm('End this conversation, save your responses, and generate your assessment results?')) return;
   isFinalizing=true;
-  finishBtn.disabled=endBtn.disabled=true; finishBtn.textContent='Preparing…';
+  endBtn.disabled=true;
+  txt.disabled=true;
+  sendBtn.disabled=true;
   resultOverlay.classList.add('visible');
   resultOverlay.setAttribute('aria-hidden','false');
   $('shell').setAttribute('aria-busy','true');
   if(window.voiceClient) window.voiceClient.disconnect();
   try{
     const r=await fetch('/assessment/phase3/finalize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({history:chatHistory})});
-    if(!r.ok) throw new Error('Server returned '+r.status);
-    const d=await r.json();
-    if(d.redirect) location.href=d.redirect; else throw new Error('No redirect URL');
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(d.detail||'Could not save and finalize the conversation. Please try again.');
+    if(!d.redirect) throw new Error('The assessment could not provide a results page.');
+    conversationTimer.clear();
+    location.href=d.redirect;
   }catch(e){
-    console.error(e); alert('Could not finalize. Please try again.');
+    console.error(e);
     isFinalizing=false;
     resultOverlay.classList.remove('visible');
     resultOverlay.setAttribute('aria-hidden','true');
     $('shell').removeAttribute('aria-busy');
-    finishBtn.disabled=endBtn.disabled=false; finishBtn.textContent='Finish & Get Results';
+    setUIState('ERROR');
+    updateCaption(e.message||'Could not finalize the conversation. Please try again.');
+    syncSend();
   }
 }
 
